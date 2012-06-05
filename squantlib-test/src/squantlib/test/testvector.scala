@@ -3,12 +3,10 @@ package squantlib.test
 import scala.collection.immutable.TreeMap
 import scala.collection.immutable.SortedMap
 import scala.collection.Iterable
-
+import squantlib.parameter._ 
 import org.jquantlib.time.{ Date => JDate }
 
 object testvector {
-	import squantlib.parameter._ 
-	import org.jquantlib.time.{ Date => JDate }
 	
 	def main(args:Array[String]) : Unit = {
 	  
@@ -39,16 +37,16 @@ object testvector {
 	  var mindate = new JDate(5, 5, 2000)
 	  val testcase = 100
 	  val testperiod = 50
-	  
+	   
 	  var inputset = new Array[JDate](testcase)
 	  for (i <- 0 to testcase-1) { inputset(i) = mindate.add(i * testperiod)}
 	  
 //	  val inputset = Array (new JDate(5, 5, 1995), new JDate(5, 2, 2005), new JDate(5, 5, 2007), new JDate(5, 5, 2009), new JDate(5, 5, 2022))
-	  
+//	  
 	  println("Output")
 	  println("Spline : Spline+Points : Linear")
-	   inputset.foreach( (d:JDate) => { println(d.shortDate().toString() + "  " + spline.value(d) + " " + spline2.value(d) + " " + linear.value(d))})
-	  
+//	   inputset.foreach( (d:JDate) => { println(d.shortDate().toString() + "  " + spline.value(d) + " " + spline2.value(d) + " " + linear.value(d))})
+	   inputset.foreach( (d:JDate) => { println(d.shortDate().toString() + "  " + + spline.value(d) + " " + spline2.value(d) + " " + linear.value(d))})
 	  
     }
 }

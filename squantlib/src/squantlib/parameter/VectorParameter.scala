@@ -18,7 +18,7 @@ class SplineParameter(values:SortedMap[JDate, Double]) {
     val valarray = keysarray.map((d:JDate) => valuelist(d))
 //    val splinefunction = new SplineInterpolator().interpolate(valuelist.keys.map((d:JDate) => d.serialNumber().toDouble).toArray, valuelist.values.toArray)
     val splinefunction = new SplineInterpolator().interpolate(keysarray.map((d:JDate)=>d.serialNumber().toDouble), valarray)
-
+ 
     var value : JDate => Double = (d:JDate) => {
       valuelist.size match {
         case m if m == 0 => Double.NaN
