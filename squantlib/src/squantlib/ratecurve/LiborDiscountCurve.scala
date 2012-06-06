@@ -1,111 +1,89 @@
 //package squantlib.ratecurve
+//
 //import scala.collection.immutable.TreeMap
+//
+//import squantlib.parameter._
+//
 //import org.jquantlib.time.{ Date => JDate }
-//import org.jquantlib.time.{ RelativeDate => JRDate }
+//import org.jquantlib.time.{ Period => JPeriod }
+//import org.jquantlib.time.TimeUnit
+//import org.jquantlib.daycounters.DayCounter;
+// 
+//import org.apache.commons.math3.analysis.function.Log
+//import org.apache.commons.math3.analysis.function.Exp
 //
-//class LiborDiscountCurve (val cashrate : CashCurve, val swaprate:SwapCurve, val basisswap:BasisSwapCurve, val tenorbasisswap:TenorBasisSwapCurve, vdate : JDate) 
+//
+//class LiborDiscountCurve (val cash : CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val valuedate : JDate) 
 //extends RateCurve{
-//	val valuedate = vdate.toAbsolute(null)
-//	
-//	def getZC(spread : Double) : ZCCurve = {
-//	  var ZC : TreeMap[JDate, Double] = TreeMap.empty
+//  require (List(cash.valuedate, swap.valuedate, basis.valuedate, tenorbasis.valuedate).forall(_ == valuedate))
+//  
+//	def getZC(spread : TimeVector) : DiscountCurve = {
+//	  /**
+//	   * initialize empty containers
+//	   */
+//	  var ZC : TreeMap[JPeriod, Double] = TreeMap.empty
+//	  var ZCspread : TreeMap[JPeriod, Double] = TreeMap.empty
+//
+//	  /**
+//	   * initialize day count fractions
+//	   */
+//	  val dcffloat = swap.floatIndex.dayCounter().annualDayCount()
+//	  val dcffix = swap.fixDaycount.annualDayCount()
+//	  val fixperiod = 12 / swap.fixPeriod.toInteger()
+//	  var localduration = 0.0
+//	  
+//	  /**
+//	   * initialize maturities and daycounts.
+//	   * Daycount is for swap fixed leg convention. (not to be used for cash rate)
+//	   */
+//	  val maxmaturity = (JPeriod.months(swap.rate.maxPeriod, valuedate)).toInt
+//	  val periods = (for (m <- (List(0, 3, 6, 9) ++ (12 until maxmaturity by fixperiod))) yield (m -> (new JPeriod(m, TimeUnit.Months)))) toMap
+//	  val maturities = (for (m <- periods.keySet) yield (m -> valuedate.add(periods(m)))) toMap
+//	  val dcf = (for (m <- fixperiod until maxmaturity by fixperiod) yield (m -> swap.fixDaycount.yearFraction(maturities(m-fixperiod), maturities(m)))) toMap
+//	  
+//	  /**
+//	   * spot zero coupon = 1.00
+//	   */
+//	  ZC ++= Map(periods(0) -> 1.00)
+//	  
+//	  /**
+//	   * using cash rate to compute zero coupon < 12 months.
+//	   * note: we are assuming 3m-9m basis spread = 3m-6m basis spread
+//	   */
+//	  val cashrange = for (m <- periods.keySet if m < 12; if m > 0) yield m
+//	  ZCspread ++= (for (m <- cashrange; p = periods(m)) yield (p, spread.value(p)))
+//	  ZC ++= (for (m <- cashrange; p = periods(m); bs3m6m = if (m == 3) 0.0 else tenorbasis.value(p); zcspd = ZCspread(p)) 
+//		  		yield (p, 1 / (1 + (cash.value(p) + zcspd - bs3m6m) * dcffloat * m / 12)))
+//	  localduration += (for(m <- cashrange if m % fixperiod == 0; p = periods(m)) yield (ZC(p) * dcf(m))).sum
+//	  
+//	  /**
+//	   * using swap rate to compute zero coupon >= 1year 
+//	   * note: we are assuming no basis below 3 months and above 6 months
+//	   */
+//	  val swaprange = (for (m <- periods.keySet if m >= 12) yield m)
+//	  ZCspread ++= (for (m <- swaprange; p = periods(m)) yield (p, spread.value(p)))
 //	  
 //	  
-//            Vector[col_ZC].Add(new DateParameter("0M", market.MarketDate), 1.00, false, true);
-//            double dcfFloat1 = DateServices.GetSimpleDayFrac(FloatBasis);
-//            double dcfFix1 = DateServices.GetSimpleDayFrac(FixBasis);
-//            double dcfFloat2 = (isRefin ? dcfFloat1 : DateServices.GetSimpleDayFrac(refin.FloatBasis));
-//            double dcfFix2 = (isRefin ? dcfFix1 : DateServices.GetSimpleDayFrac(refin.FixBasis));
-//
-//            double bsccy, zcspd;
-//            int fixStep = DateServices.StringToMonths(FixPeriod);
-//            int i = 0;
-//            IDateParameter maturity;
-//
-//            do
-//            {
-//                i += ZCPeriod_months;
-//                maturity = new DateParameter(DateServices.MonthsToString(i), market.MarketDate);
-//                double bs3m6m = (maturity.Name == DiscountPeriod ? 0.0 : Basis3m6mCurve.Get(maturity).Value.Value);
-//
-//                if (isRefin)
-//                {
-//                    zcspd = Vector[col_ZCSpread].Get(maturity).Value.Value;
-//                }
-//                else
-//                {
-//                    if (Name == Market.PivotCurve.Name)
-//                    {
-//                        bsccy = -refin.BasisSwapCurve.Get(maturity).Value.Value;
-//                        zcspd = (bsccy + refin.Rate(col_ZCSpread, maturity).Value) * dcfFloat2 / dcfFloat1;
-//                    }
-//                    else
-//                    {
-//                        bsccy = BasisSwap(maturity).Value;
-//                        zcspd = bsccy + refin.Rate(col_ZCSpread, maturity).Value * dcfFloat1 / dcfFloat2;
-//                    }
-//                }
-//
-//                Vector[col_ZCSpread].Get(maturity).Value = zcspd;
-//                Vector[col_ZC].Get(maturity).Value = 1 / (1 + (Swap(maturity) + Rate(col_ZCSpread, maturity) - bs3m6m) * dcfFloat1 *
-//                            DateServices.GetDayFrac(market.MarketDate, maturity.Date, CurveKeys.base_30_360));
-//
-//            } while ((string)Vector[CurveKeys.RateType].Get(maturity).Content != CurveKeys.Swap);
-//
-//            IDateParameter prevmaturity = new DateParameter(DateServices.MonthsToString(i - fixStep), market.MarketDate);
-//
-//            int maxmonths = DateServices.StringToMonths(MaxMaturity.Name);
-//            while (i <= maxmonths)
-//            {
-//                maturity = new DateParameter(DateServices.MonthsToString(i), market.MarketDate);
-//                zcspd = 0.00;
-//
-//                double floatDuration1, floatDuration2;
-//                int maturity_months = DateServices.StringToMonths(prevmaturity.Name);
-//                int fixperiod_months = DateServices.StringToMonths(FixPeriod);
-//                double bs3m6m = (FloatPeriod == CcyBSPeriod ? 0.0 : Basis3m6m(maturity).Value);
-//
-//                if (isRefin) 
-//                {
-//                    zcspd = Rate(col_ZCSpread, maturity).Value;
-//                }
-//                else
-//                {
-//                    if (i <= fixStep)
-//                    {
-//                        floatDuration1 = dcfFloat1;
-//                        floatDuration2 = dcfFloat2;
-//                    }
-//                    else
-//                    {
-//                        floatDuration1 = QuickDuration(maturity_months, fixperiod_months, FloatBasis, col_ZC, true);
-//                        floatDuration2 = refin.QuickDuration(maturity_months, fixperiod_months, refin.FloatBasis, col_ZC, true);
-//                    }
-//
-//                    if (Name == Market.PivotCurve.Name) // this currency = Pivot currency <> refin currency
-//                    {
-//                        bsccy = -refin.BasisSwap(maturity).Value;
-//                        zcspd = (bsccy + refin.Rate(col_ZCSpread, maturity).Value) * floatDuration2 / floatDuration1;
-//                        bs3m6m = bs3m6m * floatDuration2 / floatDuration1;
-//                    }
-//                    else // refin currency = Pivot Currency
-//                    {
-//                        bsccy = BasisSwap(maturity).Value;
-//                        zcspd = bsccy + refin.Rate(col_ZCSpread, maturity).Value * floatDuration2 / floatDuration1;
-//                    }
-//                }
-//
-//                double realRate = Swap(maturity).Value + (zcspd - bs3m6m) * dcfFloat1 / dcfFix1;
-//                double fixDuration1 = QuickDuration(maturity_months, fixperiod_months, FixBasis, col_ZC);
-//                double dcf = DateServices.GetDayFrac(prevmaturity.Date, maturity.Date, FixBasis);
-//                Vector[col_ZCSpread].Get(maturity).Value = zcspd;
-//                Vector[col_ZC].Get(maturity).Value = (1 - realRate * fixDuration1) / (1 + realRate * dcf);
-//                i += fixStep;
-//                prevmaturity.Name = maturity.Name;
-//            }
-//
-//            Vector[col_ZCSpread].ApplyInterpolation();
-//        }
-//
+////	  for (m <- periods.keySet if m >= 12) {
+////	    val period = periods(m)
+////	    val bs3m6m = if (swap.floatIndex.tenor().length() <= 3) 0.0 else tenorbasis.value(period)
+////	    val zcspd = spread.value(period)
+////        val realRate = swap.value(period) + (zcspd - bs3m6m) * dcffloat / dcffix
+////        val fixduration = localduration
+////        val zcXm = (1 - realRate * fixduration) / (1 + realRate * dcf(m))
+////        ZCspread ++= Map(period -> zcspd)
+////        ZC ++= Map(period -> zcXm)
+////        localduration += zcXm * dcf(m)
+////	  }
+//	  
+//	  /**
+//	   * Construct new discount curve object.
+//	   * ZC vector is spline interpolation with exponential extrapolation
+//	   * ZCspread vector is spline interpolation with no extrapolation and with 2 additional points
+//	   */
+//	  val ZCvector = new SplineEExtrapolation(valuedate, ZC)
+//	  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
+//	  new DiscountCurve(ZCvector, ZCspdvector)
+//  }
 //  
 //}

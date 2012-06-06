@@ -7,23 +7,25 @@ import squantlib.parameter.TimeVector
  */
 trait DiscountableCurve {
   
-  /** Builds zero coupon curve using the curve itself as discount currency.
+  /** 
+   * Builds zero coupon curve using the curve itself as discount currency.
    * @param spread on 3 month float rate
    */
-  def getZC(spread:Double) : ZCCurve
+  def getZC(spread:TimeVector) : DiscountCurve
 
-  /** Builds zero coupon curve using external curve as discount currency.
+  /** 
+   * Builds zero coupon curve using external curve as discount currency.
    * External curve is either 
    * @param spread on 3 month float rate
    */
-  def getZC(discountCurve:RateCurve, discountZC:ZCCurve) : ZCCurve
+  def getZC(discountRate:RateCurve, discountcurve:DiscountCurve) : DiscountCurve
 }
 
 
 /**
- * Encapsulates cashflow discounting curve
+ * Encapsulates cashflow discounting curve and discount spread on 3m float rate.
  * value = discount factor, ZCspread = discount spread on 3m float rate (not defined on FX discount)
  */
-class ZCCurve(val value : TimeVector, val ZCspread : TimeVector) {
+class DiscountCurve(val value : TimeVector, val discountspread : TimeVector) {
   def this(v:TimeVector) = this(v, null)
 }
