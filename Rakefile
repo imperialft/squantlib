@@ -21,3 +21,5 @@ end
 task :test do
   system "scala -classpath #{(java_archives | class_paths).join(":")} org.junit.runner.JUnitCore " + unit_test_classes.join(" ")
 end
+
+task :default => :test
