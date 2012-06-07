@@ -1,0 +1,13 @@
+./bin
+./lib
+
+# .gitignore (GitHub)
+*.class
+*.log
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.scala_dependencies
