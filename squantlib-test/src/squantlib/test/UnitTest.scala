@@ -1,4 +1,4 @@
-package org.squantlib.test
+package squantlib.test
 
 import org.junit._
 import org.junit.Assert._

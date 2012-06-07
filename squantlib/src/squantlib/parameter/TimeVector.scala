@@ -90,8 +90,7 @@ trait AbstractTimeVector {
  * @param number of extra points (optional)
  */
 class SplineNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Double], extrapoints:Int) extends TimeVector with AbstractTimeVector {
-  
-	require(values.size > 2)
+	require(values.size >= 3)
 	
     val splinefunction = {
 	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty
@@ -112,6 +111,39 @@ class SplineNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Dou
     def interpolation(v : Long) = splinefunction.value(v.toDouble)
 }
 
+/**
+ * TimeVector with Spline interpolation and exponential extrapolation. (always > 0)
+ * Date is internally described as number of days since value date, but can be accessed by Date or Period.
+ * 
+ * @constructor constructs polynomial curve from given points. extra flat points are added after final date to manage overshoot.
+ * @param input points
+ * @param number of extra points (optional)
+ */
+class SplineEExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Double], extrapoints:Int) extends TimeVector with AbstractTimeVector {
+	require(values.size >= 3)
+	
+	val firstvalue = values.first._2
+	val impliedrate = -1.0 * new Log().value(values.last._2 / firstvalue) / values.lastKey.days(valuedate).toDouble
+	val extrapolator = new Exp()
+	
+	val minDays = values.firstKey.days(valuedate)
+	val maxDays = values.lastKey.days(valuedate)
+	val maxDate = new JDate(valuedate.serialNumber() + maxDays)
+	val maxPeriod = new JPeriod(maxDays.toInt, TimeUnit.Days)
+
+	def lowextrapolation(v : Long) = values.first._2
+    def highextrapolation(v : Long) = firstvalue * extrapolator.value(-1.0 * impliedrate * v.toDouble)
+    def interpolation(v : Long) = splinefunction.value(v.toDouble)
+
+    val splinefunction = {
+		var inputpoints :TreeMap[Long, Double] = TreeMap.empty
+		for (d <- values.keySet) { inputpoints ++= Map(d.days(valuedate) -> values(d)) }
+	    for (i <- 1 to extrapoints; d = values.lastKey.days(valuedate) + (30L * i.toLong)) { inputpoints ++= Map(d -> highextrapolation(d)) }
+		val keysarray = inputpoints.keySet.toArray
+		val valarray = keysarray.map((i:Long) => inputpoints(i))
+		new SplineInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)
+    }
+}
 
 /**
  * TimeVector with Linear interpolation and no extrapolation. (ie. y-value is constant after last date)
@@ -119,9 +151,10 @@ class SplineNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Dou
  * 
  * @constructor constructs linear curve from given points. extra flat points are added after final date to manage overshoot.
  * @param input points
- * @param number of extra points (optional)
  */
 class LinearNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Double]) extends TimeVector with AbstractTimeVector {
+	require(values.size >= 2)
+  
     val linearfunction = {
 	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty
 	    for (d <- values.keySet) { inputpoints ++= Map(d.days(valuedate) -> values(d)) }
@@ -141,37 +174,23 @@ class LinearNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Dou
 }
 
 /**
- * TimeVector with Spline interpolation and exponential extrapolation. (always > 0)
- * Date is internally described as number of days since value date, but can be accessed by Date or Period.
+ * Flat vector
  * 
- * @constructor constructs polynomial curve from given points. extra flat points are added after final date to manage overshoot.
- * @param input points
- * @param number of extra points (optional)
+ * @param input point
  */
-class SplineEExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Double]) extends TimeVector with AbstractTimeVector {
-  
-	require(values.size > 2)
+class FlatVector(var valuedate : JDate, values:Map[JPeriod, Double]) extends TimeVector with AbstractTimeVector {
+	require(values.size == 1)
 	
-    val splinefunction = {
-		var inputpoints :TreeMap[Long, Double] = TreeMap.empty
-		for (d <- values.keySet) { inputpoints ++= Map(d.days(valuedate) -> values(d)) }
-		val keysarray = inputpoints.keySet.toArray
-		val valarray = keysarray.map((i:Long) => inputpoints(i))
-		new SplineInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)
-    }
-    
+	val constantvalue = values.first._2
 	val firstvalue = values.first._2
-	val impliedrate = -1.0 * new Log().value(values.last._2 / firstvalue) / values.lastKey.days(valuedate).toDouble
-	val extrapolator = new Exp()
 	
-	val minDays = values.firstKey.days(valuedate)
-	val maxDays = values.lastKey.days(valuedate)
+	val minDays = values.first._1.days(valuedate)
+	val maxDays = minDays
 	val maxDate = new JDate(valuedate.serialNumber() + maxDays)
 	val maxPeriod = new JPeriod(maxDays.toInt, TimeUnit.Days)
 
-	def lowextrapolation(v : Long) = values.first._2
-    def highextrapolation(v : Long) = firstvalue * extrapolator.value(-1.0 * impliedrate * v.toDouble)
-    def interpolation(v : Long) = splinefunction.value(v.toDouble)
+	def lowextrapolation(v : Long) = constantvalue
+    def highextrapolation(v : Long) = constantvalue
+    def interpolation(v : Long) = constantvalue
 }
-
 

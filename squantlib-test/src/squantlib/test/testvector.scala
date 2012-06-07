@@ -27,23 +27,20 @@ object testvector {
 	  println("Input")
 	  for (d <- testmap.keySet) { println(d.toString() + ":" + testmap(d).toString())}
 	  
+	  var flat = new FlatVector(vd, Map(d1))
 	  var linear = new LinearNoExtrapolation(vd, testmap)
-	  var spline = new SplineNoExtrapolation(vd, testmap, 0)
-	  var spline2 = new SplineEExtrapolation(vd, testmap)
+	  var spline = new SplineNoExtrapolation(vd, testmap, 2)
+	  var spline2 = new SplineEExtrapolation(vd, testmap, 1)
 	  
 	  var mindate = new JDate(5, 5, 2000)
 	  val testcase = 100
 	  val testperiod = 3
 	   
-//	  var inputset = for (i <- 0 to testcase - 1) yield mindate.add(i * testperiod)
 	  var inputset = for (i <- 0 to (testcase * testperiod) if i % testperiod == 0) yield new JPeriod(i, TimeUnit.Months)
 	  
 	  println("Output")
-	  println("Spline : Spline+Points : Linear")
-	  inputset.foreach( (d:JPeriod) => { println(d.toString() + "  " + + spline.value(d) + " " + spline2.value(d) + " " + linear.value(d))})
-	  println("max defined date" + spline.maxDate.toString() + " " + spline2.maxDate.toString() + " " + linear.maxDate.toString())
-	  println("max defined date" + spline.maxPeriod.toString() + " " + spline2.maxPeriod.toString() + " " + linear.maxPeriod.toString())
-	  println("max defined date" + spline.maxDays.toString() + " " + spline2.maxDays.toString() + " " + linear.maxDays.toString())
-	  inputset.foreach( (d:JPeriod) => { println(spline2.value(d))})
+	  println("Flat : Linear : Spline : Spline+Points")
+	  inputset.foreach( (d:JPeriod) => { println(d.toString() + "  " + flat.value(d)+ "  " + linear.value(d) + " " + spline.value(d) + " " + spline2.value(d))})
+	  println("max defined date" + flat.maxDate.toString() + " " + linear.maxDate.toString() + " " + spline.maxDate.toString() + " " + spline2.maxDate.toString())
     }
 }
