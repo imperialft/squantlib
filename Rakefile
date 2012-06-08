@@ -15,7 +15,15 @@ def unit_test_classes
 end
 
 task :compile do
-  system "scalac -classpath #{(java_archives | class_paths).join(":")} -d bin #{scala_sources.join(" ")}"
+  require 'fileutils'
+  FileUtils.rm_rf 'bin'
+  Dir.mkdir 'bin'
+  system "scalac -classpath #{(java_archives | class_paths).join(":")} -d bin #{scala_sources.join(" ")} && touch .compiled"
+  if File.exists?(".compiled")
+    File.delete(".compiled")
+  else
+    FileUtils.rm_rf 'bin'
+  end
 end
 
 task :test do
