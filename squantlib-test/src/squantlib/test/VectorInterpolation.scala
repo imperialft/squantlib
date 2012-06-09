@@ -8,7 +8,7 @@ import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.TimeUnit
 
-object testvector {
+object VectorInterpolation {
 	
 	def main(args:Array[String]) : Unit = {
 	   
@@ -41,6 +41,6 @@ object testvector {
 	  println("Output")
 	  println("Flat : Linear : Spline : Spline+Points")
 	  inputset.foreach( (d:JPeriod) => { println(d.toString() + "  " + flat.value(d)+ "  " + linear.value(d) + " " + spline.value(d) + " " + spline2.value(d))})
-	  println("max defined date" + flat.maxDate.toString() + " " + linear.maxDate.toString() + " " + spline.maxDate.toString() + " " + spline2.maxDate.toString())
+	  println("max defined date" + flat.maxdate.toString() + " " + linear.maxdate.toString() + " " + spline.maxdate.toString() + " " + spline2.maxdate.toString())
     }
 }

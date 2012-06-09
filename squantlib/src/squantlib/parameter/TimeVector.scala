@@ -25,23 +25,22 @@ trait TimeVector {
 	 * Returns number of days between value date and first defined point.
 	 * This point is the low boundary between interpolation & extrapolation.
 	 */
-    val minDays : Long
+    val mindays : Long
 	/**
 	 * Returns number of days between value date and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-    val maxDays : Long
+    val maxdays : Long
 	/**
 	 * Returns date of final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-	val maxDate : JDate
+	val maxdate : JDate
 	/**
 	 * Returns period between valueDate and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-	val maxPeriod: JPeriod
-
+	val maxperiod: JPeriod
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
@@ -65,8 +64,8 @@ trait TimeVector {
  */
 trait AbstractTimeVector {
 	var valuedate : JDate
-	val minDays : Long
-	val maxDays : Long
+	val mindays : Long
+	val maxdays : Long
 
 	def lowextrapolation(v : Long) : Double
     def highextrapolation(v : Long) : Double
@@ -74,8 +73,8 @@ trait AbstractTimeVector {
   
     def value(v : Long) : Double = {
       v match {
-        case vv if vv <= minDays => lowextrapolation(vv)
-        case vv if vv >= maxDays => highextrapolation(vv)
+        case vv if vv <= mindays => lowextrapolation(vv)
+        case vv if vv >= maxdays => highextrapolation(vv)
         case _ => interpolation(v)
           }
     }
@@ -89,25 +88,25 @@ trait AbstractTimeVector {
  * @param input points
  * @param number of extra points (optional)
  */
-class SplineNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Double], extrapoints:Int) extends TimeVector with AbstractTimeVector {
-	require(values.size >= 3)
+class SplineNoExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod, Double], extrapoints:Int) extends TimeVector with AbstractTimeVector {
+	require(inputvalues.size >= 3)
 	
     val splinefunction = {
 	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty
-	    for (d <- values.keySet) { inputpoints ++= Map(d.days(valuedate) -> values(d)) }
-	    for (i <- 1 to extrapoints) { inputpoints ++= Map((values.lastKey.days(valuedate) + (30L * i.toLong)) -> values.last._2) }
+	    for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
+	    for (i <- 1 to extrapoints) { inputpoints ++= Map((inputvalues.lastKey.days(valuedate) + (30L * i.toLong)) -> inputvalues.last._2) }
 	    val keysarray = inputpoints.keySet.toArray
 	    val valarray = keysarray.map((i:Long) => inputpoints(i))
 	    new SplineInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)
     }
     
-	val minDays = values.firstKey.days(valuedate)
-	val maxDays = values.lastKey.days(valuedate)
-	val maxDate = new JDate(valuedate.serialNumber() + maxDays)
-	val maxPeriod = new JPeriod(maxDays.toInt, TimeUnit.Days)
+	val mindays = inputvalues.firstKey.days(valuedate)
+	val maxdays = inputvalues.lastKey.days(valuedate)
+	val maxdate = new JDate(valuedate.serialNumber() + maxdays)
+	val maxperiod = new JPeriod(maxdays.toInt, TimeUnit.Days)
 
-	def lowextrapolation(v : Long) = values.first._2
-    def highextrapolation(v : Long) = values.last._2
+	def lowextrapolation(v : Long) = inputvalues.first._2
+    def highextrapolation(v : Long) = inputvalues.last._2
     def interpolation(v : Long) = splinefunction.value(v.toDouble)
 }
 
@@ -119,26 +118,26 @@ class SplineNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Dou
  * @param input points
  * @param number of extra points (optional)
  */
-class SplineEExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Double], extrapoints:Int) extends TimeVector with AbstractTimeVector {
-	require(values.size >= 3)
+class SplineEExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod, Double], extrapoints:Int) extends TimeVector with AbstractTimeVector {
+	require(inputvalues.size >= 3)
 	
-	val firstvalue = values.first._2
-	val impliedrate = -1.0 * new Log().value(values.last._2 / firstvalue) / values.lastKey.days(valuedate).toDouble
+	val firstvalue = inputvalues.first._2
+	val impliedrate = -1.0 * new Log().value(inputvalues.last._2 / firstvalue) / inputvalues.lastKey.days(valuedate).toDouble
 	val extrapolator = new Exp()
 	
-	val minDays = values.firstKey.days(valuedate)
-	val maxDays = values.lastKey.days(valuedate)
-	val maxDate = new JDate(valuedate.serialNumber() + maxDays)
-	val maxPeriod = new JPeriod(maxDays.toInt, TimeUnit.Days)
+	val mindays = inputvalues.firstKey.days(valuedate)
+	val maxdays = inputvalues.lastKey.days(valuedate)
+	val maxdate = new JDate(valuedate.serialNumber() + maxdays)
+	val maxperiod = new JPeriod(maxdays.toInt, TimeUnit.Days)
 
-	def lowextrapolation(v : Long) = values.first._2
+	def lowextrapolation(v : Long) = inputvalues.first._2
     def highextrapolation(v : Long) = firstvalue * extrapolator.value(-1.0 * impliedrate * v.toDouble)
     def interpolation(v : Long) = splinefunction.value(v.toDouble)
 
     val splinefunction = {
 		var inputpoints :TreeMap[Long, Double] = TreeMap.empty
-		for (d <- values.keySet) { inputpoints ++= Map(d.days(valuedate) -> values(d)) }
-	    for (i <- 1 to extrapoints; d = values.lastKey.days(valuedate) + (30L * i.toLong)) { inputpoints ++= Map(d -> highextrapolation(d)) }
+		for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
+	    for (i <- 1 to extrapoints; d = inputvalues.lastKey.days(valuedate) + (30L * i.toLong)) { inputpoints ++= Map(d -> highextrapolation(d)) }
 		val keysarray = inputpoints.keySet.toArray
 		val valarray = keysarray.map((i:Long) => inputpoints(i))
 		new SplineInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)
@@ -152,24 +151,24 @@ class SplineEExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Doub
  * @constructor constructs linear curve from given points. extra flat points are added after final date to manage overshoot.
  * @param input points
  */
-class LinearNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Double]) extends TimeVector with AbstractTimeVector {
-	require(values.size >= 2)
+class LinearNoExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod, Double]) extends TimeVector with AbstractTimeVector {
+	require(inputvalues.size >= 2)
   
     val linearfunction = {
 	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty
-	    for (d <- values.keySet) { inputpoints ++= Map(d.days(valuedate) -> values(d)) }
+	    for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
 	    val keysarray = inputpoints.keySet.toArray
 	    val valarray = keysarray.map((i:Long) => inputpoints(i))
 	    new LinearInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)    
 	}
 	
-	val minDays = values.firstKey.days(valuedate)
-	val maxDays = values.lastKey.days(valuedate)
-	val maxDate = new JDate(valuedate.serialNumber() + maxDays)
-	val maxPeriod = new JPeriod(maxDays.toInt, TimeUnit.Days)
+	val mindays = inputvalues.firstKey.days(valuedate)
+	val maxdays = inputvalues.lastKey.days(valuedate)
+	val maxdate = new JDate(valuedate.serialNumber() + maxdays)
+	val maxperiod = new JPeriod(maxdays.toInt, TimeUnit.Days)
 
-	def lowextrapolation(v : Long) = values.first._2
-    def highextrapolation(v : Long) = values.last._2
+	def lowextrapolation(v : Long) = inputvalues.first._2
+    def highextrapolation(v : Long) = inputvalues.last._2
     def interpolation(v : Long) = linearfunction.value(v.toDouble)
 }
 
@@ -178,16 +177,16 @@ class LinearNoExtrapolation(var valuedate : JDate, values:SortedMap[JPeriod, Dou
  * 
  * @param input point
  */
-class FlatVector(var valuedate : JDate, values:Map[JPeriod, Double]) extends TimeVector with AbstractTimeVector {
-	require(values.size == 1)
+class FlatVector(var valuedate : JDate, inputvalues:Map[JPeriod, Double]) extends TimeVector with AbstractTimeVector {
+	require(inputvalues.size == 1)
 	
-	val constantvalue = values.first._2
-	val firstvalue = values.first._2
+	val constantvalue = inputvalues.first._2
+	val firstvalue = inputvalues.first._2
 	
-	val minDays = values.first._1.days(valuedate)
-	val maxDays = minDays
-	val maxDate = new JDate(valuedate.serialNumber() + maxDays)
-	val maxPeriod = new JPeriod(maxDays.toInt, TimeUnit.Days)
+	val mindays = inputvalues.first._1.days(valuedate)
+	val maxdays = mindays
+	val maxdate = new JDate(valuedate.serialNumber() + maxdays)
+	val maxperiod = new JPeriod(maxdays.toInt, TimeUnit.Days)
 
 	def lowextrapolation(v : Long) = constantvalue
     def highextrapolation(v : Long) = constantvalue

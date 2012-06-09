@@ -1,6 +1,7 @@
 package squantlib.ratecurve
 
 import scala.collection.immutable.TreeMap
+import scala.collection.immutable.SortedSet
 
 import squantlib.parameter._
 
@@ -15,32 +16,52 @@ import org.apache.commons.math3.analysis.function.Exp
 
 class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val valuedate : JDate) 
 extends RateCurve{
-  require (List(cash.valuedate, swap.valuedate, basis.valuedate, tenorbasis.valuedate).forall(_ == valuedate))
+  require (List(cash.valuedate, swap.valuedate, basis.valuedate, tenorbasis.valuedate).forall(_ == valuedate)
+		&& List(swap.currency, basis.currency, tenorbasis.currency).forall(_ == cash.currency)
+		&& cash.floatindex.dayCounter == swap.floatindex.dayCounter)
 
+	  val currency = cash.currency
+	  
 	  /**
 	   * swap specifications
 	   * we often use yearly day count factor instead of exact calendar dates, with small potential error
 	   */
-	  val floattenor = swap.floatIndex.tenor().length()	  
-	  val fixperiod = 12 / swap.fixPeriod.toInteger()
-  	  val fixfraction = swap.fixDaycount.annualDayCount()
-	  val floatfraction = swap.floatIndex.dayCounter().annualDayCount()
+	  val floattenor = swap.floatindex.tenor().length()	  
+	  val fixperiod = 12 / swap.fixperiod.toInteger()
+  	  val fixfraction = swap.fixdaycount.annualDayCount()
+	  val floatfraction = swap.floatindex.dayCounter().annualDayCount()
+	  
+	  println("Parameters")
+	  println("floattenor : " + floattenor)
+	  println("flatperiod : " + fixperiod)
+	  println("fixfraction : " + fixfraction)
+	  println("floatfraction : " + floatfraction)
 	  
 	  /**
 	   * day count initialization, for swap fixed leg convention. (not to be used for cash rate)
 	   */
-	  val maxmaturity = JPeriod.months(swap.rate.maxPeriod, valuedate).toInt
-	  val zcmonths = for (m <- (List(0, 3, 6, 9) ++ (12 until maxmaturity by fixperiod))) yield m
-	  val zcperiods = zcmonths.map(m => (m, new JPeriod(m, TimeUnit.Months))) toMap
-	  val maturities = zcmonths.map(m => (m, valuedate.add(zcperiods(m)))) toMap
-	  val fixdaycounts = zcmonths.filter(_ % fixperiod == 0).map(m => (m, swap.fixDaycount.yearFraction(maturities(m-fixperiod), maturities(m)))) toMap
-	  val floatdaycounts = zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
-	  				.map(m => (m, swap.floatIndex.dayCounter().yearFraction(maturities(m-fixperiod), maturities(m)))) toMap
+	  val maxmaturity = JPeriod.months(swap.rate.maxperiod, valuedate).toInt
+	  val zcmonths:Seq[Int] = (for (m <- (List(0, 3, 6, 9) ++ (12 until maxmaturity by fixperiod))) yield m).sorted
+	  val zcperiods = TreeMap(zcmonths.map(m => (m, new JPeriod(m, TimeUnit.Months))) : _*) 
+	  val maturities = TreeMap(zcmonths.map(m => (m, valuedate.add(zcperiods(m)))) : _*) 
+	  val fixdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
+			  		.map(m => (m, swap.fixdaycount.yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
+	  val floatdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
+	  				.map(m => (m, swap.floatindex.dayCounter().yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
+	  				
 
 	  /**
 	   * 3m/6m basis swap calibration is valid in case float leg is semi annual (ccy basis always quarterly)
 	   */
-	  val bs3m6madjust = zcperiods.map(m => (m._1, if (floattenor <= 3) 0.0 else tenorbasis.value(m._2))) toMap
+	  val bs3m6madjust = zcperiods.map(m => (m._1, if (floattenor <= 3) 0.0 else tenorbasis.value(m._2))) 
+
+	  
+	  println("maxmaturity : " + maxmaturity)
+	  println("[m, zcmonths, zcperiods, maturities, fixdaycounts, floatdaycounts, bs3m6madj]")
+	  for (m <- fixdaycounts.keySet){
+	    println(m + ", " + zcperiods(m).toString + ", " + maturities(m).shortDate.toString + ", " + fixdaycounts(m) + ", " + floatdaycounts(m) + ", " + bs3m6madjust(m))
+	  }
+	  
 	  
 	  /**
 	   * true if this currency is the "pivot" currency for the basis swap, usually USD.
@@ -115,7 +136,7 @@ extends RateCurve{
 	  /**
 	   * annual daycount fraction for discount curve
 	   */
-	  val floatfraction2 = refincurve.swap.floatIndex.dayCounter().annualDayCount()
+	  val floatfraction2 = refincurve.swap.floatindex.dayCounter().annualDayCount()
 	  
 	  /**
 	   * spot zero coupon = 1.00
@@ -123,17 +144,17 @@ extends RateCurve{
 	  ZC ++= Map(zcperiods(0) -> 1.00)
 	  
 	  /**
-	   * initialize ccy basis swap
+	   * initialize ccy basis swap 
 	   */
-	  val bsccy = zcperiods.map(p => (p._1, if (ispivotcurrency) -refincurve.basis.value(p._2) else basis.value(p._2))) toMap
+	  val bsccy = zcperiods.map(p => (p._1, if (ispivotcurrency) -refincurve.basis.value(p._2) else basis.value(p._2)))
 			  	
 	  /**
 	   * initialize refinance spread
 	   */
-	  val refinspread = zcperiods.filter(p => p._1 % fixperiod == 0).map(p => (p._1, refinZC.discountspread.value(p._2))) toMap
-	  val refinZCvector = zcperiods.filter(p => p._1 % fixperiod == 0).map(p => (p._1, refinZC.zc.value(p._2))) toMap
+	  val refinspread = zcperiods.map(p => (p._1, refinZC.discountspread.value(p._2)))
+	  val refinZCvector = zcperiods.filter(p => p._1 % fixperiod == 0).map(p => (p._1, refinZC.zc.value(p._2)))
 	  def durationfunc(i:Int):Double = {if (i == 0) 0.0 else durationfunc(i - fixperiod) + refinZCvector(i) * floatdaycounts(i)}
-	  val refinduration = (for (v <- refinZCvector.keySet) yield (v, durationfunc(v))) toMap
+	  val refinduration = refinZCvector.filter(m => m._1 % fixperiod == 0).map(v => (v._1, durationfunc(v._1)))
 	  
 	  /**
 	   * using cash rate to compute zero coupon < 12 months.
@@ -159,12 +180,15 @@ extends RateCurve{
 	   * note: we are assuming no basis below 3 months and above 6 months
 	   */
 	  swaprange foreach { sr => val m = sr._1; val p = sr._2;
-			val zcspd = if (ispivotcurrency) (bsccy(m) + refinspread(m)) * refinduration(m) / floatduration
-						else bsccy(m) + refinspread(m) * refinduration(m) / floatduration
-	  		val tbs = bs3m6madjust(m) * (if (ispivotcurrency) refinduration(m) / floatduration else 1.0)
+	  		val fduration = if (m <= fixperiod) floatfraction else floatduration
+	  		val rduration = if (m <= fixperiod) floatfraction2 else refinduration(m - fixperiod)
+			val zcspd = if (ispivotcurrency) (bsccy(m) + refinspread(m)) * rduration / fduration
+						else bsccy(m) + refinspread(m) * rduration / fduration
+	  		val tbs = bs3m6madjust(m) * (if (ispivotcurrency) rduration / fduration else 1.0)
 		  	ZCspread ++= Map(p -> zcspd)
 	  		val realrate = swap.value(p) + (zcspd - tbs) * floatfraction / fixfraction
 	  		val zcXm = (1 - realrate * fixduration) / (1 + realrate * fixdaycounts(m))
+	  		println("m: " + m + " zcspd:" + zcspd + " tbs: " + tbs + " bsccy:" + bsccy(m) + " refinspread: " + refinspread(m) + " refinduration:"+rduration+ " floatduration:" + fduration)
 			ZC ++= Map(p -> zcXm)
 			fixduration += zcXm * fixdaycounts(m)
 			floatduration += zcXm * floatdaycounts(m)
@@ -175,6 +199,9 @@ extends RateCurve{
 	   * ZC vector is spline interpolation with exponential extrapolation
 	   * ZCspread vector is spline interpolation with no extrapolation and with 2 additional points
 	   */
+	  ZC foreach { z => println("m=" + z._1 + " value=" + z._2)}
+	  ZCspread foreach { z => println("m=" + z._1 + " value=" + z._2)}
+	  
 	  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
 	  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
 	  new DiscountCurve(ZCvector, ZCspdvector)
