@@ -11,11 +11,19 @@ def class_paths
 end
 
 def unit_test_classes
-  @unit_test_classes ||= Dir.glob("squantlib-test/src/squantlib/test/**/*Test.scala").map { |scala| File.read(scala).scan(/class\s+\w+/).map { |s| s.split(/\s+/).last } }.flatten.uniq.map { |clazz| "org.squantlib.test.#{clazz}" }
+  @unit_test_classes ||= Dir.glob("squantlib-test/src/squantlib/test/**/*Test.scala").map { |scala| File.read(scala).scan(/class\s+\w+/).map { |s| s.split(/\s+/).last } }.flatten.uniq.map { |clazz| "squantlib.test.#{clazz}" }
 end
 
 task :compile do
-  system "scalac -classpath #{(java_archives | class_paths).join(":")} -d bin #{scala_sources.join(" ")}"
+  require 'fileutils'
+  FileUtils.rm_rf 'bin'
+  Dir.mkdir 'bin'
+  system "scalac -classpath #{(java_archives | class_paths).join(":")} -d bin #{scala_sources.join(" ")} && touch .compiled"
+  if File.exists?(".compiled")
+    File.delete(".compiled")
+  else
+    FileUtils.rm_rf 'bin'
+  end
 end
 
 task :test do
