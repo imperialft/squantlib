@@ -155,10 +155,10 @@ class VectorTest {
     val testperiod = 3
     var inputset = for (i <- 0 to (testcase * testperiod) if i % testperiod == 0) yield new JPeriod(i, TimeUnit.Months)
     // assertions
-    assertEquals(flat.maxDate.toString(), "October 10, 2000")
-    assertEquals(linear.maxDate.toString(), "October 1, 2012")
-    assertEquals(spline.maxDate.toString(), "October 1, 2012")
-    assertEquals(spline2.maxDate.toString(), "October 1, 2012")
+    assertEquals(flat.maxdate.toString(), "October 10, 2000")
+    assertEquals(linear.maxdate.toString(), "October 1, 2012")
+    assertEquals(spline.maxdate.toString(), "October 1, 2012")
+    assertEquals(spline2.maxdate.toString(), "October 1, 2012")
     assertEquals(inputset.size, expected.size)
     var i = 0
     inputset.foreach((d:JPeriod) => {

@@ -193,7 +193,7 @@ object DiscountCurve {
 
 
 	  /**
-	   * Cross currency discounting - curve discounted by pivotcurve
+	   * Cross pivot curve discounted by non-pivot
 	   */
 	  
 	  println("** USD discounted by EUR **")
@@ -204,6 +204,20 @@ object DiscountCurve {
 	  println("Discount Curve")
 	  println("[ZC1, ZC2, ZC3, spread1, spread2, spread3]")
 	  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(USD_ccyZC1.zc.value(d), 4) + ", " + rounding(USD_ccyZC2.zc.value(d), 4) + ", " + rounding(USD_ccyZC3.zc.value(d), 4) + " : " + rounding(USD_ccyZC1.discountspread.value(d), 4) + ", " + rounding(USD_ccyZC2.discountspread.value(d), 4) + ", " + rounding(USD_ccyZC3.discountspread.value(d), 4))})
+
+	  
+	  /**
+	   * Non-pivot discounted by non-pivot (through pivot)
+	   */
+	  println("** JPY discounted by EUR **")
+	  val JPY_EURccyZC1 = JPY_curvemodel.getZC(USD_curvemodel, USD_ccyZC1)
+	  val JPY_EURccyZC2 = JPY_curvemodel.getZC(USD_curvemodel, USD_ccyZC2)
+	  val JPY_EURccyZC3 = JPY_curvemodel.getZC(USD_curvemodel, USD_ccyZC3)
+	  
+	  println("Discount Curve")
+	  println("[ZC1, ZC2, ZC3, spread1, spread2, spread3]")
+	  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(JPY_EURccyZC1.zc.value(d), 4) + ", " + rounding(JPY_EURccyZC2.zc.value(d), 4) + ", " + rounding(JPY_EURccyZC3.zc.value(d), 4) + " : " + rounding(JPY_EURccyZC1.discountspread.value(d), 4) + ", " + rounding(JPY_EURccyZC2.discountspread.value(d), 4) + ", " + rounding(JPY_EURccyZC3.discountspread.value(d), 4))})
+	  
     }
 }
 
