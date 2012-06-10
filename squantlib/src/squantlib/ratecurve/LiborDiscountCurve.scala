@@ -199,9 +199,6 @@ extends RateCurve{
 	   * ZC vector is spline interpolation with exponential extrapolation
 	   * ZCspread vector is spline interpolation with no extrapolation and with 2 additional points
 	   */
-	  ZC foreach { z => println("m=" + z._1 + " value=" + z._2)}
-	  ZCspread foreach { z => println("m=" + z._1 + " value=" + z._2)}
-	  
 	  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
 	  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
 	  new DiscountCurve(ZCvector, ZCspdvector)
