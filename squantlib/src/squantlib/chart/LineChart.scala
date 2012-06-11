@@ -49,4 +49,10 @@ object LineChart extends AbstractChart {
       buf += Pair(x, y)
     return render(png, buf)
   }
+
+  def render(png:String, it:Iterable[Pair[Number,Number]]):String = {
+    val buf = new ListBuffer[Pair[Number,Number]]()
+    it.foreach((item:Pair[Number,Number]) => buf += item)
+    return render(png, buf.toSeq)
+  }
 }
