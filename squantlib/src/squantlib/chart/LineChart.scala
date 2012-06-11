@@ -14,6 +14,17 @@ class AbstractChart {
 }
 
 object LineChart extends AbstractChart {
+  /**
+   * Renders a line chart to a PNG file.
+   *
+   * @param png Path for output file.
+   * @param data Data to plot. In Seq[Pair[X, Y]] format.
+   * @param x Label for X-axis
+   * @param y Label for Y-axis
+   * @param title Title for the plot.
+   * @return Path to the output file (= png)
+   *  
+   */
   def render(png:String, data:Seq[Pair[Number, Number]], x:String = "X-axis", y:String = "Y-axis", title:String = "Untitled"):String = {
     val series = new XYSeries(title)
     for (pair <- data) series.add(pair._1, pair._2)
