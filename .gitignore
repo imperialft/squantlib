@@ -1,9 +1,13 @@
 ./bin
 ./lib
+./out
 
-# .gitignore (GitHub)
 *.class
 *.log
+*.ipr
+*.iws
+*.iml
+*.cache
 dist/*
 target/
 lib_managed/
