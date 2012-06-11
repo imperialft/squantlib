@@ -18,7 +18,9 @@ task :compile do
   require 'fileutils'
   FileUtils.rm_rf 'bin'
   Dir.mkdir 'bin'
-  system "scalac -classpath #{(java_archives | class_paths).join(":")} -d bin #{scala_sources.join(" ")} && touch .compiled"
+  command = "scalac -classpath #{(java_archives | class_paths).join(":")} -d bin #{scala_sources.join(" ")} && touch .compiled"
+  puts(command)
+  system(command)
   if File.exists?(".compiled")
     File.delete(".compiled")
   else
@@ -31,3 +33,7 @@ task :test do
 end
 
 task :default => :test
+
+task :repl do
+  system "scala -classpath #{(java_archives | class_paths).join(":")}"  
+end

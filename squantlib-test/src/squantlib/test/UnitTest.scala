@@ -30,7 +30,7 @@ class PeriodTest {
 
 class VectorTest {
   val origin = new JDate(1, 10, 2000)
-  @Test def testVector1():Unit = {
+  @Test def testVectorInterpolation1():Unit = {
     // excepted data
     val expected = List(
       Tuple("0 months", 20.0, 20.0, 20.0, 20.0),
