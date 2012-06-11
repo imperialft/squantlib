@@ -3,7 +3,7 @@ def scala_sources
 end
 
 def java_archives
-  @java_archives ||= Dir.glob("lib/**/*.jar")
+  @java_archives ||= Dir.glob("{squantlib,squantlib-test}/lib/**/*.jar")
 end
 
 def class_paths

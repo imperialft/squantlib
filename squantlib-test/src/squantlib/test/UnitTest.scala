@@ -30,6 +30,20 @@ class PeriodTest {
 
 class VectorTest {
   val origin = new JDate(1, 10, 2000)
+  @Test def testVectorIteratorRange():Unit = {
+    var testmap:TreeMap[JPeriod, Double] = TreeMap.empty
+    val d1 = (new JDate(10, 10, 2000).ToPeriod(origin), 20.0)
+    val d2 = (new JDate(1, 1, 2002).ToPeriod(origin), 17.0)
+    val d3 = (new JDate(5, 2, 2005).ToPeriod(origin), 15.0)
+    val d4 = (new JDate(1, 10, 2012).ToPeriod(origin), 5.0)
+    testmap ++= Map(d2)
+    testmap ++= Map(d4)
+    testmap ++= Map(d1)
+    testmap ++= Map(d3)
+    var spline2 = new SplineEExtrapolation(origin, testmap, 1)
+    assertEquals(spline2.first._1, new JDate(10, 10, 2000))
+    assertEquals(spline2.last._1, new JDate(1, 10, 2012))
+  }
   @Test def testVectorInterpolation1():Unit = {
     // excepted data
     val expected = List(

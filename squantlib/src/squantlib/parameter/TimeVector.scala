@@ -2,7 +2,9 @@ package squantlib.parameter
 
 import scala.collection.immutable.TreeMap
 import scala.collection.immutable.SortedMap
-import scala.collection.Iterable
+import scala.collection.mutable.MutableList
+
+import scala.collection.{Iterable, Iterator}
 
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
@@ -16,7 +18,7 @@ import org.apache.commons.math3.analysis.function.Exp
  * Encapsulate time series vector parameter with interpolation, extrapolation and other adjustments functions.
  * 
  */
-trait TimeVector {
+trait TimeVector extends Iterable[Pair[JDate, Double]] {
 	/**
 	 * Returns base date of this vector. 
 	 */
@@ -56,6 +58,22 @@ trait TimeVector {
 	 * @param observation date as the period from value date.
 	 */
     def value(period : JPeriod) : Double = value(period.days(valuedate))
+  /**
+   * Returns an Iterator that provides data during mindays..maxdays incremented by 1 day
+   */
+    def iterator:Iterator[Pair[JDate, Double]] = {
+      // FIXME: This could be inefficient.
+      val list = MutableList[Pair[JDate, Double]]()
+      for (i <- mindays to maxdays)
+        list += Pair(valuedate.add(i.toInt), value(i)) // .toInt, srsly?
+      return list.iterator
+    }
+  /**
+   * Returns a String representation of this object.
+   */
+    override def toString:String = {
+      getClass + " (" + valuedate.add(mindays.toInt) + " to " + valuedate.add(maxdays.toInt) + ")"
+    }
 }
 
 /**
