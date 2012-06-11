@@ -28,12 +28,6 @@ extends RateCurve{
   	  val fixfraction = swap.fixdaycount.annualDayCount()
 	  val floatfraction = swap.floatindex.dayCounter().annualDayCount()
 	  
-	  println("Parameters")
-	  println("floattenor : " + floattenor)
-	  println("flatperiod : " + fixperiod)
-	  println("fixfraction : " + fixfraction)
-	  println("floatfraction : " + floatfraction)
-	  
 	  /**
 	   * day count initialization, for swap fixed leg convention. (not to be used for cash rate)
 	   */
@@ -60,12 +54,6 @@ extends RateCurve{
 															    case n if n < swapstart && n >= 6 => tenorbasis.value(m._2)
 															    case n if n >= swapstart && floattenor <= 3 => 0.0
 															    case _ => tenorbasis.value(m._2) }))
-	  
-	  println("maxmaturity : " + maxmaturity)
-	  println("[m, zcmonths, zcperiods, maturities, fixdaycounts, floatdaycounts, bs3m6madj]")
-	  for (m <- fixdaycounts.keySet){
-	    println(m + ", " + zcperiods(m).toString + ", " + maturities(m).shortDate.toString + ", " + fixdaycounts(m) + ", " + floatdaycounts(m) + ", " + bs3m6madjust(m))
-	  }
 	  
 	  
 	  /**
@@ -195,7 +183,6 @@ extends RateCurve{
 			  	ZCspread ++= Map(p -> zcspd)
 		  		val realrate = swap.value(p) + (zcspd - tbs) * floatfraction / fixfraction
 		  		val zcXm = (1 - realrate * fixduration) / (1 + realrate * fixdaycounts(m))
-	//	  		println("m: " + m + " zcspd:" + zcspd + " tbs: " + tbs + " bsccy:" + bsccy(m) + " refinspread: " + refinspread(m) + " refinduration:"+rduration+ " floatduration:" + fduration)
 				ZC ++= Map(p -> zcXm)
 				fixduration += zcXm * fixdaycounts(m)
 				floatduration += zcXm * floatdaycounts(m)
