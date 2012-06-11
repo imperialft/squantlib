@@ -14,6 +14,7 @@ import org.jquantlib.time.Frequency
 import org.jquantlib.indexes.ibor._
 import org.jquantlib.indexes._
 import org.jquantlib.daycounters._
+import org.jquantlib.currencies.America._
 
 object DiscountCurve {
 	
@@ -42,8 +43,8 @@ object DiscountCurve {
 	  /**
 	   * Result display parameters. Max maturity = testperiod * testcase months
 	   */
-	  val testperiod = 3 // every X months
-	  val testcase = 30*4 // number of outputs 
+	  val testperiod = 6 // every X months
+	  val testcase = 30*2 // number of outputs 
 	  var inputset = for (i <- 0 to (testcase * testperiod) if i % testperiod == 0) yield new JPeriod(i, TimeUnit.Months)
 	  
 	  /**
@@ -177,6 +178,35 @@ object DiscountCurve {
 	  println("EUR Discount Curve")
 	  println("[ZC1, ZC2, ZC3, spread1, spread2, spread3]")
 	  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(EUR_ZC1.zc.value(d), 4) + ", " + rounding(EUR_ZC2.zc.value(d), 4) + ", " + rounding(EUR_ZC3.zc.value(d), 4) + " : " + rounding(EUR_ZC1.discountspread.value(d), 4) + ", " + rounding(EUR_ZC2.discountspread.value(d), 4) + ", " + rounding(EUR_ZC3.discountspread.value(d), 4))})
+	  
+
+	  /**
+	   * BRL curve definition
+	   */
+	  var BRL_fx = 1.58
+	  
+	  var BRL_points = TreeMap.empty[JPeriod, Double]
+	  BRL_points ++= Map(new JPeriod(6, TimeUnit.Months) -> 301d)
+	  BRL_points ++= Map(new JPeriod(9, TimeUnit.Months) -> 994d)
+	  BRL_points ++= Map(new JPeriod(12, TimeUnit.Months) -> 1354d)
+	  BRL_points ++= Map(new JPeriod(12*2, TimeUnit.Months) -> 2489d)
+	  BRL_points ++= Map(new JPeriod(12*3, TimeUnit.Months) -> 4243d)
+	  BRL_points ++= Map(new JPeriod(12*5, TimeUnit.Months) -> 6554d)
+	  BRL_points ++= Map(new JPeriod(12*7, TimeUnit.Months) -> 9117d)
+	  BRL_points ++= Map(new JPeriod(12*10, TimeUnit.Months) -> 13317d)
+	  
+	  val BRL_pointscurve = new SplineNoExtrapolation(vd, BRL_points, 1)
+	  val BRL_multiplier = 10000
+	  val BRL_currency = new BRLCurrency
+ 	  val BRL_pivotcurrency = new USDCurrency
+	  val BRL_swappt = new SwapPointCurve(BRL_pointscurve, BRL_multiplier, BRL_currency, BRL_pivotcurrency)
+	  
+	  println("**BRL**")
+	  println("fx: " + BRL_fx)
+	  println("points: "  + vdescribe(BRL_pointscurve))
+	  
+	  val BRL_curvemodel = new FXDiscountCurve(BRL_swappt, BRL_fx, vd)
+	  
 	  	  
 	  /**
 	   * Cross currency discounting - curve discounted by pivotcurve
@@ -217,6 +247,20 @@ object DiscountCurve {
 	  println("Discount Curve")
 	  println("[ZC1, ZC2, ZC3, spread1, spread2, spread3]")
 	  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(JPY_EURccyZC1.zc.value(d), 4) + ", " + rounding(JPY_EURccyZC2.zc.value(d), 4) + ", " + rounding(JPY_EURccyZC3.zc.value(d), 4) + " : " + rounding(JPY_EURccyZC1.discountspread.value(d), 4) + ", " + rounding(JPY_EURccyZC2.discountspread.value(d), 4) + ", " + rounding(JPY_EURccyZC3.discountspread.value(d), 4))})
+	  
+	  
+	  /**
+	   * FX discounting by pivotcurve
+	   */
+	  
+	  println("** BRL discounted by USD **")
+	  val BRL_ccyZC1 = BRL_curvemodel.getZC(USD_curvemodel, USD_ZC1)
+	  val BRL_ccyZC2 = BRL_curvemodel.getZC(USD_curvemodel, USD_ZC2)
+	  val BRL_ccyZC3 = BRL_curvemodel.getZC(USD_curvemodel, USD_ZC3)
+	  
+	  println("Discount Curve")
+	  println("[ZC1, ZC2, ZC3, spread1, spread2, spread3]")
+	  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(BRL_ccyZC1.zc.value(d), 4) + ", " + rounding(BRL_ccyZC2.zc.value(d), 4) + ", " + rounding(BRL_ccyZC3.zc.value(d), 4) + " : " + "N/A" + ", " + "N/A" + ", " + "N/A")})
 	  
     }
 }
