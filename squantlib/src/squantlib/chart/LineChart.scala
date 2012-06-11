@@ -2,6 +2,7 @@ package squantlib.chart
 
 import java.io.File
 import java.lang.Number
+import scala.collection.mutable.ListBuffer
 import org.jfree.chart._
 import org.jfree.chart.plot._
 import org.jfree.data.xy._
@@ -40,5 +41,18 @@ object LineChart extends AbstractChart {
                   false
                 )
     return save(png, chart)
+  }
+
+  def render(png:String, data_x:Seq[Number], data_y:Seq[Number]):String = {
+    val buf = new ListBuffer[Pair[Number,Number]]()
+    for (x <- data_x; y <- data_y)
+      buf += Pair(x, y)
+    return render(png, buf)
+  }
+
+  def render(png:String, it:Iterable[Pair[Number,Number]]):String = {
+    val buf = new ListBuffer[Pair[Number,Number]]()
+    it.foreach((item:Pair[Number,Number]) => buf += item)
+    return render(png, buf.toSeq)
   }
 }
