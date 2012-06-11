@@ -57,12 +57,12 @@ object DiscountCurve {
 	  /**
 	   * JPY curve definition
 	   */
-	  val JPY_cashinput = Map(period6m -> 0.02)
+	  val JPY_cashinput = Map(period6m -> 0.01)
 	  val JPY_cash_curve = new FlatVector(vd, JPY_cashinput)
 	  val JPY_cash_floatindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
  	  val JPY_cash = new CashCurve(JPY_cash_curve, JPY_cash_floatindex)
 
-	  val JPY_swapinput = Map(period30y -> 0.02)
+	  val JPY_swapinput = Map(period30y -> 0.01)
 	  val JPY_swap_curve = new FlatVector(vd, JPY_swapinput)
 	  val JPY_swap_floatindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
 	  val JPY_swap_fixdaycount = new Actual365Fixed
@@ -75,7 +75,7 @@ object DiscountCurve {
  	  val JPY_basis = new BasisSwapCurve(JPY_basis_curve, JPY_basis_floatindex)
 	  
 	  val JPY_basis36input = Map(period30y -> 0.002)
-	  val JPY_basis36_curve = new FlatVector(vd, JPY_basisinput)
+	  val JPY_basis36_curve = new FlatVector(vd, JPY_basis36input)
 	  val JPY_basis36_sindex = new JPYLibor(new JPeriod(3, TimeUnit.Months))
 	  val JPY_basis36_lindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
  	  val JPY_basis36 = new TenorBasisSwapCurve(JPY_basis36_curve, JPY_basis36_sindex, JPY_basis36_lindex)
@@ -116,7 +116,7 @@ object DiscountCurve {
  	  val USD_basis = new BasisSwapCurve(USD_basis_curve, USD_basis_floatindex)
 	  
 	  val USD_basis36input = Map(period30y -> 0.00)
-	  val USD_basis36_curve = new FlatVector(vd, USD_basisinput)
+	  val USD_basis36_curve = new FlatVector(vd, USD_basis36input)
 	  val USD_basis36_sindex = new USDLibor(new JPeriod(3, TimeUnit.Months))
 	  val USD_basis36_lindex = new USDLibor(new JPeriod(6, TimeUnit.Months))
  	  val USD_basis36 = new TenorBasisSwapCurve(USD_basis36_curve, USD_basis36_sindex, USD_basis36_lindex)
@@ -152,13 +152,13 @@ object DiscountCurve {
 	  val EUR_swap_fixperiod = Frequency.Annual
 	  val EUR_swap = new SwapCurve(EUR_swap_curve, EUR_swap_floatindex, EUR_swap_fixdaycount, EUR_swap_fixperiod)
 	  
-	  val EUR_basisinput = Map(period30y -> 0.002)
+	  val EUR_basisinput = Map(period30y -> -0.005)
 	  val EUR_basis_curve = new FlatVector(vd, EUR_basisinput)
 	  val EUR_basis_floatindex = new Euribor(new JPeriod(3, TimeUnit.Months))
  	  val EUR_basis = new BasisSwapCurve(EUR_basis_curve, EUR_basis_floatindex)
 	  
 	  val EUR_basis36input = Map(period30y -> 0.001)
-	  val EUR_basis36_curve = new FlatVector(vd, EUR_basisinput)
+	  val EUR_basis36_curve = new FlatVector(vd, EUR_basis36input)
 	  val EUR_basis36_sindex = new Euribor(new JPeriod(3, TimeUnit.Months))
 	  val EUR_basis36_lindex = new Euribor(new JPeriod(6, TimeUnit.Months))
  	  val EUR_basis36 = new TenorBasisSwapCurve(EUR_basis36_curve, EUR_basis36_sindex, EUR_basis36_lindex)

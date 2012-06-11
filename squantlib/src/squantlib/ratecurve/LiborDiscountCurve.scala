@@ -49,12 +49,20 @@ extends RateCurve{
 	  val floatdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
 	  				.map(m => (m, swap.floatindex.dayCounter().yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
 	  				
+	  /**
+	   * using cash rate to compute zero coupon < 12 months.
+	   */
+	  val swapstart = 12;				
+	  val cashrange = zcperiods.filter(m => (m._1 < swapstart && m._1 > 0))
+	  val swaprange = zcperiods.filter(m => m._1 >= swapstart)
 
 	  /**
 	   * 3m/6m basis swap calibration is valid in case float leg is semi annual (ccy basis always quarterly)
 	   */
-	  val bs3m6madjust = zcperiods.map(m => (m._1, if (floattenor <= 3) 0.0 else tenorbasis.value(m._2))) 
-
+	  val bs3m6madjust = zcperiods.map(m => (m._1, m._1 match { case n if n < swapstart && n < 6 => 0.0
+															    case n if n < swapstart && n >= 6 => tenorbasis.value(m._2)
+															    case n if n >= swapstart && floattenor <= 3 => 0.0
+															    case _ => tenorbasis.value(m._2) }))
 	  
 	  println("maxmaturity : " + maxmaturity)
 	  println("[m, zcmonths, zcperiods, maturities, fixdaycounts, floatdaycounts, bs3m6madj]")
@@ -69,11 +77,6 @@ extends RateCurve{
 	   */
 	  val ispivotcurrency = basis.ispivotcurrency
 
-	  /**
-	   * using cash rate to compute zero coupon < 12 months.
-	   */
-	  val cashrange = zcperiods.filter(m => (m._1 < 12 && m._1 > 0))
-	  val swaprange = zcperiods.filter(m => m._1 >= 12)
 	  
 	  
 	  def getZC(spread : TimeVector) : DiscountCurve = {
@@ -98,8 +101,7 @@ extends RateCurve{
 		   * note: we are assuming 3m-9m basis spread = 3m-6m basis spread
 		   */
 		  cashrange foreach {cr => val m = cr._1; val p = cr._2;
-			val bs3m6m = if (m < 6) 0.0 else tenorbasis.value(p)
-			val zcXm = 1 / (1 + (cash.value(p) + ZCspread(p) - bs3m6m) * floatfraction * m / 12)
+			val zcXm = 1 / (1 + (cash.value(p) + ZCspread(p) - bs3m6madjust(m)) * floatfraction * m / 12)
 	  	  	ZC ++= Map(p -> zcXm)}
 		  
 		  var duration = if (fixperiod >= 12) 0.0
@@ -188,7 +190,7 @@ extends RateCurve{
 		  	ZCspread ++= Map(p -> zcspd)
 	  		val realrate = swap.value(p) + (zcspd - tbs) * floatfraction / fixfraction
 	  		val zcXm = (1 - realrate * fixduration) / (1 + realrate * fixdaycounts(m))
-	  		println("m: " + m + " zcspd:" + zcspd + " tbs: " + tbs + " bsccy:" + bsccy(m) + " refinspread: " + refinspread(m) + " refinduration:"+rduration+ " floatduration:" + fduration)
+//	  		println("m: " + m + " zcspd:" + zcspd + " tbs: " + tbs + " bsccy:" + bsccy(m) + " refinspread: " + refinspread(m) + " refinduration:"+rduration+ " floatduration:" + fduration)
 			ZC ++= Map(p -> zcXm)
 			fixduration += zcXm * fixdaycounts(m)
 			floatduration += zcXm * floatdaycounts(m)
