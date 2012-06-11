@@ -2,6 +2,7 @@
 ./lib
 ./out
 
+**/*.settings
 *.class
 *.log
 *.ipr
