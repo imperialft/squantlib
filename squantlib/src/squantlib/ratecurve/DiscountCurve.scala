@@ -5,11 +5,22 @@ import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.Frequency
 import org.jquantlib.daycounters.DayCounter
+import org.jquantlib.currencies.Currency
 
 /**
  * Encapsulates a curve to be used for cashflow discounting, using either rates, swap points or any other means.
+ * 
  */
+
 trait DiscountableCurve {
+  
+  val currency : Currency
+  val valuedate : JDate
+  
+  /** 
+   * Daycounter for risk-free rate.
+   */
+  val basedaycount : DayCounter
   
   /** 
    * Builds zero coupon curve using the curve itself as discount currency.
@@ -34,5 +45,6 @@ trait DiscountableCurve {
 
 class DiscountCurve(val zc : TimeVector, val discountspread : TimeVector) {
   def this(v:TimeVector) = this(v, null)
+  val valuedate = zc.valuedate
 }
 

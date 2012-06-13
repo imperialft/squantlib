@@ -9,6 +9,7 @@ import scala.collection.{Iterable, Iterator}
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.TimeUnit
+import org.jquantlib.daycounters._
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation._
 import org.apache.commons.math3.analysis.function.Log
@@ -48,6 +49,11 @@ trait TimeVector extends Iterable[Pair[JDate, Double]] {
 	 * @param observation date as the number of calendar days after value date.
 	 */
     def value(days : Long) : Double
+	/**
+	 * Returns the value corresponding to the given date.
+	 * @param observation date as day count fraction and its day count method.
+	 */
+    def value(dayfrac : Double) : Double = value((dayfrac * 365).toLong)
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date

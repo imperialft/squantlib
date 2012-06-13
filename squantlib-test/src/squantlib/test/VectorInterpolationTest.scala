@@ -8,7 +8,7 @@ import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.TimeUnit
 
-object VectorInterpolation {
+object VectorInterpolationTest {
 	
 	def main(args:Array[String]) : Unit = {
 	   

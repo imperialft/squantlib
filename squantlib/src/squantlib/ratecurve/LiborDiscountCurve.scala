@@ -18,6 +18,7 @@ extends RateCurve{
 		&& cash.floatindex.dayCounter == swap.floatindex.dayCounter)
 
 	  val currency = cash.currency
+	  val basedaycount = cash.floatindex.dayCounter
 	  
 	  /**
 	   * swap specifications

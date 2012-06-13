@@ -15,7 +15,6 @@ import org.jquantlib.time.{ Period => JPeriod }
  * Encapsulates a full rate curve. Should implement getZC() in superclass.
  */
 trait RateCurve extends DiscountableCurve{
-  val currency : Currency
   val cash : CashCurve
   val swap : SwapCurve
   val basis : BasisSwapCurve
