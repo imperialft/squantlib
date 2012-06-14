@@ -11,6 +11,13 @@ import org.jquantlib.time.TimeUnit
 import org.jquantlib.daycounters.DayCounter;
  
 
+  /**
+   * Libor discounting model
+   * - 3m/6m basis is paid semiannually instead of quarterly (small error)
+   * - zero rate volatility (model assumption)
+   * - no 3m-Xm basis for X < 6 (implied by ZC interpolation 3m & 6m)
+   * - no 6m-Xm basis for X > 6 (implied by ZC interpolation 6m & 12m)
+   */
 class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val valuedate : JDate) 
 extends RateCurve{
   require (List(cash.valuedate, swap.valuedate, basis.valuedate, tenorbasis.valuedate).forall(_ == valuedate)
@@ -88,7 +95,6 @@ extends RateCurve{
 		  
 		  /**
 		   * cash rate to compute zero coupon < 12 months.
-		   * note: we are assuming 3m-9m basis spread = 3m-6m basis spread
 		   */
 		  cashrange foreach {cr => val m = cr._1; val p = cr._2;
 			val zcXm = 1 / (1 + (cash.value(p) + ZCspread(p) - bs3m6madjust(m)) * floatfraction * m / 12)
@@ -99,7 +105,6 @@ extends RateCurve{
 		  
 		  /**
 		   * swap rate to compute zero coupon >= 1year 
-		   * note: we are assuming no basis below 3 months and above 6 months
 		   */
 		  swaprange foreach { sr => val m = sr._1; val p = sr._2;
 		    val realrate = swap.value(p) + (ZCspread(p) - bs3m6madjust(m)) * floatfraction / fixfraction;
@@ -154,7 +159,6 @@ extends RateCurve{
 		  
 		  /**
 		   * using cash rate to compute zero coupon < 12 months.
-		   * note: we are assuming 3m-9m basis spread = 3m-6m basis spread
 		   */
 		  cashrange foreach { cr => val m = cr._1; val p = cr._2;
 		    val spd = 	if (ispivotcurrency) (bsccy(m) + refinspread(m)) * floatfraction2 / floatfraction
@@ -173,7 +177,6 @@ extends RateCurve{
 		  
 		  /**
 		   * using swap rate to compute zero coupon >= 1year 
-		   * note: we are assuming no basis below 3 months and above 6 months
 		   */
 		  swaprange foreach { sr => val m = sr._1; val p = sr._2;
 		  		val fduration = if (m <= fixperiod) floatfraction else floatduration
