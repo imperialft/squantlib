@@ -234,6 +234,13 @@ class DiscountCurveTest {
 	  }
 	  
 	    /**
+	   * Display the ZC curve content
+	   */
+	  @Test def display():Unit = {
+	    displaycurve
+	  }
+	  
+	    /**
 	   * Discount test unit - discount by cross currency
 	   */
 	  @Test def testZCccy():Unit = {
@@ -285,7 +292,7 @@ class DiscountCurveTest {
 	    /**
 	   * Main function will display the curve contents and discount factor
 	   */
-	  def main(args:Array[String]) : Unit = {
+	  def displaycurve() : Unit = {
 
 		    /**
 		   * Setting up view functions

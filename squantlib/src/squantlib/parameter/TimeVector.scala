@@ -53,7 +53,7 @@ trait TimeVector extends Iterable[Pair[JDate, Double]] {
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as day count fraction and its day count method.
 	 */
-    def value(dayfrac : Double) : Double = value((dayfrac * 365).toLong)
+    def value(dayfrac : Double, dayCounter:DayCounter) : Double = value((dayfrac * 365 / dayCounter.annualDayCount).toLong)
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date

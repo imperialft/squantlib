@@ -30,7 +30,7 @@ extends AbstractYieldTermStructure(referencedate)  {
 		/* t is relative to the current reference date*/
 		val ref = referenceDate
 		val /*@Time*/ originaltime = t + dayCounter.yearFraction(curve.valuedate, ref)
-		discount.zc.value(originaltime) / discount.zc.value(ref)
+		discount.zc.value(originaltime, dayCounter) / discount.zc.value(ref)
 	}
 	
 	def this(c:DiscountableCurve, d:DiscountCurve, cdr:Calendar) = this(c, d, cdr, 0, d.valuedate)
