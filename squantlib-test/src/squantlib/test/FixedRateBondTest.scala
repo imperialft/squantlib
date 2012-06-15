@@ -23,7 +23,7 @@ object FixedRateBondTest {
 		val currency = new Asia.JPYCurrency
 		val settlementdays = 0
 		val faceamount = 100.0
-		val coupons:Array[Double] = (for(i <- 0 to 9) yield 0.00) toArray
+		val coupons:Array[Double] = (for(i <- 0 to 9) yield 0.05) toArray
 		val accrualdaycounter = new Thirty360
 		val paymentconvention = BusinessDayConvention.ModifiedFollowing
 		val redemption = 100.0
@@ -49,11 +49,14 @@ object FixedRateBondTest {
 	def main(args:Array[String]) : Unit = {
 	    val valuedate = new JDate(10, 3, 2010)
 		println("bond intialised")
+		println("notional:" + bond.notional)
 		println("value date:" + valuedate.shortDate.toString)
 		println("issue date:" + bond.issueDate)
 		println("maturity date:" + bond.maturityDate)
+		println("frequency:" + bond.frequency.name)
+		println("calendar:" + bond.calendar.name)
 		println("next coupon:" + bond.nextCoupon)
-		println("notional:" + bond.notional)
+		println("accrued:" + bond.accruedAmount(valuedate))
 		println("redemption:" + bond.redemption.amount() + " vd " + bond.redemption.date.shortDate.toString)
 		
 		println("cashflow schedule:")
@@ -78,5 +81,6 @@ object FixedRateBondTest {
 		    val cont = continuousyields(y)
 		    println(y + ", " + none + ", " + simple + ", " + annual + ", " + semian + ", " + cont)
 			}
+		
 	}
 }
