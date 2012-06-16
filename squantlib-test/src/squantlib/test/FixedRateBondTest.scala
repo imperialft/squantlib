@@ -1,5 +1,7 @@
 package squantlib.test
 
+import scala.collection.JavaConversions._
+
 import squantlib.termstructures.ZCImpliedYieldTermStructure
 
 import org.jquantlib.time.Schedule
@@ -15,8 +17,13 @@ import org.jquantlib.daycounters._
 import org.jquantlib.instruments.bonds.FixedRateBond
 import org.jquantlib.termstructures.Compounding
 
-object FixedRateBondTest {
+import org.junit._
+import org.junit.Assert._
+
+class FixedRateBondTest {
 	
+	val valuedate = new JDate(8, 3, 2012)
+
 	val bond = {
 		val issuedate = new JDate(7, 3, 2010)
 		val maturity = new JDate(7, 3, 2020)
@@ -44,43 +51,80 @@ object FixedRateBondTest {
 	}
 	
 	/**
-	   * Main function will display the curve contents and discount factor
+	   * display the curve contents and discount factor
 	   */
-	def main(args:Array[String]) : Unit = {
-	    val valuedate = new JDate(10, 3, 2010)
-		println("bond intialised")
-		println("notional:" + bond.notional)
+	@Test def checkcontents : Unit = {
+		println("bond information")
+		println("notional:" + bond.notional(valuedate))
 		println("value date:" + valuedate.shortDate.toString)
 		println("issue date:" + bond.issueDate)
 		println("maturity date:" + bond.maturityDate)
 		println("frequency:" + bond.frequency.name)
 		println("calendar:" + bond.calendar.name)
-		println("next coupon:" + bond.nextCoupon)
+		println("next coupon:" + bond.nextCoupon(valuedate))
 		println("accrued:" + bond.accruedAmount(valuedate))
 		println("redemption:" + bond.redemption.amount() + " vd " + bond.redemption.date.shortDate.toString)
 		
 		println("cashflow schedule:")
 		val cashflowlegs = bond.cashflows.iterator
 		while (cashflowlegs.hasNext) { val c = cashflowlegs.next; println(c.date.shortDate.toString + " - " + c.amount) }
+	}
+	
+	
+	/**
+	   * display the curve contents and discount factor
+	   */
+	@Test def checkyields : Unit = {
+		
+		val cashflowlegs = bond.cashflows.iterator
+		val accrued = bond.accruedAmount(valuedate)
+		val cashflows = cashflowlegs.toList.filter(_.date.gt(valuedate)).map(m => (m.date, m.amount))
+		
+		println("cashflow")
+		println("accrued:" + accrued)
+		cashflows foreach { c => println(c._1.shortDate.toString + " " + c._2)}
 		
 		val accuracy = 0.0001
 		val price = List(50, 80, 100, 120, 180)
-		val nocompyields = price.map(p => (p -> bond.`yield`(p, new Thirty360, Compounding.None, Frequency.Annual, valuedate, accuracy))) toMap
-		val simpleyields = price.map(p => (p -> bond.`yield`(p, new Thirty360, Compounding.Simple, Frequency.Annual, valuedate, accuracy))) toMap
-		val continuousyields = price.map(p => (p -> bond.`yield`(p, new Thirty360, Compounding.Continuous, Frequency.Annual, valuedate, accuracy, 1000))) toMap
-		val annualyields = price.map(p => (p -> bond.`yield`(p, new Thirty360, Compounding.Compounded, Frequency.Annual, valuedate, accuracy, 1000))) toMap
-		val sayields = price.map(p => (p -> bond.`yield`(p, new Thirty360, Compounding.Compounded, Frequency.Semiannual, valuedate, accuracy, 1000))) toMap
-
-		println("yields")
-		println("[price, none, simple, annual compounding, SA compounding, continuous]")
-		price foreach { y => 
-		    val none = nocompyields(y)
-		    val simple = simpleyields(y)
-		    val annual = annualyields(y)
-		    val semian = sayields(y)
-		    val cont = continuousyields(y)
-		    println(y + ", " + none + ", " + simple + ", " + annual + ", " + semian + ", " + cont)
-			}
 		
+		val daycount = new Thirty360
+		def pricefromyield(cashflow:List[(JDate, Double)], rate:Double, discountf:((Double, JDate) => Double)):Double = cashflow.map(c => c._2 * discountf(rate, c._1)).sum
+		
+		println("Continuous yields")
+		val continuousyields = price.map(p => (p -> bond.`yield`(p, daycount, Compounding.Continuous, Frequency.NoFrequency, valuedate, accuracy, 1000))) toMap
+		val continuousf = (rate:Double, date:JDate) => math.exp(-rate * daycount.yearFraction(valuedate, date))
+		val continuousprice = continuousyields.map(y => (y._2, pricefromyield(cashflows, y._2, continuousf) - accrued))
+		price foreach { p => val yld = continuousyields(p); val price = continuousprice(yld); val error = math.abs(p - price);
+						println(p + " => " + yld + " => " + price + " error " + error);
+						assert(error < accuracy)}
+		
+		println("Annual yields")
+		val annualyields = price.map(p => (p -> bond.`yield`(p, daycount, Compounding.Compounded, Frequency.Annual, valuedate, accuracy, 1000))) toMap
+		val annualf = (rate:Double, date:JDate) => 1 / math.pow(1.0 + rate, daycount.yearFraction(valuedate, date))
+		val annualprice = annualyields.map(y => (y._2, pricefromyield(cashflows, y._2, annualf) - accrued))
+		price foreach { p => val yld = annualyields(p); val price = annualprice(yld); val error = math.abs(p - price);
+						println(p + " => " + yld + " => " + price + " error " + error);
+						assert(error < accuracy)}
+		
+		println("Semiannual yields")
+		val semiannyields = price.map(p => (p -> bond.`yield`(p, daycount, Compounding.Compounded, Frequency.Semiannual, valuedate, accuracy, 1000))) toMap
+		val semiannf = (rate:Double, date:JDate) => 1 / math.pow(1.0 + rate/2, daycount.yearFraction(valuedate, date) * 2)
+		val semiannprice = semiannyields.map(y => (y._2, pricefromyield(cashflows, y._2, semiannf) - accrued))
+		price foreach { p => val yld = semiannyields(p); val price = semiannprice(yld); val error = math.abs(p - price);
+						println(p + " => " + yld + " => " + price + " error " + error);
+						assert(error < accuracy)}
+
+		println("Simple yields")
+		val nocompyields = price.map(p => (p -> bond.`yield`(p, daycount, Compounding.None, Frequency.Annual, valuedate, accuracy))) toMap
+		val fullcashflow = cashflows.map(c => c._2).sum
+		println("total cashflow:" + fullcashflow)
+		val nocompprice = nocompyields.map(y => (y._2, (fullcashflow - accrued) / (1 + y._2 * daycount.yearFraction(valuedate, bond.maturityDate))))
+		price foreach { p => val yld = nocompyields(p); val price = nocompprice(yld); val error = math.abs(p - price);
+						println(p + " => " + yld + " => " + price + " error " + error);
+						assert(error < accuracy)
+						}
+		
+//		val simpleyields = price.map(p => (p -> bond.`yield`(p, daycount, Compounding.Simple, Frequency.Annual, valuedate, accuracy))) toMap
 	}
+	
 }

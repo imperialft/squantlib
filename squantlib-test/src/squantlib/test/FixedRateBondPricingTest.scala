@@ -28,7 +28,7 @@ import org.junit.Assert._
 
 class FixedRateBondPricingTest {
      
-	val vd = new JDate(7, 5, 2010)
+	val valuedate = new JDate(7, 5, 2010)
     val couponrate = 0.05
 	val bondmaturity = new JDate(7, 3, 2020)
 	val bond = {
@@ -70,9 +70,9 @@ class FixedRateBondPricingTest {
 	   * test spread for each currency
 	   */
 	  val spreads = {
-	  	  val spread1 = (0.00, new FlatVector(vd, Map(period6m -> 0.00)))
-		  val spread2 = (0.02, new FlatVector(vd, Map(period6m -> 0.02)))
-		  val spread3 = (-0.01, new FlatVector(vd, Map(period6m -> -0.01)))
+	  	  val spread1 = (0.00, new FlatVector(valuedate, Map(period6m -> 0.00)))
+		  val spread2 = (0.02, new FlatVector(valuedate, Map(period6m -> 0.02)))
+		  val spread3 = (-0.01, new FlatVector(valuedate, Map(period6m -> -0.01)))
 	  	  List(spread1, spread2, spread3)
 	  }
 	   	  
@@ -80,14 +80,14 @@ class FixedRateBondPricingTest {
 	    
 	    val JPY_cash = {
 			  val JPY_cashinput = Map(period6m -> 0.01)
-			  val JPY_cash_curve = new FlatVector(vd, JPY_cashinput)
+			  val JPY_cash_curve = new FlatVector(valuedate, JPY_cashinput)
 			  val JPY_cash_floatindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
 			  new CashCurve(JPY_cash_curve, JPY_cash_floatindex)
 		  }
 		  
 		  val JPY_swap = {
 			  val JPY_swapinput = Map(period30y -> 0.01)
-			  val JPY_swap_curve = new FlatVector(vd, JPY_swapinput)
+			  val JPY_swap_curve = new FlatVector(valuedate, JPY_swapinput)
 			  val JPY_swap_floatindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
 			  val JPY_swap_fixdaycount = new Actual365Fixed
 			  val JPY_swap_fixperiod = Frequency.Semiannual
@@ -96,20 +96,20 @@ class FixedRateBondPricingTest {
 		  
 		  val JPY_basis = {
 			  val JPY_basisinput = Map(period30y -> -0.005)
-			  val JPY_basis_curve = new FlatVector(vd, JPY_basisinput)
+			  val JPY_basis_curve = new FlatVector(valuedate, JPY_basisinput)
 			  val JPY_basis_floatindex = new JPYLibor(new JPeriod(3, TimeUnit.Months))
 		 	  new BasisSwapCurve(JPY_basis_curve, JPY_basis_floatindex)
 		  }
 		  
 		  val JPY_basis36 = {
 			  val JPY_basis36input = Map(period30y -> 0.002)
-			  val JPY_basis36_curve = new FlatVector(vd, JPY_basis36input)
+			  val JPY_basis36_curve = new FlatVector(valuedate, JPY_basis36input)
 			  val JPY_basis36_sindex = new JPYLibor(new JPeriod(3, TimeUnit.Months))
 			  val JPY_basis36_lindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
 		 	  new TenorBasisSwapCurve(JPY_basis36_curve, JPY_basis36_sindex, JPY_basis36_lindex)
 		  }
 		  
-		  new LiborDiscountCurve(JPY_cash, JPY_swap, JPY_basis, JPY_basis36, vd)
+		  new LiborDiscountCurve(JPY_cash, JPY_swap, JPY_basis, JPY_basis36, valuedate)
 	  }
 	  val JPY_ZC = spreads.map(s => (s._1, JPY_curvemodel.getZC(s._2)))
 	  
@@ -142,14 +142,14 @@ class FixedRateBondPricingTest {
 			while (cashflowlegs.hasNext) { val c = cashflowlegs.next; println(c.date.shortDate.toString + " - " + c.amount) }
 		    val calendar = new Japan
 		    val settlement = 0
-			val termstructs = JPY_ZC.map(zc => (zc._1, new ZCImpliedYieldTermStructure(JPY_curvemodel, zc._2, calendar, settlement, vd)))
+			val termstructs = JPY_ZC.map(zc => (zc._1, new ZCImpliedYieldTermStructure(JPY_curvemodel, zc._2, calendar, settlement, valuedate)))
 			val bondengines = termstructs.map(ts => (ts._1, new DiscountingBondEngine(ts._2)))
 			
 		    /**
 		   * Dirty price test
 		   */
-			val modelprice = bondengines.map(e => { bond.setPricingEngine(e._2, vd); (e._1, bond.dirtyPrice())} ) toMap
-			val scheduledirty = bondschedule(vd, bondmaturity, bond.frequency.toPeriod, calendar, false)
+			val modelprice = bondengines.map(e => { bond.setPricingEngine(e._2, valuedate); (e._1, bond.dirtyPrice())} ) toMap
+			val scheduledirty = bondschedule(valuedate, bondmaturity, bond.frequency.toPeriod, calendar, false)
 			val manualprice = JPY_ZC.map( zc => (zc._1, bondprice(JPY_curvemodel, zc._2, bond.maturityDate, scheduledirty, couponrate, bond.dayCounter, true))) toMap
 			
 			println("[spread, manual price, model price, error]")
@@ -163,8 +163,8 @@ class FixedRateBondPricingTest {
 		    /**
 		   * Clean price test
 		   */
-			val modelpriceclean = bondengines.map(e => { bond.setPricingEngine(e._2, vd); (e._1, bond.cleanPrice())} ) toMap
-			val scheduleclean = bondschedule(vd, bondmaturity, bond.frequency.toPeriod, calendar, true)
+			val modelpriceclean = bondengines.map(e => { bond.setPricingEngine(e._2, valuedate); (e._1, bond.cleanPrice())} ) toMap
+			val scheduleclean = bondschedule(valuedate, bondmaturity, bond.frequency.toPeriod, calendar, true)
 			val manualpriceclean = JPY_ZC.map( zc => (zc._1, bondprice(JPY_curvemodel, zc._2, bond.maturityDate, scheduleclean, couponrate, bond.dayCounter, true))) toMap
 			
 			println("[spread, manual price, model price, error]")
