@@ -4,28 +4,24 @@ import scala.collection.JavaConversions._
 
 import org.jquantlib.QL
 import org.jquantlib.model.volatility._
-import org.jquantlib.time.Date
+import org.jquantlib.time.{Date => JDate}
 import org.jquantlib.time.Month
 import org.jquantlib.time.TimeSeries
 import org.junit.Test
 
 object TimeSeriesTest {
  
-    val dates = Array[Date] (
-            new Date(25, Month.March, 2005),
-            new Date(29, Month.March, 2005),
-            new Date(15, Month.March, 2005),
-            new Date(21, Month.March, 2005),
-            new Date(27, Month.March, 2005))
+    val data = Array[(JDate, Double)] (
+            (new JDate(25, Month.March, 2005), 1.2),
+            (new JDate(29, Month.March, 2005), 2.3),
+            (new JDate(15, Month.March, 2005), 0.3),
+            (new JDate(21, Month.March, 2005), 2.0),
+            (new JDate(27, Month.March, 2005), 2.5))
 
-    val values = Array[Double](1.2, 2.3, 0.3, 2.0, 2.5)
     
     val c:java.lang.Class[java.lang.Double] = java.lang.Double.TYPE
-
-    val ts = new TimeSeries[java.lang.Double](c)
-    for (i <- 0 to dates.length - 1) {
-        ts.put(dates(i), values(i));
-    }	
+    val datamap:Map[JDate, java.lang.Double] = data.map(d => (d._1 -> new java.lang.Double(d._2))).toMap
+    val ts = new TimeSeries[java.lang.Double](c, datamap)
  
     @Test
     def testSECalculate():Unit = {
