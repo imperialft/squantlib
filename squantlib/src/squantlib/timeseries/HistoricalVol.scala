@@ -1,7 +1,8 @@
 package squantlib.timeseries
 
 import scala.collection.immutable.SortedMap
-import squantlib.math.timeseries.TSAnalysis
+import squantlib.math.timeseries.Volatility
+import squantlib.math.timeseries.Variance
 import java.lang.{ Double => JDouble}
 import org.jquantlib.time.TimeSeries
 
@@ -13,9 +14,9 @@ class HistoricalVol(nbDays:Int, annualDays:Double) {
 	
 	def calculate(quotes:TimeSeries[JDouble]) = {
 	  val quotemap = STimeSeries.toSortedMap(quotes)
-	  val result = {if (nbdays > 0 && annualdays > 0.0) TSAnalysis.HistoricalVol(quotemap, nbDays, annualDays)
-	  			   else if (nbdays > 0) TSAnalysis.HistoricalVol(quotemap, nbDays)
-	  			   else TSAnalysis.HistoricalVol(quotemap)}
+	  val result = {if (nbdays > 0 && annualdays > 0.0) Volatility.calculate(quotemap, nbDays, annualDays)
+	  			   else if (nbdays > 0) Volatility.calculate(quotemap, nbDays)
+	  			   else Volatility.calculate(quotemap)}
 	  STimeSeries.toTimeSeries(result)
 	}
 	
@@ -27,7 +28,7 @@ class HistoricalVol(nbDays:Int, annualDays:Double) {
 class HistoricalVariance(val nbDays:Int) {
   
 	def calculate(quotes:TimeSeries[JDouble]) = 
-	  STimeSeries.toTimeSeries(TSAnalysis.Variance(STimeSeries.toSortedMap(quotes), nbDays))
+	  STimeSeries.toTimeSeries(Variance.calculate(STimeSeries.toSortedMap(quotes), nbDays))
 }
 
 

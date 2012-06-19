@@ -1,7 +1,7 @@
 package squantlib.timeseries
 
 import scala.collection.immutable.SortedMap
-import squantlib.math.timeseries.TSAnalysis
+import squantlib.math.timeseries.Correlation
 import java.lang.{ Double => JDouble}
 import org.jquantlib.time.TimeSeries
 
@@ -14,8 +14,8 @@ class HistoricalCorrelation(nbDays:Int) {
 	  val quotemap2 = STimeSeries.toSortedMap(quotes2)
 	  
 	  val result = nbdays match {
-	  	case d if d > 0 => TSAnalysis.Correlation(quotemap1, quotemap2, nbdays)
-	  	case _ => TSAnalysis.Correlation(quotemap1, quotemap2)
+	  	case d if d > 0 => Correlation.calculate(quotemap1, quotemap2, nbdays)
+	  	case _ => Correlation.calculate(quotemap1, quotemap2)
 	  }
 	  
 	  STimeSeries.toTimeSeries(result)

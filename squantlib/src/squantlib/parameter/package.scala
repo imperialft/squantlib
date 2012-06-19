@@ -1,7 +1,7 @@
 package squantlib
 
 /**
- * Custom data containers with associated functionalities
+ * Custom data containers
  * 
  */
 package object parameter {

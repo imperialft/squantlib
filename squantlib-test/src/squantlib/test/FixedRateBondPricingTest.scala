@@ -21,6 +21,7 @@ import org.jquantlib.instruments.bonds.FixedRateBond
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.indexes.ibor._
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
+import org.jquantlib.cashflow.CashFlows
 
 import org.junit._
 import org.junit.Assert._
@@ -28,7 +29,7 @@ import org.junit.Assert._
 
 class FixedRateBondPricingTest {
      
-	val valuedate = new JDate(7, 5, 2010)
+	val valuedate = new JDate(7, 5, 2012)
     val couponrate = 0.05
 	val bondmaturity = new JDate(7, 3, 2020)
 	val bond = {
@@ -174,7 +175,37 @@ class FixedRateBondPricingTest {
 		    		   assert(error < accuracy)
 		    	}
 		    }
-					    
+			
+			println("Basis Point Values")
+			val cashflows = bond.cashflows
+			val bps = termstructs.map(ts => (ts._1, CashFlows.getInstance.bps(cashflows, ts._2, valuedate)))
+			bps.foreach(bp => println(bp._1 + " => " + bp._2))
+			
+			println("ATM rate") 
+			val atmrate = termstructs.map(ts => (ts._1, CashFlows.getInstance.atmRate(cashflows, ts._2, valuedate, valuedate, 0, 0)))
+			atmrate.foreach(r => println(r._1 + " => " + r._2))
+			
+			println("*** Initialise Interest rate ***") 
+			val interestrates = termstructs.map(ts => (ts._1, ts._2.forwardRate(valuedate, bond.maturityDate, ts._2.dayCounter, Compounding.Compounded, Frequency.Semiannual)))
+			interestrates.foreach(r => println(r._1 + " => " + r._2.rate))
+			
+			println("Duration")
+			println("[simple, modified, maucauley]")
+			val simpleduration = interestrates.map(r => (r._1, CashFlows.getInstance.duration(cashflows, r._2, CashFlows.Duration.Simple, valuedate))).toMap
+			val modifiedduration = interestrates.map(r => (r._1, CashFlows.getInstance.duration(cashflows, r._2, CashFlows.Duration.Modified, valuedate))).toMap
+			val macauleyduration = interestrates.map(r => (r._1, CashFlows.getInstance.duration(cashflows, r._2, CashFlows.Duration.Macaulay, valuedate))).toMap
+			atmrate foreach {r => {
+				val d1 = simpleduration(r._1); val d2 = modifiedduration(r._1);  val d3 = modifiedduration(r._1);  
+				println(r._1 + " => " + d1 + ", " + d2 + ", " + d3 )}}
+			
+			println("Yield Value Basis Point")
+			val yieldvaluebp = interestrates.map(r => (r._1, CashFlows.getInstance.yieldValueBasisPoint(cashflows, r._2, valuedate)))
+			yieldvaluebp.foreach(r => println(r._1 + " => " + r._2))
+
+			println("Convexity")
+			val convexity = interestrates.map(r => (r._1, CashFlows.getInstance.convexity(cashflows, r._2, valuedate)))
+			convexity.foreach(r => println(r._1 + " => " + r._2))
+			
 			
 	  }
 
