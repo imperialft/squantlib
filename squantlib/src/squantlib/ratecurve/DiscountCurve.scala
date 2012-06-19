@@ -1,6 +1,6 @@
 package squantlib.ratecurve
 
-import squantlib.parameter.TimeVector
+import squantlib.parameter.yieldparameter.YieldParameter
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.Frequency
@@ -26,7 +26,7 @@ trait DiscountableCurve {
    * Builds zero coupon curve using the curve itself as discount currency.
    * @param refinance spread on float rate
    */
-  def getZC(spread:TimeVector) : DiscountCurve
+  def getZC(spread:YieldParameter) : DiscountCurve
 
   /** 
    * Builds zero coupon curve using external curve as discount currency.
@@ -43,8 +43,8 @@ trait DiscountableCurve {
  */
 
 
-class DiscountCurve(val zc : TimeVector, val discountspread : TimeVector) {
-  def this(v:TimeVector) = this(v, null)
+class DiscountCurve(val zc : YieldParameter, val discountspread : YieldParameter) {
+  def this(v:YieldParameter) = this(v, null)
   val valuedate = zc.valuedate
 }
 

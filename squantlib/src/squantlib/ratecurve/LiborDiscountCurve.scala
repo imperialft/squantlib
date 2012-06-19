@@ -3,7 +3,9 @@ package squantlib.ratecurve
 import scala.collection.immutable.TreeMap
 import scala.collection.immutable.SortedSet
 
-import squantlib.parameter._
+import squantlib.parameter.yieldparameter.YieldParameter
+import squantlib.parameter.yieldparameter.SplineEExtrapolation
+import squantlib.parameter.yieldparameter.SplineNoExtrapolation
 
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
@@ -75,7 +77,7 @@ extends RateCurve{
 	   * Builds zero coupon curve using the curve itself as discount currency.
 	   * @param refinance spread on float rate
 	   */
-	  def getZC(spread : TimeVector) : DiscountCurve = {
+	  def getZC(spread : YieldParameter) : DiscountCurve = {
 	    require (spread != null)
 		  /**
 		   * initialize empty containers (sorted tree)

@@ -3,7 +3,8 @@ package squantlib.ratecurve
 import scala.collection.immutable.TreeMap
 import scala.collection.immutable.SortedSet
 
-import squantlib.parameter._
+import squantlib.parameter.yieldparameter.YieldParameter
+import squantlib.parameter.yieldparameter.SplineEExtrapolation
 
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
@@ -21,7 +22,7 @@ class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double, val valuedate
 	   * Builds zero coupon curve using the curve itself as discount currency 
 	   * - Not available for FX curve as risk-free rate is defined only in terms of another currency.
 	   */
-	  def getZC(spread : TimeVector) : DiscountCurve = {
+	  def getZC(spread : YieldParameter) : DiscountCurve = {
 	    println("Cannot discount FX-defined curve without reference to pivot currency")
 	    return null
 	  }

@@ -1,6 +1,6 @@
 package squantlib.ratecurve
 
-import squantlib.parameter.TimeVector
+import squantlib.parameter.yieldparameter.YieldParameter
 import org.jquantlib.daycounters._
 import org.jquantlib.time.Frequency
 import org.jquantlib.currencies.Currency
@@ -23,7 +23,7 @@ trait RateCurve extends DiscountableCurve{
 }
 
 trait AbstractRateCurve{
-  val rate : TimeVector
+  val rate : YieldParameter
   def value(d:JDate) = rate.value(d)
   def value(d:JPeriod) = rate.value(d)
   def value(d:Long) = rate.value(d)
@@ -36,7 +36,7 @@ trait AbstractRateCurve{
  * @constructor stores each information
  * @param float index, daycount & payment frequency for fixed leg
  */
-class SwapCurve (val rate:TimeVector, val floatindex:IborIndex, val fixdaycount:DayCounter, val fixperiod:Frequency) extends AbstractRateCurve{
+class SwapCurve (val rate:YieldParameter, val floatindex:IborIndex, val fixdaycount:DayCounter, val fixperiod:Frequency) extends AbstractRateCurve{
   require (floatindex.tenor().units() == TimeUnit.Months && List(3, 6).contains(floatindex.tenor().length()))
   val currency = floatindex.currency
 }
@@ -48,7 +48,7 @@ class SwapCurve (val rate:TimeVector, val floatindex:IborIndex, val fixdaycount:
  * @constructor stores each information
  * @param floatindex can take any maturity.
  */
-class CashCurve (val rate:TimeVector, val floatindex:IborIndex) extends AbstractRateCurve{
+class CashCurve (val rate:YieldParameter, val floatindex:IborIndex) extends AbstractRateCurve{
     val currency = floatindex.currency
 }
 
@@ -59,7 +59,7 @@ class CashCurve (val rate:TimeVector, val floatindex:IborIndex) extends Abstract
  * @constructor stores each information. currency information is encapsulated within float index.
  * @param daycount and frequency convention (should be quarterly with standard cash daycount)
  */
-class BasisSwapCurve (val rate:TimeVector, val floatindex:IborIndex) extends AbstractRateCurve {
+class BasisSwapCurve (val rate:YieldParameter, val floatindex:IborIndex) extends AbstractRateCurve {
   require(floatindex.tenor().length() == 3)
   
   val currency = floatindex.currency
@@ -82,7 +82,7 @@ object BasisSwapCurve {
  * @constructor stores each information
  * @param daycount and frequency convention (should be quarterly with standard cash daycount)
  */
-class TenorBasisSwapCurve (val rate:TimeVector, val shortindex:IborIndex, val longindex:IborIndex) extends AbstractRateCurve  {
+class TenorBasisSwapCurve (val rate:YieldParameter, val shortindex:IborIndex, val longindex:IborIndex) extends AbstractRateCurve  {
   require(shortindex.tenor().length == 3 && longindex.tenor().length == 6 && shortindex.currency == longindex.currency)
   val currency = shortindex.currency
 }

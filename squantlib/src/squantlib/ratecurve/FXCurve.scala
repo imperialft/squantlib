@@ -1,6 +1,6 @@
 package squantlib.ratecurve
 
-import squantlib.parameter.TimeVector
+import squantlib.parameter.yieldparameter.YieldParameter
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.time.{ Date => JDate }
@@ -26,7 +26,7 @@ trait FXCurve extends DiscountableCurve{
  * @param swap point against pivot currency = USD
  * @param multiple to make up 1 unit of FX. ie. forwardfx = spotfx + swap point / multiplier
  */
-class SwapPointCurve (val points:TimeVector, val multiplier:Double, val currency:Currency, val pivotcurrency:Currency) {
+class SwapPointCurve (val points:YieldParameter, val multiplier:Double, val currency:Currency, val pivotcurrency:Currency) {
   require (currency != SwapPointCurve.pivotcurrency && pivotcurrency == SwapPointCurve.pivotcurrency)
   
   val valuedate = points.valuedate
@@ -46,7 +46,7 @@ class SwapPointCurve (val points:TimeVector, val multiplier:Double, val currency
   def value(d:JPeriod, fx:Double) = fx + points.value(d) / multiplier
   def value(d:Long, fx:Double) = fx + points.value(d) / multiplier
   
-  def this(p:TimeVector, m:Double, c:Currency) = this(p, m, c, SwapPointCurve.pivotcurrency)
+  def this(p:YieldParameter, m:Double, c:Currency) = this(p, m, c, SwapPointCurve.pivotcurrency)
 }
 
 object SwapPointCurve {

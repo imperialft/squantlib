@@ -3,7 +3,7 @@ package squantlib.test
 import scala.collection.immutable.TreeMap
 import scala.collection.immutable.SortedMap
 import scala.collection.Iterable
-import squantlib.parameter._
+import squantlib.parameter.yieldparameter._
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.TimeUnit

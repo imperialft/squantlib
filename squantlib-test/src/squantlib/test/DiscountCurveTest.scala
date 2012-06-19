@@ -4,7 +4,7 @@ import scala.collection.immutable.TreeMap
 import scala.collection.immutable.SortedMap
 import scala.collection.Iterable
 
-import squantlib.parameter._
+import squantlib.parameter.yieldparameter._
 import squantlib.ratecurve._
 
 import org.jquantlib.time.{ Date => JDate }
@@ -299,7 +299,7 @@ class DiscountCurveTest {
 		   */
 		  val rounding = (x: Double, decimals:Int) => (x * math.pow(10, decimals)).round / math.pow(10, decimals)
 		  val percent = (x:Double, decimals:Int) => (rounding(x*100, decimals)) + "%"
-		  val vdescribe = (v : TimeVector) => { "value " + v.valuedate.shortDate.toString + ":" + percent(v.value(v.valuedate), 2) + " to " + v.maxdate.shortDate.toString + ":" + percent(v.value(v.maxdays), 2) }
+		  val vdescribe = (v : YieldParameter) => { "value " + v.valuedate.shortDate.toString + ":" + percent(v.value(v.valuedate), 2) + " to " + v.maxdate.shortDate.toString + ":" + percent(v.value(v.maxdays), 2) }
 		  val cashdescribe = (r : CashCurve) => r.currency.code + " " + r.floatindex.dayCounter
 		  val swapdescribe = (r : SwapCurve) => r.currency.code + " " + r.fixperiod.tenor + "m " + r.fixdaycount.name + " vs " + r.floatindex.tenor.length + "m " + r.floatindex.dayCounter.name
 		  val basisdescribe = (r : BasisSwapCurve) => r.currency.code + " " + r.floatindex.tenor.length + "m " + r.floatindex.dayCounter.name + " vs " + r.pivotfloatindex.currency.code + " " + r.pivotfloatindex.tenor.length + "m " + r.pivotfloatindex.dayCounter.name
