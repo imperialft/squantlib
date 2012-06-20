@@ -42,5 +42,8 @@ object VectorInterpolationTest {
 	  println("Flat : Linear : Spline : Spline+Points")
 	  inputset.foreach( (d:JPeriod) => { println(d.toString() + "  " + flat.value(d)+ "  " + linear.value(d) + " " + spline.value(d) + " " + spline2.value(d))})
 	  println("max defined date" + flat.maxdate.toString() + " " + linear.maxdate.toString() + " " + spline.maxdate.toString() + " " + spline2.maxdate.toString())
+	  
+	  val filepath = "C:/temp/tempchart.png"
+	  val graphoutput = spline.render(filepath, 30)
     }
 }

@@ -20,7 +20,7 @@ import org.jquantlib.daycounters.DayCounter;
    * - no 3m-Xm basis for X < 6 (implied by ZC interpolation 3m & 6m)
    * - no 6m-Xm basis for X > 6 (implied by ZC interpolation 6m & 12m)
    */
-class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val valuedate : JDate) 
+class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val valuedate : JDate, val fx : Double = 0) 
 extends RateCurve{
   require (List(cash.valuedate, swap.valuedate, basis.valuedate, tenorbasis.valuedate).forall(_ == valuedate)
 		&& List(swap.currency, basis.currency, tenorbasis.currency).forall(_ == cash.currency)

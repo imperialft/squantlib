@@ -15,6 +15,7 @@ import org.jquantlib.currencies.Currency
 trait DiscountableCurve {
   
   val currency : Currency
+  val fx : Double
   val valuedate : JDate
   
   /** 

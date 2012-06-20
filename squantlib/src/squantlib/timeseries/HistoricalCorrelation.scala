@@ -5,9 +5,7 @@ import squantlib.math.timeseries.Correlation
 import java.lang.{ Double => JDouble}
 import org.jquantlib.time.TimeSeries
 
-class HistoricalCorrelation(nbDays:Int) {
-	
-	val nbdays = if (nbDays<=0) 0 else nbDays
+class HistoricalCorrelation(val nbdays:Int = -1) {
   
 	def calculate(quotes1:TimeSeries[JDouble], quotes2:TimeSeries[JDouble]) = {
 	  val quotemap1 = STimeSeries.toSortedMap(quotes1)
@@ -20,6 +18,4 @@ class HistoricalCorrelation(nbDays:Int) {
 	  
 	  STimeSeries.toTimeSeries(result)
 	}
-	
-	def this() = this(-1)
 }

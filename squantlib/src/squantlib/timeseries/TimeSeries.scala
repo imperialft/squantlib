@@ -21,7 +21,6 @@ object STimeSeries {
     def toTimeSeries(quotes:SortedMap[JDate, Double]) : TimeSeries[JDouble] = toTimeSeries(quotes.toMap)
     
     def apply(quotes:TimeSeries[JDouble], f:(SortedMap[JDate, Double] => SortedMap[JDate, Double])) = toTimeSeries(f(toSortedMap(quotes)))
-    
 }
 
 

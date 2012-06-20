@@ -7,21 +7,15 @@ import java.lang.{ Double => JDouble}
 import org.jquantlib.time.TimeSeries
 
 
-class HistoricalVol(nbDays:Int, annualDays:Double) {
-  
-	val nbdays = if (nbDays <= 0) 0 else nbDays
-	val annualdays = if (annualDays <= 0.0) 0.0 else annualDays
+class HistoricalVol(val nbdays:Int = -1, val annualdays:Double = 252) {
 	
 	def calculate(quotes:TimeSeries[JDouble]) = {
 	  val quotemap = STimeSeries.toSortedMap(quotes)
-	  val result = {if (nbdays > 0 && annualdays > 0.0) Volatility.calculate(quotemap, nbDays, annualDays)
-	  			   else if (nbdays > 0) Volatility.calculate(quotemap, nbDays)
+	  val result = {if (nbdays > 0 && annualdays > 0.0) Volatility.calculate(quotemap, nbdays, annualdays)
+	  			   else if (nbdays > 0) Volatility.calculate(quotemap, nbdays)
 	  			   else Volatility.calculate(quotemap)}
 	  STimeSeries.toTimeSeries(result)
 	}
-	
-	def this(nbDays:Int) = this(nbDays, -1.0)
-	def this() = this(-1, -1.0)
 	
 }
 
