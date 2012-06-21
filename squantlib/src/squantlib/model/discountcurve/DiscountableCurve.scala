@@ -32,4 +32,9 @@ trait DiscountableCurve {
    * @param refinance spread on float rate
    */
   def getZC(discountrate:RateCurve, discountcurve:DiscountCurve) : DiscountCurve
+  
+  /** 
+   * Outputs curve description
+   */
+  def describecontent
 }

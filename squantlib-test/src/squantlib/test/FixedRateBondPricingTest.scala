@@ -4,20 +4,19 @@ import scala.collection.immutable.TreeSet
 
 import squantlib.termstructures.ZCImpliedYieldTermStructure
 import squantlib.parameter.yieldparameter._
-import squantlib.model.discountcurve._
+import squantlib.model.discountcurve.RateCurve
+import squantlib.model.discountcurve.DiscountCurve
+
+import squantlib.test.sample.BondSamples
+import squantlib.test.sample.CurveSamples
 
 import org.jquantlib.time.Calendar
-import org.jquantlib.time.Schedule
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.TimeUnit
-import org.jquantlib.time.BusinessDayConvention
-import org.jquantlib.currencies._
-import org.jquantlib.time.DateGeneration
 import org.jquantlib.time.Frequency
 import org.jquantlib.time.calendars._
 import org.jquantlib.daycounters._
-import org.jquantlib.instruments.bonds.FixedRateBond
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.indexes.ibor._
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
@@ -29,89 +28,23 @@ import org.junit.Assert._
 
 class FixedRateBondPricingTest {
      
-	val valuedate = new JDate(7, 5, 2012)
-    val couponrate = 0.05
-	val bondmaturity = new JDate(7, 3, 2020)
-	val bond = {
-		val issuedate = new JDate(7, 3, 2010)
-		val maturity = bondmaturity
-		val currency = new Asia.JPYCurrency
-		val settlementdays = 0
-		val faceamount = 100.0
-		val coupons:Array[Double] = (for(i <- 0 to 9) yield couponrate) toArray
-		val accrualdaycounter = new Thirty360
-		val paymentconvention = BusinessDayConvention.ModifiedFollowing
-		val redemption = 100.0
-		
-		val schedule = {
-		  val effectivedate = issuedate
-		  val terminationdate = maturity
-		  val tenor = new JPeriod(6, TimeUnit.Months)
-		  val calendar = new Japan
-		  val convention = BusinessDayConvention.ModifiedFollowing
-		  val maturityconvention = BusinessDayConvention.ModifiedFollowing
-		  val rule = DateGeneration.Rule.Backward
-		  val endofmonth = false
-		  new Schedule(effectivedate, terminationdate, tenor, calendar, convention, maturityconvention, rule, endofmonth)
-		}
-		
-		new FixedRateBond(settlementdays, faceamount, schedule, coupons, accrualdaycounter, paymentconvention, redemption, issuedate)
-	}
-	
-	
-	  /**
-	   * JPY curve definition
-	   */
-	
-	  val period6m = new JPeriod(6, TimeUnit.Months)
-	  val period30y = new JPeriod(30, TimeUnit.Years)
-	
+	  val valuedate = new JDate(7, 5, 2012)
+	  
+	  val bond = BondSamples.bondJPY
+	  val curves = (new CurveSamples(valuedate)).ratecurves
+	  val JPY_curvemodel = curves('JPYcurve)
 	  
 	  /**
 	   * test spread for each currency
 	   */
+	  val period6m = new JPeriod(6, TimeUnit.Months)
 	  val spreads = {
 	  	  val spread1 = (0.00, new FlatVector(valuedate, Map(period6m -> 0.00)))
 		  val spread2 = (0.02, new FlatVector(valuedate, Map(period6m -> 0.02)))
 		  val spread3 = (-0.01, new FlatVector(valuedate, Map(period6m -> -0.01)))
 	  	  List(spread1, spread2, spread3)
 	  }
-	   	  
-	  val JPY_curvemodel = {
-	    
-	    val JPY_cash = {
-			  val JPY_cashinput = Map(period6m -> 0.01)
-			  val JPY_cash_curve = new FlatVector(valuedate, JPY_cashinput)
-			  val JPY_cash_floatindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
-			  new CashCurve(JPY_cash_curve, JPY_cash_floatindex)
-		  }
-		  
-		  val JPY_swap = {
-			  val JPY_swapinput = Map(period30y -> 0.01)
-			  val JPY_swap_curve = new FlatVector(valuedate, JPY_swapinput)
-			  val JPY_swap_floatindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
-			  val JPY_swap_fixdaycount = new Actual365Fixed
-			  val JPY_swap_fixperiod = Frequency.Semiannual
-			  new SwapCurve(JPY_swap_curve, JPY_swap_floatindex, JPY_swap_fixdaycount, JPY_swap_fixperiod)
-		  }
-		  
-		  val JPY_basis = {
-			  val JPY_basisinput = Map(period30y -> -0.005)
-			  val JPY_basis_curve = new FlatVector(valuedate, JPY_basisinput)
-			  val JPY_basis_floatindex = new JPYLibor(new JPeriod(3, TimeUnit.Months))
-		 	  new BasisSwapCurve(JPY_basis_curve, JPY_basis_floatindex)
-		  }
-		  
-		  val JPY_basis36 = {
-			  val JPY_basis36input = Map(period30y -> 0.002)
-			  val JPY_basis36_curve = new FlatVector(valuedate, JPY_basis36input)
-			  val JPY_basis36_sindex = new JPYLibor(new JPeriod(3, TimeUnit.Months))
-			  val JPY_basis36_lindex = new JPYLibor(new JPeriod(6, TimeUnit.Months))
-		 	  new TenorBasisSwapCurve(JPY_basis36_curve, JPY_basis36_sindex, JPY_basis36_lindex)
-		  }
-		  
-		  new LiborDiscountCurve(JPY_cash, JPY_swap, JPY_basis, JPY_basis36, valuedate)
-	  }
+
 	  val JPY_ZC = spreads.map(s => (s._1, JPY_curvemodel.getZC(s._2)))
 	  
 	  def bondschedule(valuedate:JDate, maturity:JDate, period:JPeriod, calendar:Calendar, cleanprice:Boolean) : List[(JDate, JDate)] = {
@@ -123,7 +56,6 @@ class FixedRateBondPricingTest {
 		  val enddate = calendar.adjust(currentdate)
 		  currentdate = currentdate.sub(period)
 		  val startdate = if (!cleanprice || currentdate.gt(valuedate)) calendar.adjust(currentdate) else valuedate
-//		  val startdate = calendar.adjust(currentdate)
 		  datelist ::= new Pair(startdate, enddate)
 		  println(startdate.shortDate.toString + " - " + enddate.shortDate.toString)
 		}
@@ -145,6 +77,8 @@ class FixedRateBondPricingTest {
 		    val settlement = 0
 			val termstructs = JPY_ZC.map(zc => (zc._1, new ZCImpliedYieldTermStructure(JPY_curvemodel, zc._2, calendar, settlement, valuedate)))
 			val bondengines = termstructs.map(ts => (ts._1, new DiscountingBondEngine(ts._2)))
+			val bondmaturity = bond.maturityDate
+			val couponrate = bond.nextCoupon(valuedate) 
 			
 		    /**
 		   * Dirty price test

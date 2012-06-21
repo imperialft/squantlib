@@ -20,6 +20,26 @@ trait RateCurve extends DiscountableCurve{
   val basis : BasisSwapCurve
   val tenorbasis : TenorBasisSwapCurve
   val valuedate : JDate
+  
+    /**
+   * View
+   */
+  def describecontent:Unit = {
+	  val rounding = (x: Double, decimals:Int) => (x * math.pow(10, decimals)).round / math.pow(10, decimals)
+	  val percent = (x:Double, decimals:Int) => (rounding(x*100, decimals)) + "%"
+	  val vdescribe = (v : YieldParameter) => { "value " + v.valuedate.shortDate.toString + ":" + percent(v.value(v.valuedate), 2) + " to " + v.maxdate.shortDate.toString + ":" + percent(v.value(v.maxdays), 2) }
+	  val cashdescribe = (r : CashCurve) => r.currency.code + " " + r.floatindex.dayCounter
+	  val swapdescribe = (r : SwapCurve) => r.currency.code + " " + r.fixperiod.tenor + "m " + r.fixdaycount.name + " vs " + r.floatindex.tenor.length + "m " + r.floatindex.dayCounter.name
+	  val basisdescribe = (r : BasisSwapCurve) => r.currency.code + " " + r.floatindex.tenor.length + "m " + r.floatindex.dayCounter.name + " vs " + r.pivotfloatindex.currency.code + " " + r.pivotfloatindex.tenor.length + "m " + r.pivotfloatindex.dayCounter.name
+	  val basis36describe = (r : TenorBasisSwapCurve) => r.currency.code + " " + r.shortindex.tenor.length + "m " + r.shortindex.dayCounter.name + " vs " + " " + r.longindex.tenor.length + "m " + r.longindex.dayCounter.name
+	  
+	  println("***" + cash.currency.code + "***")
+	  println("Cash: " + cashdescribe(cash) + " " + vdescribe(cash.rate))
+	  println("Swap: "  + swapdescribe(swap) + " " + vdescribe(swap.rate))
+	  println("BSccy: " + basisdescribe(basis) + " " + vdescribe(basis.rate))
+	  println("BS3m6m: " + basis36describe(tenorbasis) + " " + vdescribe(tenorbasis.rate))
+  }
+  
 }
 
 trait AbstractRateCurve{
