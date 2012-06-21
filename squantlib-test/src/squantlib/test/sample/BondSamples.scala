@@ -36,8 +36,8 @@ object BondSamples {
 		  val terminationdate = maturity
 		  val tenor = new JPeriod(6, TimeUnit.Months)
 		  val calendar = new Japan
-		  val convention = BusinessDayConvention.ModifiedFollowing
-		  val maturityconvention = BusinessDayConvention.ModifiedFollowing
+		  val convention = BusinessDayConvention.Unadjusted
+		  val maturityconvention = BusinessDayConvention.Unadjusted
 		  val rule = DateGeneration.Rule.Backward
 		  val endofmonth = false
 		  new Schedule(effectivedate, terminationdate, tenor, calendar, convention, maturityconvention, rule, endofmonth)
