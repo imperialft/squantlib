@@ -1,4 +1,4 @@
-package squantlib.ratecurve
+package squantlib.model.discountcurve
 
 import squantlib.parameter.yieldparameter.YieldParameter
 import org.jquantlib.currencies.Currency

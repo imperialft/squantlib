@@ -1,7 +1,7 @@
 package squantlib.termstructures
 
-import squantlib.ratecurve.DiscountableCurve
-import squantlib.ratecurve.DiscountCurve
+import squantlib.model.discountcurve.DiscountableCurve
+import squantlib.model.discountcurve.DiscountCurve
 import squantlib.parameter.yieldparameter.YieldParameter
 
 import org.jquantlib.time.{ Date => JDate }

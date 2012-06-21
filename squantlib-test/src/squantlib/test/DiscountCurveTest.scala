@@ -5,7 +5,7 @@ import scala.collection.immutable.SortedMap
 import scala.collection.Iterable
 
 import squantlib.parameter.yieldparameter._
-import squantlib.ratecurve._
+import squantlib.model.discountcurve._
 
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
@@ -14,7 +14,12 @@ import org.jquantlib.time.Frequency
 import org.jquantlib.indexes.ibor._
 import org.jquantlib.indexes._
 import org.jquantlib.daycounters._
-import org.jquantlib.currencies.America._
+import org.jquantlib.currencies.Currency
+import org.jquantlib.currencies.America.USDCurrency
+import org.jquantlib.currencies.Asia.JPYCurrency
+import org.jquantlib.currencies.Europe.EURCurrency
+import org.jquantlib.currencies.America.BRLCurrency
+
 
 import org.junit._
 import org.junit.Assert._
@@ -290,7 +295,7 @@ class DiscountCurveTest {
 	  
 	  
 	    /**
-	   * Main function will display the curve contents and discount factor
+	   * Display the curve contents and discount factor
 	   */
 	  def displaycurve() : Unit = {
 
@@ -378,7 +383,42 @@ class DiscountCurveTest {
 		  println("** BRL discounted by USD **") 
 		  println("[ZC1, ZC2, ZC3, spread1, spread2, spread3]")
 		  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + valuelist(BRL_ZC.map(z => rounding(z.zc.value(d), 4).toString))) })
-		  
 	}	  
+	  
+  	    /**
+	   * Discount curve factory check
+	   */
+	  @Test def discountcurvefactory():Unit = {
+		  val currencylist:Map[Currency, DiscountableCurve] = Map(
+		      (new JPYCurrency, JPY_curvemodel),
+		      (new USDCurrency, USD_curvemodel),
+		      (new EURCurrency, EUR_curvemodel),
+		      (new BRLCurrency, BRL_curvemodel))
+		      
+		  val factory = new DiscountCurveFactory(currencylist, vd)
+
+		  /**
+		   * Result display parameters. Max maturity = testperiod * testcase months
+		   */
+		  val testperiod = 6 // every X months
+		  val testcase = 30*2 // number of outputs 
+		  var inputset = for (i <- 0 to (testcase * testperiod) if i % testperiod == 0) yield new JPeriod(i, TimeUnit.Months)
+		  val rounding = (x: Double, decimals:Int) => (x * math.pow(10, decimals)).round / math.pow(10, decimals)
+		  def valuelist(xlist:Seq[String]):String =  xlist.length match { case 0 => ""; case 1 => xlist(0); case 2 => xlist(0) + ", " + xlist(1); case _ => xlist.head + ", " + valuelist(xlist.tail)}
+		  
+		  println("** Factory Test **")
+		  
+		  val zc1 = factory.discountcurve(new JPYCurrency, -0.01)
+		  println("** JPY Discount Curve **")
+		  println("[ZC1, ZC2, ZC3, spread1, spread2, spread3]")
+		  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(zc1.zc.value(d), 4).toString) })
+		  
+		  val zc2 = factory.discountcurve(new JPYCurrency, new USDCurrency, 0.01)
+		  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(zc2.zc.value(d), 4).toString) })
+		  
+		  val zc3 = factory.discountcurve(new JPYCurrency, new EURCurrency, 0.01)
+		  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(zc3.zc.value(d), 4).toString) })
+	  }
+	  
 }
 

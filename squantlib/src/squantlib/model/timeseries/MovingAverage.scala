@@ -1,4 +1,4 @@
-package squantlib.timeseries
+package squantlib.model.timeseries
 
 import scala.collection.immutable.SortedMap
 import squantlib.math.timeseries.{MovingAverage => MA}

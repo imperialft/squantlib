@@ -4,7 +4,7 @@ import scala.collection.immutable.TreeSet
 
 import squantlib.termstructures.ZCImpliedYieldTermStructure
 import squantlib.parameter.yieldparameter._
-import squantlib.ratecurve._
+import squantlib.model.discountcurve._
 
 import org.jquantlib.time.Calendar
 import org.jquantlib.time.Schedule

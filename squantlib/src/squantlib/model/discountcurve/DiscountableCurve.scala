@@ -1,15 +1,12 @@
-package squantlib.ratecurve
+package squantlib.model.discountcurve
 
 import squantlib.parameter.yieldparameter.YieldParameter
 import org.jquantlib.time.{ Date => JDate }
-import org.jquantlib.time.{ Period => JPeriod }
-import org.jquantlib.time.Frequency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.currencies.Currency
 
 /**
- * Encapsulates a curve to be used for cashflow discounting, using either rates, swap points or any other means.
- * 
+ * Encapsulates a curve to be used for cash flow discounting.
  */
 
 trait DiscountableCurve {
@@ -28,7 +25,7 @@ trait DiscountableCurve {
    * @param refinance spread on float rate
    */
   def getZC(spread:YieldParameter) : DiscountCurve
-
+  
   /** 
    * Builds zero coupon curve using external curve as discount currency.
    * Either external curve or this curve must be basis swap pivot curve.
@@ -36,16 +33,3 @@ trait DiscountableCurve {
    */
   def getZC(discountrate:RateCurve, discountcurve:DiscountCurve) : DiscountCurve
 }
-
-
-/**
- * Encapsulates cashflow discounting curve and discount spread on 3m float rate.
- * value = discount factor, ZCspread = discount spread on 3m float rate (not defined on FX discount)
- */
-
-
-class DiscountCurve(val zc : YieldParameter, val discountspread : YieldParameter) {
-  def this(v:YieldParameter) = this(v, null)
-  val valuedate = zc.valuedate
-}
-

@@ -4,9 +4,9 @@ import scala.collection.JavaConversions._
 import scala.collection.immutable.TreeMap
 
 import squantlib.math.timeseries._
-import squantlib.timeseries.HistoricalVol
-import squantlib.timeseries.HistoricalCorrelation
-import squantlib.timeseries.MovingAverage
+import squantlib.model.timeseries.HistoricalVol
+import squantlib.model.timeseries.HistoricalCorrelation
+import squantlib.model.timeseries.MovingAverage
 
 import org.jquantlib.QL
 import org.jquantlib.model.volatility._

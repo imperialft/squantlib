@@ -1,4 +1,4 @@
-package squantlib.timeseries
+package squantlib.model.timeseries
 
 import scala.collection.JavaConversions._
 import scala.collection.SortedMap

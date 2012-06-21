@@ -1,4 +1,4 @@
-package squantlib.ratecurve
+package squantlib.model.discountcurve
 
 import scala.collection.immutable.TreeMap
 import scala.collection.immutable.SortedSet
