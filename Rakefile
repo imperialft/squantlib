@@ -37,3 +37,9 @@ task :default => :test
 task :repl do
   system "scala -classpath #{(java_archives | class_paths).join(":")}"  
 end
+
+task :cli do
+  command = "scala -classpath #{(java_archives | class_paths).join(":")} squantlib.database.CLI config_example.properties"
+  puts command
+  system command
+end
