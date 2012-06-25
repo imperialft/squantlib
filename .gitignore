@@ -2,7 +2,6 @@
 ./lib
 ./out
 
-**/*.properties
 **/*.settings
 *.class
 *.log
