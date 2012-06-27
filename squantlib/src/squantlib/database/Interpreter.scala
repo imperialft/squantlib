@@ -12,21 +12,19 @@
 package squantlib.database
 
 import scala.tools.nsc._
+import scala.tools.nsc.settings.ScalaSettings
 import interpreter._
 import java.io._
 import scala.reflect._
+
 /**
  * A trait to ease the embedding of the scala interpreter
  */
 trait InterpreterWrapper {
-
-  def helpMsg: String
-  def welcomeMsg: String
   def prompt: String
   
-  
-  
   private var bindings : Map[String, (java.lang.Class[_], AnyRef)] = Map()
+  private var autoRuns : List[String] = List()
   private var packageImports : List[String] = List()
   private var files = List[String]()
 
@@ -40,6 +38,12 @@ trait InterpreterWrapper {
    */
   protected def bindAs[A <: AnyRef, B <: A](name : String, interface : java.lang.Class[A], value : B): Unit =
     bindings += ((name,  (interface, value)))
+
+  /**
+   * adds an auto-run statement for the interpreter.
+   */
+  protected def autoRun(statement: String): Unit =
+    autoRuns = statement :: autoRuns
 
   /**
    * adds an auto-import for the interpreter.
@@ -74,20 +78,13 @@ trait InterpreterWrapper {
          for( (name, (clazz, value)) <- bindings) {
            intp.bind(name, clazz.getCanonicalName, value)
          }
+         for( statement <- autoRuns) {
+           intp.interpret(statement)
+         }
          for( importString <- packageImports) {
            intp.interpret("import " + importString)
          }
        }
-     }
-    override def helpCommand(line: String): Result = {
-      if (line == "") echo(helpMsg)
-        
-      super.helpCommand(line)
-    }
-
-     override def printWelcome(): Unit = {
-       out.println(welcomeMsg)
-       out.flush()
      }
   }
 
@@ -98,6 +95,5 @@ trait InterpreterWrapper {
     settings.usejavacp.value = true
     val interpreter = new MyInterpreterLoop(out)
     interpreter process settings
-    ()
   }
 }
