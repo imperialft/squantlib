@@ -25,6 +25,7 @@ trait InterpreterWrapper {
   
   private var bindings : Map[String, (java.lang.Class[_], AnyRef)] = Map()
   private var autoRuns : List[String] = List()
+  private var classPaths : List[String] = List()
   private var packageImports : List[String] = List()
   private var files = List[String]()
 
@@ -44,6 +45,12 @@ trait InterpreterWrapper {
    */
   protected def autoRun(statement: String): Unit =
     autoRuns = statement :: autoRuns
+
+  /**
+   * adds custom classpaths that will be imported in the same way when you call :cp ... command in the interpreter.
+   */
+  protected def classPath(cp: String): Unit =
+    classPaths = cp :: classPaths
 
   /**
    * adds an auto-import for the interpreter.
@@ -75,6 +82,9 @@ trait InterpreterWrapper {
      /** Bind the settings so that evaluated code can modify them */
      def bindSettings() {
        intp beQuietDuring {
+         for( cp <- classPaths ) {
+           addClasspath(cp)
+         }
          for( (name, (clazz, value)) <- bindings) {
            intp.bind(name, clazz.getCanonicalName, value)
          }
@@ -88,10 +98,11 @@ trait InterpreterWrapper {
      }
   }
 
-  def startInterpreting(): Unit = {
+  def startInterpreting(args:List[String] = List()): Unit = {
     val out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)))
     val settings = new GenericRunnerSettings(out.println)
     files foreach settings.loadfiles.appendToValue
+    settings.processArguments(args, true)
     settings.usejavacp.value = true
     val interpreter = new MyInterpreterLoop(out)
     interpreter process settings
