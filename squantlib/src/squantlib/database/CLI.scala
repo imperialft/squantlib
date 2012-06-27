@@ -6,7 +6,7 @@ import java.util.Properties
 import org.apache.commons.lang3.StringEscapeUtils
 import java.net.URLClassLoader
 import java.lang.management.{ManagementFactory, RuntimeMXBean}
-import scala.tools.nsc._
+import scala.tools.nsc.{Interpreter, Settings}
 
 object CLI {
   val properties = new Properties
@@ -31,6 +31,10 @@ object CLI {
     intp.interpret("CLI.setup(\"" + StringEscapeUtils.escapeJava(propertiesPath) + "\")")
     intp.interpret("DB.setup(CLI.properties.getProperty(\"uri\"), CLI.properties.getProperty(\"username\"), CLI.properties.getProperty(\"password\"))")
     println("Type 'exit [enter]' to quit.")
+
+    // for example, this should work
+    intp.interpret("transaction { from(DB.countries)(c => select(c)).foreach(println) }")
+
     var continue = true
     while (continue) {
       printf("squantlib> ")
@@ -40,11 +44,6 @@ object CLI {
           continue = false
         else
           intp.interpret(line)
-          /* Why am I keep getting this?
-           * transaction { from(DB.countries)(c => select(c)) }
-           * => java.lang.RuntimeException: no session is bound to current thread, a session must be created via Session.create
-           * and bound to the thread via 'work' or 'bindToCurrentThread'
-           */
       } else {
         continue = false
       }
