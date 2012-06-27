@@ -1,67 +1,53 @@
-// test
-
 package squantlib.database
 
 import java.io.{FileNotFoundException, FileInputStream}
-import java.net.URLClassLoader
 import java.util.Properties
-import java.lang.Thread
+
+import org.apache.commons.lang3.StringEscapeUtils
+import java.net.URLClassLoader
 import java.lang.management.{ManagementFactory, RuntimeMXBean}
-import scala.tools.nsc.interpreter._
-import scala.tools.nsc.Settings
+import scala.tools.nsc._
 
 object CLI {
   val properties = new Properties
-  def getProperties() = properties
-
-  def setup(propertiesPath:String):Unit = {
-    try {
-      properties.load(new FileInputStream(propertiesPath))
-    } catch {
-      case e:FileNotFoundException => {
-        println("*.properties File does not exist: " + propertiesPath)
-        System.exit(1)
-      }
-      case e:Exception => throw(e)
-    }
-    setupDb()
-    println("DB = " + db.toString)
-  }
-
-  def main(args:Array[String]):Unit = {
-    goInteractive(args)
-  }
-
-  /**
-   * The DB accessor.
-   *
-   */
-  var db:DB = null
-
-  /**
-   * Sets up the DB connection.
-   *
-   */
-  private def setupDb():DB = {
-    db = new DB(properties.getProperty("uri"), properties.getProperty("username"), properties.getProperty("password"))
-    db
-  }
+  def setup(propertiesPath:String):Unit = properties.load(new FileInputStream(propertiesPath))
+  def main(args:Array[String]):Unit = goInteractive(args(0))
 
   /**
    * Starts Scala's interactive command-line.
    *
    */
-  private def goInteractive(args:Array[String]):Unit = {
-    val interpreter = new InterpreterWrapper() {
-      def prompt = "squantlib> "
-      for (url <- Thread.currentThread.getContextClassLoader().asInstanceOf[URLClassLoader].getURLs)
-          classPath(url.toString.replaceFirst("file:", ""))
-      // autoRun("println(System.getProperty(\"java.class.path\"))")
-      // BUG: Scala 2.9.2 seems to have problem inferring a runtime classpath.
-      autoRun("squantlib.database.CLI.setup(\"" + args(0) + "\")")
-      autoRun("cli = squantlib.database.CLI")
-      autoImport("squantlib.database._")
-    }
-    interpreter.startInterpreting()
+  private def goInteractive(propertiesPath:String):Unit = {
+    val settings = new Settings()
+    var classpath = ""
+    for (url <- Thread.currentThread.getContextClassLoader().asInstanceOf[URLClassLoader].getURLs)
+      classpath = classpath + ":" + url.toString.replaceFirst("file:", "")
+    settings.classpath.value = classpath
+    val intp = new Interpreter(settings)
+    // Import the default packages.
+    intp.interpret("import squantlib.database._")
+    intp.interpret("import squantlib.database.schemadefinitions._")
+    intp.interpret("import org.squeryl.PrimitiveTypeMode._")
+    intp.interpret("CLI.setup(\"" + StringEscapeUtils.escapeJava(propertiesPath) + "\")")
+    intp.interpret("DB.setup(CLI.properties.getProperty(\"uri\"), CLI.properties.getProperty(\"username\"), CLI.properties.getProperty(\"password\"))")
+    println("Type 'exit [enter]' to quit.")
+    var continue = true
+    while (continue) {
+      printf("squantlib> ")
+      val line = readLine()
+      if (line != null) {
+        if (line == "exit")
+          continue = false
+        else
+          intp.interpret(line)
+          /* Why am I keep getting this?
+           * transaction { from(DB.countries)(c => select(c)) }
+           * => java.lang.RuntimeException: no session is bound to current thread, a session must be created via Session.create
+           * and bound to the thread via 'work' or 'bindToCurrentThread'
+           */
+      } else {
+        continue = false
+      }
+    }        
   }
 }
