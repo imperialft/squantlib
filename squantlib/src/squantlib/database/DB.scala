@@ -32,5 +32,7 @@ object DB extends Schema {
    *    A class in SchemaDefinitions   Actual table name in the database.
    */
   val countries = table[Country]("Countries")
+  val currencies = table[Currency]("Currencies")
+  val distributors = table[Distributor]("Distributors")
 
 }
