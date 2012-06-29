@@ -31,6 +31,6 @@ object DB extends Schema {
    *                         ^^^^^^^   ^^^^^^^^^
    *    A class in SchemaDefinitions   Actual table name in the database.
    */
-  val countries = table[Country]("countries")
+  val countries = table[Country]("Countries")
 
 }

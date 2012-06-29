@@ -21,7 +21,7 @@ object CLI {
     val settings = new Settings()
     var classpath = ""
     for (url <- Thread.currentThread.getContextClassLoader().asInstanceOf[URLClassLoader].getURLs)
-      classpath = classpath + ":" + url.toString.replaceFirst("file:", "")
+      classpath = classpath + ";" + url.toString.replaceFirst("file:", "")
     settings.classpath.value = classpath
     val intp = new Interpreter(settings)
     // Import the default packages.
