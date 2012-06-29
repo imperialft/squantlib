@@ -34,6 +34,8 @@ object CLI {
 
     // for example, this should work
     intp.interpret("transaction { from(DB.countries)(c => select(c)).foreach(println) }")
+    intp.interpret("transaction { from(DB.currencies)(c => select(c)).foreach(println) }")
+    intp.interpret("transaction { from(DB.distributors)(c => select(c)).foreach(println) }")
 
     var continue = true
     while (continue) {
