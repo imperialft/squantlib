@@ -20,11 +20,13 @@ import org.jquantlib.daycounters.DayCounter;
    * - no 3m-Xm basis for X < 6 (implied by ZC interpolation 3m & 6m)
    * - no 6m-Xm basis for X > 6 (implied by ZC interpolation 6m & 12m)
    */
-class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val valuedate : JDate, val fx : Double = 0) 
+class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val valuedate : JDate, val fx : Double) 
 extends RateCurve{
-  require (List(cash.valuedate, swap.valuedate, basis.valuedate, tenorbasis.valuedate).forall(_ == valuedate)
-		&& List(swap.currency, basis.currency, tenorbasis.currency).forall(_ == cash.currency)
-		&& cash.floatindex.dayCounter == swap.floatindex.dayCounter)
+  require (
+		(cash == null || (cash.valuedate == valuedate && cash.currency == swap.currency && cash.floatindex.dayCounter == swap.floatindex.dayCounter))
+		&& (swap == null || swap.valuedate == valuedate)
+		&& (basis == null || (basis.valuedate == valuedate && basis.currency == swap.currency))
+		&& (tenorbasis == null || (tenorbasis.valuedate == valuedate && tenorbasis.currency == swap.currency)))
 
 	  val currency = cash.currency
 	  val basedaycount = cash.floatindex.dayCounter
@@ -60,7 +62,7 @@ extends RateCurve{
 	  /**
 	   * 3m/6m basis swap calibration is valid in case float leg is semi annual (ccy basis always quarterly)
 	   */
-	  val bs3m6madjust = zcperiods.map(m => (m._1, m._1 match { case n if n < swapstart && n < 6 => 0.0
+	  val bs3m6madjust = if (tenorbasis == null) null else zcperiods.map(m => (m._1, m._1 match { case n if n < swapstart && n < 6 => 0.0
 															    case n if n < swapstart && n >= 6 => tenorbasis.value(m._2)
 															    case n if n >= swapstart && floattenor <= 3 => 0.0
 															    case _ => tenorbasis.value(m._2) }))
@@ -70,7 +72,7 @@ extends RateCurve{
 	   * true if this currency is the "pivot" currency for the basis swap, usually USD.
 	   * no support for additional pivot currency.
 	   */
-	  val ispivotcurrency = basis.ispivotcurrency
+	  val ispivotcurrency = swap.currency == BasisSwapCurve.pivotcurrency
 
 	  
 	  /** 
@@ -205,4 +207,6 @@ extends RateCurve{
 	    
 	  }
   
+	  def this(cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, valuedate : JDate) = this(cash, swap, basis, tenorbasis, valuedate, 0.0)
+
 }
