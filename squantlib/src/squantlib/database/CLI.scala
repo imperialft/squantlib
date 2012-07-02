@@ -36,10 +36,18 @@ object CLI {
     intp.interpret("transaction { from(DB.countries)(c => select(c)).foreach(println) }")
     intp.interpret("transaction { from(DB.currencies)(c => select(c)).foreach(println) }")
     intp.interpret("transaction { from(DB.distributors)(c => select(c)).foreach(println) }")
+    intp.interpret("transaction { from(DB.issuers)(c => select(c)).foreach(println) }")
+    intp.interpret("transaction { from(DB.products)(c => select(c)).foreach(println) }")
+    intp.interpret("transaction { from(DB.bonds)(c => select(c)).foreach(println) }")
 
+// def cond(c:InputParameter) = c.paramset == "20120615-000"    
+// val c = transaction { from(DB.inputparameters)(c => where(c.paramset === "20120615-000") select(c)).toList }
+// val bz = transaction { from(DB.bonds)(c => select(c)).toList }
+    
     var continue = true
     while (continue) {
       printf("squantlib> ")
+      
       val line = readLine()
       if (line != null) {
         if (line == "exit")

@@ -1,8 +1,6 @@
 package squantlib.parameter.yieldparameter
 
-import org.jquantlib.time.{ Date => JDate }
-import org.jquantlib.time.{ Period => JPeriod }
-import org.jquantlib.time.TimeUnit
+import org.jquantlib.time.{ TimeUnit, Period => JPeriod, Date => JDate }
 
 
 /**
