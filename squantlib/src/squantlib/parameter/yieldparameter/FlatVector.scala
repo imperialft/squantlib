@@ -21,5 +21,7 @@ class FlatVector(var valuedate : JDate, inputvalues:Map[JPeriod, Double]) extend
 	def lowextrapolation(v : Long) = constantvalue
     def highextrapolation(v : Long) = constantvalue
     def interpolation(v : Long) = constantvalue
+    
+    def this(valuedate:JDate, inputvalue:Double) = this(valuedate, Map(new JPeriod(1, TimeUnit.Months) -> inputvalue))
 }
 

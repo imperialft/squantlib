@@ -7,11 +7,35 @@ import org.jquantlib.daycounters.{ ActualActual, Thirty360, Actual365Fixed, Actu
 import org.jquantlib.time.{TimeUnit, Frequency, Date => JDate, Period=>JPeriod}
 import scala.collection.immutable.SortedMap
 
+object RateConvention{
+	val getConvention = Map(
+			("AUD" -> new AudRateConvention),
+			("BRL" -> new BrlRateConvention),
+			("CAD" -> new CadRateConvention),
+			("CNY" -> new CnyRateConvention),
+			("EUR" -> new EurRateConvention),
+			("GBP" -> new GbpRateConvention),
+			("HUF" -> new HufRateConvention),
+			("IDR" -> new IdrRateConvention),
+			("INR" -> new InrRateConvention),
+			("JPY" -> new JpyRateConvention),
+			("KRW" -> new KrwRateConvention),
+			("MXN" -> new MxnRateConvention),
+			("NZD" -> new NzdRateConvention),
+			("PLN" -> new PlnRateConvention),
+			("RON" -> new RonRateConvention),
+			("RUB" -> new RubRateConvention),
+			("SEK" -> new SekRateConvention),
+			("TRY" -> new TryRateConvention),
+			("USD" -> new UsdRateConvention),
+			("ZAR" -> new ZarRateConvention))
+}
+
 /**
  * Currency specific discount curve calibration.
  */
 trait RateConvention {
-  import squantlib.parameter.yieldparameter.SplineNoExtrapolation
+  import squantlib.parameter.yieldparameter.{SplineNoExtrapolation, FlatVector, LinearNoExtrapolation }
   import squantlib.model.discountcurve.{ CashCurve, SwapCurve, BasisSwapCurve, TenorBasisSwapCurve, SwapPointCurve }
   import org.jquantlib.currencies.America.USDCurrency
   
@@ -32,13 +56,19 @@ trait RateConvention {
 	 * Defines continuous cash curve constructor.
 	 */
 	def cash_curve(valuedate:JDate, values:SortedMap[JPeriod, Double]):YieldParameter
-		= new SplineNoExtrapolation(valuedate, values, 2)
+		= (values.keySet.size) match {
+			case 1 => new FlatVector(valuedate, values)
+			case 2 => new LinearNoExtrapolation(valuedate, values)
+			case _ => new SplineNoExtrapolation(valuedate, values, 2) } 
 	
   	/**
 	 * Returns cash curve using specified conventions and curve construction method.
 	 */
 	def cash_constructor(valuedate:JDate, values:SortedMap[JPeriod, Double]):CashCurve 
 		= new CashCurve(cash_curve(valuedate, values), iborindex(new JPeriod(6, TimeUnit.Months)))
+  
+	def cash_constructor(curve:YieldParameter):CashCurve 
+		= new CashCurve(curve, iborindex(new JPeriod(6, TimeUnit.Months)))
 	
 	/**
 	 * Swap floating rate reference.
@@ -59,7 +89,10 @@ trait RateConvention {
 	 * Defines continuous swap curve constructor.
 	 */
 	def swap_curve(valuedate:JDate, values:SortedMap[JPeriod, Double]):YieldParameter
-		= new SplineNoExtrapolation(valuedate, values, 2)
+		= (values.keySet.size) match {
+			case 1 => new FlatVector(valuedate, values)
+			case 2 => new LinearNoExtrapolation(valuedate, values)
+			case _ => new SplineNoExtrapolation(valuedate, values, 2)} 
 	
   	/**
 	 * Returns swap curve using specified conventions and curve construction method.
@@ -67,6 +100,9 @@ trait RateConvention {
 	def swap_constructor(valuedate:JDate, values:SortedMap[JPeriod, Double]):SwapCurve 
 		= new SwapCurve(swap_curve(valuedate, values), swap_floatindex, swap_fixdaycount, swap_fixperiod)
 
+	def swap_constructor(curve:YieldParameter):SwapCurve 
+		= new SwapCurve(curve, swap_floatindex, swap_fixdaycount, swap_fixperiod)
+  
 	/**
 	 * Floating leg reference for cross currency swap against 3m USD LIBOR.
 	 */
@@ -76,13 +112,20 @@ trait RateConvention {
 	 * Defines continuous basis swap curve constructor.
 	 */
 	def basis_curve(valuedate:JDate, values:SortedMap[JPeriod, Double]):YieldParameter
-		= new SplineNoExtrapolation(valuedate, values, 2)
+		= (values.keySet.size) match {
+			case 1 => new FlatVector(valuedate, values)
+			case 2 => new LinearNoExtrapolation(valuedate, values)
+			case _ => new SplineNoExtrapolation(valuedate, values, 2)
+  		} 
 	
   	/**
 	 * Returns basis swap curve using specified conventions and curve construction method.
 	 */
 	def basis_constructor(valuedate:JDate, values:SortedMap[JPeriod, Double]):BasisSwapCurve 
 		= new BasisSwapCurve(basis_curve(valuedate, values), basis_floatindex)
+
+	def basis_constructor(curve:YieldParameter):BasisSwapCurve 
+		= new BasisSwapCurve(curve, basis_floatindex)
   
 	/**
 	 * Reference rates for tenor basis swap.
@@ -95,7 +138,11 @@ trait RateConvention {
 	 * Defines continuous tenor basis swap curve constructor.
 	 */
 	def basis36_curve(valuedate:JDate, values:SortedMap[JPeriod, Double]):YieldParameter	
-		= new SplineNoExtrapolation(valuedate, values, 2)
+		= (values.keySet.size) match {
+			case 1 => new FlatVector(valuedate, values)
+			case 2 => new LinearNoExtrapolation(valuedate, values)
+			case _ => new SplineNoExtrapolation(valuedate, values, 2)
+  		} 
 	
   	/**
 	 * Returns tenor basis swap curve using specified conventions and curve construction method.
@@ -103,6 +150,9 @@ trait RateConvention {
 	def basis36_constructor(valuedate:JDate, values:SortedMap[JPeriod, Double]):TenorBasisSwapCurve 
 		= new TenorBasisSwapCurve(basis_curve(valuedate, values), basis36_shortindex, basis36_longindex)
 	
+	def basis36_constructor(curve:YieldParameter):TenorBasisSwapCurve 
+		= new TenorBasisSwapCurve(curve, basis36_shortindex, basis36_longindex)
+  
 	/**
 	 * True if swap point discounting is applicable
 	 */
@@ -122,13 +172,20 @@ trait RateConvention {
 	 * Defines continuous swap point curve constructor.
 	 */
 	def swappoint_curve(valuedate:JDate, values:SortedMap[JPeriod, Double]):YieldParameter	
-		= new SplineNoExtrapolation(valuedate, values, 2)
+		= (values.keySet.size) match {
+			case 1 => new FlatVector(valuedate, values)
+			case 2 => new LinearNoExtrapolation(valuedate, values)
+			case _ => new SplineNoExtrapolation(valuedate, values, 2)
+  		} 
   
   	/**
 	 * Returns tenor basis swap curve using specified conventions and curve construction method.
 	 */
 	def swappoint_constructor(valuedate:JDate, values:SortedMap[JPeriod, Double]):SwapPointCurve 
 		= new SwapPointCurve(swappoint_curve(valuedate, values), swappoint_multiplier, currency, swappoint_pivot)
+  
+	def swappoint_constructor(curve:YieldParameter):SwapPointCurve 
+		= new SwapPointCurve(curve, swappoint_multiplier, currency, swappoint_pivot)
 }
 
 
