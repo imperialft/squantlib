@@ -34,5 +34,11 @@ object DB extends Schema {
   val countries = table[Country]("Countries")
   val currencies = table[Currency]("Currencies")
   val distributors = table[Distributor]("Distributors")
+  val issuers = table[Issuer]("Issuers")
+  val products = table[Product]("Products")
+  val bonds = table[Bond]("Bonds")
+  val inputparameters = table[InputParameter]("InputParameters")
+  val cdsparameters = table[CDSParameter]("CDSParameters")
 
+  
 }
