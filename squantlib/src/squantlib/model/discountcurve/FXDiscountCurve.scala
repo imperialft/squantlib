@@ -12,11 +12,12 @@ import org.jquantlib.time.TimeUnit
 import org.jquantlib.daycounters.Thirty360
 
 
-class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double, val valuedate:JDate) extends FXCurve{
+class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCurve{
 
 	  val currency = swappoint.currency
 	  val pivotcurrency = swappoint.pivotcurrency
 	  val basedaycount = new Thirty360
+	  val valuedate = swappoint.valuedate
 	  
 	  /** 
 	   * Builds zero coupon curve using the curve itself as discount currency 
