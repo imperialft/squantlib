@@ -199,6 +199,6 @@ class CurveSamples(val valuedate:JDate) {
 	    /**
 	   * View
 	   */
-	  def displaycurves = discountablecurves.foreach(x => x._2.describecontent)
+	  def displaycurves = discountablecurves.foreach(x => x._2)
 	  
 }
