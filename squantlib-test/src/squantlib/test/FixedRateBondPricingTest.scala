@@ -60,8 +60,8 @@ class FixedRateBondPricingTest {
 		     */
 		    val period6m = new JPeriod(6, TimeUnit.Months)
 
-		    val ZC = Set(0.0, 0.02, -0.01).map(s => (s, factory.discountcurve(new JPYCurrency, s))) toMap
-		    val curve = factory.curves(new JPYCurrency)
+		    val ZC = Set(0.0, 0.02, -0.01).map(s => (s, factory.discountcurve((new JPYCurrency).code, s))) toMap
+		    val curve = factory.curves((new JPYCurrency).code)
 		    val ratecurve = curve match { case c:RateCurve => c; case _ => throw new ClassCastException }
 		    
 			val accuracy = 0.05
@@ -70,7 +70,7 @@ class FixedRateBondPricingTest {
 			while (cashflowlegs.hasNext) { val c = cashflowlegs.next; println(c.date.shortDate.toString + " - " + c.amount) }
 			val calendar = new Japan
 			val settlement = 0
-			val termstructs = ZC.map(zc => (zc._1, new ZCImpliedYieldTermStructure(factory.curves(new JPYCurrency), zc._2, calendar, settlement, valuedate)))
+			val termstructs = ZC.map(zc => (zc._1, new ZCImpliedYieldTermStructure(factory.curves((new JPYCurrency).code), zc._2, calendar, settlement, valuedate)))
 			val bondengines = termstructs.map(ts => (ts._1, new DiscountingBondEngine(ts._2)))
 			val bondmaturity = new JDate(9, 3, 2020)
 			val couponrate = bond.nextCoupon(valuedate) 

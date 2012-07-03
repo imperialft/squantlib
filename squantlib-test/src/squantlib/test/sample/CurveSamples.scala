@@ -67,7 +67,7 @@ class CurveSamples(val valuedate:JDate) {
 		 	  new TenorBasisSwapCurve(JPY_basis36_curve, JPY_basis36_sindex, JPY_basis36_lindex)
 		  }
 		  
-		  new LiborDiscountCurve(JPY_cash, JPY_swap, JPY_basis, JPY_basis36, valuedate)
+		  new LiborDiscountCurve(JPY_cash, JPY_swap, JPY_basis, JPY_basis36)
 	  }
 	  
 	  
@@ -108,7 +108,7 @@ class CurveSamples(val valuedate:JDate) {
 		 	  new TenorBasisSwapCurve(USD_basis36_curve, USD_basis36_sindex, USD_basis36_lindex)
 		  }
 		  
-		  new LiborDiscountCurve(USD_cash, USD_swap, USD_basis, USD_basis36, valuedate)
+		  new LiborDiscountCurve(USD_cash, USD_swap, USD_basis, USD_basis36)
 	  }
 	  
 	  /**
@@ -148,7 +148,7 @@ class CurveSamples(val valuedate:JDate) {
 		 	  new TenorBasisSwapCurve(EUR_basis36_curve, EUR_basis36_sindex, EUR_basis36_lindex)
 		  }
 		  
-		  new LiborDiscountCurve(EUR_cash, EUR_swap, EUR_basis, EUR_basis36, valuedate)
+		  new LiborDiscountCurve(EUR_cash, EUR_swap, EUR_basis, EUR_basis36)
 	  }
 	  
 	
@@ -179,7 +179,7 @@ class CurveSamples(val valuedate:JDate) {
 	 	  val BRL_pivotcurrency = new USDCurrency
 		  val BRL_swappt = new SwapPointCurve(BRL_pointscurve, BRL_multiplier, BRL_currency, BRL_pivotcurrency)
 		  
-		  new FXDiscountCurve(BRL_swappt, BRL_fx, valuedate)
+		  new FXDiscountCurve(BRL_swappt, BRL_fx)
 	  }
 	  
 	  /**
@@ -194,7 +194,7 @@ class CurveSamples(val valuedate:JDate) {
 	      ('BRLcurve -> BRL_curvemodel))
 
 	  def discountablecurves:Map[Symbol, DiscountableCurve] = ratecurves ++ fxcurves
-	  def curvefactory= new DiscountCurveFactory(discountablecurves.map(c => (c._2.currency, c._2)) toMap, valuedate)
+	  def curvefactory= new DiscountCurveFactory(discountablecurves.map(c => (c._2.currency.code, c._2)) toMap)
 	  
 	    /**
 	   * View
