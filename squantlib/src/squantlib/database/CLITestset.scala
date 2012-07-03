@@ -28,6 +28,7 @@ object CLITestset {
     intp.interpret("import squantlib.database._")
     intp.interpret("import squantlib.database.schemadefinitions._")
     intp.interpret("import squantlib.database.objectconstructor._")
+    intp.interpret("import squantlib.model.discountcurve._")
     intp.interpret("import org.jquantlib.time._")
     intp.interpret("import org.squeryl.PrimitiveTypeMode._")
     intp.interpret("CLI.setup(\"" + StringEscapeUtils.escapeJava(propertiesPath) + "\")")
@@ -42,11 +43,13 @@ object CLITestset {
 //    intp.interpret("transaction { from(DB.products)(c => select(c)).foreach(println) }")
 //    intp.interpret("transaction { from(DB.bonds)(c => select(c)).foreach(println) }")
 
-// def cond(c:InputParameter) = c.paramset == "20120615-000"    
-// val bz = transaction { from(DB.bonds)(c => select(c)).toList }
-
+    intp.interpret("val vd = new Date(5, 5, 2012)")
     intp.interpret("val params = transaction { from(DB.inputparameters)(c => where(c.paramset === \"20120615-000\") select(c)).toSet }")
-    intp.interpret("val curves = LiborDiscountCurveConstructor.getCurves(new Date(5, 5, 2012), params)")
+    intp.interpret("val ratecurves = LiborDiscountCurveConstructor.getcurves(params)")
+    intp.interpret("val rateccycurve = ratecurves.map{case ((k1, k2), v) => (k1, v)} toMap")
+    intp.interpret("val fxcurves = FXDiscountCurveConstructor.getcurves(params)")
+    intp.interpret("val fxccycurve = fxcurves.map{case ((k1, k2), v) => (k1, v)} toMap")
+    intp.interpret("val factory = new DiscountCurveFactory(rateccycurve ++ fxccycurve)")
     
     var continue = true
     while (continue) {
