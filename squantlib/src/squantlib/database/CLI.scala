@@ -35,11 +35,11 @@ object CLI {
     intp.interpret("DB.setup(CLI.properties.getProperty(\"uri\"), CLI.properties.getProperty(\"username\"), CLI.properties.getProperty(\"password\"))")
     println("Type 'exit [enter]' to quit.")
     intp.interpret("import java.io.File")
-    intp.interpret("println(\"CLI's current working directory is\" + (new File(\".\").getAbsolutePath()))")
+    intp.interpret("println(\"CLI's current working directory is \" + (new File(\".\").getAbsolutePath()))")
     println("Type 'run file.scala' to run external *.scala.")
 
     // for example, this should work
-    intp.interpret("transaction { from(DB.countries)(c => select(c)).foreach(println) }")
+//    intp.interpret("transaction { from(DB.countries)(c => select(c)).foreach(println) }")
     
     var continue = true
     while (continue) {
