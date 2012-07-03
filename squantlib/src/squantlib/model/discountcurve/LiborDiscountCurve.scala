@@ -20,15 +20,16 @@ import org.jquantlib.daycounters.DayCounter;
    * - no 3m-Xm basis for X < 6 (implied by ZC interpolation 3m & 6m)
    * - no 6m-Xm basis for X > 6 (implied by ZC interpolation 6m & 12m)
    */
-class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val valuedate : JDate, val fx : Double) 
+class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val fx : Double) 
 extends RateCurve{
   require (
-		(cash == null || (cash.valuedate == valuedate && cash.currency == swap.currency && cash.floatindex.dayCounter == swap.floatindex.dayCounter))
-		&& (swap == null || swap.valuedate == valuedate)
-		&& (basis == null || (basis.valuedate == valuedate && basis.currency == swap.currency))
-		&& (tenorbasis == null || (tenorbasis.valuedate == valuedate && tenorbasis.currency == swap.currency)))
+		(cash == null || (cash.valuedate == swap.valuedate && cash.currency == swap.currency && cash.floatindex.dayCounter == swap.floatindex.dayCounter))
+		&& (swap == null || swap.valuedate == swap.valuedate)
+		&& (basis == null || (basis.valuedate == swap.valuedate && basis.currency == swap.currency))
+		&& (tenorbasis == null || (tenorbasis.valuedate == swap.valuedate && tenorbasis.currency == swap.currency)))
 
 	  val currency = cash.currency
+	  val valuedate = swap.valuedate
 	  val basedaycount = cash.floatindex.dayCounter
 	  
 	  /**
@@ -207,6 +208,6 @@ extends RateCurve{
 	    
 	  }
   
-	  def this(cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, valuedate : JDate) = this(cash, swap, basis, tenorbasis, valuedate, 0.0)
+	  def this(cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve) = this(cash, swap, basis, tenorbasis, 0.0)
 
 }
