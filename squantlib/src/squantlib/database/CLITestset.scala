@@ -54,7 +54,6 @@ object CLITestset {
     var continue = true
     while (continue) {
       printf("squantlib> ")
-      
       val line = readLine()
       if (line != null) {
         if (line == "exit")

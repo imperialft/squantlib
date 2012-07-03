@@ -17,19 +17,21 @@ trait FXCurve extends DiscountableCurve{
   val swappoint : SwapPointCurve
   val valuedate : JDate
   
-	    /**
-	   * View
-	   */
-  def describecontent:Unit = {
+    /**
+   * View
+   */
+  def showconvention:Unit = {
 	  val rounding = (x: Double, decimals:Int) => (x * math.pow(10, decimals)).round / math.pow(10, decimals)
 	  val percent = (x:Double, decimals:Int) => (rounding(x*100, decimals)) + "%"
-	  val vdescribe = (v : YieldParameter) => { "value " + v.valuedate.shortDate.toString + ":" + percent(v.value(v.valuedate), 2) + " to " + v.maxdate.shortDate.toString + ":" + percent(v.value(v.maxdays), 2) }
 	  val swapptdescribe = (r : SwapPointCurve) => " quoted vs " + r.pivotcurrency.code + " multiplier:" + r.multiplier
-	  
-	  println("***" + currency.code + "***")
+	  println(currency.code)
+	  println("pivot: " + pivotcurrency.code)
 	  println("fx: " + fx)
-	  println("points: "  + vdescribe(swappoint.points))  
   }
+  
+  def describe:Unit = println(currency.code + " : " + valuedate.shortDate + " - " + swappoint.points.maxdate.shortDate + (if (swappoint != null) " swappt" else ""))
+  
+  override def toString():String = swappoint.currency.code + ":fxcurve"
 }
 
 
