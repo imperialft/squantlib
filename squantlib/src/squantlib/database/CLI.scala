@@ -25,7 +25,6 @@ object CLI {
     settings.classpath.value = classpath
     val intp = new Interpreter(settings)
 
-    // Import the default packages.
     intp.interpret("import squantlib.database._")
     intp.interpret("import squantlib.database.schemadefinitions._")
     intp.interpret("import squantlib.database.objectconstructor._")
@@ -51,7 +50,13 @@ object CLI {
           continue = false
         } else if (line.startsWith("run ")) {
           val file = line.split(" ", 2)(1)
-          intp.interpret(scala.io.Source.fromFile(file).mkString)
+          try {
+            intp.interpret(scala.io.Source.fromFile(file).mkString)
+          } catch {
+            case e:Exception => {
+              println("Failed to load file '" + file + "'. Does it exist?")
+            }
+          }
         } else {
           intp.interpret(line)
         }
