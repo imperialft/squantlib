@@ -24,6 +24,7 @@ object CLI {
       classpath = classpath + ":" + url.toString.replaceFirst("file:", "")
     settings.classpath.value = classpath
     val intp = new Interpreter(settings)
+
     // Import the default packages.
     intp.interpret("import squantlib.database._")
     intp.interpret("import squantlib.database.schemadefinitions._")
@@ -31,7 +32,7 @@ object CLI {
     intp.interpret("CLI.setup(\"" + StringEscapeUtils.escapeJava(propertiesPath) + "\")")
     intp.interpret("DB.setup(CLI.properties.getProperty(\"uri\"), CLI.properties.getProperty(\"username\"), CLI.properties.getProperty(\"password\"))")
     println("Type 'exit [enter]' to quit.")
-
+    println("Type 'run file.scala' to run external *.scala.")
     // for example, this should work
     intp.interpret("transaction { from(DB.countries)(c => select(c)).foreach(println) }")
 
@@ -40,10 +41,14 @@ object CLI {
       printf("squantlib> ")
       val line = readLine()
       if (line != null) {
-        if (line == "exit")
+        if (line == "exit") {
           continue = false
-        else
+        } else if (line.startsWith("run ")) {
+          val file = line.split(" ", 2)(1)
+          intp.interpret(scala.io.Source.fromFile(file).mkString)
+        } else {
           intp.interpret(line)
+        }
       } else {
         continue = false
       }
