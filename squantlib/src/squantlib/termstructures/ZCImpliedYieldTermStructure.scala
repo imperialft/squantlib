@@ -1,13 +1,10 @@
 package squantlib.termstructures
 
-import squantlib.model.discountcurve.DiscountableCurve
-import squantlib.model.discountcurve.DiscountCurve
+import squantlib.model.discountcurve.{DiscountableCurve, DiscountCurve}
 import squantlib.parameter.yieldparameter.YieldParameter
-
-import org.jquantlib.time.{ Date => JDate }
+import org.jquantlib.time.{ Date => JDate, Calendar}
 import org.jquantlib.termstructures.AbstractYieldTermStructure
 import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.Calendar
 
 /**
  * Yield termstructure defined from curve & discount termstructure.

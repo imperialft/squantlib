@@ -2,19 +2,16 @@ package squantlib.database.objectconstructor
 
 import scala.collection.immutable.TreeMap
 import squantlib.database.schemadefinitions.InputParameter
-import squantlib.model.discountcurve.LiborDiscountCurve
+import squantlib.model.discountcurve.FXDiscountCurve
 import squantlib.model.currencies.RateConvention
 import org.jquantlib.time.{Period => JPeriod, Date => JDate}
 import org.jquantlib.currencies.Currency
 
 
-object LiborDiscountCurveConstructor {
+object FXDiscountCurveConstructor {
   import squantlib.parameter.yieldparameter.FlatVector
   
-	val cashKey = "Cash"
-	val swapKey = "Swap"
-	val basisKey = "BasisSwap"
-	val basis36Key = "BS3M6M"
+	val swappointKey = "SwapPt"
 	val fxKey = "FX"
 	val pivotccy = "USD"
 	  
@@ -24,24 +21,19 @@ object LiborDiscountCurveConstructor {
 	 * @param set of InputParameter
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[InputParameter]):Map[(String, String), LiborDiscountCurve] = {
-	  val conventions = RateConvention.getConvention.filter{case (k, v) => v.useratediscount }
+  	def getcurves(params:Set[InputParameter]):Map[(String, String), FXDiscountCurve] = {
+	  val conventions = RateConvention.getConvention.filter{case (k, v) => v.useFXdiscount}
   	  val dateassetgroup = params.groupBy(p => (p.asset, p.paramset)).filter{case((k1, k2), v) => conventions.keySet.contains(k1)}
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
-  	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swapKey))}
+  	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swappointKey) && v.keySet.contains(fxKey))}
   	  
   	  nonemptyinstruments.map{ case ((k1, k2), v) => {
   		  val conv = conventions(k1)
-  		  val valuedate = new JDate(v(swapKey).head.paramdate)
+  		  val valuedate = new JDate(v(swappointKey).head.paramdate)
   		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
-  		  val swapcurve = conv.swap_constructor(valuedate, toTreeMap(swapKey))
-  		  val cashcurve = if (v.keySet.contains(cashKey)) conv.cash_constructor(valuedate, toTreeMap(cashKey))
-  		  				  else conv.cash_constructor(new FlatVector(valuedate, swapcurve.rate.value(0)))
-  		  val basiscurve = if (v.keySet.contains(basisKey)) conv.basis_constructor(valuedate, toTreeMap(basisKey)) else null
-  		  val basis36curve = if (v.keySet.contains(basis36Key)) conv.basis36_constructor(valuedate, toTreeMap(basis36Key)) else null
+  		  val swapptcurve = conv.swappoint_constructor(valuedate, toTreeMap(swappointKey))
   		  
-  		  if (v.keySet.contains(fxKey)) ((k1, k2), new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).first.value))
-  		  else ((k1, k2), new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve))
+  		  ((k1, k2), new FXDiscountCurve(swapptcurve, v(fxKey).first.value))
   	  	}
   	  }
   	}
@@ -52,7 +44,7 @@ object LiborDiscountCurveConstructor {
 	 * @param set of InputParameter
 	 * @returns map from Currency to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[InputParameter], paramset:String):Map[String, LiborDiscountCurve] = {
+  	def getcurves(params:Set[InputParameter], paramset:String):Map[String, FXDiscountCurve] = {
       val validparams = params.filter(p => p.paramset == paramset)
   	  getcurves(validparams) map { case ((k1, k2), v) => (k1, v) }
   	}

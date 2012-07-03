@@ -1,15 +1,8 @@
 package squantlib.model.discountcurve
 
-import scala.collection.immutable.TreeMap
-import scala.collection.immutable.SortedSet
-
-import squantlib.parameter.yieldparameter.YieldParameter
-import squantlib.parameter.yieldparameter.SplineEExtrapolation
-import squantlib.parameter.yieldparameter.SplineNoExtrapolation
-
-import org.jquantlib.time.{ Date => JDate }
-import org.jquantlib.time.{ Period => JPeriod }
-import org.jquantlib.time.TimeUnit
+import scala.collection.immutable.{TreeMap, SortedSet}
+import squantlib.parameter.yieldparameter.{YieldParameter, SplineEExtrapolation, SplineNoExtrapolation}
+import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
  
 
