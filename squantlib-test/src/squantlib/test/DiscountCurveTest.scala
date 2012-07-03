@@ -60,8 +60,6 @@ class DiscountCurveTest {
 	  val USD_ccyZC = EUR_ZC.map(s => USD_curvemodel.getZC(EUR_curvemodel, s))
 	  val JPY_EURccyZC = USD_ccyZC.map(s => JPY_curvemodel.getZC(USD_curvemodel, s))
 	  val BRL_ZC = USD_ZC.map(s => BRL_curvemodel.getZC(USD_curvemodel, s))
-
-	  
 	  
 	    /**
 	   * Discount test unit - discount by same currency
