@@ -90,7 +90,7 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 						curves.filter(c => !discountingcurves.keySet.contains(c._1)).foreach(c => c._2.describe)
 	}
 	
-    override def toString():String = curves.map(c => c._2).mkString(", ")
+    override def toString():String = "DiscountCurveFactory{" + curves.map(c => c._2).mkString(", ") + "}"
 	
 }
 
