@@ -6,10 +6,18 @@ import org.jquantlib.currencies.America._
 import org.jquantlib.currencies.Europe._
 import org.jquantlib.currencies.Oceania._
 import org.jquantlib.time.calendars._
+import org.jquantlib.currencies.Currency
 
+/**
+ * Default conversion table for ID => Currency => Calendar.
+ */
 object CurrencyConversion {
   
-  	val getcurrency = Map(
+	def getcurrency(id:String) = id_currency(id)
+	def getcalendar(id:String) = ccyid_calendar(id)
+	def getcalendar(currency:Currency) = ccyid_calendar(currency.code)
+  
+	private val id_currency = Map(
 			("ARS" -> new ARSCurrency),
 			("ATS" -> new ATSCurrency),
 			("AUD" -> new AUDCurrency),
@@ -79,7 +87,7 @@ object CurrencyConversion {
 			("VEB" -> new VEBCurrency),
 			("ZAR" -> new ZARCurrency))
 	
-		val getcalendar = Map(
+		private val ccyid_calendar = Map(
 			("ARS" -> new Argentina),
 			("AUD" -> new Australia),
 			("BRL" -> new Brazil),

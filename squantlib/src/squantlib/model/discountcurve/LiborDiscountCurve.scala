@@ -23,7 +23,6 @@ extends RateCurve{
 
 	  val currency = cash.currency
 	  val valuedate = swap.valuedate
-	  val basedaycount = cash.floatindex.dayCounter
 	  
 	  /**
 	   * swap specifications
@@ -117,7 +116,7 @@ extends RateCurve{
 		   */
 		  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
-		  new DiscountCurve(ZCvector, ZCspdvector)
+		  new DiscountCurve(currency, ZCvector, ZCspdvector, cash.floatindex.dayCounter)
 	  }
 
 	  /** 
@@ -197,7 +196,7 @@ extends RateCurve{
 		   */
 		  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
-		  new DiscountCurve(ZCvector, ZCspdvector)
+		  new DiscountCurve(currency, ZCvector, ZCspdvector, cash.floatindex.dayCounter)
 	    
 	  }
   

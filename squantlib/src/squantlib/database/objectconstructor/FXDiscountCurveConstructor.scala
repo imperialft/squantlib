@@ -22,7 +22,7 @@ object FXDiscountCurveConstructor {
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
   	def getcurves(params:Set[InputParameter]):Map[(String, String), FXDiscountCurve] = {
-	  val conventions = RateConvention.getConvention.filter{case (k, v) => v.useFXdiscount}
+	  val conventions:Map[String, RateConvention] = RateConvention.getConvention.filter{case (k, v) => v.useFXdiscount}
   	  val dateassetgroup = params.groupBy(p => (p.asset, p.paramset)).filter{case((k1, k2), v) => conventions.keySet.contains(k1)}
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
   	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swappointKey) && v.keySet.contains(fxKey))}

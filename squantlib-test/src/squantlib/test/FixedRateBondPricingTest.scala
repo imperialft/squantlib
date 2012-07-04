@@ -70,7 +70,7 @@ class FixedRateBondPricingTest {
 			while (cashflowlegs.hasNext) { val c = cashflowlegs.next; println(c.date.shortDate.toString + " - " + c.amount) }
 			val calendar = new Japan
 			val settlement = 0
-			val termstructs = ZC.map(zc => (zc._1, new ZCImpliedYieldTermStructure(factory.curves((new JPYCurrency).code), zc._2, calendar, settlement, valuedate)))
+			val termstructs = ZC.map(zc => (zc._1, new ZCImpliedYieldTermStructure(zc._2, calendar, settlement, valuedate)))
 			val bondengines = termstructs.map(ts => (ts._1, new DiscountingBondEngine(ts._2)))
 			val bondmaturity = new JDate(9, 3, 2020)
 			val couponrate = bond.nextCoupon(valuedate) 
