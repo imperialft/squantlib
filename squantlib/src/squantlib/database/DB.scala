@@ -4,7 +4,6 @@ import java.sql.DriverManager
 import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory}
 import org.squeryl.Schema
-import org.squeryl.dsl.OneToManyRelation
 
 import squantlib.database.schemadefinitions._
 

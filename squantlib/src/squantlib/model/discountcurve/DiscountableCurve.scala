@@ -16,11 +16,6 @@ trait DiscountableCurve {
   val valuedate : JDate
   
   /** 
-   * Daycounter for risk-free rate.
-   */
-  val basedaycount : DayCounter
-  
-  /** 
    * Builds zero coupon curve using the curve itself as discount currency.
    * @param refinance spread on float rate
    */

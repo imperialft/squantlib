@@ -5,7 +5,9 @@ import java.util.Formatter
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.annotations.Column
 import org.squeryl.dsl.{ManyToOne, ManyToMany, OneToMany}
+import org.squeryl.KeyedEntity
 import squantlib.database.DB
+import squantlib.database.objectconstructor._
 
 class Country(@Column("ID")				var id: String,
               @Column("CurrencyID")		var currencyid: String,
@@ -18,7 +20,7 @@ class Country(@Column("ID")				var id: String,
               @Column("ADDRESS_LNG")	var address_lng: Option[Double],
               @Column("Created")	var created: Option[Date],
               @Column("LastModified")	var lastmodified : Option[Date]
-              ) {
+              ) extends KeyedEntity[String] {
   def this() = this(null, null, null, null, null, null, null, Some(0.0), Some(0.0), Some(new Date), Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, name_eng, name_jpn, region, created.toString)
@@ -33,7 +35,7 @@ class Currency(@Column("ID")				var id: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
-              ) {
+              ) extends KeyedEntity[String] {
   def this() = this(null, null, null, null, null, null, null, Some(new Date), Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-15s %-15s", id, name_eng, name_jpn, created.toString)
@@ -59,7 +61,7 @@ class Distributor(@Column("ID")				var id: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
-              ) {
+              ) extends KeyedEntity[String] {
   def this() = this(null, null, null, null, null, null, null, null, Some(0.0), Some(0.0), null, null, null,  null, null, null, null, null, Some(new Date), Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-10s %-30s %-15s %-15s", id, name_jpn, post, address, tel, created.toString)
@@ -90,7 +92,7 @@ class Issuer(@Column("ID")					var id: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
-              ) {
+              ) extends KeyedEntity[String] {
   def this() = this(null, null, null, null, null, Some(0.0), Some(0.0), null, null, Some(0), null, Some(0), null, Some(0), null, null, null, null, null, null, null, null, Some(new Date), Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, name, name_jpn, address, issuertype, created.toString)
@@ -107,7 +109,7 @@ class Product(@Column("ID")					var id: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
-              ) {
+              ) extends KeyedEntity[String] {
   def this() = this(null, null, null, null, null, null, null, null, Some(new Date), Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, name_eng, name_jpn, producttype, producttype, created.toString)
@@ -142,13 +144,13 @@ class Bond(@Column("ID")					var id: String,
               @Column("IssuerID")			var issuerid: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
-              ) {
+              ) extends KeyedEntity[String] {
 
   def this() = this(null, 0, new Date, new Date, new Date, 0.0, Some(0.0), null, Some(0), null, null, null, Some(0), Some(0), Some(0.0), null, null, null, 0.0, null, null, null, null, null, null, null, Some(new Date), Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
   
-  
+  def toFixedRateBond = FixedRateBondConstructor.getbond(this)
 }
 
 
@@ -162,7 +164,7 @@ class InputParameter(@Column("ID")			var id: Int,
               @Column("OPTION")				var option: String,
               @Column("COMMENT")			var comment: String,
               @Column("Created")			var created: Option[Date]
-              ) {
+              ) extends KeyedEntity[Int] {
   def this() = this(-99999, null, new Date, null, null, null, -99999, null, null, Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
@@ -176,12 +178,15 @@ class CDSParameter(@Column("ID")			var id: Int,
               @Column("IssuerID")			var issuerid: String,
               @Column("CurrencyID")			var currencyid: String,
               @Column("SPREAD")				var spread: Double,
+              @Column("MATURITY")			var maturity: String,
               @Column("COMMENT")			var comment: String,
               @Column("Created")			var created: Option[Date]
-              ) {
-  def this() = this(-99999, null, new Date, null, null, null, -99999.0, null, Some(new Date))
+              ) extends KeyedEntity[Int] {
+  def this() = this(-99999, null, new Date, null, null, null, -99999.0, null, null, Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, issuerid, currencyid, spread)
+  
+  def toCDSCurve = CDSParameterConstructor.getcurve(this)
 }
 
 
