@@ -51,7 +51,7 @@ class DiscountCurveFactoryTest {
 		  println("** Factory Test **")
 		  
 		  var starttime = java.util.Calendar.getInstance.getTimeInMillis
-		  val zc1 = factory.getcurve((new JPYCurrency).code, -0.01)
+		  val zc1 = factory.getdiscountcurve((new JPYCurrency).code, -0.01)
 		  println("** JPY Discount by JPY Curve **")
 		  println("[ZC1, ZC2, ZC3, spread1, spread2, spread3]")
 		  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(zc1.zc.value(d), 4).toString) })
@@ -59,36 +59,36 @@ class DiscountCurveFactoryTest {
 
 		  starttime = java.util.Calendar.getInstance.getTimeInMillis
 		  println("** JPY Discount by USD Curve **")
-		  val zc2 = factory.getcurve((new JPYCurrency).code, (new USDCurrency).code, 0.01)
+		  val zc2 = factory.getdiscountcurve((new JPYCurrency).code, (new USDCurrency).code, 0.01)
 		  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(zc2.zc.value(d), 4).toString) })
 		  println("Time elapsed: " + (java.util.Calendar.getInstance.getTimeInMillis - starttime) + " ms")
 
 		  println("** JPY Discount by EUR Curve**")
 		  starttime = java.util.Calendar.getInstance.getTimeInMillis
-		  val zc3 = factory.getcurve((new JPYCurrency).code, (new EURCurrency).code, 0.02)
+		  val zc3 = factory.getdiscountcurve((new JPYCurrency).code, (new EURCurrency).code, 0.02)
 		  println("Time elapsed: " + (java.util.Calendar.getInstance.getTimeInMillis - starttime) + " ms")
 		  
 		  println("** BRL Discount by EUR Curve**")
 		  starttime = java.util.Calendar.getInstance.getTimeInMillis
-		  val zcbrl1 = factory.getcurve((new BRLCurrency).code, (new EURCurrency).code, 0.02)
+		  val zcbrl1 = factory.getdiscountcurve((new BRLCurrency).code, (new EURCurrency).code, 0.02)
 		  println("Time elapsed: " + (java.util.Calendar.getInstance.getTimeInMillis - starttime) + " ms")
 		  
 		  println("** BRL Discount by JPY Curve**")
 		  starttime = java.util.Calendar.getInstance.getTimeInMillis
-		  val zcbrl2 = factory.getcurve((new BRLCurrency).code, (new JPYCurrency).code, 0.02)
+		  val zcbrl2 = factory.getdiscountcurve((new BRLCurrency).code, (new JPYCurrency).code, 0.02)
 		  println("Time elapsed: " + (java.util.Calendar.getInstance.getTimeInMillis - starttime) + " ms")
 
 		  println("** JPY Discount by EUR Curve x 10 (precalculated)**")
 		  starttime = java.util.Calendar.getInstance.getTimeInMillis
 		  for (i <- 1 to 10) {
-			  val zc4 = factory.getcurve((new JPYCurrency).code, (new EURCurrency).code, 0.02)
+			  val zc4 = factory.getdiscountcurve((new JPYCurrency).code, (new EURCurrency).code, 0.02)
 		  }
 		  println("Time elapsed: " + (java.util.Calendar.getInstance.getTimeInMillis - starttime) + " ms")
 		  
 		  println("** JPY Discount by EUR Curve x 10(new curves)**")
 		  starttime = java.util.Calendar.getInstance.getTimeInMillis
 		  for (i <- 1 to 10) {
-			  val zc4 = factory.getcurve((new JPYCurrency).code, (new EURCurrency).code, i * 0.05)
+			  val zc4 = factory.getdiscountcurve((new JPYCurrency).code, (new EURCurrency).code, i * 0.05)
 		  }
 		  println("Time elapsed: " + (java.util.Calendar.getInstance.getTimeInMillis - starttime) + " ms")
 		  

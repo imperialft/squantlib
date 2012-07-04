@@ -60,7 +60,7 @@ class FixedRateBondPricingTest {
 		     */
 		    val period6m = new JPeriod(6, TimeUnit.Months)
 
-		    val ZC = Set(0.0, 0.02, -0.01).map(s => (s, factory.getcurve((new JPYCurrency).code, s))) toMap
+		    val ZC = Set(0.0, 0.02, -0.01).map(s => (s, factory.getdiscountcurve((new JPYCurrency).code, s))) toMap
 		    val curve = factory.curves((new JPYCurrency).code)
 		    val ratecurve = curve match { case c:RateCurve => c; case _ => throw new ClassCastException }
 		    

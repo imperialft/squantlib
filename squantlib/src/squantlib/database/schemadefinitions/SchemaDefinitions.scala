@@ -4,6 +4,8 @@ import java.util.Date
 import java.util.Formatter
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.annotations.Column
+import org.squeryl.dsl.{ManyToOne, ManyToMany, OneToMany}
+import squantlib.database.DB
 
 class Country(@Column("ID")				var id: String,
               @Column("CurrencyID")		var currencyid: String,
@@ -122,10 +124,12 @@ class Bond(@Column("ID")					var id: String,
               @Column("COUPON")				var coupon: String,
               @Column("COUPON_FREQ")		var coupon_freq: Option[Int],
               @Column("DAYCOUNT")			var daycount: String,
+              @Column("DAYCOUNT_ADJ")		var daycount_adj: String,
+              @Column("PAYMENT_ADJ")		var payment_adj: String,
               @Column("INARREARS")			var inarrears: Option[Int],
               @Column("CPNNOTICE")			var cpnnotice: Option[Int],
               @Column("ISSUEPRICE")			var issueprice: Option[Double],
-              @Column("REDEMPRICE")			var redemprice: Option[Double],
+              @Column("REDEMPRICE")			var redemprice: String,
               @Column("CALL")				var call: String,
               @Column("TYPE")				var bondtype: String,
               @Column("INITIALFX")			var initialfx: Double,
@@ -140,10 +144,13 @@ class Bond(@Column("ID")					var id: String,
               @Column("LastModified")		var lastmodified : Option[Date]
               ) {
 
-  def this() = this(null, 0, new Date, new Date, new Date, 0.0, Some(0.0), null, Some(0), null, Some(0), Some(0), Some(0.0), Some(0.0), null, null, 0.0, null, null, null, null, null, null, null, Some(new Date), Some(new Date))
+  def this() = this(null, 0, new Date, new Date, new Date, 0.0, Some(0.0), null, Some(0), null, null, null, Some(0), Some(0), Some(0.0), null, null, null, 0.0, null, null, null, null, null, null, null, Some(new Date), Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
+  
+  
 }
+
 
 class InputParameter(@Column("ID")			var id: Int,
               @Column("PARAMSET")			var paramset: String,
