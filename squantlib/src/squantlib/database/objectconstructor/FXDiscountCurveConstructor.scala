@@ -27,7 +27,7 @@ object FXDiscountCurveConstructor {
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
   	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swappointKey) && v.keySet.contains(fxKey))}
   	  
-  	  nonemptyinstruments.map{ case ((k1, k2), v) => {
+  	  val parresult = nonemptyinstruments.par.map{ case ((k1, k2), v) => {
   		  val conv = conventions(k1)
   		  val valuedate = new JDate(v(swappointKey).head.paramdate)
   		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
@@ -36,6 +36,7 @@ object FXDiscountCurveConstructor {
   		  ((k1, k2), new FXDiscountCurve(swapptcurve, v(fxKey).first.value))
   	  	}
   	  }
+  	  parresult.seq
   	}
   	  
 	/**

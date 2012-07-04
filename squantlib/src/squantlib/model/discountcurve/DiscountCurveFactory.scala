@@ -20,6 +20,11 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 	 * USD
 	 */
 	val pivotcurrency = BasisSwapCurve.pivotcurrency.code
+	
+	/** 
+	 * Currencies
+	 */
+	val currencies = curves.map { case (k, v) => v.currency }
 
 	/** 
 	 * Discounting Curves
@@ -35,17 +40,17 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 	/**
 	 * Returns discount curve. Discount currency is the same currency with given spread.
 	 */
-	def getcurve(ccy:String, spread:Double):DiscountCurve = getcurve(ccy, ccy, spread)
+	def getdiscountcurve(ccy:String, spread:Double):DiscountCurve = getdiscountcurve(ccy, ccy, spread)
 	
 	/**
 	 * Returns discount curve. Discount currency is as specified with zero spread.
 	 */
-	def getcurve(ccy:String, discountccy:String):DiscountCurve = getcurve(ccy, discountccy, 0.0)
+	def getdiscountcurve(ccy:String, discountccy:String):DiscountCurve = getdiscountcurve(ccy, discountccy, 0.0)
 
 	/**
 	 * Returns discount curve. Discount currency is as specified with given spread.
 	 */
-	def getcurve(ccy:String, discountccy:String, spread:Double) : DiscountCurve = 
+	def getdiscountcurve(ccy:String, discountccy:String, spread:Double) : DiscountCurve = 
 	  if (contains(ccy, discountccy, spread)) repository(Pair(discountccy, spread))(ccy)
 	  else {
 	    val key = (discountccy, spread)
@@ -59,13 +64,13 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 		    					
 		    case `pivotcurrency` => { 
 		        val discountrate = ratecurve(discountccy)
-			    val zccurve = getcurve(discountccy, discountccy, spread)
+			    val zccurve = getdiscountcurve(discountccy, discountccy, spread)
 			    curves(ccy).getZC(discountrate, zccurve)
 			    }
 		      
 		    case _ => { 
 		        val pivotrate = ratecurve(pivotcurrency)
-			    val pivotZC = getcurve(pivotcurrency, discountccy, spread)
+			    val pivotZC = getdiscountcurve(pivotcurrency, discountccy, spread)
 			    curves(ccy).getZC(pivotrate, pivotZC)
 			    }
     	}
@@ -84,11 +89,8 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 		repository.keySet.contains(Pair(discountccy, spread)) && repository(Pair(discountccy, spread)).keySet.contains(ccy)
 	 }
 	
-	def describe:Unit = {println("DiscountingCurves:")
-						discountingcurves.foreach(c => c._2.describe)
-						println("Curves:")
-						curves.filter(c => !discountingcurves.keySet.contains(c._1)).foreach(c => c._2.describe)
-	}
+	def describe = curves.map(c => c._2.describe + (if (discountingcurves.keySet.contains(c._1)) "(*)" else "") + 
+				sys.props("line.separator")).mkString("") + "(*) Discounting curves"
 	
     override def toString():String = "DiscountCurveFactory{" + curves.map(c => c._2).mkString(", ") + "}"
 	
