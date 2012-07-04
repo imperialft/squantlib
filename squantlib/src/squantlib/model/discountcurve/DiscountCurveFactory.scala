@@ -9,12 +9,13 @@ import scala.collection.JavaConversions
 /** 
  * Stores rate curve information and initialize discount curves as requested.
  * Require all discount curves to have same value date.
+ * 
+ * @param Map CurrencyId => DiscountCurve
  */
 class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 
 	val valuedate = curves.head._2.valuedate
 	require(curves.forall(c => c._2.valuedate == valuedate))
-	
 	
 	/** 
 	 * USD

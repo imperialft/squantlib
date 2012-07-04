@@ -103,3 +103,10 @@ class TenorBasisSwapCurve (val rate:YieldParameter, val shortindex:IborIndex, va
   val currency = shortindex.currency
 }
 
+/**
+ * CDS
+ * 
+ * @constructor stores each information
+ * @param floatindex can take any maturity.
+ */
+class CDSCurve(val rate:YieldParameter, val currency:Currency) extends AbstractCurve

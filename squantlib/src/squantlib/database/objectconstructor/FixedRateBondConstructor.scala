@@ -16,31 +16,33 @@ object FixedRateBondConstructor {
 	}
 	
 	def getbonds(bonds:Set[Bond]):Map[String, FixedRateBond] = {
-	  val validbonds = bonds.filter(b => (b.productid == productid && !b.coupon.isEmpty && !b.coupon_freq.isEmpty && !b.redemprice.isEmpty))
-	  
-	  validbonds.map(b => { 
-		  	val issuedate = new JDate(b.issuedate)
-			val maturity = new JDate(b.maturity)
-			val schedule = {
-			  val tenor = new JPeriod(b.coupon_freq.get, TimeUnit.Months)
-			  val calendar = CurrencyConversion.getcalendar(b.currencyid)
-			  val convention = DbKeywords.daycount_adj(b.daycount_adj)
-			  val maturityconvention = DbKeywords.daycount_adj(b.daycount_adj)
-			  val rule = DateGeneration.Rule.Backward
-			  val endofmonth = false
-			  new Schedule(issuedate, maturity, tenor, calendar, convention, maturityconvention, rule, endofmonth)
-			}
-			
-			val currency = CurrencyConversion.getcurrency(b.currencyid)
-			val settlementdays = 0
-			val faceamount = 100.0
-			val coupons:Array[Double] = ratetoarray(b.coupon, schedule.size)
-			val accrualdaycounter = DbKeywords.daycount(b.daycount)
-			val paymentconvention = DbKeywords.daycount_adj(b.payment_adj)
-			val redemption = try{b.redemprice.trim.toDouble} catch { case _ => Double.NaN}
-			
-			(b.id, new FixedRateBond(settlementdays, faceamount, schedule, coupons, accrualdaycounter, paymentconvention, redemption, issuedate))
-	  	}).toMap
+	  bonds.map(b => (b.id, getbond(b))).filter(b => b._2 != null).toMap
 	}
 	
+	def getbond(bond:Bond):FixedRateBond = {
+	  val isvalid = bond.productid == productid && !bond.coupon.isEmpty && !bond.coupon_freq.isEmpty && !bond.redemprice.isEmpty
+	  if (!isvalid) null
+	  else {
+		  		val issuedate = new JDate(bond.issuedate)
+				val maturity = new JDate(bond.maturity)
+				val schedule = {
+				  val tenor = new JPeriod(bond.coupon_freq.get, TimeUnit.Months)
+				  val calendar = CurrencyConversion.getcalendar(bond.currencyid)
+				  val convention = DbKeywords.daycount_adj(bond.daycount_adj)
+				  val maturityconvention = DbKeywords.daycount_adj(bond.daycount_adj)
+				  val rule = DateGeneration.Rule.Backward
+				  val endofmonth = false
+				  new Schedule(issuedate, maturity, tenor, calendar, convention, maturityconvention, rule, endofmonth)
+				}
+				
+				val currency = CurrencyConversion.getcurrency(bond.currencyid)
+				val settlementdays = 0
+				val faceamount = 100.0
+				val coupons:Array[Double] = ratetoarray(bond.coupon, schedule.size)
+				val accrualdaycounter = DbKeywords.daycount(bond.daycount)
+				val paymentconvention = DbKeywords.daycount_adj(bond.payment_adj)
+				val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
+				new FixedRateBond(settlementdays, faceamount, schedule, coupons, accrualdaycounter, paymentconvention, redemption, issuedate)
+		  	}
+	}	
 }

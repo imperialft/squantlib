@@ -10,7 +10,6 @@ class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCur
 
 	  val currency = swappoint.currency
 	  val pivotcurrency = swappoint.pivotcurrency
-	  val basedaycount = new Thirty360
 	  val valuedate = swappoint.valuedate
 	  
 	  /** 
@@ -71,7 +70,7 @@ class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCur
 		   * ZCspread vector is spline interpolation with no extrapolation and with 2 additional points
 		   */
 		  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
-		  new DiscountCurve(ZCvector)
+		  new DiscountCurve(currency, ZCvector)
 	    
 	  }
   
