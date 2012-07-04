@@ -20,16 +20,14 @@ trait FXCurve extends DiscountableCurve{
     /**
    * View
    */
-  def showconvention:Unit = {
+  def convention:String = {
 	  val rounding = (x: Double, decimals:Int) => (x * math.pow(10, decimals)).round / math.pow(10, decimals)
 	  val percent = (x:Double, decimals:Int) => (rounding(x*100, decimals)) + "%"
 	  val swapptdescribe = (r : SwapPointCurve) => " quoted vs " + r.pivotcurrency.code + " multiplier:" + r.multiplier
-	  println(currency.code)
-	  println("pivot: " + pivotcurrency.code)
-	  println("fx: " + fx)
+	  Array(currency.code, "pivot: " + pivotcurrency.code, "fx: " + fx).mkString(sys.props("line.separator"))
   }
   
-  def describe:Unit = println(currency.code + " : " + valuedate.shortDate + " - " + swappoint.points.maxdate.shortDate + (if (swappoint != null) " swappt" else ""))
+  def describe = (currency.code + " : " + valuedate.shortDate + " - " + swappoint.points.maxdate.shortDate + (if (swappoint != null) " swappt" else ""))
   
   override def toString():String = swappoint.currency.code + ":fxcurve"
 }

@@ -22,29 +22,23 @@ trait RateCurve extends DiscountableCurve{
     /**
    * View
    */
-  def showconvention:Unit = {
+  def convention:String = {
 	  val rounding = (x: Double, decimals:Int) => (x * math.pow(10, decimals)).round / math.pow(10, decimals)
-	  val percent = (x:Double, decimals:Int) => (rounding(x*100, decimals)) + "%"
-	  val vdescribe = (v : YieldParameter) => { "value " + v.valuedate.shortDate.toString + ":" + percent(v.value(v.valuedate), 2) + " to " + v.maxdate.shortDate.toString + ":" + percent(v.value(v.maxdays), 2) }
 	  val cashdescribe = (r : CashCurve) => r.currency.code + " " + r.floatindex.dayCounter
 	  val swapdescribe = (r : SwapCurve) => r.currency.code + " " + r.fixperiod.tenor + "m " + r.fixdaycount.name + " vs " + r.floatindex.tenor.length + "m " + r.floatindex.dayCounter.name
 	  val basisdescribe = (r : BasisSwapCurve) => r.currency.code + " " + r.floatindex.tenor.length + "m " + r.floatindex.dayCounter.name + " vs " + r.pivotfloatindex.currency.code + " " + r.pivotfloatindex.tenor.length + "m " + r.pivotfloatindex.dayCounter.name
 	  val basis36describe = (r : TenorBasisSwapCurve) => r.currency.code + " " + r.shortindex.tenor.length + "m " + r.shortindex.dayCounter.name + " vs " + " " + r.longindex.tenor.length + "m " + r.longindex.dayCounter.name
-	  println(cash.currency.code)
-	  println("cash: " + cashdescribe(cash))
-	  println("swap: " + swapdescribe(swap))
-	  println("bs: " + basisdescribe(basis))
-	  println("bs3m6m: " + basis36describe(tenorbasis))
+	  Array(cash.currency.code, "cash: " + cashdescribe(cash), "swap: " + swapdescribe(swap), "bs: " + basisdescribe(basis), "bs3m6m: " + basis36describe(tenorbasis)).mkString(sys.props("line.separator"))
   }
   
-  def describe = println(cash.currency.code + " : " + valuedate.shortDate + " - " + swap.rate.maxdate.shortDate +  
+  def describe = (cash.currency.code + " : " + valuedate.shortDate + " - " + swap.rate.maxdate.shortDate +  
       (if (cash != null) " cash" else "") + (if (swap != null) " swap" else "") +
       (if (basis != null) " basis" else "") + (if (tenorbasis != null) " bs3m6m" else ""))
   
   override def toString():String = cash.currency.code + ":ratecurve"
 }
 
-trait AbstractRateCurve{
+trait AbstractCurve{
   val rate : YieldParameter
   def value(d:JDate) = rate.value(d)
   def value(d:JPeriod) = rate.value(d)
@@ -58,7 +52,7 @@ trait AbstractRateCurve{
  * @constructor stores each information
  * @param float index, daycount & payment frequency for fixed leg
  */
-class SwapCurve (val rate:YieldParameter, val floatindex:IborIndex, val fixdaycount:DayCounter, val fixperiod:Frequency) extends AbstractRateCurve{
+class SwapCurve (val rate:YieldParameter, val floatindex:IborIndex, val fixdaycount:DayCounter, val fixperiod:Frequency) extends AbstractCurve{
   require (floatindex.tenor().units() == TimeUnit.Months && List(3, 6).contains(floatindex.tenor().length()))
   val currency = floatindex.currency
 }
@@ -70,7 +64,7 @@ class SwapCurve (val rate:YieldParameter, val floatindex:IborIndex, val fixdayco
  * @constructor stores each information
  * @param floatindex can take any maturity.
  */
-class CashCurve (val rate:YieldParameter, val floatindex:IborIndex) extends AbstractRateCurve{
+class CashCurve (val rate:YieldParameter, val floatindex:IborIndex) extends AbstractCurve{
     val currency = floatindex.currency
 }
 
@@ -81,7 +75,7 @@ class CashCurve (val rate:YieldParameter, val floatindex:IborIndex) extends Abst
  * @constructor stores each information. currency information is encapsulated within float index.
  * @param daycount and frequency convention (should be quarterly with standard cash daycount)
  */
-class BasisSwapCurve (val rate:YieldParameter, val floatindex:IborIndex) extends AbstractRateCurve {
+class BasisSwapCurve (val rate:YieldParameter, val floatindex:IborIndex) extends AbstractCurve {
   require(floatindex.tenor().length() == 3)
   
   val currency = floatindex.currency
@@ -104,7 +98,7 @@ object BasisSwapCurve {
  * @constructor stores each information
  * @param daycount and frequency convention (should be quarterly with standard cash daycount)
  */
-class TenorBasisSwapCurve (val rate:YieldParameter, val shortindex:IborIndex, val longindex:IborIndex) extends AbstractRateCurve  {
+class TenorBasisSwapCurve (val rate:YieldParameter, val shortindex:IborIndex, val longindex:IborIndex) extends AbstractCurve  {
   require(shortindex.tenor().length == 3 && longindex.tenor().length == 6 && shortindex.currency == longindex.currency)
   val currency = shortindex.currency
 }

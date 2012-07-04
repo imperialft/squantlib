@@ -4,6 +4,7 @@ import java.sql.DriverManager
 import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory}
 import org.squeryl.Schema
+import org.squeryl.dsl.OneToManyRelation
 
 import squantlib.database.schemadefinitions._
 
@@ -39,6 +40,5 @@ object DB extends Schema {
   val bonds = table[Bond]("Bonds")
   val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
-
   
 }

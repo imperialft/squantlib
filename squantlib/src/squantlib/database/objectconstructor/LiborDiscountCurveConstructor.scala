@@ -30,7 +30,7 @@ object LiborDiscountCurveConstructor {
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
   	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swapKey))}
   	  
-  	  nonemptyinstruments.map{ case ((k1, k2), v) => {
+  	  val parresult = nonemptyinstruments.par.map{ case ((k1, k2), v) => {
   		  val conv = conventions(k1)
   		  val valuedate = new JDate(v(swapKey).head.paramdate)
   		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
@@ -42,8 +42,8 @@ object LiborDiscountCurveConstructor {
   		  
   		  if (v.keySet.contains(fxKey)) ((k1, k2), new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).first.value))
   		  else ((k1, k2), new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve))
-  	  	}
-  	  }
+  	  	}}
+  	    parresult.seq
   	}
   	  
 	/**
