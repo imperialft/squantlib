@@ -12,7 +12,7 @@ import scala.collection.JavaConversions
  * 
  * @param Map CurrencyId => DiscountCurve
  */
-class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
+class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve]) {
 
 	val valuedate = curves.head._2.valuedate
 	require(curves.forall(c => c._2.valuedate == valuedate))
@@ -36,48 +36,51 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 	 * Stores already calculated discount curves.
 	 * Assumption: for each key, value contains discount curve for both discount and pivot currency.
 	 */
-	var repository:Map[(String, Double), scala.collection.mutable.Map[String, DiscountCurve]] = Map.empty
+	var repository:Map[String, scala.collection.mutable.Map[String, DiscountCurve]] = Map.empty
 
 	/**
-	 * Returns discount curve. Discount currency is the same currency with given spread.
+	 * Returns discount curve. Discount currency is flat and same currency with given spread.
 	 */
 	def getdiscountcurve(ccy:String, spread:Double):DiscountCurve = getdiscountcurve(ccy, ccy, spread)
 	
 	/**
-	 * Returns discount curve. Discount currency is as specified with zero spread.
+	 * Returns discount curve, flat spread.
 	 */
-	def getdiscountcurve(ccy:String, discountccy:String):DiscountCurve = getdiscountcurve(ccy, discountccy, 0.0)
+	def getdiscountcurve(ccy:String, discountccy:String, spread:Double) : DiscountCurve = getdiscountcurve(ccy, discountccy, new FlatVector(valuedate, spread), null)
 
 	/**
-	 * Returns discount curve. Discount currency is as specified with given spread.
+	 * Returns discount curve from stored cds parameter.
 	 */
-	def getdiscountcurve(ccy:String, discountccy:String, spread:Double) : DiscountCurve = 
-	  if (contains(ccy, discountccy, spread)) repository(Pair(discountccy, spread))(ccy)
+	def getdiscountcurve(ccy:String, cdsid:String) : DiscountCurve = if (cdscurves.keySet.contains(cdsid)) getdiscountcurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid) else null
+
+	/**
+	 * Returns discount curve from given CDS curve.
+	 */
+	def getdiscountcurve(ccy:String, spread:CDSCurve) : DiscountCurve = getdiscountcurve(ccy, spread.currency.code, spread.rate, null)
+	
+	/**
+	 * Returns discount curve from full given parameter.
+	 */
+	private def getdiscountcurve(ccy:String, discountccy:String, spread:YieldParameter, cdsid:String) : DiscountCurve = 
+	  if (contains(ccy, cdsid)) repository(cdsid)(ccy)
 	  else {
-	    val key = (discountccy, spread)
 	    val newcurve = ccy match {
-		    case `discountccy` => { 
-		      val rate = ratecurve(ccy)
-		      val flatvector = new FlatVector(valuedate, Map(new JPeriod(6, TimeUnit.Months) -> spread))
-		      val zccurve = curves(ccy).getZC(flatvector)
-		      zccurve
-		      }
+		    case `discountccy` => { curves(ccy).getZC(spread) }
 		    					
 		    case `pivotcurrency` => { 
-		        val discountrate = ratecurve(discountccy)
-			    val zccurve = getdiscountcurve(discountccy, discountccy, spread)
-			    curves(ccy).getZC(discountrate, zccurve)
+			    val zccurve = getdiscountcurve(discountccy, discountccy, spread, cdsid)
+			    curves(ccy).getZC(ratecurve(discountccy), zccurve)
 			    }
 		      
 		    case _ => { 
-		        val pivotrate = ratecurve(pivotcurrency)
-			    val pivotZC = getdiscountcurve(pivotcurrency, discountccy, spread)
-			    curves(ccy).getZC(pivotrate, pivotZC)
+			    val pivotZC = getdiscountcurve(pivotcurrency, discountccy, spread, cdsid)
+			    curves(ccy).getZC(ratecurve(pivotcurrency), pivotZC)
 			    }
     	}
 	    
-	    if (!repository.keySet.contains(key)) repository += (key -> scala.collection.mutable.Map(ccy -> newcurve))
-	    else repository(key) += (ccy -> newcurve)
+	    if (cdsid != null) {
+		    if (!repository.keySet.contains(cdsid)) repository += (cdsid -> scala.collection.mutable.Map(ccy -> newcurve))
+		    else repository(cdsid) += (ccy -> newcurve)}
 	    newcurve
 	  }
 	
@@ -86,8 +89,8 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 	/**
 	 * Checks whether the given curve is already calculated and stored in the repository.
 	 */
-	def contains(ccy:String, discountccy:String, spread:Double) = {
-		repository.keySet.contains(Pair(discountccy, spread)) && repository(Pair(discountccy, spread)).keySet.contains(ccy)
+	def contains(ccy:String, cdsid:String) = {
+		repository.keySet.contains(cdsid) && repository(cdsid).keySet.contains(ccy)
 	 }
 	
 	def describe = curves.map(c => c._2.describe + (if (discountingcurves.keySet.contains(c._1)) "(*)" else "") + 
@@ -95,5 +98,6 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve]) {
 	
     override def toString():String = "DiscountCurveFactory{" + curves.map(c => c._2).mkString(", ") + "}"
 	
+    def this(curves:Map[String, DiscountableCurve]) = this(curves, null)
 }
 
