@@ -186,7 +186,7 @@ class CDSParameter(@Column("ID")			var id: Int,
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, issuerid, currencyid, spread)
   
-  def toCDSCurve = CDSParameterConstructor.getcurve(this)
+  def toCDSCurve = CDSCurveConstructor.getcurve(this)
 }
 
 
