@@ -1,7 +1,6 @@
 package squantlib.database.objectconstructor
 
 import squantlib.database.schemadefinitions.Bond
-import squantlib.database.schemadefinitions.DbKeywords
 import squantlib.model.currencies.CurrencyConversion
 import org.jquantlib.instruments.bonds.FixedRateBond
 import org.jquantlib.time.{Date => JDate, Period => JPeriod, TimeUnit, Schedule, DateGeneration}
@@ -28,8 +27,8 @@ object FixedRateBondConstructor {
 				val schedule = {
 				  val tenor = new JPeriod(bond.coupon_freq.get, TimeUnit.Months)
 				  val calendar = CurrencyConversion.getcalendar(bond.currencyid)
-				  val convention = DbKeywords.daycount_adj(bond.daycount_adj)
-				  val maturityconvention = DbKeywords.daycount_adj(bond.daycount_adj)
+				  val convention = DaycountConstructor.getdaycount_adj(bond.daycount_adj)
+				  val maturityconvention = DaycountConstructor.getdaycount_adj(bond.daycount_adj)
 				  val rule = DateGeneration.Rule.Backward
 				  val endofmonth = false
 				  new Schedule(issuedate, maturity, tenor, calendar, convention, maturityconvention, rule, endofmonth)
@@ -39,8 +38,8 @@ object FixedRateBondConstructor {
 				val settlementdays = 0
 				val faceamount = 100.0
 				val coupons:Array[Double] = ratetoarray(bond.coupon, schedule.size)
-				val accrualdaycounter = DbKeywords.daycount(bond.daycount)
-				val paymentconvention = DbKeywords.daycount_adj(bond.payment_adj)
+				val accrualdaycounter = DaycountConstructor.getdaycount(bond.daycount)
+				val paymentconvention = DaycountConstructor.getdaycount_adj(bond.payment_adj)
 				val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
 				new FixedRateBond(settlementdays, faceamount, schedule, coupons, accrualdaycounter, paymentconvention, redemption, issuedate)
 		  	}

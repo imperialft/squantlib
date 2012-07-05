@@ -1,13 +1,13 @@
 package squantlib.model.discountcurve
 
 import squantlib.parameter.yieldparameter.YieldParameter
+import squantlib.model.currencies.CurrencyConversion
 import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.Frequency
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.time.{TimeUnit, Date => JDate, Period => JPeriod }
+import org.jquantlib.time.{TimeUnit, Date => JDate, Period => JPeriod, Frequency }
 
 /**
  * Encapsulates a full rate curve. Should implement getZC() in superclass.
@@ -109,4 +109,6 @@ class TenorBasisSwapCurve (val rate:YieldParameter, val shortindex:IborIndex, va
  * @constructor stores each information
  * @param floatindex can take any maturity.
  */
-class CDSCurve(val rate:YieldParameter, val currency:Currency) extends AbstractCurve
+class CDSCurve(val rate:YieldParameter, val currency:Currency) extends AbstractCurve{
+  def this(r:YieldParameter, c:String) = this(r, CurrencyConversion.getcurrency(c))
+}

@@ -10,7 +10,7 @@ import org.jquantlib.currencies.Currency
 import squantlib.parameter.yieldparameter.{FlatVector, LinearNoExtrapolation}
 
 
-object CDSParameterConstructor {
+object CDSCurveConstructor {
 
 	def curveconstructor(valuedate:JDate, values:SortedMap[JPeriod, Double]):YieldParameter
 		= (values.keySet.size) match {
