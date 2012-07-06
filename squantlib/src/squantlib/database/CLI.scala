@@ -57,6 +57,7 @@ object CLI {
               println("Failed to load file '" + file + "'. Does it exist?")
             }
           }
+          println("")
         } else {
           intp.interpret(line)
         }

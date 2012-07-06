@@ -20,7 +20,7 @@ import org.apache.commons.math3.analysis.function.Exp
  * @param number of extra points (optional)
  */
 class SplineNoExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod, Double], extrapoints:Int) extends YieldParameter with AbstractYieldParameter {
-	require(inputvalues.size >= 3)
+	require(inputvalues.size >= 3, "spline requires at least 3 point : found " + inputvalues.size)
 	
     val splinefunction = {
 	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty

@@ -1,7 +1,7 @@
 package squantlib.model.discountcurve
 
 import scala.collection.immutable.{TreeMap, SortedSet}
-import squantlib.parameter.yieldparameter.{YieldParameter, SplineEExtrapolation, SplineNoExtrapolation}
+import squantlib.parameter.yieldparameter.{YieldParameter, SplineEExtrapolation, SplineNoExtrapolation, LinearNoExtrapolation}
 import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
  
@@ -55,11 +55,13 @@ extends RateCurve{
 	  /**
 	   * 3m/6m basis swap calibration is valid in case float leg is semi annual (ccy basis always quarterly)
 	   */
-	  val bs3m6madjust = if (tenorbasis == null) null else zcperiods.map(m => (m._1, m._1 match { case n if n < swapstart && n < 6 => 0.0
-															    case n if n < swapstart && n >= 6 => tenorbasis.value(m._2)
-															    case n if n >= swapstart && floattenor <= 3 => 0.0
-															    case _ => tenorbasis.value(m._2) }))
-	  
+	  val bs3m6madjust = if (tenorbasis == null && floattenor > 3) null 
+	  					 else zcperiods.map(m => (m._1, m._1 match { 
+	  					    case n if n < swapstart && n < 6 => 0.0
+						    case n if n < swapstart && n >= 6 => if (tenorbasis == null) 0.0 else tenorbasis.value(m._2)
+						    case n if n >= swapstart && floattenor <= 3 => 0.0
+						    case _ => tenorbasis.value(m._2) }))
+  
 	  
 	  /**
 	   * true if this currency is the "pivot" currency for the basis swap, usually USD.
@@ -116,6 +118,7 @@ extends RateCurve{
 		   */
 		  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
+		  
 		  new DiscountCurve(currency, ZCvector, ZCspdvector, cash.floatindex.dayCounter)
 	  }
 
@@ -160,7 +163,8 @@ extends RateCurve{
 		  cashrange foreach { cr => val m = cr._1; val p = cr._2;
 		    val spd = 	if (ispivotcurrency) (bsccy(m) + refinspread(m)) * floatfraction2 / floatfraction
 		    			else bsccy(m) + refinspread(m) * floatfraction / floatfraction2
-		    val bs3m6m = if (m == 3) 0.0 else tenorbasis.value(p)
+//		    val bs3m6m = if (m == 3) 0.0 else tenorbasis.value(p)
+		    val bs3m6m = bs3m6madjust(m)
 		    val zcXm = 1 / (1 + (cash.value(p) + spd - bs3m6m) * floatfraction * m / 12)
 		    ZCspread ++= Map(p -> spd)
 		    ZC ++= Map(p -> zcXm)
@@ -196,6 +200,7 @@ extends RateCurve{
 		   */
 		  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
+		  
 		  new DiscountCurve(currency, ZCvector, ZCspdvector, cash.floatindex.dayCounter)
 	    
 	  }

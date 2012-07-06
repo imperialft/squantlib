@@ -19,8 +19,10 @@ import org.junit.Assert._
 object BondSamples {
   
     val couponrate = 0.05
+    val bondid = "TESTBOND"
 	val bondmaturity = new JDate(7, 3, 2020)
 	val bondJPY = {
+    	val issuerid = "ADB"
 		val issuedate = new JDate(7, 3, 2010)
 		val maturity = bondmaturity
 		val currency = new Asia.JPYCurrency
@@ -43,7 +45,7 @@ object BondSamples {
 		  new Schedule(effectivedate, terminationdate, tenor, calendar, convention, maturityconvention, rule, endofmonth)
 		}
 		
-		new FixedRateBond(settlementdays, faceamount, schedule, coupons, accrualdaycounter, paymentconvention, redemption, issuedate)
+		new FixedRateBond(settlementdays, faceamount, schedule, coupons, accrualdaycounter, paymentconvention, redemption, issuedate, bondid, currency, issuerid)
 	}
     
 

@@ -39,8 +39,8 @@ class DiscountCurveTest {
 	   */
 	  val spreads = {
 	  	  val spread1 = new FlatVector(vd, Map(period6m -> 0.00))
-		  val spread2 = new FlatVector(vd, Map(period6m -> 0.02))
-		  val spread3 = new FlatVector(vd, Map(period6m -> -0.01))
+		  val spread2 = new FlatVector(vd, Map(period6m -> 0.10))
+		  val spread3 = new FlatVector(vd, Map(period6m -> 0.15))
 	  	  List(spread1, spread2, spread3)
 	  }
 	  

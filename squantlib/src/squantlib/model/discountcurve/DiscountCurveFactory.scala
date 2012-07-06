@@ -1,10 +1,12 @@
 package squantlib.model.discountcurve
 
-import squantlib.parameter.yieldparameter.{YieldParameter, FlatVector}
-import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Date => JDate, Period => JPeriod, TimeUnit}
 import scala.collection.mutable.HashMap
 import scala.collection.JavaConversions
+import squantlib.parameter.yieldparameter.{YieldParameter, FlatVector}
+import org.jquantlib.currencies.Currency
+import org.jquantlib.time.{Date => JDate, Period => JPeriod, TimeUnit, Calendar}
+import org.jquantlib.instruments.Bond
+
 
 /** 
  * Stores rate curve information and initialize discount curves as requested.
@@ -28,6 +30,11 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	val currencies = curves.map { case (k, v) => v.currency }
 
 	/** 
+	 * Issuers
+	 */
+	val cdsnames = if (cdscurves == null) null else cdscurves.keySet
+	
+	/** 
 	 * Discounting Curves
 	 */
 	val discountingcurves = { curves.map{ case (cur, curve) => (cur, curve match { case r:RateCurve => r; case _ => null})}}.filter{case(k, c) => c != null}
@@ -40,21 +47,25 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 
 	/**
 	 * Returns discount curve. Discount currency is flat and same currency with given spread.
+	 * @param currency code, spread
 	 */
 	def getdiscountcurve(ccy:String, spread:Double):DiscountCurve = getdiscountcurve(ccy, ccy, spread)
 	
 	/**
-	 * Returns discount curve, flat spread.
+	 * Returns discount curve, flat spread, using specific currency.
+	 * @param currency code, discounting currency name, spread
 	 */
 	def getdiscountcurve(ccy:String, discountccy:String, spread:Double) : DiscountCurve = getdiscountcurve(ccy, discountccy, new FlatVector(valuedate, spread), null)
 
 	/**
-	 * Returns discount curve from stored cds parameter.
+	 * Returns discount curve using spread of given cds curve.
+	 * @param currency code, cds id
 	 */
-	def getdiscountcurve(ccy:String, cdsid:String) : DiscountCurve = if (cdscurves.keySet.contains(cdsid)) getdiscountcurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid) else null
+	def getdiscountcurve(ccy:String, cdsid:String) : DiscountCurve = if (cdsnames.isEmpty || cdsnames.contains(cdsid)) getdiscountcurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid) else null
 
 	/**
 	 * Returns discount curve from given CDS curve.
+	 * @param currency code, CDS curve
 	 */
 	def getdiscountcurve(ccy:String, spread:CDSCurve) : DiscountCurve = getdiscountcurve(ccy, spread.currency.code, spread.rate, null)
 	
@@ -86,6 +97,12 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	
 	private def ratecurve(c:String):RateCurve = if (discountingcurves.keySet.contains(c)) discountingcurves(c) else throw new ClassCastException
 	
+	def getdiscountbondengine(bond:Bond) = try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toDiscountBondEngine } 
+										   catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid); null}}
+										   
+	def getdiscountbondengine(bond:Bond, calendar:Calendar) = try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toDiscountBondEngine(calendar) } 
+															  catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid); null}}
+	
 	/**
 	 * Checks whether the given curve is already calculated and stored in the repository.
 	 */
@@ -93,8 +110,12 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 		repository.keySet.contains(cdsid) && repository(cdsid).keySet.contains(ccy)
 	 }
 	
-	def describe = curves.map(c => c._2.describe + (if (discountingcurves.keySet.contains(c._1)) "(*)" else "") + 
-				sys.props("line.separator")).mkString("") + "(*) Discounting curves"
+	def describe = {
+		val eol = sys.props("line.separator")
+		"Curves:" + eol + curves.map(c => c._2.describe + (if (discountingcurves.keySet.contains(c._1)) "(*)" else "") + eol).mkString("") + 
+		"(*) Discounting curves" + eol + eol +
+		"Credit Spreads:" + eol + cdscurves.map(c => c._1 + " : " + c._2.rate.valuedate.shortDate + " - " + c._2.rate.maxdate.shortDate + eol).mkString("")	  
+	}
 	
     override def toString():String = "DiscountCurveFactory{" + curves.map(c => c._2).mkString(", ") + "}"
 	
