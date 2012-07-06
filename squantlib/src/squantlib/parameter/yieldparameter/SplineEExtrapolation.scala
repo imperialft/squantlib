@@ -19,10 +19,10 @@ import org.apache.commons.math3.analysis.function.Exp
  * @param number of extra points (optional)
  */
 class SplineEExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod, Double], extrapoints:Int) extends YieldParameter with AbstractYieldParameter {
-	require(inputvalues.size >= 3)
+	require(inputvalues.size >= 3, "spline requires at least 3 point : found " + inputvalues.size)
 	
 	val firstvalue = inputvalues.first._2
-	val impliedrate = -1.0 * new Log().value(inputvalues.last._2 / firstvalue) / inputvalues.lastKey.days(valuedate).toDouble
+	val impliedrate = if(inputvalues.last._2 < Double.MinPositiveValue) Double.NaN else -1.0 * new Log().value(inputvalues.last._2 / firstvalue) / inputvalues.lastKey.days(valuedate).toDouble
 	val extrapolator = new Exp()
 	
 	val mindays = inputvalues.firstKey.days(valuedate)
@@ -31,7 +31,7 @@ class SplineEExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod,
 	val maxperiod = new JPeriod(maxdays.toInt, TimeUnit.Days)
 
 	def lowextrapolation(v : Long) = inputvalues.first._2
-    def highextrapolation(v : Long) = firstvalue * extrapolator.value(-1.0 * impliedrate * v.toDouble)
+    def highextrapolation(v : Long) = if (impliedrate.isNaN) Double.MinPositiveValue else firstvalue * extrapolator.value(-1.0 * impliedrate * v.toDouble)
     def interpolation(v : Long) = splinefunction.value(v.toDouble)
 
     val splinefunction = {

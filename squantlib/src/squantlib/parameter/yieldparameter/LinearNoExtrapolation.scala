@@ -16,7 +16,7 @@ import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
  * @param input points
  */
 class LinearNoExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod, Double]) extends YieldParameter with AbstractYieldParameter {
-	require(inputvalues.size >= 2)
+	require(inputvalues.size >= 2, "linear interpolation requires at least 2 point : found " + inputvalues.size)
   
     val linearfunction = {
 	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty

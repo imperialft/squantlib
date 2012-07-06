@@ -170,6 +170,12 @@ class InputParameter(@Column("ID")			var id: Int,
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
 }
 
+class InputParameterSet(val inputparameters:Set[InputParameter]){
+  def toLiborDiscountCurves = LiborDiscountCurveConstructor.getcurves(inputparameters)
+  def toLiborDiscountCurves(paramset:String) = LiborDiscountCurveConstructor.getcurves(inputparameters, paramset)
+  def toFXDiscountCurves = FXDiscountCurveConstructor.getcurves(inputparameters)
+  def toFXDiscountCurves(paramset:String) = FXDiscountCurveConstructor.getcurves(inputparameters, paramset)
+}
 
 class CDSParameter(@Column("ID")			var id: Int,
               @Column("PARAMSET")			var paramset: String,
@@ -187,6 +193,11 @@ class CDSParameter(@Column("ID")			var id: Int,
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, issuerid, currencyid, spread)
   
   def toCDSCurve = CDSCurveConstructor.getcurve(this)
+}
+
+class CDSParameterSet(val cdsparameters:Set[CDSParameter]){
+  def toCDSCurves = CDSCurveConstructor.getcurves(cdsparameters)
+  def toCDSCurves(paramset:String) = CDSCurveConstructor.getcurves(cdsparameters, paramset)
 }
 
 

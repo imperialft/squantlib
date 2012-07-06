@@ -66,11 +66,13 @@ class DiscountCurveFactoryTest {
 		  println("** JPY Discount by EUR Curve**")
 		  starttime = java.util.Calendar.getInstance.getTimeInMillis
 		  val zc3 = factory.getdiscountcurve((new JPYCurrency).code, (new EURCurrency).code, 0.02)
+		  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(zc3.zc.value(d), 4).toString) })
 		  println("Time elapsed: " + (java.util.Calendar.getInstance.getTimeInMillis - starttime) + " ms")
 		  
 		  println("** BRL Discount by EUR Curve**")
 		  starttime = java.util.Calendar.getInstance.getTimeInMillis
 		  val zcbrl1 = factory.getdiscountcurve((new BRLCurrency).code, (new EURCurrency).code, 0.02)
+		  inputset.foreach( (d:JPeriod) => { println(d.toString() + ", " + rounding(zcbrl1.zc.value(d), 4).toString) })
 		  println("Time elapsed: " + (java.util.Calendar.getInstance.getTimeInMillis - starttime) + " ms")
 		  
 		  println("** BRL Discount by JPY Curve**")
@@ -94,6 +96,6 @@ class DiscountCurveFactoryTest {
 		  
 		  
 		  println("factory contents:")
-		  factory.repository.keySet.foreach(k => println(k._1 + " " + k._2 + factory.repository(k).keySet.map(x => x)))
+		  factory.repository.keySet.foreach(k => println(k + " " + factory.repository(k).keySet.map(x => x)))
 	  }
 }
