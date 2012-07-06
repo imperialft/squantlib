@@ -1,7 +1,7 @@
 package squantlib.parameter.yieldparameter
 
 import scala.collection.mutable.MutableList
-import org.jquantlib.time.{ Date => JDate, Period => JPeriod }
+import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit }
 import org.jquantlib.daycounters.DayCounter
 
 /**
@@ -68,4 +68,6 @@ trait YieldParameter extends Iterable[Pair[JDate, Double]] {
     override def toString:String = {
       getClass + " (" + valuedate.add(mindays.toInt) + " to " + valuedate.add(maxdays.toInt) + ")"
     }
+    
+    def describe:String = ((1 to 10) ++ List(12, 15, 20, 25, 30)).map(i => {val m = new JPeriod(i, TimeUnit.Years); m.toString + " " + value(m).toString + sys.props("line.separator")}).mkString("")
 }

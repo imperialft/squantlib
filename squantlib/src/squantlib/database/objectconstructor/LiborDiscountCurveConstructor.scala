@@ -18,6 +18,8 @@ object LiborDiscountCurveConstructor {
 	val fxKey = "FX"
 	val pivotccy = "USD"
 	  
+	  
+	  
 	/**
 	 * Constructs LiborDiscountCurve from InputParameter per each combination of currency & paramset.
 	 * Invalid input parameter sets are ignored.
@@ -30,7 +32,7 @@ object LiborDiscountCurveConstructor {
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
   	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swapKey))}
   	  
-  	  val parresult = nonemptyinstruments.par.map{ case ((k1, k2), v) => {
+  	  nonemptyinstruments.map{ case ((k1, k2), v) => {
   		  val conv = conventions(k1)
   		  val valuedate = new JDate(v(swapKey).head.paramdate)
   		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
@@ -43,19 +45,16 @@ object LiborDiscountCurveConstructor {
   		  if (v.keySet.contains(fxKey)) ((k1, k2), new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).first.value))
   		  else ((k1, k2), new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve))
   	  	}}
-  	    parresult.seq
   	}
-  	  
+  
 	/**
 	 * Constructs LiborDiscountCurve from InputParameter per each currency, only with specified paramset.
 	 * Invalid input paramter sets or unmatched paramset ID are ignored.
 	 * @param set of InputParameter
 	 * @returns map from Currency to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[InputParameter], paramset:String):Map[String, LiborDiscountCurve] = {
-      val validparams = params.filter(p => p.paramset == paramset)
-  	  getcurves(validparams) map { case ((k1, k2), v) => (k1, v) }
-  	}
+  	def getcurves(params:Set[InputParameter], paramset:String):Map[String, LiborDiscountCurve] = 
+  	  getcurves(params.filter(p => p.paramset == paramset)) map { case ((k1, k2), v) => (k1, v) }
   	
 } 
 

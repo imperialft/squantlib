@@ -8,7 +8,7 @@ import org.jquantlib.time.{ TimeUnit, Period => JPeriod, Date => JDate }
  * @param input point
  */
 class FlatVector(var valuedate : JDate, inputvalues:Map[JPeriod, Double]) extends YieldParameter with AbstractYieldParameter {
-	require(inputvalues.size == 1)
+	require(inputvalues.size == 1, "flat curve can have 1 point only : found " + inputvalues.size)
 	
 	val constantvalue = inputvalues.first._2
 	val firstvalue = inputvalues.first._2
