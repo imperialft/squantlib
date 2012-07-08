@@ -1,6 +1,7 @@
 package squantlib.database
 
 import java.sql.DriverManager
+import org.apache.log4j.Logger
 import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory}
 import org.squeryl.Schema
@@ -19,7 +20,7 @@ object DB extends Schema {
    */
   def setup(uri:String, username:String, password:String):Unit = {
     Class.forName("com.mysql.jdbc.Driver")
-    SessionFactory.concreteFactory = Some(() => Session.create(DriverManager.getConnection("jdbc:" + uri, username, password), new MySQLInnoDBAdapter))
+    SessionFactory.concreteFactory = Some(() => Session.create(DriverManager.getConnection("jdbc:" + uri + "?characterEncoding=utf-8", username, password), new MySQLInnoDBAdapter))
   }
 
   /**
@@ -40,4 +41,5 @@ object DB extends Schema {
   val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
   
+
 }

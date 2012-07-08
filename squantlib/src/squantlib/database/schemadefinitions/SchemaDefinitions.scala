@@ -19,9 +19,23 @@ class Country(@Column("ID")				var id: String,
               @Column("ADDRESS_LAT")	var address_lat: Option[Double],
               @Column("ADDRESS_LNG")	var address_lng: Option[Double],
               @Column("Created")	var created: Option[Date],
-              @Column("LastModified")	var lastmodified : Option[Date]
+              @Column("LastModified")	var lastmodified: Option[Date]
               ) extends KeyedEntity[String] {
-  def this() = this(null, null, null, null, null, null, null, Some(0.0), Some(0.0), Some(new Date), Some(new Date))
+
+  // def this() = this(null, null, null, null, null, null, null, Some(0.0), Some(0.0), Some(new Date), Some(new Date))  
+  def this() = this(
+    id = null,
+    currencyid = null,
+    name_jpn = null,
+    name_eng = null,
+    region = null,
+    description_jpn = null,
+    description_eng = null,
+    address_lat = Some(0.0),
+    address_lng = Some(0.0),
+    created = Some(new Date),
+    lastmodified = Some(new Date)
+  )
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, name_eng, name_jpn, region, created.toString)
 }
