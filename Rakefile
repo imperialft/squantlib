@@ -20,11 +20,16 @@ def unit_test_classes
   @unit_test_classes ||= Dir.glob("squantlib-test/src/squantlib/test/**/*Test.scala").map { |scala| File.read(scala).scan(/class\s+\w+/).map { |s| s.split(/\s+/).last } }.flatten.uniq.map { |clazz| "squantlib.test.#{clazz}" }
 end
 
-task :compile do
+task :compile, :a1 do |t, args|
   require 'fileutils'
   FileUtils.rm_rf 'bin'
   Dir.mkdir 'bin'
-  command = "scalac -classpath #{(java_archives | class_paths).join(SP)} -d bin #{scala_sources.join(" ")}"
+  sources = if args[:a1]
+    scala_sources.select { |s| s =~ Regexp.new(args[:a1]) }
+  else
+    scala_sources
+  end
+  command = "scalac -classpath #{(java_archives | class_paths).join(SP)} -d bin #{sources.join(" ")}"
   File.open(".compiled", "wb"){} if system(command)
   if File.exists?(".compiled")
     File.delete(".compiled")
