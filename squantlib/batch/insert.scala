@@ -27,4 +27,15 @@ transaction {
       lastmodified    = Some(new java.util.Date)
     )
   DB.countries.insert(country)
+
+}
+
+transaction {
+  // partial update via query
+  update(DB.countries)(country =>
+    where(country.id === "HMA")
+    set(country.description_jpn := "更新された内容です。",
+        country.description_eng := "This is an updated content.")
+  )
+
 }
