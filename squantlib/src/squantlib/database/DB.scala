@@ -5,7 +5,9 @@ import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory, Schema}
 import org.squeryl.PrimitiveTypeMode._
 import squantlib.database.schemadefinitions._
-import java.util.{Date => JavaDate}
+import java.util.{Date => JavaDate, Calendar => JavaCalendar}
+import org.jquantlib.time.{Date => JQuantDate}
+import scala.collection.mutable.MutableList
 
 object DB extends Schema {
   
@@ -41,6 +43,8 @@ object DB extends Schema {
   val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
   
+  // NOTE: DB.countries.lookup("JPN") would return Japan. Similarly, DB.{currencies,distributors}.lookup("ID") should return corresponding object.
+
   def getCountries(ids:List[String]):List[Country] = {
     transaction {
       from(countries)(country =>
@@ -118,21 +122,23 @@ object DB extends Schema {
     }
   }
 
+  def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = getInputParameters(on.longDate, instrument, asset, maturity)
+
   /*
-  def getInputParameters(from:JavaDate, to:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = {
-    transaction {
-      from(inputparameters)(ip =>
-        where(
-          ip.paramdate  >=  from and
-          ip.paramdate  <=  to and
-          ip.instrument === instrument and
-          ip.asset      === asset and
-          ip.maturity   === maturity
-        )
-        select(ip)
-      ).toList
+    def getInputParameters(from:JavaDate, to:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = {
+      transaction {
+        from(inputparameters)(ip =>
+          where(
+            ip.paramdate  gte from and
+            in.paramdate  lt  to and
+            ip.instrument === instrument and
+            ip.asset      === asset and
+            ip.maturity   === maturity
+          )
+          select(ip)
+        ).toList
+      }
     }
-  }
   */
 
   def getCDSParameters(on:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
@@ -150,22 +156,36 @@ object DB extends Schema {
     }
   }
 
+  def getCDSParameters(on:JQuantDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = getCDSParameters(on, maturity, instrument, issuerid, currencyid)
+
   /*
-  def getCDSParameters(from:JavaDate, to:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
-    transaction {
-      from(cdsparameters)(cds =>
-        where(
-          cds.paramdate  >=  from and
-          cds.paramdate  <=  to and
-          cds.maturity   === maturity and
-          cds.instrument === instrument and
-          cds.issuerid   === issuerid and
-          cds.currencyid === currencyid
-        )
-        select(cds)
-      ).toList
+    def getCDSParameters(from:JavaDate, to:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
+      transaction {
+        from(cdsparameters)(cds =>
+          where(
+            cds.paramdate  in  generateDateRange(from, to) and
+            cds.maturity   === maturity and
+            cds.instrument === instrument and
+            cds.issuerid   === issuerid and
+            cds.currencyid === currencyid
+          )
+          select(cds)
+        ).toList
+      }
     }
-  }
   */
+  
+  def generateDateRange(from:JavaDate, to:JavaDate):List[JavaDate] = {
+    val list = MutableList[JavaDate]()
+    val calendar = JavaCalendar.getInstance()
+    calendar.setTime(from)
+    var cache = calendar.getTime()
+    while (cache.getTime() < to.getTime()) {
+      list += cache
+      calendar.add(JavaCalendar.DATE, 1)
+      cache = calendar.getTime()
+    }
+    return list.toList
+  }
 
 }
