@@ -7,7 +7,7 @@ import org.jquantlib.time.{Date => JDate, Period => JPeriod, TimeUnit, Schedule,
 
 object FixedRateBondConstructor {
   
-	val productlist = List("SB", "STEPUP")
+	val productlist = List("SB", "STEPUP", "DISC")
 	
 	def ratetoarray(formula:String, size:Int) = {
 		val numarray = formula.split(";").map(x => (try{x.replace("%", "").trim.toDouble / 100.0} catch { case _ => Double.NaN}))
@@ -19,7 +19,7 @@ object FixedRateBondConstructor {
 	}
 	
 	def getbond(bond:Bond):FixedRateBond = {
-	  val isvalid = productlist.contains(bond.productid) && !bond.coupon.isEmpty && !bond.coupon_freq.isEmpty && !bond.redemprice.isEmpty
+	  val isvalid = productlist.contains(bond.productid) && !bond.coupon.isEmpty && !bond.coupon_freq.isEmpty && !bond.redemprice.isEmpty && !bond.daycount_adj.isEmpty
 	  if (!isvalid) null
 	  else {
 		  		val bondid = bond.id
