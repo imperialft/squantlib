@@ -124,29 +124,26 @@ object DB extends Schema {
 
   def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = getInputParameters(on.longDate, instrument, asset, maturity)
 
-  /*
-    def getInputParameters(from:JavaDate, to:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = {
-      transaction {
-        from(inputparameters)(ip =>
-          where(
-            ip.paramdate  gte from and
-            in.paramdate  lt  to and
-            ip.instrument === instrument and
-            ip.asset      === asset and
-            ip.maturity   === maturity
-          )
-          select(ip)
-        ).toList
-      }
+  def getInputParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = {
+    transaction {
+      from(inputparameters)(ip =>
+        where(
+          (ip.paramdate  gte fromDate) and
+          (ip.paramdate  lte  toDate) and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity
+        )
+        select(ip)
+      ).toList
     }
-  */
+  }
 
   def getCDSParameters(on:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
     transaction {
       from(cdsparameters)(cds =>
         where(
           cds.paramdate  === on and
-          cds.maturity   === maturity and
           cds.instrument === instrument and
           cds.issuerid   === issuerid and
           cds.currencyid === currencyid
@@ -158,22 +155,21 @@ object DB extends Schema {
 
   def getCDSParameters(on:JQuantDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = getCDSParameters(on, maturity, instrument, issuerid, currencyid)
 
-  /*
-    def getCDSParameters(from:JavaDate, to:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
-      transaction {
-        from(cdsparameters)(cds =>
-          where(
-            cds.paramdate  in  generateDateRange(from, to) and
-            cds.maturity   === maturity and
-            cds.instrument === instrument and
-            cds.issuerid   === issuerid and
-            cds.currencyid === currencyid
-          )
-          select(cds)
-        ).toList
-      }
+  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
+    transaction {
+      from(cdsparameters)(cds =>
+        where(
+          (cds.paramdate  gte fromDate) and
+          (cds.paramdate  lte toDate) and
+          cds.maturity   === maturity and
+          cds.instrument === instrument and
+          cds.issuerid   === issuerid and
+          cds.currencyid === currencyid
+        )
+        select(cds)
+      ).toList
     }
-  */
+  }
   
   def generateDateRange(from:JavaDate, to:JavaDate):List[JavaDate] = {
     val list = MutableList[JavaDate]()
