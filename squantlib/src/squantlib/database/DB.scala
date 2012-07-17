@@ -40,6 +40,7 @@ object DB extends Schema {
   val bonds = table[Bond]("Bonds")
   val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
+  val bondprices = table[BondPrice]("BondPrices")
   
 
 }
