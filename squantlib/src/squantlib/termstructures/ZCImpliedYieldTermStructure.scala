@@ -16,7 +16,7 @@ import org.jquantlib.daycounters.DayCounter
 class ZCImpliedYieldTermStructure(val discount:DiscountCurve, val cdr:Calendar, val settlement:Int, val referencedate:JDate) 
 extends AbstractYieldTermStructure(referencedate)  {
 
-	val maxDate = discount.zc.maxdate
+	val maxDate = discount.zc.maxdate.add(90)
 	
 	override def dayCounter = discount.daycount
 	
