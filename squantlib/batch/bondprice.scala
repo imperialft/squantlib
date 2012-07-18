@@ -27,36 +27,34 @@ import org.jquantlib.time._
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.bonds.FixedRateBond
 import squantlib.database.utilities._
-import org.jquantlib.instruments.Bond
+import org.jquantlib.instruments.{Bond => QLBond}
 
 val t1 = System.nanoTime
 
 var errorlist = scala.collection.mutable.Map.empty[String, String]
-val factory = QuickConstructor.getDiscountCurveFactory(paramset)
+val factory = DBConstructor.getDiscountCurveFactory(paramset)
 val valuedate = factory.valuedate
 
 val t2 = System.nanoTime
 
-val dbbonds = QuickConstructor.getDBBonds
+val dbbonds = DB.getAllBonds.map(b => (b.id, b)).toMap;
 val bond_product:Map[String, String] = dbbonds.map(b => (b._1, b._2.productid)).toMap;
 
 val t3 = System.nanoTime
 
-val bonds:Map[String, org.jquantlib.instruments.Bond] = {
-  val fixedrateproducts = Set("SB", "STEPUP", "DISC")
-  val fixedrateids = bond_product.filter(b => fixedrateproducts.contains(b._2)).keySet
-  val fixedratebuilder = { b:dbBond => {
-    val bond = b.toFixedRateBond
-    if (bond != null) bond.setPricingEngine(factory.getdiscountbondengine(bond), valuedate)
-    bond
-  }}
-  val fixedratebonds = QuickConstructor.getBonds(fixedrateids, valuedate, fixedratebuilder)
+
+val bonds:Map[String, QLBond] = {
+  val fixedrateproducts = List("SB", "STEPUP", "DISC")
+  val fixedrateids = DB.getBondsByProducts(fixedrateproducts)
+  val fixedratebuilder = (b:dbBond) => b.toFixedRateBond
+  val fixedrateengine = (b:QLBond) => factory.getdiscountbondengine(b)
+  
+  val fixedratebonds = DBConstructor.getQLBonds(fixedrateids, fixedratebuilder, fixedrateengine, valuedate)
   
   fixedratebonds
 }
 
 val pricelist:Map[String, Double] = bonds.map(b => (b._1, try {b._2.dirtyPrice} catch {case e => {errorlist += (b._1 -> e.toString); Double.NaN}})).toMap.filter(b => !b._2.isNaN)
-
 
 val prices = pricelist.map { p => {
   val bond = bonds(p._1)
