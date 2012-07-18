@@ -3,13 +3,13 @@ package squantlib.database.utilities
 import squantlib.model.discountcurve.DiscountCurveFactory
 import squantlib.database._
 import squantlib.database.schemadefinitions.{ Bond => dbBond, InputParameterSet, CDSParameterSet}
-import squantlib.model.discountcurve._
-import org.jquantlib.time._
+import org.jquantlib.instruments.{Bond => QLBond}
+import org.jquantlib.time.{Date => qlDate}
 import org.squeryl.PrimitiveTypeMode._
-import org.jquantlib.instruments.Bond
+import org.jquantlib.pricingengines.PricingEngine
 
 
-object QuickConstructor {
+object DBConstructor {
 
 	def getDiscountCurveFactory(paramset:String):DiscountCurveFactory = {
 	  val params:InputParameterSet = new InputParameterSet(transaction { from(DB.inputparameters)(c => where(c.paramset === paramset) select(c)).toSet })
@@ -24,15 +24,12 @@ object QuickConstructor {
 	  new DiscountCurveFactory(ratecurves ++ fxcurves, cdscurves, paramset)
 	}
 	
-	def getDBBonds:Map[String, dbBond] = {
-	  val dbresult = transaction { from(DB.bonds)(c => select(c)).toSet }
-	  dbresult.map(b => (b.id, b)).toMap
-	}
 	
-	def getBonds(targetbonds:Set[String], valuedate:Date, builder:dbBond => Bond):Map[String, Bond] = {
-		val vdlong = valuedate.longDate
-		val dbbonds:Set[squantlib.database.schemadefinitions.Bond] = transaction { from(DB.bonds)(c => where(c.id in targetbonds and c.maturity > vdlong) select(c)).toSet }
-		dbbonds.map(b => (b.id, builder(b))).toMap;
+	def getQLBonds(id:List[String], builder:dbBond => QLBond, pricingengine:QLBond => PricingEngine, valuedate:qlDate):Map[String, QLBond] = {
+		val dbbonds:List[dbBond] = DB.getBonds(id)
+		val qlbonds:Map[String, QLBond] = dbbonds.map(b => (b.id, builder(b))).toMap;
+		qlbonds.foreach(b => if (b._2 != null) b._2.setPricingEngine(pricingengine(b._2), valuedate))
+		qlbonds
 	}
 
   
