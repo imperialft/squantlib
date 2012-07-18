@@ -94,12 +94,29 @@ object DB extends Schema {
       ).toList
     }
   }
-
+  
   def getBonds(ids:List[String]):List[Bond] = {
     transaction {
       from(bonds)(bond =>
         where(bond.id in ids)
         select(bond)
+      ).toList
+    }
+  }
+  
+  def getAllBonds:List[Bond] = {
+    transaction {
+      from(bonds)(bond =>
+        select(bond)
+      ).toList
+    }
+  }
+  
+  def getBondsByProducts(productids:List[String]):List[String] = {
+    transaction {
+      from(bonds)(b =>
+        where(b.productid in productids)
+        select( &(b.id) )
       ).toList
     }
   }
