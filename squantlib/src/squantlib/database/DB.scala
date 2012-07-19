@@ -205,5 +205,14 @@ object DB extends Schema {
     }
     return list.toList
   }
+  
+  def setBondPrice(prices:Iterable[BondPrice]){
+	val idset = prices.map(b => b.id)
+	transaction {
+	  DB.bondprices.deleteWhere(b => b.id in idset)
+	  DB.bondprices.insert(prices)
+	  }
+  }
+  
 
 }
