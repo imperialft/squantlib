@@ -28,7 +28,7 @@ object FixedRateBondConstructor {
 				val maturity = new JDate(bond.maturity)
 				val schedule = {
 				  val tenor = new JPeriod(bond.coupon_freq.get, TimeUnit.Months)
-				  val calendar = CurrencyConversion.getcalendar(bond.currencyid)
+				  val calendar = bond.calendar
 				  val convention = DaycountConstructor.getdaycount_adj(bond.daycount_adj)
 				  val maturityconvention = DaycountConstructor.getdaycount_adj(bond.daycount_adj)
 				  val rule = DateGeneration.Rule.Backward

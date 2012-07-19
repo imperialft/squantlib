@@ -1,15 +1,8 @@
 package squantlib.test.sample
 
-import org.jquantlib.time.Calendar
-import org.jquantlib.time.Schedule
-import org.jquantlib.time.{ Date => JDate }
-import org.jquantlib.time.{ Period => JPeriod }
-import org.jquantlib.time.TimeUnit
-import org.jquantlib.time.BusinessDayConvention
-import org.jquantlib.currencies._
-import org.jquantlib.time.DateGeneration
-import org.jquantlib.time.Frequency
+import org.jquantlib.time.{ Calendar, Schedule, Date => JDate, Period => JPeriod, TimeUnit, BusinessDayConvention, DateGeneration, Frequency}
 import org.jquantlib.time.calendars._
+import org.jquantlib.currencies._
 import org.jquantlib.daycounters._
 import org.jquantlib.instruments.bonds.FixedRateBond
 
