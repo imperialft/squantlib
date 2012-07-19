@@ -208,6 +208,7 @@ class Bond(@Column("ID")					var id: String,
               @Column("DAYCOUNT")			var daycount: String,
               @Column("DAYCOUNT_ADJ")		var daycount_adj: String,
               @Column("PAYMENT_ADJ")		var payment_adj: String,
+              @Column("CALENDAR")			var calendar_str: String,
               @Column("INARREARS")			var inarrears: Option[Int],
               @Column("CPNNOTICE")			var cpnnotice: Option[Int],
               @Column("ISSUEPRICE")			var issueprice: Option[Double],
@@ -226,6 +227,16 @@ class Bond(@Column("ID")					var id: String,
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends KeyedEntity[String] {
 
+  import org.jquantlib.time.Calendar
+  import org.jquantlib.time.calendars.JointCalendar
+  import squantlib.model.currencies.CurrencyConversion
+  
+  def calendar:Calendar = {
+    val cdrlist = calendar_str.split(",").map(s => s.trim)
+    if (cdrlist.size == 1) CurrencyConversion.getcalendar(cdrlist.head)
+    else new JointCalendar(cdrlist.map(c => CurrencyConversion.getcalendar(c)))
+  }
+  
   def this() = this(
 		id = null,
 		ref_number = 0,
@@ -238,6 +249,7 @@ class Bond(@Column("ID")					var id: String,
 		coupon_freq = Some(0),
 		daycount = null,
 		daycount_adj = null,
+		calendar_str = null,
 		payment_adj = null,
 		inarrears = Some(0),
 		cpnnotice = Some(0),

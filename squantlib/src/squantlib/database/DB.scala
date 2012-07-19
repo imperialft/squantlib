@@ -8,6 +8,7 @@ import squantlib.database.schemadefinitions._
 import java.util.{Date => JavaDate, Calendar => JavaCalendar}
 import org.jquantlib.time.{Date => JQuantDate}
 import scala.collection.mutable.MutableList
+import com.mchange.v2.c3p0._
 
 object DB extends Schema {
   
@@ -20,8 +21,12 @@ object DB extends Schema {
    *
    */
   def setup(uri:String, username:String, password:String):Unit = {
-    Class.forName("com.mysql.jdbc.Driver")
-    SessionFactory.concreteFactory = Some(() => Session.create(DriverManager.getConnection("jdbc:" + uri + "?characterEncoding=utf-8", username, password), new MySQLInnoDBAdapter))
+    val cpds = new ComboPooledDataSource
+    cpds.setDriverClass("com.mysql.jdbc.Driver")
+    cpds.setJdbcUrl("jdbc:" + uri + "?characterEncoding=utf-8")
+    cpds.setUser(username)
+    cpds.setPassword(password)
+    SessionFactory.concreteFactory = Some(() => Session.create(cpds.getConnection, new MySQLInnoDBAdapter))
   }
 
   /**

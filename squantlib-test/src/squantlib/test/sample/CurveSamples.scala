@@ -1,16 +1,12 @@
 package squantlib.test.sample
 
-import scala.collection.immutable.TreeMap
-import scala.collection.immutable.SortedMap
+import scala.collection.immutable.{TreeMap, SortedMap}
 import scala.collection.Iterable
 
 import squantlib.parameter.yieldparameter._
 import squantlib.model.discountcurve._
 
-import org.jquantlib.time.{ Date => JDate }
-import org.jquantlib.time.{ Period => JPeriod }
-import org.jquantlib.time.TimeUnit
-import org.jquantlib.time.Frequency
+import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit, Frequency}
 import org.jquantlib.indexes.ibor._
 import org.jquantlib.indexes._
 import org.jquantlib.daycounters._
