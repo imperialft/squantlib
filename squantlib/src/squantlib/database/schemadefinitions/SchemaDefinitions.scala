@@ -352,11 +352,16 @@ class BondPrice(@Column("ID")			var id:String,
 			@Column("PARAMDATE")		var paramdate:Date,
 			@Column("FXJPY")			var fxjpy:Double,
 			@Column("PRICEDIRTY")		var pricedirty:Double,
-			@Column("Created")			var created:Option[Date],
-			@Column("LastModified")		var lastmodified:Option[Date],
+			@Column("PRICECLEAN")		var priceclean:Option[Double],
 			@Column("ACCRUED")			var accrued:Option[Double],
+			@Column("YIELD_CONTINUOUS")	var yield_continuous:Option[Double],
+			@Column("YIELD_ANNUAL")		var yield_annual:Option[Double],
+			@Column("YIELD_SEMIANNUAL")	var yield_semiannual:Option[Double],
+			@Column("YIELD_SIMPLE")		var yield_simple:Option[Double],
 			@Column("CURRENTRATE")		var currentrate:Option[Double],
-			@Column("INSTRUMENT")		var instrument:String
+			@Column("INSTRUMENT")		var instrument:String,
+			@Column("Created")			var created:Option[Date],
+			@Column("LastModified")		var lastmodified:Option[Date]
 			) extends KeyedEntity[String]{
   
   def this() = this(
@@ -369,11 +374,16 @@ class BondPrice(@Column("ID")			var id:String,
 		paramdate = new Date,
 		fxjpy = 0.0,
 		pricedirty = 0.0,
-		created = Some(new Date),
-		lastmodified = Some(new Date),
+		priceclean = Some(0.0),
 		accrued = Some(0.0),
+		yield_continuous = Some(0.0),
+		yield_annual = Some(0.0),
+		yield_semiannual = Some(0.0),
+		yield_simple = Some(0.0),
 		currentrate = Some(0.0),
-		instrument = null
+		instrument = null,
+		created = Some(new Date),
+		lastmodified = Some(new Date)
       )
       
   override def toString():String = format("%-15s %-5s %-10s %-15s %-10s", id, currencyid, pricedirty, paramset, if (accrued.isEmpty) "" else accrued.get)

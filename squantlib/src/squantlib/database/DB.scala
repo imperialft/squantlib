@@ -143,6 +143,14 @@ object DB extends Schema {
       ).toList
     }
   }
+  
+  def getParamSets:Set[String] = {
+    transaction {
+      val inputparams = from(inputparameters)(p => select(&(p.paramset))).distinct.toSet
+      val cdsparams =  from(cdsparameters)(p => select(&(p.paramset))).distinct.toSet
+      inputparams & cdsparams
+    }
+  }
 
   def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = getInputParameters(on.longDate, instrument, asset, maturity)
 

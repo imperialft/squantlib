@@ -329,7 +329,7 @@ class IdrRateConvention extends RateConvention{
 	val swap_fixperiod = null
 
 	val useFXdiscount = true
-	val swappoint_multiplier = 10000.0
+	val swappoint_multiplier = 1.0
 }
 
 class BrlRateConvention extends RateConvention{

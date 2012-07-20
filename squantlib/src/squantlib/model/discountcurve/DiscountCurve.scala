@@ -22,5 +22,10 @@ class DiscountCurve(val currency:Currency, val zc : YieldParameter, val discount
   
   def toDiscountBondEngine = new DiscountingBondEngine(this.toZCImpliedYieldTermStructure)
   def toDiscountBondEngine(calendar:Calendar) = new DiscountingBondEngine(this.toZCImpliedYieldTermStructure(calendar))
+  
+  def describe = "Currency:\t" + currency.code + sys.props("line.separator") + 
+  				 "Spread:\t" + discountspread.describe + sys.props("line.separator") + 
+  				 "ZC:\t" + zc.describe + sys.props("line.separator")
+    
 }
 

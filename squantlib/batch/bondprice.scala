@@ -49,10 +49,10 @@ val bonds:List[QLBond] = {
 }
 
 /**
- * Compute bond price and output to database
+ * Compute bond price
  */
 val t3 = System.nanoTime
-val bondprices = QLDB.setBondPrice(bonds, factory, true)
+val bondprices = QLDB.setBondPrice(bonds, factory, false)
 
 
 /**
@@ -64,18 +64,20 @@ println("valuedate :\t" + valuedate.shortDate)
 println("paramset :\t" + paramset)
 
 println("\n*** Created Variables ***")
-println("dbbonds => all bonds")
+println("dbbonds:\t all bonds")
 val dbbonds = DB.getAllBonds.map(b => (b.id, b)).toMap;
 
-println("factory => discount curve factory")
-println("bonds => list of all bonds")
+println("factory:\t discount curve factory")
+println("bondlist:\t list of all bonds")
+val bondlist = bonds.map(b => (b.bondid, b)).toMap;
 
-println("fixedratebonds => list of all fixed rate bonds")
+println("fixedratebonds:\t list of all fixed rate bonds")
 val fixedratebonds:Map[String, FixedRateBond] = bonds.map(bond => bond match { case b:FixedRateBond => (b.bondid, b); case _ => null}).filter(b => b != null).toMap;
 
-println("bondprices => list of bond price (valid and non-valid prices)")
+println("pricelist:\t list of bond price (valid and non-valid prices)")
+val pricelist = bondprices.map(p => (p.bondid, p)).toMap;
 
-println("errorlist => bondid -> error message")
+println("errorlist:\t bondid -> error message")
 val errorlist = bondprices.filter(p => p.pricedirty.isNaN).map(p => (p.bondid, p.comment)).toMap;
 
 println("\n*** Result ***")
@@ -102,5 +104,27 @@ println("  %-25.25s %.3f sec".format("Factory construction:", ((t2 - t1)/1000000
 println("  %-25.25s %.3f sec".format("Bond collection:", ((t3 - t2)/1000000000.0)))
 println("  %-25.25s %.3f sec".format("Bond pricing & db write:", ((t4 - t3)/1000000000.0)))
 println("  %-25.25s %.3f sec".format("Result display:", ((t5 - t4)/1000000000.0)))
+
+println("\n*** Action ***")
+println("showprice:\t display all prices")
+def showprice = bondprices.filter(p => !p.pricedirty.isNaN).foreach(p => println("%-15.15s %-10.10s %-3.3s".format(p.bondid, p.pricedirty, p.currencyid)))
+
+println("showerrors:\t display error messages")
+def showerrors = errorlist.filter(e => !((e._2 startsWith "expired") || (e._2 startsWith "too far from issue"))).foreach(p => println("%-15.15s %-10s".format(p._1, p._2)))
+
+println("showexpired:\t display expired bonds")
+val expirelist = errorlist.filter(e => (e._2 startsWith "expired"))
+val nonissuelist = errorlist.filter(e => (e._2 startsWith "too far from issue"))
+def showexpired = (expirelist ++ nonissuelist).foreach(p => println("%-15.15s %-10s".format(p._1, p._2)))
+
+println("pushdb:\t update price to database")
+def pushdb = {
+	println("Writing to Database")
+	val start = System.nanoTime
+	DB.setBondPrice(bondprices.filter(p => (!p.pricedirty.isNaN)))
+	val end = System.nanoTime
+	println("Done (%.3f sec)".format(((end - start)/1000000000.0)))
+}
+
 println("\n*** System Output ***")
 
