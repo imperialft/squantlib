@@ -9,9 +9,14 @@ import java.util.{Date => JavaDate, Calendar => JavaCalendar}
 import org.jquantlib.time.{Date => JQuantDate}
 import scala.collection.mutable.MutableList
 import com.mchange.v2.c3p0._
+import com.mysql.jdbc.Driver
+import java.io.File
+import scala.collection.mutable.StringBuilder
 
 object DB extends Schema {
-  
+
+  val dataSource = new ComboPooledDataSource
+
   /**
    * Sets up the DB connection for current thread.
    * 
@@ -21,12 +26,14 @@ object DB extends Schema {
    *
    */
   def setup(uri:String, username:String, password:String):Unit = {
-    val cpds = new ComboPooledDataSource
-    cpds.setDriverClass("com.mysql.jdbc.Driver")
-    cpds.setJdbcUrl("jdbc:" + uri + "?characterEncoding=utf-8")
-    cpds.setUser(username)
-    cpds.setPassword(password)
-    SessionFactory.concreteFactory = Some(() => Session.create(cpds.getConnection, new MySQLInnoDBAdapter))
+
+    dataSource.setDriverClass("com.mysql.jdbc.Driver")
+    dataSource.setJdbcUrl("jdbc:" + uri + "?characterEncoding=utf-8")
+    dataSource.setUser(username)
+    dataSource.setPassword(password)
+    dataSource.setMinPoolSize(5)
+    dataSource.setMaxPoolSize(10)
+    SessionFactory.concreteFactory = Some(() => Session.create(dataSource.getConnection, new MySQLInnoDBAdapter))
   }
 
   /**
@@ -121,15 +128,6 @@ object DB extends Schema {
     }
   }
 
-  /**
-   * 
-   * @param
-   *   on: A string representation of a date such as "2012-07-05" (anything that SimpleDateFormat constructor can take)
-   *   instrument: A string of that specifies an instrument
-   *   asset: A string that specifies an asset
-   *   maturity: A string that specifies the maturity.
-   * @returns List of InputParameter where size >= 0
-   */
   def getInputParameters(on:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = {
     transaction {
       from(inputparameters)(ip =>
@@ -200,18 +198,31 @@ object DB extends Schema {
       ).toList
     }
   }
-  
-  def generateDateRange(from:JavaDate, to:JavaDate):List[JavaDate] = {
-    val list = MutableList[JavaDate]()
-    val calendar = JavaCalendar.getInstance()
-    calendar.setTime(from)
-    var cache = calendar.getTime()
-    while (cache.getTime() < to.getTime()) {
-      list += cache
-      calendar.add(JavaCalendar.DATE, 1)
-      cache = calendar.getTime()
+
+  /**
+   * Inserts many objects via CSV import statement. This operation involves reflections.
+   * Also, you need Squeryl >= 0.9.6 (Snapshot is fine.)
+   *
+   * @param objects List of objects of type T.
+   */
+  def insertMany(objects:List[AnyRef]) = {
+    val tempFile            = File.createTempFile("squantlib", ".csv")
+    tempFile.deleteOnExit()
+    val tempFilePath        = tempFile.getAbsolutePath
+    val tableNames          = tables.toList.map(t => t.posoMetaData.clasz.getSimpleName)
+    val clazz               = objects(0).getClass
+    val className           = clazz.getSimpleName
+    val table               = tables(tableNames.indexOf(className))
+    val attrToField         = table.posoMetaData.fieldsMetaData.toList.map(fmd => (fmd.nameOfProperty, fmd.columnName))
+    val builder             = new StringBuilder()
+    for (val obj <- objects) {
+      println("method, field, scala value to string")
+      for (val pair <- attrToField) {
+        val value = clazz.getMethod(pair._1).invoke(obj)
+        println(pair._1 + ", " + pair._2 + ", " + value.toString)
+      }
+      builder.append("\n")
     }
-    return list.toList
   }
   
   def setBondPrice(prices:Iterable[BondPrice]){
@@ -222,5 +233,30 @@ object DB extends Schema {
 	  }
   }
   
+
+  /**
+   * This method takes any property value of a model object, turn it into a string, and then quote it to SQL-safe format.
+   *
+   * @param value A value from a property of a model object.
+   * @return       An SQL-safe quoted string.
+   */
+  def quoteValue(value:Any):String = {
+  }
+
+  /*
+    // This code probably shouldn't be here.
+    def generateDateRange(from:JavaDate, to:JavaDate):List[JavaDate] = {
+      val list = MutableList[JavaDate]()
+      val calendar = JavaCalendar.getInstance()
+      calendar.setTime(from)
+      var cache = calendar.getTime()
+      while (cache.getTime() < to.getTime()) {
+        list += cache
+        calendar.add(JavaCalendar.DATE, 1)
+        cache = calendar.getTime()
+      }
+      return list.toList
+    }
+  */
 
 }
