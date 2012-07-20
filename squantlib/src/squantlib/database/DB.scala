@@ -240,7 +240,7 @@ object DB extends Schema {
    * @param value A value from a property of a model object.
    * @return       An SQL-safe quoted string.
    */
-  def quoteValue(value:Any):String = {
+  def quoteValue(value:Any):String = { "test"
   }
 
   /*
