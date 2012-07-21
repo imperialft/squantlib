@@ -1,17 +1,18 @@
 package squantlib.database
 
-import java.sql.{Timestamp, DriverManager}
+import java.sql.{Timestamp, Time, DriverManager}
+import com.mysql.jdbc.Driver
+import com.mchange.v2.c3p0._
 import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory, Schema}
 import org.squeryl.PrimitiveTypeMode._
 import squantlib.database.schemadefinitions._
-import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
+import scala.collection.mutable.{MutableList, StringBuilder}
 import org.jquantlib.time.{Date => JQuantDate}
-import scala.collection.mutable.MutableList
-import com.mchange.v2.c3p0._
-import com.mysql.jdbc.Driver
-import java.io.File
-import scala.collection.mutable.StringBuilder
+import java.io.{File, FileWriter, BufferedWriter}
+import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
+import java.text.SimpleDateFormat
+import org.apache.commons.lang3.StringEscapeUtils
 
 object DB extends Schema {
 
@@ -235,44 +236,85 @@ object DB extends Schema {
    *
    * @param objects List of objects of type T.
    */
-  def insertMany(objects:List[AnyRef]) = {
+  def buildCSVImportStatement(objects:List[AnyRef]):String = {
     val tempFile            = File.createTempFile("squantlib", ".csv")
     tempFile.deleteOnExit()
     val tempFilePath        = tempFile.getAbsolutePath
     val tableNames          = tables.toList.map(t => t.posoMetaData.clasz.getSimpleName)
     val clazz               = objects(0).getClass
-    val className           = clazz.getSimpleName
+    val className           = clazz.getSimpleName.toString()
     val table               = tables(tableNames.indexOf(className))
     val attrToField         = table.posoMetaData.fieldsMetaData.toList.map(fmd => (fmd.nameOfProperty, fmd.columnName))
     val builder             = new StringBuilder()
+    builder.append(attrToField.map(pair => pair._2).mkString(", ") + "\n")
     for (val obj <- objects) {
-      println("method, field, scala value to string")
-      for (val pair <- attrToField) {
-        val value = clazz.getMethod(pair._1).invoke(obj)
-        println(pair._1 + ", " + pair._2 + ", " + value.toString)
-      }
+      builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(", "))
       builder.append("\n")
     }
+    val out = new BufferedWriter(new FileWriter(tempFile))
+    out.write(builder.toString)
+    out.close()
+
+    "LOAD DATA INFILE \"" + tempFilePath + "\" INTO TABLE \"" + className + "\" FIELDS TERMINATED BY ',' ENCLOSED BY ''''"
   }
 
   /**
-   * This method takes any property value of a model object, turn it into a string, and then quote it to SQL-safe format.
+   * Converts a value into SQL (MySQL) representation. Throws java.lang.IllegalArgumentException if the value isn't supported.
    *
-   * @param value A value from a property of a model object.
-   * @return       An SQL-safe quoted string.
+   * @param value Any object that is supported by Squeryl or JDBC.
+   * @return A string of corresponding SQL representation.
    */
-  def quoteValue(value:Any):String = ""
+  def quoteValue(value:Any):String = {
+    value match {
+      case v:Number => quoteNumber(v)
+      case v:String => quoteString(v)
+      case v:Timestamp => quoteTimestamp(v)
+      case v:JavaDate => quoteDate(v)
+      case v:Boolean => quoteBoolean(v)
+      case v:List[Any] => quoteList(v)
+      case v:Some[Any] => quoteValue(v.get)
+      case _ =>
+        if (value == null || value == None)
+          "NULL"
+        else
+          throw new java.lang.IllegalArgumentException("Cannot quote the value for SQL: " + value.toString)
+    }
+  }
 
   def quoteNumber(value:Number):String = value.toString
-  def quoteDate(value:JavaDate):String = value.toString
-  def quoteString(value:String):String = {
-    if (value.contains(","))
-      "\"" + value.replaceAll("\"", "\\\"") + "\""
-    else
-      value
-  }
-  //def quoteTimestamp(value:Timestamp)
-  //def quoteByteArray(value:Array[Byte])
-  //def quoteUUID(value:UUID) = quoteString(value.toString)
+  def quoteString(value:String):String = "'" + value.replaceAll("'", "''") + "'"
+  val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
+  def quoteDate(value:JavaDate):String = quoteString(dateFormat.format(value))
+  def quoteBoolean(value:Boolean):String = value.toString.toUpperCase
+
+  /**
+   * Converts a List of anything into SQL (MySQL) representation. For example, a List of Integer will be quoted into
+   * something like (0, 1, 2, 3, 4) which you could use it for various statements like WHERE id IN ... etc.
+   *
+   * @param value A List of Anything that's supported by quoteValue() method.
+   * @return A string of corresponding SQL representation.
+   */
+  def quoteList(value:List[Any]):String = "(" + value.map(quoteValue).mkString(",") + ")"
+
+  /**
+   * Converts a java.sql.Timestamp into SQL (MySQL) representation without time-zone information.
+   *
+   * @param value a java.sql.Timestamp instance.
+   * @return A string of corresponding SQL representation.
+   */
+  def quoteTimestamp(value:Timestamp):String = "'" + value.toString + "'"
+
+  /**
+   * Converts a java.sql.Timestamp into SQL (MySQL) representation with time-zone information.
+   * Return value would be something like '2012-07-21T16:13:49.758313+09:00'
+   *
+   * @param value a java.sql.Timestamp instance.
+   * @return A string of corresponding SQL representation.
+   *
+   * @deprecated Because it doesn't work properly yet.
+   *
+   */
+  def quoteTimestampWithTimezone(value:Timestamp) = "'" + timeFormat.format(value) + "'"
+  val timeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SZ")
 
 }
