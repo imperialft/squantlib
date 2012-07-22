@@ -142,13 +142,35 @@ object DB extends Schema {
     }
   }
   
-  def getParamSets:Set[String] = {
+  def getInputParamSets:Set[(String, JavaDate)] = {
     transaction {
-      val inputparams = from(inputparameters)(p => select(&(p.paramset))).distinct.toSet
-      val cdsparams =  from(cdsparameters)(p => select(&(p.paramset))).distinct.toSet
-      inputparams & cdsparams
+        from(inputparameters)(p => 
+          groupBy(p.paramset, p.paramdate))
+          .map(q => (q.key._1, q.key._2)).toSet
     }
   }
+  
+  def getCDSParamSets:Set[(String, JavaDate)] = {
+    transaction {
+        from(cdsparameters)(p => 
+          groupBy(p.paramset, p.paramdate))
+          .map(q => (q.key._1, q.key._2)).toSet
+    }
+  }
+  
+  def checkParamSet(id:String):Boolean = {
+    transaction {
+      val inputcontains = from (inputparameters)(p => 
+					        where(p.paramset === id) 
+					        select(p)).size > 0
+      val cdscontains = from (cdsparameters)(p => 
+					        where(p.paramset === id) 
+					        select(p)).size > 0
+	  inputcontains && cdscontains
+    }
+  }
+  
+  def getParamSets:Set[(String, JavaDate)] = getInputParamSets & getCDSParamSets
 
   def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = getInputParameters(on.longDate, instrument, asset, maturity)
 
