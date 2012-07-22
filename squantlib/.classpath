@@ -10,11 +10,9 @@
 	<classpathentry kind="lib" path="lib/jfreechart-1.0.14.jar"/>
 	<classpathentry kind="lib" path="lib/cglib-nodep-2.2.jar"/>
 	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.20-bin.jar"/>
-	<classpathentry kind="lib" path="lib/squeryl_2.9.0-0.9.4-RC7.jar"/>
 	<classpathentry kind="lib" path="lib/commons-lang3-3.1.jar"/>
-	<classpathentry kind="lib" path="lib/mchange-commons-java-0.2.2.jar"/>
-	<classpathentry kind="lib" path="lib/c3p0-0.9.2-pre4.jar"/>
 	<classpathentry kind="lib" path="lib/gdata-scala-client-0.3.jar"/>
+	<classpathentry kind="lib" path="lib/squeryl_2.9.2-0.9.6-SNAPSHOT-20120713-hama.jar"/>
 	<classpathentry kind="lib" path="lib/mchange-commons-java-0.2.2.jar"/>
 	<classpathentry kind="lib" path="lib/c3p0-0.9.2-pre4.jar"/>
 	<classpathentry kind="output" path="bin"/>

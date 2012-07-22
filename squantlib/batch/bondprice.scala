@@ -1,18 +1,9 @@
 
 /**
  * Creates factory from given paramset.
- * Define following parameters in advance.
+ * You must define following parameters in advance.
  *  val paramset:String => parameter id
  */
-val paramset = "20120508-000"
-
-try {
-	"Paramset : "  + paramset
-}
-catch { case e => {
-  println("You must define the following paramter")
-  println("paramset : String")}
-}
 
 
 import squantlib.database._
@@ -78,7 +69,15 @@ println("pricelist:\t list of bond price (valid and non-valid prices)")
 val pricelist = bondprices.map(p => (p.bondid, p)).toMap;
 
 println("errorlist:\t bondid -> error message")
-val errorlist = bondprices.filter(p => p.pricedirty.isNaN).map(p => (p.bondid, p.comment)).toMap;
+val (errorlist, expirelist, nonissuelist) = {
+  val gps = bondprices.filter(p => p.pricedirty.isNaN).map(p => (p.bondid, p.comment)).groupBy(p => p._2 match {
+    case s if s == null => "ERROR"
+    case s if s startsWith "expired" => "EXPIRED"
+    case s if s startsWith "too far from issue" => "NOTISSUED"
+    case _ => "ERROR"
+  })
+  (gps("ERROR").toMap, gps("EXPIRED").toMap, gps("NOTISSUED").toMap)
+}
 
 println("\n*** Result ***")
 println(dbbonds.size + " bonds")
@@ -110,11 +109,9 @@ println("showprice:\t display all prices")
 def showprice = bondprices.filter(p => !p.pricedirty.isNaN).foreach(p => println("%-15.15s %-10.10s %-3.3s".format(p.bondid, p.pricedirty, p.currencyid)))
 
 println("showerrors:\t display error messages")
-def showerrors = errorlist.filter(e => !((e._2 startsWith "expired") || (e._2 startsWith "too far from issue"))).foreach(p => println("%-15.15s %-10s".format(p._1, p._2)))
+def showerrors = errorlist.foreach(p => println("%-15.15s %-10s".format(p._1, p._2)))
 
 println("showexpired:\t display expired bonds")
-val expirelist = errorlist.filter(e => (e._2 startsWith "expired"))
-val nonissuelist = errorlist.filter(e => (e._2 startsWith "too far from issue"))
 def showexpired = (expirelist ++ nonissuelist).foreach(p => println("%-15.15s %-10s".format(p._1, p._2)))
 
 println("pushdb:\t update price to database")

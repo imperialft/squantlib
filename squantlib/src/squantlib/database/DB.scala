@@ -1,11 +1,11 @@
 package squantlib.database
 
-import java.sql.DriverManager
+import java.sql.{Timestamp, DriverManager}
 import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory, Schema}
 import org.squeryl.PrimitiveTypeMode._
 import squantlib.database.schemadefinitions._
-import java.util.{Date => JavaDate, Calendar => JavaCalendar}
+import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
 import org.jquantlib.time.{Date => JQuantDate}
 import scala.collection.mutable.MutableList
 import com.mchange.v2.c3p0._
@@ -221,6 +221,14 @@ object DB extends Schema {
     }
   }
 
+  def setBondPrice(prices:Iterable[BondPrice]){
+    val idset = prices.map(b => b.id)
+    transaction {
+      DB.bondprices.deleteWhere(b => b.id in idset)
+      DB.bondprices.insert(prices)
+    }
+  }
+
   /**
    * Inserts many objects via CSV import statement. This operation involves reflections.
    * Also, you need Squeryl >= 0.9.6 (Snapshot is fine.)
@@ -246,15 +254,6 @@ object DB extends Schema {
       builder.append("\n")
     }
   }
-  
-  def setBondPrice(prices:Iterable[BondPrice]){
-	val idset = prices.map(b => b.id)
-	transaction {
-	  DB.bondprices.deleteWhere(b => b.id in idset)
-	  DB.bondprices.insert(prices)
-	  }
-  }
-  
 
   /**
    * This method takes any property value of a model object, turn it into a string, and then quote it to SQL-safe format.
@@ -262,23 +261,18 @@ object DB extends Schema {
    * @param value A value from a property of a model object.
    * @return       An SQL-safe quoted string.
    */
-  def quoteValue(value:Any):String = { "test"
-  }
+  def quoteValue(value:Any):String = ""
 
-  /*
-    // This code probably shouldn't be here.
-    def generateDateRange(from:JavaDate, to:JavaDate):List[JavaDate] = {
-      val list = MutableList[JavaDate]()
-      val calendar = JavaCalendar.getInstance()
-      calendar.setTime(from)
-      var cache = calendar.getTime()
-      while (cache.getTime() < to.getTime()) {
-        list += cache
-        calendar.add(JavaCalendar.DATE, 1)
-        cache = calendar.getTime()
-      }
-      return list.toList
-    }
-  */
+  def quoteNumber(value:Number):String = value.toString
+  def quoteDate(value:JavaDate):String = value.toString
+  def quoteString(value:String):String = {
+    if (value.contains(","))
+      "\"" + value.replaceAll("\"", "\\\"") + "\""
+    else
+      value
+  }
+  //def quoteTimestamp(value:Timestamp)
+  //def quoteByteArray(value:Array[Byte])
+  //def quoteUUID(value:UUID) = quoteString(value.toString)
 
 }

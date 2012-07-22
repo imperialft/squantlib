@@ -41,10 +41,10 @@ object QLDB {
 	    val fxusdjpy = factory.curves("JPY").fx
 	    
 		val prices = bonds.map { b => {
-			var expired = b.maturityDate.le(b.valuedate)
+			var expired = b.maturityDate le b.valuedate
 			var msg:String = if (expired) "expired (" + b.maturityDate.shortDate + "<=" + valuedate.shortDate + ")" else null
 			val price = if (expired) Double.NaN else try b.dirtyPrice catch { case e => {msg = e.getMessage; Double.NaN} }
-			val toofarfromissue = if (b.issueDate.gt(pricefrom)) { msg = "too far from issue (" + b.issueDate.shortDate + ">=" + pricefrom.shortDate + ")"; true} else false
+			val toofarfromissue = if (b.issueDate gt pricefrom) { msg = "too far from issue (" + b.issueDate.shortDate + ">=" + pricefrom.shortDate + ")"; true} else false
 			
 			val fx = {
 			    val fxxxxjpy = factory.curves(b.currency.code).fx
