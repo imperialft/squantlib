@@ -55,9 +55,14 @@ object DB extends Schema {
   val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
-  
-  // NOTE: DB.countries.lookup("JPN") would return Japan. Similarly, DB.{currencies,distributors}.lookup("ID") should return corresponding object.
 
+  /**
+   * Returns a List of Country objects identified by a List of ID.
+   * Usage: val countries = DB.getCountries(List("JPN", "KOR", "CHN"))
+   *
+   * @param ids A List of Country IDs.
+   * @return A List of Country objects.
+   */
   def getCountries(ids:List[String]):List[Country] = {
     transaction {
       from(countries)(country =>
@@ -66,7 +71,7 @@ object DB extends Schema {
       ).toList
     }
   }
-  
+
   def getCurrencies(ids:List[String]):List[Currency] = {
     transaction {
       from(currencies)(currency =>
@@ -175,12 +180,26 @@ object DB extends Schema {
 
   def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = getInputParameters(on.longDate, instrument, asset, maturity)
 
+  /**
+   * Returns a List of InputParameters that falls onto a range of Dates.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param instrument An identifier of the instrument.
+   * @param asset An identifier of the asset.
+   * @param maturity An identifier of the maturity.
+   * @return A List of matching InputParameters.
+   */
   def getInputParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = {
     transaction {
       from(inputparameters)(ip =>
         where(
           (ip.paramdate  gte fromDate) and
-          (ip.paramdate  lte  toDate) and
+          (ip.paramdate  lt  toDate) and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity
@@ -206,12 +225,27 @@ object DB extends Schema {
 
   def getCDSParameters(on:JQuantDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = getCDSParameters(on, maturity, instrument, issuerid, currencyid)
 
+  /**
+   * Returns a List of CDSParameters that falls onto a range of Dates.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param instrument An identifier of the instrument.
+   * @param maturity An identifier of the maturity.
+   * @param currencyid An identifier of the currency.
+   * @param issuerid An identifier of the issuer.
+   * @return A list of matching CDSParameters.
+   */
   def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
     transaction {
       from(cdsparameters)(cds =>
         where(
           (cds.paramdate  gte fromDate) and
-          (cds.paramdate  lte toDate) and
+          (cds.paramdate  lt  toDate) and
           cds.maturity   === maturity and
           cds.instrument === instrument and
           cds.issuerid   === issuerid and
@@ -231,10 +265,11 @@ object DB extends Schema {
   }
 
   /**
-   * Inserts many objects via CSV import statement. This operation involves reflections.
-   * Also, you need Squeryl >= 0.9.6 (Snapshot is fine.)
+   * Builds MySQL CSV import statement from multiple Squeryl objects.
+   * CSV file for the objects will be automatically generated, and embedded in INFILE-clause in the query.
    *
-   * @param objects List of objects of type T.
+   * @param objects List of a Squeryl objects of a same Model, such as List[BondPrice]
+   * @return A string of prepared SQL statement.
    */
   def buildCSVImportStatement(objects:List[AnyRef]):String = {
     val tempFile            = File.createTempFile("squantlib", ".csv")
@@ -314,7 +349,7 @@ object DB extends Schema {
    * @deprecated Because it doesn't work properly yet.
    *
    */
-  def quoteTimestampWithTimezone(value:Timestamp) = "'" + timeFormat.format(value) + "'"
+  def quoteTimestampWithTimezone(value:Timestamp):String = "'" + timeFormat.format(value) + "'"
   val timeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SZ")
 
 }
