@@ -3,10 +3,8 @@ package squantlib.database
 import java.nio.charset.UnmappableCharacterException
 import java.io.{FileNotFoundException, FileInputStream, File}
 import java.util.Properties
-
 import org.apache.commons.lang3.StringEscapeUtils
 import java.net.URLClassLoader
-import java.lang.management.{ManagementFactory, RuntimeMXBean}
 import scala.tools.nsc.{Interpreter, Settings}
 
 object CLI {
