@@ -15,6 +15,7 @@ import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.bonds.FixedRateBond
 import squantlib.database.utilities._
 import org.jquantlib.instruments.{Bond => QLBond}
+import org.jquantlib.currencies.Asia.JPYCurrency
 
 /**
  * Creates factory from given paramset.
@@ -22,7 +23,7 @@ import org.jquantlib.instruments.{Bond => QLBond}
 val t1 = System.nanoTime
 val factory = QLDB.getDiscountCurveFactory(paramset)
 val valuedate = factory.valuedate
-
+val jpyccy = new JPYCurrency
 
 /**
  * Initialise bonds with bond engine
@@ -43,7 +44,10 @@ val bonds:List[QLBond] = {
  * Compute bond price
  */
 val t3 = System.nanoTime
-val bondprices = QLDB.setBondPrice(bonds, factory, false)
+val bondprices = bonds map{ b => {
+  val termstructure = factory.getyieldtermstructure(b)
+  QLDB.getBondPrice(b, factory.valuedate, factory.fx(b.currency.code, jpyccy.code), paramset, termstructure)
+}}
 
 
 /**

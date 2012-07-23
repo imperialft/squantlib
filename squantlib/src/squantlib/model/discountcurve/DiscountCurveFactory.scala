@@ -6,6 +6,8 @@ import squantlib.parameter.yieldparameter.{YieldParameter, FlatVector}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => JDate, Period => JPeriod, TimeUnit, Calendar}
 import org.jquantlib.instruments.Bond
+import org.jquantlib.pricingengines.bond.DiscountingBondEngine
+import org.jquantlib.termstructures.YieldTermStructure
 
 
 /** 
@@ -44,6 +46,13 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	 * Assumption: for each key, value contains discount curve for both discount and pivot currency.
 	 */
 	var repository:Map[String, scala.collection.mutable.Map[String, DiscountCurve]] = Map.empty
+	
+	/**
+	 * Returns FX spot ccy1 / ccy2
+	 * @param currency code, 
+	 */
+	def fx(ccy1:String, ccy2:String):Double = curves(ccy2).fx / curves(ccy1).fx
+	
 
 	/**
 	 * Returns discount curve. Discount currency is flat and same currency with given spread.
@@ -97,11 +106,21 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	
 	private def ratecurve(c:String):RateCurve = if (discountingcurves.keySet.contains(c)) discountingcurves(c) else throw new ClassCastException
 	
-	def getdiscountbondengine(bond:Bond) = try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toDiscountBondEngine } 
-										   catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid); null}}
+	def getyieldtermstructure(bond:Bond):YieldTermStructure = 
+	  	try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toZCImpliedYieldTermStructure } 
+		catch { case e:Exception => {println("Could not initialise yield termstructure " + bond.bondid); null}}
 										   
-	def getdiscountbondengine(bond:Bond, calendar:Calendar) = try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toDiscountBondEngine(calendar) } 
-															  catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid); null}}
+	def getyieldtermstructure(bond:Bond, calendar:Calendar):YieldTermStructure = 
+		try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toZCImpliedYieldTermStructure(calendar)} 
+		catch { case e:Exception => {println("Could not initialise yield termstructure " + bond.bondid); null}}
+	
+	def getdiscountbondengine(bond:Bond):DiscountingBondEngine = 
+	  	try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toDiscountBondEngine } 
+		catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid); null}}
+										   
+	def getdiscountbondengine(bond:Bond, calendar:Calendar):DiscountingBondEngine = 
+		try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toDiscountBondEngine(calendar) } 
+		catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid); null}}
 	
 	/**
 	 * Checks whether the given curve is already calculated and stored in the repository.

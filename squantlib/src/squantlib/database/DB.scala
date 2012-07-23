@@ -260,8 +260,9 @@ object DB extends Schema {
     val idset = prices.map(b => b.id)
     transaction {
       DB.bondprices.deleteWhere(b => b.id in idset)
-      DB.bondprices.insert(prices)
+//      DB.bondprices.insert(prices)
     }
+    insertMany(prices.toList)
   }
 
   /**
@@ -320,7 +321,7 @@ object DB extends Schema {
 
     List(
       "START TRANSACTION;",
-      "SET FOREIGN_KEY_CHECKS = 0;",
+      "SET FOREIGN_KEY_CHECKS = 1;",
       "LOAD DATA LOCAL INFILE '" + tempFilePath.replaceAll("\\\\", "\\\\\\\\") + "' " +
         "INTO TABLE " + tableName + " " +
         "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +
