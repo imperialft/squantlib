@@ -265,13 +265,39 @@ object DB extends Schema {
   }
 
   /**
+   * Inserts many Squeryl model objects via CSV.
+   *
+   * @param objects A List of Squeryl model objects.
+   * @return Whether or not the statement ran successfully.
+   *          However, this does not guarantee whether every row has been inserted.
+   */
+  def insertMany(objects:List[AnyRef]):Boolean = {
+    buildCSVImportStatement(objects).foreach(runSQLStatement)
+
+    true
+  }
+
+  /**
+   * Runs a SQL statement.
+   *
+   * @param statement A SQL statement to run.
+   * @return Whether or not the statement ran successfully.
+   *          However, this does not guarantee whether every row has been inserted.
+   */
+  def runSQLStatement(statement:String):Boolean = {
+    val session           = SessionFactory.concreteFactory.get()
+    val preparedStatement = session.connection.prepareStatement(statement)
+    preparedStatement.execute()
+  }
+
+  /**
    * Builds MySQL CSV import statement from multiple Squeryl objects.
    * CSV file for the objects will be automatically generated, and embedded in INFILE-clause in the query.
    *
    * @param objects List of a Squeryl objects of a same Model, such as List[BondPrice]
-   * @return A string of prepared SQL statement.
+   * @return A List of strings of prepared SQL statement.
    */
-  def buildCSVImportStatement(objects:List[AnyRef]):String = {
+  def buildCSVImportStatement(objects:List[AnyRef]):List[String] = {
     val tempFile            = File.createTempFile("squantlib", ".csv")
     tempFile.deleteOnExit()
     val tempFilePath        = tempFile.getAbsolutePath
@@ -279,18 +305,29 @@ object DB extends Schema {
     val clazz               = objects(0).getClass
     val className           = clazz.getSimpleName.toString()
     val table               = tables(tableNames.indexOf(className))
+    val tableName           = tables(tableNames.indexOf(className)).name
     val attrToField         = table.posoMetaData.fieldsMetaData.toList.map(fmd => (fmd.nameOfProperty, fmd.columnName))
     val builder             = new StringBuilder()
-    builder.append(attrToField.map(pair => pair._2).mkString(", ") + "\n")
+    val columnNames         = attrToField.map(pair => pair._2)
+    builder.append(columnNames.mkString(",") + "\n")
     for (val obj <- objects) {
-      builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(", "))
+      builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(","))
       builder.append("\n")
     }
     val out = new BufferedWriter(new FileWriter(tempFile))
     out.write(builder.toString)
     out.close()
 
-    "LOAD DATA INFILE \"" + tempFilePath + "\" INTO TABLE \"" + className + "\" FIELDS TERMINATED BY ',' ENCLOSED BY ''''"
+    List(
+      "START TRANSACTION;",
+      "SET FOREIGN_KEY_CHECKS = 0;",
+      "LOAD DATA LOCAL INFILE '" + tempFilePath.replaceAll("\\\\", "\\\\\\\\") + "' " +
+        "INTO TABLE " + tableName + " " +
+        "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +
+        "IGNORE 1 LINES " +
+        "(" + columnNames.mkString(", ") + ")" + ";",
+      "COMMIT;"
+    )
   }
 
   /**
