@@ -69,36 +69,52 @@ val bondlist = bonds.map(b => (b.bondid, b)).toMap;
 println("fixedratebonds:\t list of all fixed rate bonds")
 val fixedratebonds:Map[String, FixedRateBond] = bonds.map(bond => bond match { case b:FixedRateBond => (b.bondid, b); case _ => null}).filter(b => b != null).toMap;
 
-println("pricelist:\t list of bond price (valid and non-valid prices)")
-val pricelist = bondprices.map(p => (p.bondid, p)).toMap;
+println("pricelist:\t list of valid bond price")
+val pricelist = bondprices.filter(p => !p.pricedirty.isNaN).map(p => (p.bondid, p)).toMap;
 
-println("errorlist:\t bondid -> error message")
-val (errorlist, expirelist, nonissuelist) = {
+val bond_product:Map[String, String] = dbbonds.map(b => (b._1, b._2.productid)).toMap;
+
+val (errorlist, expirelist, nonissuelist, notpriced) = {
   val gps = bondprices.filter(p => p.pricedirty.isNaN).map(p => (p.bondid, p.comment)).groupBy(p => p._2 match {
     case s if s == null => "ERROR"
     case s if s startsWith "expired" => "EXPIRED"
     case s if s startsWith "too far from issue" => "NOTISSUED"
     case _ => "ERROR"
   })
-  (gps("ERROR").toMap, gps("EXPIRED").toMap, gps("NOTISSUED").toMap)
+  val bondpricelist = bondprices.map(b => b.bondid)
+  val notpriced = dbbonds.filter(b => !bondpricelist.contains(b._1)).map(p => (p._1, null))
+  
+  (if (gps.keySet.contains("ERROR")) gps("ERROR").toMap else null, 
+   if (gps.keySet.contains("EXPIRED")) gps("EXPIRED").toMap else null, 
+   if (gps.keySet.contains("NOTISSUED")) gps("NOTISSUED").toMap else null,
+   notpriced)
 }
+
 
 println("\n*** Result ***")
 println(dbbonds.size + " bonds")
-println("%-10.10s %-8.8s %-8.8s %-8.8s".format("PRODUCT", "PRICED", "ERROR", "EXPIRED"))
-val bond_product:Map[String, String] = dbbonds.map(b => (b._1, b._2.productid)).toMap;
+println("%-10.10s %-8.8s %-8.8s %-8.8s %-8.8s %-8.8s".format("PRODUCT", "PRICED", "ERROR", "EXPIRED", "NOTISSUED", "IGNORED"))
+
 val resultsummary = bond_product.groupBy(p => p._2).map{ p => {
   val vdlong = valuedate.longDate
-  val validprices = bondprices.filter(c => !c.pricedirty.isNaN).filter(c => p._2.contains(c.bondid)).size
-  val expired = bond_product.filter(b => b._2 == p._1).filter(b => dbbonds(b._1).maturity.compareTo(vdlong) <= 0).size
-  val invalidprices = p._2.size - validprices - expired
-  (p._1, validprices, invalidprices, expired)
+  val bondids = bond_product.filter(b => b._2 == p._1).map(b => b._1)
+  val valids = if (pricelist == null) 0 else bondids.filter(b => pricelist.contains(b)).size
+  val errors = if (errorlist == null) 0 else bondids.filter(b => errorlist.keySet.contains(b)).size
+  val expires = if (expirelist == null) 0 else bondids.filter(b => expirelist.keySet.contains(b)).size
+  val notissueds = if (nonissuelist == null) 0 else bondids.filter(b => nonissuelist.keySet.contains(b)).size
+  val notpriceds = if (notpriced == null) 0 else bondids.filter(b => notpriced.keySet.contains(b)).size
+  (p._1, valids, errors, expires, notissueds, notpriceds)
 }}
 
 resultsummary.foreach { s => {
-	println("%-10.10s %-8.8s %-8.8s %-8.8s".format(s._1, s._2, s._3, s._4))
+	println("%-10.10s %-8.8s %-8.8s %-8.8s %-8.8s %-8.8s".format(s._1, s._2, s._3, s._4, s._5, s._6))
 }}
-println("%-10.10s %-8.8s %-8.8s %-8.8s".format("TOTAL", resultsummary.map(r => r._2).sum, resultsummary.map(r => r._3).sum, resultsummary.map(r => r._4).sum))
+println("%-10.10s %-8.8s %-8.8s %-8.8s %-8.8s %-8.8s".format("TOTAL", 
+    resultsummary.map(r => r._2).sum, 
+    resultsummary.map(r => r._3).sum, 
+    resultsummary.map(r => r._4).sum,
+    resultsummary.map(r => r._5).sum,
+    resultsummary.map(r => r._6).sum))
 
 val t5 = System.nanoTime
 println("")
@@ -128,4 +144,3 @@ def pushdb = {
 }
 
 println("\n*** System Output ***")
-
