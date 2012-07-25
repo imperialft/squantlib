@@ -413,13 +413,13 @@ class NzdRateConvention extends RateConvention{
   
   	val currency = new NZDCurrency
   
-	val useratediscount = false
+	val useratediscount = true
 	def iborindex(p:JPeriod) = new BKBM(p)
 	val swap_floatindex = new BKBM(new JPeriod(3, TimeUnit.Months))
 	val swap_fixdaycount = new Actual365Fixed
 	val swap_fixperiod = Frequency.Semiannual
 
-	val useFXdiscount = true
+	val useFXdiscount = false
 	val swappoint_multiplier = 10000.0
 }
 

@@ -25,6 +25,7 @@ object BondSamples {
 		val accrualdaycounter = new Thirty360
 		val paymentconvention = BusinessDayConvention.ModifiedFollowing
 		val redemption = 100.0
+		val initialfx = 1.0
 		
 		val schedule = {
 		  val effectivedate = issuedate
@@ -38,7 +39,18 @@ object BondSamples {
 		  new Schedule(effectivedate, terminationdate, tenor, calendar, convention, maturityconvention, rule, endofmonth)
 		}
 		
-		new FixedRateBond(settlementdays, faceamount, schedule, coupons, accrualdaycounter, paymentconvention, redemption, issuedate, bondid, currency, issuerid)
+		new FixedRateBond(settlementdays, 
+				faceamount, 
+				schedule, 
+				coupons, 
+				accrualdaycounter, 
+				paymentconvention, 
+				redemption, 
+				issuedate, 
+				bondid, 
+				currency, 
+				issuerid,
+				initialfx)
 	}
     
 

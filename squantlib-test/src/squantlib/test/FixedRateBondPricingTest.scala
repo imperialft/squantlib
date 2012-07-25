@@ -4,17 +4,10 @@ import scala.collection.immutable.TreeSet
 
 import squantlib.termstructures.ZCImpliedYieldTermStructure
 import squantlib.parameter.yieldparameter._
-import squantlib.model.discountcurve.RateCurve
-import squantlib.model.discountcurve.DiscountCurve
+import squantlib.model.discountcurve.{RateCurve, DiscountCurve}
+import squantlib.test.sample.{BondSamples, CurveSamples}
 
-import squantlib.test.sample.BondSamples
-import squantlib.test.sample.CurveSamples
-
-import org.jquantlib.time.Calendar
-import org.jquantlib.time.{ Date => JDate }
-import org.jquantlib.time.{ Period => JPeriod }
-import org.jquantlib.time.TimeUnit
-import org.jquantlib.time.Frequency
+import org.jquantlib.time.{Calendar, Date => JDate, Period => JPeriod, TimeUnit, Frequency}
 import org.jquantlib.time.calendars._
 import org.jquantlib.daycounters._
 import org.jquantlib.termstructures.Compounding
@@ -36,20 +29,34 @@ class FixedRateBondPricingTest {
 	  def bondschedule(valuedate:JDate, maturity:JDate, period:JPeriod, calendar:Calendar, cleanprice:Boolean, adjusted:Boolean) : List[(JDate, JDate)] = {
 		var datelist : List[(JDate, JDate)] = List.empty
 		var currentdate = maturity
-		println("maturity:"+maturity.shortDate.toString)
+		println("maturity:" + maturity.shortDate.toString)
+		
 		while (currentdate.gt(valuedate))
 		{
 		  val enddate = if (adjusted) calendar.adjust(currentdate) else currentdate
 		  currentdate = currentdate.sub(period)
-		  val startdate = if (!cleanprice || currentdate.gt(valuedate)) (if (adjusted) calendar.adjust(currentdate) else currentdate) else valuedate
+		  
+		  val startdate = if (!cleanprice || currentdate.gt(valuedate)) {
+				  				if (adjusted) calendar.adjust(currentdate) 
+				  				else currentdate}
+			  			  else valuedate
+			  			  
 		  datelist ::= new Pair(startdate, enddate)
 		  println(startdate.shortDate.toString + " - " + enddate.shortDate.toString)
 		}
 		datelist 
 	  }
 
-	  def bondprice(curve:RateCurve, discount:DiscountCurve, maturity:JDate, dates:List[(JDate, JDate)], rate:Double, dcf:DayCounter, finalpayment:Boolean, calendar:Calendar) = 
-	      dates.map(d => rate * dcf.yearFraction(d._1, d._2) * discount.zc.value(calendar.adjust(d._2))).sum  + (if (finalpayment) discount.zc.value(maturity) else 0.0)
+	  def bondprice(curve:RateCurve, discount:DiscountCurve, maturity:JDate, dates:List[(JDate, JDate)], rate:Double, dcf:DayCounter, finalpayment:Boolean, calendar:Calendar) = {
+	      val couponpv = dates.map(d => {
+	    	  val daycount = dcf.yearFraction(d._1, d._2)
+	    	  val zc = discount.zc.value(calendar.adjust(d._2))
+	    	  rate * daycount * zc
+	      }).sum
+	      	
+	      val redempv = if (finalpayment) discount.zc.value(maturity) else 0.0
+	      couponpv + redempv
+	  }
 	  
 	    /**
 	   * Discount test unit - discount by same currency
@@ -59,85 +66,122 @@ class FixedRateBondPricingTest {
 		     * test spread for each currency
 		     */
 		    val period6m = new JPeriod(6, TimeUnit.Months)
-
-		    val ZC = Set(0.0, 0.02, -0.01).map(s => (s, factory.getdiscountcurve((new JPYCurrency).code, s))) toMap
-		    val curve = factory.curves((new JPYCurrency).code)
-		    val ratecurve = curve match { case c:RateCurve => c; case _ => throw new ClassCastException }
 		    
+		    val spreads = Set(0.0, 0.02, -0.01)
 			val accuracy = 0.05
-			println("cashflow schedule:")
-			val cashflowlegs = bond.cashflows.iterator
-			while (cashflowlegs.hasNext) { val c = cashflowlegs.next; println(c.date.shortDate.toString + " - " + c.amount) }
 			val calendar = new Japan
 			val settlement = 0
-			val termstructs = ZC.map(zc => (zc._1, new ZCImpliedYieldTermStructure(zc._2, calendar, settlement, valuedate)))
-			val bondengines = termstructs.map(ts => (ts._1, new DiscountingBondEngine(ts._2)))
 			val bondmaturity = new JDate(9, 3, 2020)
-			val couponrate = bond.nextCoupon(valuedate) 
-			
+		    
 			/**
-			   * Dirty price test
+			   * Compute bond analysis
 			   */
-			val modelprice = bondengines.map(e => { bond.setPricingEngine(e._2, valuedate); (e._1, bond.dirtyPrice())} ) toMap
-			val scheduledirty = bondschedule(valuedate, bondmaturity, bond.frequency.toPeriod, calendar, false, false)
-			val manualprice = ZC.map( zc => (zc._1, bondprice(ratecurve, zc._2, bond.maturityDate, scheduledirty, couponrate, bond.dayCounter, true, calendar))) toMap
+		    val results = spreads.map{spd => new {
+		    	val spread = spd
+			    val zc = factory.getdiscountcurve((new JPYCurrency).code, spread)
+			    val curve = factory.curves((new JPYCurrency).code)
+				val termstructure = new ZCImpliedYieldTermStructure(zc, calendar, settlement, valuedate)
+				val bondengine = new DiscountingBondEngine(termstructure)
+				bond.setPricingEngine(bondengine, valuedate)
+				
+				/**
+				   * Dirty price test
+				   */
+				val (pricedirty, pricedirty_manual, errordirty) = {
+		    		val modelprice = bond.dirtyPrice
+					val couponrate = bond.nextCoupon(valuedate) 
+					val schedule = bondschedule(valuedate, bondmaturity, bond.frequency.toPeriod, calendar, false, false)
+					val ratecurve = curve match { case c:RateCurve => c; case _ => throw new ClassCastException }
+					val manualprice = bondprice(ratecurve, zc, bond.maturityDate, schedule, couponrate, bond.dayCounter, true, calendar) * 100
+					(modelprice, manualprice, math.abs(manualprice - modelprice))
+				}
+				assert(errordirty < accuracy)
+				
+				/**
+				   * Clean price test
+				   */
+				val (priceclean, priceclean_manual, errorclean) = {
+		    		val modelprice = bond.cleanPrice
+					val couponrate = bond.nextCoupon(valuedate) 
+					val schedule = bondschedule(valuedate, bondmaturity, bond.frequency.toPeriod, calendar, true, false)
+					val ratecurve = curve match { case c:RateCurve => c; case _ => throw new ClassCastException }
+					val manualprice = bondprice(ratecurve, zc, bond.maturityDate, schedule, couponrate, bond.dayCounter, true, calendar) * 100
+					(modelprice, manualprice, math.abs(manualprice - modelprice))
+				}
+				assert(errorclean < accuracy)
+				
+				/**
+				   * Risk analysis
+				   */
+				val cfmodel = CashFlows.getInstance
+				val cashflows = bond.cashflows
+				val bps = cfmodel.bps(cashflows, termstructure, valuedate)
+				val atmrate = cfmodel.atmRate(cashflows, termstructure, valuedate, valuedate, 0, 0)
+
+				val irr = cfmodel.irr(cashflows, pricedirty, new Thirty360, Compounding.Continuous, Frequency.NoFrequency, valuedate, 0.001, 1000, 0.01)
+				val nextrate = cfmodel.nextCouponRate(cashflows, valuedate)
+				val nextamount = cfmodel.nextCashFlow(cashflows, valuedate).amount
+				
+				val interestrate = termstructure.forwardRate(valuedate, bond.maturityDate, termstructure.dayCounter, Compounding.Compounded, Frequency.Semiannual)
+				
+				val simpleduration = cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Simple, valuedate)
+				val modifiedduration = cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Modified, valuedate)
+				val macauleyduration = cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Macaulay, valuedate)
+				
+				val yieldvaluebp = cfmodel.yieldValueBasisPoint(cashflows, interestrate, valuedate)
+				val convexity = cfmodel.convexity(cashflows, interestrate, valuedate)
+		    }}
 			
+		    
+			/**
+			   * Display results
+			   */
+		    val eol = sys.props("line.separator")
+		    println("cashflow schedule:")
+			val cashflowlegs = bond.cashflows.iterator
+			
+			while (cashflowlegs.hasNext) { 
+			  val c = cashflowlegs.next
+			  println(c.date.shortDate.toString + " - " + c.amount) 
+			  }
+		    
 			println("Dirty Price")
 			println("[spread, manual price, model price, error]")
-			manualprice foreach {
-				p => { val price1 = manualprice(p._1) * 100; val price2 = modelprice(p._1); val error = math.abs(price1 - price2);
-					   println(p._1 + ", " + price1 + ", " + price2 + ", " + error)
-					   assert(error < accuracy)
-				}
-			}
-			
-			/**
-			   * Clean price test
-			   */
-			val modelpriceclean = bondengines.map(e => { bond.setPricingEngine(e._2, valuedate); (e._1, bond.cleanPrice())} ) toMap
-			val scheduleclean = bondschedule(valuedate, bondmaturity, bond.frequency.toPeriod, calendar, true, false)
-			val manualpriceclean = ZC.map( zc => (zc._1, bondprice(ratecurve, zc._2, bond.maturityDate, scheduleclean, couponrate, bond.dayCounter, true, calendar))) toMap
-			
+		    println(results.map(p => p.spread + ", " + p.pricedirty + ", " + p.pricedirty_manual + ", " + p.errordirty).mkString(eol))
+		    
 			println("Clean Price")
 			println("[spread, manual price, model price, error]")
-			manualprice foreach {
-				p => { val price1 = manualpriceclean(p._1) * 100; val price2 = modelpriceclean(p._1); val error = math.abs(price1 - price2);
-					   println(p._1 + ", " + price1 + ", " + price2 + ", " + error)
-					   assert(error < accuracy)
-				}
-			}
+		    println(results.map(p => p.spread + ", " + p.priceclean + ", " + p.priceclean_manual + ", " + p.errorclean).mkString(eol))
 			
 			println("Basis Point Values")
-			val cashflows = bond.cashflows
-			val bps = termstructs.map(ts => (ts._1, CashFlows.getInstance.bps(cashflows, ts._2, valuedate)))
-			bps.foreach(bp => println(bp._1 + " => " + bp._2))
-			
+		    println(results.map(p => p.spread + " => " + p.bps).mkString(eol))
+
 			println("ATM rate") 
-			val atmrate = termstructs.map(ts => (ts._1, CashFlows.getInstance.atmRate(cashflows, ts._2, valuedate, valuedate, 0, 0)))
-			atmrate.foreach(r => println(r._1 + " => " + r._2))
+		    println(results.map(p => p.spread + " => " + p.atmrate).mkString(eol))
 			
 			println("*** Initialise Interest rate ***") 
-			val interestrates = termstructs.map(ts => (ts._1, ts._2.forwardRate(valuedate, bond.maturityDate, ts._2.dayCounter, Compounding.Compounded, Frequency.Semiannual)))
-			interestrates.foreach(r => println(r._1 + " => " + r._2.rate))
+		    println(results.map(p => p.spread + " => " + p.interestrate.rate).mkString(eol))
 			
 			println("Duration")
 			println("[simple, modified, maucauley]")
-			val simpleduration = interestrates.map(r => (r._1, CashFlows.getInstance.duration(cashflows, r._2, CashFlows.Duration.Simple, valuedate))).toMap
-			val modifiedduration = interestrates.map(r => (r._1, CashFlows.getInstance.duration(cashflows, r._2, CashFlows.Duration.Modified, valuedate))).toMap
-			val macauleyduration = interestrates.map(r => (r._1, CashFlows.getInstance.duration(cashflows, r._2, CashFlows.Duration.Macaulay, valuedate))).toMap
-			atmrate foreach {r => {
-				val d1 = simpleduration(r._1); val d2 = modifiedduration(r._1);  val d3 = modifiedduration(r._1);  
-				println(r._1 + " => " + d1 + ", " + d2 + ", " + d3 )}}
-			
+		    println(results.map(p => p.spread + ", " + p.simpleduration + ", " + p.modifiedduration + ", " + p.macauleyduration).mkString(eol))
+		
 			println("Yield Value Basis Point")
-			val yieldvaluebp = interestrates.map(r => (r._1, CashFlows.getInstance.yieldValueBasisPoint(cashflows, r._2, valuedate)))
-			yieldvaluebp.foreach(r => println(r._1 + " => " + r._2))
+		    println(results.map(p => p.spread + " => " + p.yieldvaluebp).mkString(eol))
 			
 			println("Convexity")
-			val convexity = interestrates.map(r => (r._1, CashFlows.getInstance.convexity(cashflows, r._2, valuedate)))
-			convexity.foreach(r => println(r._1 + " => " + r._2))
+		    println(results.map(p => p.spread + " => " + p.convexity).mkString(eol))
 			
+			println("IRR")
+		    println(results.map(p => p.spread + " => " + p.irr).mkString(eol))
+			
+			println("Next Coupon Rate")
+		    println(results.map(p => p.spread + " => " + p.nextrate).mkString(eol))
+
+			println("Next Coupon Amount")
+		    println(results.map(p => p.spread + " => " + p.nextamount).mkString(eol))
 			
 	  }
 
 }
+

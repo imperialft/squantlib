@@ -33,7 +33,8 @@ object QLDB {
 		qlbonds
 	}
 	
-	def getBondPrice(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, ts:YieldTermStructure):BondPrice = BondPriceConstructor.getprice(bond, valuedate, fx, paramset, ts)
+	def getBondPrice(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, ts:YieldTermStructure):BondPrice 
+		= BondPriceConstructor.getprice(bond, valuedate, fx, paramset, ts)
 	
 	
 }

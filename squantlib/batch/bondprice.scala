@@ -34,9 +34,7 @@ val bonds:List[QLBond] = {
   val fixedrateids = DB.getBondsByProducts(fixedrateproducts)
   val fixedratebuilder = (b:dbBond) => b.toFixedRateBond
   val fixedrateengine = (b:QLBond) => factory.getdiscountbondengine(b)
-  
   val fixedratebonds = QLDB.getBonds(fixedrateids, fixedratebuilder, fixedrateengine, valuedate)
-  
   fixedratebonds
 }
 
@@ -46,7 +44,8 @@ val bonds:List[QLBond] = {
 val t3 = System.nanoTime
 val bondprices = bonds map{ b => {
   val termstructure = factory.getyieldtermstructure(b)
-  QLDB.getBondPrice(b, factory.valuedate, factory.fx(b.currency.code, jpyccy.code), paramset, termstructure)
+  val fx = factory.fx(b.currency.code, jpyccy.code)
+  QLDB.getBondPrice(b, factory.valuedate, fx, paramset, termstructure)
 }}
 
 

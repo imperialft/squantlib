@@ -43,7 +43,20 @@ object FixedRateBondConstructor {
 				val accrualdaycounter = DaycountConstructor.getdaycount(bond.daycount)
 				val paymentconvention = DaycountConstructor.getdaycount_adj(bond.payment_adj)
 				val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
-				new FixedRateBond(settlementdays, faceamount, schedule, coupons, accrualdaycounter, paymentconvention, redemption, issuedate, bondid, currency, issuerid)
+				val initialfx = bond.initialfx
+				
+				new FixedRateBond(settlementdays, 
+				    faceamount, 
+				    schedule, 
+				    coupons, 
+				    accrualdaycounter, 
+				    paymentconvention, 
+				    redemption, 
+				    issuedate, 
+				    bondid, 
+				    currency, 
+				    issuerid, 
+				    initialfx)
 		  	}
 	}
 	
