@@ -31,7 +31,9 @@ object CLI {
                                 "squantlib.database.schemadefinitions._",
                                 "squantlib.database.objectconstructor._",
                                 "org.jquantlib.time._",
-                                "org.squeryl.PrimitiveTypeMode._"
+                                "org.squeryl.PrimitiveTypeMode._",
+                                "java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}",
+                                "squantlib.task.pricing._"
                                 )
 
   /**

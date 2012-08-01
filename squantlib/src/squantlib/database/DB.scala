@@ -156,9 +156,27 @@ object DB extends Schema {
     }
   }
   
+  def getInputParamSets(start:JavaDate, end:JavaDate):Set[(String, JavaDate)] = {
+    transaction {
+        from(inputparameters)(p =>
+          where((p.paramdate gte start) and (p.paramdate lte end))
+          groupBy(p.paramset, p.paramdate))
+          .map(q => (q.key._1, q.key._2)).toSet
+    }
+  }
+  
   def getCDSParamSets:Set[(String, JavaDate)] = {
     transaction {
         from(cdsparameters)(p => 
+          groupBy(p.paramset, p.paramdate))
+          .map(q => (q.key._1, q.key._2)).toSet
+    }
+  }
+
+  def getCDSParamSets(start:JavaDate, end:JavaDate):Set[(String, JavaDate)] = {
+    transaction {
+        from(cdsparameters)(p => 
+          where((p.paramdate gte start) and (p.paramdate lte end))
           groupBy(p.paramset, p.paramdate))
           .map(q => (q.key._1, q.key._2)).toSet
     }
@@ -177,6 +195,7 @@ object DB extends Schema {
   }
   
   def getParamSets:Set[(String, JavaDate)] = getInputParamSets & getCDSParamSets
+  def getParamSets(start:JavaDate, end:JavaDate):Set[(String, JavaDate)] = getInputParamSets(start, end) & getCDSParamSets(start, end)
 
   def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = getInputParameters(on.longDate, instrument, asset, maturity)
 

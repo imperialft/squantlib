@@ -108,19 +108,23 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	
 	def getyieldtermstructure(bond:Bond):YieldTermStructure = 
 	  	try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toZCImpliedYieldTermStructure } 
-		catch { case e:Exception => {println("Could not initialise yield termstructure " + bond.bondid); null}}
+//		catch { case e:Exception => {println("Could not initialise yield termstructure " + bond.bondid + " " + valuedate.shortDate); null}}
+		catch { case e:Exception => {null}}
 										   
 	def getyieldtermstructure(bond:Bond, calendar:Calendar):YieldTermStructure = 
 		try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toZCImpliedYieldTermStructure(calendar)} 
-		catch { case e:Exception => {println("Could not initialise yield termstructure " + bond.bondid); null}}
+//		catch { case e:Exception => {println("Could not initialise yield termstructure " + bond.bondid + " " + valuedate.shortDate); null}}
+		catch { case e:Exception => {null}}
 	
 	def getdiscountbondengine(bond:Bond):DiscountingBondEngine = 
 	  	try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toDiscountBondEngine } 
-		catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid); null}}
+//		catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid + " " + valuedate.shortDate); null}}
+		catch { case e:Exception => {null}}
 										   
 	def getdiscountbondengine(bond:Bond, calendar:Calendar):DiscountingBondEngine = 
 		try { getdiscountcurve(bond.currency.code, bond.creditSpreadID).toDiscountBondEngine(calendar) } 
-		catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid); null}}
+//		catch { case e:Exception => {println("Could not initialise bond engine " + bond.bondid + " " + valuedate.shortDate); null}}
+		catch { case e:Exception => {null}}
 	
 	/**
 	 * Checks whether the given curve is already calculated and stored in the repository.
