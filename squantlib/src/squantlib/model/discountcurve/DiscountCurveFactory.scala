@@ -135,9 +135,11 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	
 	def describe = {
 		val eol = sys.props("line.separator")
-		"Curves:" + eol + curves.map(c => c._2.describe + (if (discountingcurves.keySet.contains(c._1)) "(*)" else "") + eol).mkString("") + 
+		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
+		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
+		"Curves:" + eol + sortedcurves.map(c => c._2.describe + (if (discountingcurves.keySet.contains(c._1)) "(*)" else "") + eol).mkString("") + 
 		"(*) Discounting curves" + eol + eol +
-		"Credit Spreads:" + eol + cdscurves.map(c => c._1 + " : " + c._2.rate.valuedate.shortDate + " - " + c._2.rate.maxdate.shortDate + eol).mkString("")	  
+		"Credit Spreads:" + eol + sortedcdscurves.map(c => c._1 + "\t" + c._2.rate.valuedate.shortDate + "\t" + c._2.rate.maxdate.shortDate + eol).mkString("")
 	}
 	
     override def toString():String = "DiscountCurveFactory{" + curves.map(c => c._2).mkString(", ") + "}"

@@ -16,6 +16,7 @@ import org.jquantlib.instruments.bonds.FixedRateBond
 import squantlib.database.utilities._
 import org.jquantlib.instruments.{Bond => QLBond}
 import org.jquantlib.currencies.Asia.JPYCurrency
+import scala.collection.immutable.TreeMap
 
 /**
  * Creates factory from given paramset.
@@ -83,9 +84,9 @@ val (errorlist, expirelist, nonissuelist, notpriced) = {
   val bondpricelist = bondprices.map(b => b.bondid)
   val notpriced = dbbonds.filter(b => !bondpricelist.contains(b._1)).map(p => (p._1, null))
   
-  (if (gps.keySet.contains("ERROR")) gps("ERROR").toMap else null, 
-   if (gps.keySet.contains("EXPIRED")) gps("EXPIRED").toMap else null, 
-   if (gps.keySet.contains("NOTISSUED")) gps("NOTISSUED").toMap else null,
+  (if (gps.keySet.contains("ERROR")) TreeMap(gps("ERROR").toArray:_*) else null, 
+   if (gps.keySet.contains("EXPIRED")) TreeMap(gps("EXPIRED").toArray:_*) else null, 
+   if (gps.keySet.contains("NOTISSUED")) TreeMap(gps("NOTISSUED").toArray:_*) else null,
    notpriced)
 }
 

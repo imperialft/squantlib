@@ -4,7 +4,6 @@ import scala.collection.SortedMap
 import scala.collection.immutable.TreeMap
 import org.jquantlib.time.{ Date => JDate }
 
-
 object Correlation {
 	/**
 	 * Returns historical correlation between two time series. Size of these time series must match.

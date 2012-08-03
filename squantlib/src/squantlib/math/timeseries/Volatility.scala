@@ -10,7 +10,7 @@ import org.jquantlib.time.{ Period => JPeriod }
 import java.lang.{ Double => JDouble }
 
 object Volatility {
-	val defaultannualdays = 252
+	val defaultannualdays = 260
 	
 	/**
 	 * Returns an annualized volatility of log return.

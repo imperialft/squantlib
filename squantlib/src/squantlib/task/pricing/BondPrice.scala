@@ -14,12 +14,30 @@ import scala.collection.immutable.StringLike
 
 object BondPrice {
   
-  var pendingprice = scala.collection.mutable.ListBuffer.empty[BondPrice]
+  private var pendingprice = scala.collection.mutable.ListBuffer.empty[BondPrice]
   var dbbonds:Map[String, dbBond] = Map.empty
   
   def loadbonds = {
     dbbonds = DB.getAllBonds.map(b => (b.id, b)).toMap
   }
+  
+  def store(prices:List[BondPrice]) = pendingprice.synchronized{
+    pendingprice ++= prices
+  }
+  
+  def storedprice = pendingprice
+  
+  def push = {
+    if (pendingprice.size != 0) {
+		val targetprices = pendingprice.filter(p => (!p.pricedirty.isNaN))
+	    printf("Writing " + targetprices.size + " items to Database...")
+		val t1 = System.nanoTime
+		DB.setBondPrice(targetprices)
+		val t2 = System.nanoTime
+		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
+		pendingprice.clear
+		}
+	}
   
   def price(paramset:String):Unit = {
     
@@ -85,7 +103,7 @@ object BondPrice {
 	val errorlist = if (gps.keySet.contains("ERROR")) gps("ERROR").toMap else null
 	val expirelist = if (gps.keySet.contains("EXPIRED")) gps("EXPIRED").toMap else null
 	val nonissuelist = if (gps.keySet.contains("NOTISSUED")) gps("NOTISSUED").toMap else null
-	val tmap = scala.collection.immutable.TreeMap(errorlist.toArray:_*)	    
+	val tmap = if (errorlist == null || errorlist.isEmpty) null else scala.collection.immutable.TreeMap(errorlist.toArray:_*)
 	
 	val resultsummary = bond_product.groupBy(p => p._2).map{ p => {
 	  val vdlong = valuedate.longDate
@@ -124,25 +142,12 @@ object BondPrice {
 	outputln("  %-25.25s %.3f sec".format("Result display:", ((t5 - t4)/1000000000.0)))
 	
 	outputln("\nERRORS:")
-	tmap.foreach(e => outputln(e._1 + "\t" + bond_product(e._1) + "\t" + e._2))	
+	if (errorlist != null) tmap.foreach(e => outputln(e._1 + "\t" + bond_product(e._1) + "\t" + bondlist(e._1).currency + "\t" + bondlist(e._1).maturityDate.shortDate + "\t" + e._2))	
 	outputln("\n*** END OUTPUT " + paramset + "***\n")
 	
 	printf(outputstring)
 	
-	pendingprice ++= bondprices
+	store(bondprices)
   }
-  
-
-  def push = {
-    if (pendingprice.size != 0) {
-		val targetprices = pendingprice.filter(p => (!p.pricedirty.isNaN))
-	    printf("Writing " + targetprices.size + " items to Database...")
-		val t1 = System.nanoTime
-		DB.setBondPrice(targetprices)
-		val t2 = System.nanoTime
-		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
-		pendingprice.clear
-		}
-	}
-  
+ 
 }

@@ -2,25 +2,23 @@ package squantlib.test
 
 import scala.collection.JavaConversions._
 import scala.collection.immutable.TreeMap
-
 import squantlib.test.sample.TimeSeriesSamples
 import squantlib.math.timeseries._
-import squantlib.model.timeseries.HistoricalVol
-import squantlib.model.timeseries.HistoricalCorrelation
-import squantlib.model.timeseries.MovingAverage
-
+import squantlib.model.timeseries.TsAnalysis._
+import squantlib.model.timeseries.TsConversions._
 import org.jquantlib.QL
 import org.jquantlib.model.volatility._
 import org.jquantlib.time.TimeSeries
 import org.junit.Test
-
+import scala.collection.SortedMap
+//import squantlib.model.timeseries.TsConversions.Ts2SortedMap
 
 object TimeSeriesTest {
   
     val data = TimeSeriesSamples.USDFX
     val data2 = TimeSeriesSamples.EURFX
     
-    val datamap = data.map(d => (d._1 -> new java.lang.Double(d._2))).toMap
+    val datamap = data.map(d => (d._1, new java.lang.Double(d._2))).toMap
     val ts = new TimeSeries[java.lang.Double](java.lang.Double.TYPE, datamap)
     val datamap2 = data2.map(d => (d._1 -> new java.lang.Double(d._2))).toMap
     val ts2 = new TimeSeries[java.lang.Double](java.lang.Double.TYPE, datamap2)
@@ -32,7 +30,7 @@ object TimeSeriesTest {
 	    println("*** SimpleLocalEstimator ***")
 	    // abs(ln(current/prev)) / sqrt(timefraction)
 	    val sle = new SimpleLocalEstimator(1/360.0);
-	    val locale = sle.calculate(ts);
+	    val locale = sle.calculate(ts); 
 	    for (k <- locale.keySet) { println(k + " " + locale.get(k)) }
 	    
 	    println("*** ConstantEstimator ***")
@@ -42,13 +40,14 @@ object TimeSeriesTest {
 	    for (k <- const.keySet) { println(k + " " + const.get(k)) }
 	    
 	    println("*** GARCH model ***")
-	    val garchmodel = new Garch11(0.2, 0.1, 0.1);
+//	    val garchmodel = new Garch11(0.2, 0.1, 0.1);
+	    val garchmodel = new Garch11(0.9, 0.08, 0.02);
 	    val garch = garchmodel.calculate(ts);
 	    for (k <- garch.keySet) { println(k + " " + garch.get(k)) }
 
 		val fxsorted = TreeMap(data :_*)
-		val fxsorted2 = TreeMap(data2 :_*)
-		val annualdays = 252
+		val fxsorted2 = TreeMap(data2 :_*) 
+		val annualdays = 260
 		
         println("*** Log ***")
         val logvalues = LogReturn.calculate(fxsorted)
@@ -75,19 +74,18 @@ object TimeSeriesTest {
         for (k <- correlarray.keySet) { println(k + " " + correlarray(k)) }
         
         println("*** TimeSeries Volatility ***")
-        val volcalculator = new HistoricalVol(10, 252.0)
-        val vols = volcalculator.calculate(ts)
-        for (k <- vols.keySet) { println(k + " " + vols.get(k)) }
+        val testvol = ts.volatility(10, 260.0)
+        for (k <- testvol.keySet) { println(k + " " + testvol.get(k)) }
         
         println("*** TimeSeries Correlation ***")
-        val correlcalculator = new HistoricalCorrelation(10)
-        val correls = correlcalculator.calculate(ts, ts2)
+        val correls = ts.correlation(ts2, 10)
         for (k <- correls.keySet) { println(k + " " + correls.get(k)) }
         
         println("*** Array MovingAverage ***")
-        val movavearray = MovingAverage.calculate(fxsorted, 10)
+        val movavearray = ts.movingaverage(10)
         for (k <- movavearray.keySet) { println(k + " " + movavearray(k)) }
 	    
 	}
 
 }
+

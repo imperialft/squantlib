@@ -11,8 +11,8 @@ import squantlib.task.pricing.BondPrice
 import java.io.FileOutputStream
 
 val ps = new java.io.FileOutputStream("log/bondprice.log")
-val startdate = new JavaGCalendar(2011, JavaCalendar.JANUARY, 1).getTime
-val enddate = new JavaGCalendar(2011, JavaCalendar.DECEMBER, 30).getTime
+val startdate = new JavaGCalendar(2005, JavaCalendar.JANUARY, 1).getTime
+val enddate = new JavaGCalendar(2009, JavaCalendar.DECEMBER, 30).getTime
 val dates = DB.getParamSets(startdate, enddate).toList sortBy(_._2)
 
 Console.withOut(ps) {

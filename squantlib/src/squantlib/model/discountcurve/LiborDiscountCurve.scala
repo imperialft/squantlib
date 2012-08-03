@@ -95,7 +95,9 @@ extends RateCurve{
 		  /**
 		   * cash rate to compute zero coupon < 12 months.
 		   */
-		  cashrange foreach {cr => val m = cr._1; val p = cr._2;
+		  cashrange foreach {cr => 
+		    val m = cr._1; 
+		    val p = cr._2;
 			val zcXm = 1 / (1 + (cash.value(p) + ZCspread(p) - bs3m6madjust(m)) * floatfraction * m / 12)
 	  	  	ZC ++= Map(p -> zcXm)}
 		  
@@ -105,7 +107,9 @@ extends RateCurve{
 		  /**
 		   * swap rate to compute zero coupon >= 1year 
 		   */
-		  swaprange foreach { sr => val m = sr._1; val p = sr._2;
+		  swaprange foreach { sr => 
+		    val m = sr._1; 
+		    val p = sr._2;
 		    val realrate = swap.value(p) + (ZCspread(p) - bs3m6madjust(m)) * floatfraction / fixfraction;
 		    val zcXm = (1 - realrate * duration) / (1 + realrate * fixdaycounts(m)) 
 		    ZC ++= Map(p -> zcXm)
@@ -147,7 +151,9 @@ extends RateCurve{
 		  /**
 		   * initialize ccy basis swap 
 		   */
-		  val bsccy = zcperiods.map(p => (p._1, if (ispivotcurrency) -refincurve.basis.value(p._2) else basis.value(p._2)))
+		  val bsccy = zcperiods.map(p => (p._1, 
+		      if (ispivotcurrency) -refincurve.basis.value(p._2) 
+		      else basis.value(p._2)))
 				  	
 		  /**
 		   * initialize refinance spread
@@ -160,7 +166,9 @@ extends RateCurve{
 		  /**
 		   * using cash rate to compute zero coupon < 12 months.
 		   */
-		  cashrange foreach { cr => val m = cr._1; val p = cr._2;
+		  cashrange foreach { cr => 
+		    val m = cr._1; 
+		    val p = cr._2;
 		    val spd = 	if (ispivotcurrency) (bsccy(m) + refinspread(m)) * floatfraction2 / floatfraction
 		    			else bsccy(m) + refinspread(m) * floatfraction / floatfraction2
 //		    val bs3m6m = if (m == 3) 0.0 else tenorbasis.value(p)
@@ -179,19 +187,21 @@ extends RateCurve{
 		  /**
 		   * using swap rate to compute zero coupon >= 1year 
 		   */
-		  swaprange foreach { sr => val m = sr._1; val p = sr._2;
-		  		val fduration = if (m <= fixperiod) floatfraction else floatduration
-		  		val rduration = if (m <= fixperiod) floatfraction2 else refinduration(m - fixperiod)
-				val zcspd = if (ispivotcurrency) (bsccy(m) + refinspread(m)) * rduration / fduration
-							else bsccy(m) + refinspread(m) * rduration / fduration
-		  		val tbs = bs3m6madjust(m) * (if (ispivotcurrency) rduration / fduration else 1.0)
-			  	ZCspread ++= Map(p -> zcspd)
-		  		val realrate = swap.value(p) + (zcspd - tbs) * floatfraction / fixfraction
-		  		val zcXm = (1 - realrate * fixduration) / (1 + realrate * fixdaycounts(m))
-				ZC ++= Map(p -> zcXm)
-				fixduration += zcXm * fixdaycounts(m)
-				floatduration += zcXm * floatdaycounts(m)
-			  }	
+		  swaprange foreach { sr => 
+		    val m = sr._1; 
+		    val p = sr._2;
+		  	val fduration = if (m <= fixperiod) floatfraction else floatduration
+		  	val rduration = if (m <= fixperiod) floatfraction2 else refinduration(m - fixperiod)
+			val zcspd = if (ispivotcurrency) (bsccy(m) + refinspread(m)) * rduration / fduration
+					 	else bsccy(m) + refinspread(m) * rduration / fduration
+		  	val tbs = bs3m6madjust(m) * (if (ispivotcurrency) rduration / fduration else 1.0)
+			ZCspread ++= Map(p -> zcspd)
+		  	val realrate = swap.value(p) + (zcspd - tbs) * floatfraction / fixfraction
+		  	val zcXm = (1 - realrate * fixduration) / (1 + realrate * fixdaycounts(m))
+			ZC ++= Map(p -> zcXm)
+			fixduration += zcXm * fixdaycounts(m)
+			floatduration += zcXm * floatdaycounts(m)
+			}	
 		  
 		  /**
 		   * Construct new discount curve object.
