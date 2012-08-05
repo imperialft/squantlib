@@ -181,7 +181,7 @@ object DB extends Schema {
           .map(q => (q.key._1, q.key._2)).toSet
     }
   }
-  
+
   def checkParamSet(id:String):Boolean = {
     transaction {
       val inputcontains = from (inputparameters)(p => 
@@ -227,6 +227,14 @@ object DB extends Schema {
       ).toList
     }
   }
+  
+  def getInputParameters(paramset:String) =
+  	transaction { 
+  	  from(DB.inputparameters)(c => 
+  	    where(c.paramset === paramset)
+  	    select(c)
+  	    ).toSet
+  	}
 
   def getCDSParameters(on:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
     transaction {
@@ -242,6 +250,15 @@ object DB extends Schema {
     }
   }
 
+  def getCDSParameters(paramset:String):List[CDSParameter] = {
+    transaction {
+        from(cdsparameters)(p => 
+          where(p.paramset === paramset)
+          select(p)
+          ).toList
+    }
+  }
+  
   def getCDSParameters(on:JQuantDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = getCDSParameters(on, maturity, instrument, issuerid, currencyid)
 
   /**

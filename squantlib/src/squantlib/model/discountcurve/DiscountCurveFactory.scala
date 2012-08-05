@@ -16,7 +16,7 @@ import org.jquantlib.termstructures.YieldTermStructure
  * 
  * @param Map CurrencyId => DiscountCurve
  */
-class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve], val paramset:String) {
+class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = null, val paramset:String = null) {
 
 	val valuedate = curves.head._2.valuedate
 	require(curves.forall(c => c._2.valuedate == valuedate))
@@ -144,7 +144,7 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	
     override def toString():String = "DiscountCurveFactory{" + curves.map(c => c._2).mkString(", ") + "}"
 	
-    def this(curves:Map[String, DiscountableCurve]) = this(curves, null, null)
-    def this(curves:Map[String, DiscountableCurve], cdscurves:Map[String, CDSCurve]) = this(curves, cdscurves, null)
+//    def this(curves:Map[String, DiscountableCurve]) = this(curves, null, null)
+//    def this(curves:Map[String, DiscountableCurve], cdscurves:Map[String, CDSCurve]) = this(curves, cdscurves, null)
 }
 

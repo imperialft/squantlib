@@ -5,15 +5,21 @@ import org.jquantlib.time.{Date => qlDate, Frequency }
 import org.jquantlib.pricingengines.PricingEngine
 import org.jquantlib.daycounters.Thirty360
 import org.jquantlib.instruments.{Bond => QLBond}
-import squantlib.database.schemadefinitions.{ Bond => dbBond, InputParameterSet, CDSParameterSet, BondPrice}
+import squantlib.database.schemadefinitions.BondPrice
 import org.jquantlib.termstructures.{YieldTermStructure, Compounding}
 import org.jquantlib.cashflow.CashFlows
 import java.util.{Date => javaDate}
+import squantlib.model.discountcurve.DiscountCurveFactory
 
 
 object BondPriceConstructor {
+	
+	def getprice(bond:QLBond, factory:DiscountCurveFactory):BondPrice = 
+	  getprice(bond, factory.valuedate, factory.fx(bond.currency.code, "JPY"), factory.paramset, factory.getyieldtermstructure(bond))
 
   	def getprice(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):BondPrice = {
+		if (bond == null) return null
+		
 		val currenttime = java.util.Calendar.getInstance.getTime
 	    val stddaycount = new Thirty360
 	    val pricefrom = valuedate.add(30)

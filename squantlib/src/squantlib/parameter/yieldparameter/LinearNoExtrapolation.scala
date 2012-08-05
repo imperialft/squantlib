@@ -15,9 +15,11 @@ import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
  * @constructor constructs linear curve from given points. extra flat points are added after final date to manage overshoot.
  * @param input points
  */
-class LinearNoExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod, Double]) extends YieldParameter with AbstractYieldParameter {
-	require(inputvalues.size >= 2, "linear interpolation requires at least 2 point : found " + inputvalues.size)
+class LinearNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double]) extends YieldParameter with AbstractYieldParameter {
+	require(values.size >= 2, "linear interpolation requires at least 2 point : found " + values.size)
   
+	val inputvalues = TreeMap(values.toSeq:_*)
+	
     val linearfunction = {
 	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty
 	    for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }

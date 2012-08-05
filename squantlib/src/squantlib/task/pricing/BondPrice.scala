@@ -1,6 +1,7 @@
 package squantlib.task.pricing
 
 import squantlib.database._
+import squantlib.database.QLConstructors._
 import squantlib.database.schemadefinitions.{ Bond => dbBond, _}
 import squantlib.database.objectconstructor._
 import squantlib.model.discountcurve._
@@ -56,27 +57,16 @@ object BondPrice {
 	val jpyccy = new JPYCurrency
 	
 	/**
-	 * Initialise bonds with bond engine
+	 * Initialise priceable bonds with default bond engine
 	 */
 	val t2 = System.nanoTime
-	val bonds:List[QLBond] = {
-	  val fixedrateproducts = List("SB", "STEPUP", "DISC")
-	  val fixedrateids = DB.getBondsByProducts(fixedrateproducts)
-	  val fixedratebuilder = (b:dbBond) => b.toFixedRateBond
-	  val fixedrateengine = (b:QLBond) => factory.getdiscountbondengine(b)
-	  val fixedratebonds = QLDB.getBonds(fixedrateids, fixedratebuilder, fixedrateengine, valuedate)
-	  
-	  fixedratebonds
-	}
+	val bonds:List[QLBond] = QLDB.getBonds(factory)
 	
 	/**
 	 * Compute bond price
 	 */
 	val t3 = System.nanoTime
-	val bondprices = bonds map{ b => {
-	  val termstructure = factory.getyieldtermstructure(b)
-	  QLDB.getBondPrice(b, factory.valuedate, factory.fx(b.currency.code, jpyccy.code), paramset, termstructure)
-	}}
+	val bondprices = bonds map { b => b.bondprice(valuedate, factory) }
 	
 	
 	/**

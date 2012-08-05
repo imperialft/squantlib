@@ -17,38 +17,38 @@ object CDSCurveConstructor {
 			case 1 => new FlatVector(valuedate, values)
 			case _ => new LinearNoExtrapolation(valuedate, values)
 			}
-  
+	
 	/**
 	 * Constructs CDScurve from CDSParameter per each combination of issuerid, currency, paramset.
 	 * @param set of CDSParameter
 	 * @returns map from (issuerid, Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[CDSParameter]):Map[(String, String, String), CDSCurve] = {
-  	  val cdsgroups = params.groupBy(p => (p.issuerid, p.currencyid, p.paramset))
+  	def getallcurves(params:Traversable[CDSParameter]):Map[(String, String), CDSCurve] = {
+  	  val cdsgroups = params.groupBy(p => (p.issuerid, p.currencyid))
   	  
-  	  cdsgroups.map{ case ((issuer, ccy, pset), v) => {
+  	  cdsgroups.map{ case ((issuer, ccy), v) => {
   		  val valuedate = new JDate(v.head.paramdate)
   		  val cdscurve = curveconstructor(valuedate, TreeMap(v.toSeq.map(p => (new JPeriod(p.maturity), p.spread / 10000.0)) :_*))
-  		  ((issuer, ccy, pset), new CDSCurve(cdscurve, CurrencyConversion.getcurrency(ccy)))
+  		  ((issuer, ccy), new CDSCurve(cdscurve, CurrencyConversion.getcurrency(ccy), issuer))
   	  	}}
   	}
-  	
+  
 	/**
 	 * Constructs CDScurve from one CDSParameter as flat spread.
 	 */
   	def getcurve(p:CDSParameter):CDSCurve = 
-  	  new CDSCurve(new FlatVector(new JDate(p.paramdate), p.spread), CurrencyConversion.getcurrency(p.currencyid))
+  	  new CDSCurve(new FlatVector(new JDate(p.paramdate), p.spread), CurrencyConversion.getcurrency(p.currencyid), p.issuerid)
 
 	/**
-	 * Constructs CDScurve from CDSParameter from specific paramset.
-	 * In case of more than one currency for one issuer, USD is chosen if exists, else first on the list.
+	 * Constructs CDScurve from CDSParameter per each combination of issuerid, currency, paramset.
 	 * @param set of CDSParameter
-	 * @returns map from (issuerid, Currency, ParamSet) to LiborDiscountCurve
+	 * @returns map from issuerid to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[CDSParameter], paramset:String):Map[String, CDSCurve] = {
-  	  val curves = getcurves(params.filter(p => p.paramset == paramset)).groupBy(c => c._1._1)
-  	  curves.map(c => (c._1, c._2.getOrElse((c._1, defaultccy, paramset), c._2.head._2)))
+  	def getcurves(params:Traversable[CDSParameter]):Iterable[CDSCurve] = {
+  	  val curves = getallcurves(params).groupBy(c => c._1._1)
+  	  curves.map(c => c._2.getOrElse((c._1, defaultccy), c._2.head._2))
   	}
+  	
   	
   	private def defaultccy = "USD"
 } 

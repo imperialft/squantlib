@@ -18,8 +18,10 @@ import org.apache.commons.math3.analysis.function.Exp
  * @param input points
  * @param number of extra points (optional)
  */
-class SplineEExtrapolation(var valuedate : JDate, inputvalues:SortedMap[JPeriod, Double], extrapoints:Int) extends YieldParameter with AbstractYieldParameter {
-	require(inputvalues.size >= 3, "spline requires at least 3 point : found " + inputvalues.size)
+class SplineEExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], extrapoints:Int = 0) extends YieldParameter with AbstractYieldParameter {
+	require(values.size >= 3, "spline requires at least 3 point : found " + values.size)
+	
+	val inputvalues = TreeMap(values.toSeq:_*)
 	
 	val firstvalue = inputvalues.first._2
 	val impliedrate = if(inputvalues.last._2 < Double.MinPositiveValue) Double.NaN else -1.0 * new Log().value(inputvalues.last._2 / firstvalue) / inputvalues.lastKey.days(valuedate).toDouble
