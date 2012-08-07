@@ -112,6 +112,31 @@ class Distributor(@Column("ID")				var id: String,
 }
 
 
+/**
+ * Provides forex data from FXRates table. The table is populated by BaseData ruby script.
+ *
+ * @param id ID for the record. Auto incremented unsigned integer.
+ * @param lastmodified The time the record was saved or updated.
+ * @param paramdate The date for FX rate data.
+ * @param currencyid Currency ID in ISO 4217 "the three letter"
+ * @param fxrate_jpy FX rate to Japanese yen.
+ */
+class FXRate(@Column("ID")            var id:Int,
+              @Column("LastModified") var lastmodified:Option[Date],
+              @Column("PARAMDATE")    var paramdate:Date,
+              @Column("CurrencyID")   var currencyid:String,
+              @Column("FXRATE_JPY")   var fxrate_jpy:Double) extends KeyedEntity[Int] {
+  def this() = this(
+    id = 0,
+    lastmodified = Some(new Date),
+    paramdate = null,
+    currencyid = null,
+    fxrate_jpy = 0.0
+  )
+  override def toString():String = format("%-15s %-3s %-15s", paramdate, currencyid, fxrate_jpy)
+}
+
+
 class Issuer(@Column("ID")					var id: String,
               @Column("NAME")				var name: String,
               @Column("NAME_JPN")			var name_jpn: String,
