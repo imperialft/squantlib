@@ -5,7 +5,6 @@ import scala.collection.immutable.TreeMap
 import squantlib.test.sample.TimeSeriesSamples
 import squantlib.math.timeseries._
 import squantlib.model.timeseries.TsAnalysis._
-import squantlib.model.timeseries.TsConversions._
 import org.jquantlib.QL
 import org.jquantlib.model.volatility._
 import org.jquantlib.time.TimeSeries
