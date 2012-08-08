@@ -1,7 +1,6 @@
 package squantlib.database.objectconstructor
 
 import scala.collection.SortedMap
-//import scala.collection.immutable.TreeMap
 import squantlib.database.schemadefinitions.InputParameter
 import squantlib.model.discountcurve.FXDiscountCurve
 import squantlib.model.currencies.RateConvention

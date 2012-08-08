@@ -112,6 +112,7 @@ class Distributor(@Column("ID")				var id: String,
 }
 
 
+
 class Issuer(@Column("ID")					var id: String,
               @Column("NAME")				var name: String,
               @Column("NAME_JPN")			var name_jpn: String,

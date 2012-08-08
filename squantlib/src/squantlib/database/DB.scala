@@ -51,13 +51,13 @@ object DB extends Schema {
   val countries = table[Country]("Countries")
   val currencies = table[Currency]("Currencies")
   val distributors = table[Distributor]("Distributors")
+  val fxrates = table[FXRate]("FXRates")
   val issuers = table[Issuer]("Issuers")
   val products = table[Product]("Products")
   val bonds = table[Bond]("Bonds")
   val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
-  val fxrates = table[FXRate]("FXRates")
 
   /**
    * Returns a List of Country objects identified by a List of ID.
@@ -89,6 +89,39 @@ object DB extends Schema {
       from(distributors)(distributor =>
         where(distributor.id in ids)
         select(distributor)
+      ).toList
+    }
+  }
+
+  def getFXRates(currencyid:String):List[FXRate] = {
+    transaction {
+      from(fxrates)(fxrate =>
+        where(fxrate.currencyid === currencyid)
+        select(fxrate)
+      ).toList
+    }
+  }
+
+  def getFXRates(currencyid:String, on:String):List[FXRate] = {
+    transaction {
+      from(fxrates)(fxrate =>
+        where(
+          (fxrate.currencyid === currencyid) and
+          (fxrate.paramset   like on + "%")
+        )
+        select(fxrate)
+      ).toList
+    }
+  }
+
+  def getFXRates(currencyid:String, on:JavaDate):List[FXRate] = {
+    transaction {
+      from(fxrates)(fxrate =>
+        where(
+          fxrate.currencyid === currencyid and
+          fxrate.paramdate  === on
+        )
+      select(fxrate)
       ).toList
     }
   }
