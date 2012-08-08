@@ -9,16 +9,18 @@
 import java.util.{Date => JavaDate, Calendar => JavaCalendar, GregorianCalendar => JavaGCalendar, UUID}
 import squantlib.task.pricing.BondPrice
 import java.io.FileOutputStream
+import squantlib.database.DB
 
 val ps = new java.io.FileOutputStream("log/bondprice.log")
-val startdate = new JavaGCalendar(2012, JavaCalendar.MAY, 8).getTime
-val enddate = new JavaGCalendar(2012, JavaCalendar.MAY, 8).getTime
-val dates = DB.getParamSets(startdate, enddate).toList sortBy(_._2)
+val startdate = new JavaGCalendar(2000, JavaCalendar.JANUARY, 1).getTime
+val enddate = new JavaGCalendar(2020, JavaCalendar.JANUARY, 1).getTime
+val fxpairs = List(("USD", "JPY"),
+					("EUR", "JPY"),
+					("AUD", "JPY"))
 
 Console.withOut(ps) {
-  	println("Start pricing " + dates.size + " items\n")
   	val starttime = System.nanoTime
-	dates.par.foreach(d => BondPrice.price(d._1))
+	fxpairs.par.foreach(d => VolPrice.price())
   	val endtime = System.nanoTime
 	println("Pricing completed: %.3f sec".format((endtime - starttime)/1000000000.0))
 }
