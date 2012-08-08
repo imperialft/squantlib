@@ -8,6 +8,8 @@ import org.squeryl.{Session, SessionFactory, Schema}
 import org.squeryl.PrimitiveTypeMode._
 import squantlib.database.schemadefinitions._
 import scala.collection.mutable.{MutableList, StringBuilder}
+import scala.collection.immutable.TreeMap
+import scala.collection.SortedMap
 import org.jquantlib.time.{Date => JQuantDate}
 import java.io.{File, FileWriter, BufferedWriter}
 import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
@@ -55,6 +57,7 @@ object DB extends Schema {
   val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
+  val fxrates = table[FXRate]("FXRates")
 
   /**
    * Returns a List of Country objects identified by a List of ID.
@@ -63,7 +66,7 @@ object DB extends Schema {
    * @param ids A List of Country IDs.
    * @return A List of Country objects.
    */
-  def getCountries(ids:List[String]):List[Country] = {
+  def getCountries(ids:Traversable[String]):List[Country] = {
     transaction {
       from(countries)(country =>
         where(country.id in ids)
@@ -72,7 +75,7 @@ object DB extends Schema {
     }
   }
 
-  def getCurrencies(ids:List[String]):List[Currency] = {
+  def getCurrencies(ids:Traversable[String]):List[Currency] = {
     transaction {
       from(currencies)(currency =>
         where(currency.id in ids)
@@ -81,7 +84,7 @@ object DB extends Schema {
     }
   }
 
-  def getDistributers(ids:List[String]):List[Distributor] = {
+  def getDistributers(ids:Traversable[String]):List[Distributor] = {
     transaction {
       from(distributors)(distributor =>
         where(distributor.id in ids)
@@ -90,7 +93,7 @@ object DB extends Schema {
     }
   }
 
-  def getIssuers(ids:List[String]):List[Issuer] = {
+  def getIssuers(ids:Traversable[String]):List[Issuer] = {
     transaction {
       from(issuers)(issuer =>
         where(issuer.id in ids)
@@ -99,7 +102,7 @@ object DB extends Schema {
     }
   }
 
-  def getProducts(ids:List[String]):List[Product] = {
+  def getProducts(ids:Traversable[String]):List[Product] = {
     transaction {
       from(products)(product =>
         where(product.id in ids)
@@ -108,7 +111,7 @@ object DB extends Schema {
     }
   }
   
-  def getBonds(ids:List[String]):List[Bond] = {
+  def getBonds(ids:Traversable[String]):List[Bond] = {
     transaction {
       from(bonds)(bond =>
         where(bond.id in ids)
@@ -125,79 +128,86 @@ object DB extends Schema {
     }
   }
   
-  def getBondsByProducts(productids:List[String]):List[String] = {
+  def getBondsByProducts(productids:Traversable[String]):List[String] = 
     transaction {
       from(bonds)(b =>
         where(b.productid in productids)
         select( &(b.id) )
       ).toList
     }
-  }
 
-  def getInputParameters(on:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = {
-    transaction {
-      from(inputparameters)(ip =>
-        where(
-          ip.paramdate  === on and
-          ip.instrument === instrument and
-          ip.asset      === asset and
-          ip.maturity   === maturity
-        )
-        select(ip)
-      ).toList
-    }
-  }
   
-  def getInputParamSets:Set[(String, JavaDate)] = {
+  /**
+   * Returns list of valid paramsets satisfying the given constraints.
+   *
+   * @param fromDate: A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate: A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+  **/
+  def getParamSets:Set[(String, JavaDate)] = getInputParamSets & getCDSParamSets & getFXParamSets
+  
+  def getParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
+    getInputParamSets(fromDate, toDate) & getCDSParamSets(fromDate, toDate) & getFXParamSets(fromDate, toDate)
+  
+  
+  /**
+   * Returns paramsets for each database.
+   **/
+  def getInputParamSets:Set[(String, JavaDate)] = 
     transaction {
         from(inputparameters)(p => 
-          groupBy(p.paramset, p.paramdate))
-          .map(q => (q.key._1, q.key._2)).toSet
+          select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
-  }
   
-  def getInputParamSets(start:JavaDate, end:JavaDate):Set[(String, JavaDate)] = {
+  def getInputParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
         from(inputparameters)(p =>
-          where((p.paramdate gte start) and (p.paramdate lte end))
-          groupBy(p.paramset, p.paramdate))
-          .map(q => (q.key._1, q.key._2)).toSet
+          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+          select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
-  }
   
-  def getCDSParamSets:Set[(String, JavaDate)] = {
+  def getCDSParamSets:Set[(String, JavaDate)] = 
     transaction {
         from(cdsparameters)(p => 
-          groupBy(p.paramset, p.paramdate))
-          .map(q => (q.key._1, q.key._2)).toSet
+          select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
-  }
 
-  def getCDSParamSets(start:JavaDate, end:JavaDate):Set[(String, JavaDate)] = {
+  def getCDSParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
         from(cdsparameters)(p => 
-          where((p.paramdate gte start) and (p.paramdate lte end))
-          groupBy(p.paramset, p.paramdate))
-          .map(q => (q.key._1, q.key._2)).toSet
+          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+          select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
-  }
-
-  def checkParamSet(id:String):Boolean = {
-    transaction {
-      val inputcontains = from (inputparameters)(p => 
-					        where(p.paramset === id) 
-					        select(p)).size > 0
-      val cdscontains = from (cdsparameters)(p => 
-					        where(p.paramset === id) 
-					        select(p)).size > 0
-	  inputcontains && cdscontains
-    }
-  }
   
-  def getParamSets:Set[(String, JavaDate)] = getInputParamSets & getCDSParamSets
-  def getParamSets(start:JavaDate, end:JavaDate):Set[(String, JavaDate)] = getInputParamSets(start, end) & getCDSParamSets(start, end)
+  def getFXParamSets:Set[(String, JavaDate)] = 
+    transaction {
+        from(fxrates)(p => 
+          select(&(p.paramset), &(p.paramdate))).distinct.toSet
+    }
+  
+  def getFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
+    transaction {
+        from(fxrates)(p =>
+          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+          select(&(p.paramset), &(p.paramdate))).distinct.toSet
+    }
+ 
+  def getFXParamDates(fromDate:JavaDate, toDate:JavaDate):Set[JavaDate] = 
+    transaction {
+        from(fxrates)(p =>
+          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+          select(&(p.paramdate))).distinct.toSet
+    }
 
-  def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = getInputParameters(on.longDate, instrument, asset, maturity)
+  /**
+   * Checks whether the paramset is valid.
+   **/
+  def isParamSet(id:String):Boolean = {
+    getParamSets.map(p => p._1).contains(id)
+  }
+
 
   /**
    * Returns a List of InputParameters that falls onto a range of Dates.
@@ -213,7 +223,7 @@ object DB extends Schema {
    * @param maturity An identifier of the maturity.
    * @return A List of matching InputParameters.
    */
-  def getInputParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = {
+  def getInputParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = 
     transaction {
       from(inputparameters)(ip =>
         where(
@@ -226,7 +236,6 @@ object DB extends Schema {
         select(ip)
       ).toList
     }
-  }
   
   def getInputParameters(paramset:String) =
   	transaction { 
@@ -235,31 +244,23 @@ object DB extends Schema {
   	    select(c)
   	    ).toSet
   	}
-
-  def getCDSParameters(on:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
+  
+  def getInputParameters(on:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = 
     transaction {
-      from(cdsparameters)(cds =>
+      from(inputparameters)(ip =>
         where(
-          cds.paramdate  === on and
-          cds.instrument === instrument and
-          cds.issuerid   === issuerid and
-          cds.currencyid === currencyid
+          ip.paramdate  === on and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity
         )
-        select(cds)
+        select(ip)
       ).toList
     }
-  }
-
-  def getCDSParameters(paramset:String):List[CDSParameter] = {
-    transaction {
-        from(cdsparameters)(p => 
-          where(p.paramset === paramset)
-          select(p)
-          ).toList
-    }
-  }
   
-  def getCDSParameters(on:JQuantDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = getCDSParameters(on, maturity, instrument, issuerid, currencyid)
+  def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = 
+    getInputParameters(on.longDate, instrument, asset, maturity)
+ 
 
   /**
    * Returns a List of CDSParameters that falls onto a range of Dates.
@@ -276,7 +277,7 @@ object DB extends Schema {
    * @param issuerid An identifier of the issuer.
    * @return A list of matching CDSParameters.
    */
-  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = {
+  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = 
     transaction {
       from(cdsparameters)(cds =>
         where(
@@ -290,13 +291,149 @@ object DB extends Schema {
         select(cds)
       ).toList
     }
-  }
+  
+  def getCDSParameters(on:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = 
+    transaction {
+      from(cdsparameters)(cds =>
+        where(
+          cds.paramdate  === on and
+          cds.instrument === instrument and
+          cds.issuerid   === issuerid and
+          cds.currencyid === currencyid
+        )
+        select(cds)
+      ).toList
+    }
 
-  def setBondPrice(prices:Iterable[BondPrice]){
+  def getCDSParameters(paramset:String):List[CDSParameter] = 
+    transaction {
+        from(cdsparameters)(p => 
+          where(p.paramset === paramset)
+          select(p)
+          ).toList
+    }
+  
+  def getCDSParameters(on:JQuantDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = 
+    getCDSParameters(on, maturity, instrument, issuerid, currencyid)
+
+  /**
+   * Returns historical values for a parameter that falls onto a range of Dates.
+   * Only the "official" parameters (ie. paramset ending with "-000") is taken.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param instrument An identifier of the instrument.
+   * @param asset An identifier of the asset.
+   * @param maturity An identifier of the maturity.
+   * @return time series of the parameter.
+   */
+  def getTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):SortedMap[JavaDate, Double] = 
+    transaction {
+	  TreeMap(
+	      from(inputparameters)(ip =>
+	        where(
+	          (ip.paramdate gte fromDate) and
+	          (ip.paramdate lte toDate) and
+	          (ip.paramset like "%-000") and
+	          ip.instrument === instrument and
+	          ip.asset      === asset and
+	          ip.maturity   === maturity
+	        )
+	        select((&(ip.paramdate), &(ip.value)))
+	      ).toSeq : _*)
+	 }
+	    
+  private def EmptyFXSeries(fromDate:JavaDate, toDate:JavaDate):SortedMap[JavaDate, Double] = 
+    TreeMap(getFXParamDates(fromDate, toDate).map(d => (d, 1.0)).toSeq : _*)
+
+  def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String):SortedMap[JavaDate, Double] = 
+    if (fx1 == "JPY") EmptyFXSeries(fromDate, toDate)
+    else transaction {
+      TreeMap(
+	      from(fxrates)(fx =>
+	        where(
+	          (fx.paramdate gte fromDate) and
+	          (fx.paramdate lte toDate) and
+	          (fx.paramset like "%-000") and
+	          fx.currencyid      === fx1
+	        )
+	        select((&(fx.paramdate), &(fx.fxjpy)))
+	      ).toSeq 
+	   : _*)
+	} 
+  
+  
+  def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String, fx2:String):SortedMap[JavaDate, Double] = 
+    if (fx1 == fx2)	EmptyFXSeries(fromDate, toDate)
+    else transaction {
+      val fxset1 = getFXTimeSeries(fromDate, toDate, fx1)
+      val fxset2 = getFXTimeSeries(fromDate, toDate, fx2)
+      TreeMap((fxset1.keySet & fxset2.keySet).map(d => (d, fxset1(d) / fxset2(d))).toSeq : _*)
+    }
+
+  def getCDSTimeSeries(fromDate:JavaDate, toDate:JavaDate, currencyid:String, issuerid:String, maturity:String):SortedMap[JavaDate, Double] = 
+    transaction {
+      TreeMap(
+          from(cdsparameters)(ip =>
+	        where(
+	          (ip.paramdate gte fromDate) and
+	          (ip.paramdate lte toDate) and
+	          (ip.paramset like "%-000") and
+	          ip.issuerid      === issuerid and
+	          ip.currencyid      === currencyid and
+	          ip.maturity   === maturity
+	        )
+	        select((&(ip.paramdate), &(ip.spread)))
+	      ).toSeq : _*)
+    }
+  
+  def getPriceSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
+    transaction {
+	  TreeMap(
+	      from(bondprices)(bp =>
+	        where(
+	          (bp.paramdate gte start) and
+	          (bp.paramdate lte end) and
+	          (bp.paramset like "%-000") and
+	          bp.instrument === "BONDPRICE" and
+	          bp.bondid      === bondid and
+	          bp.priceclean.isNotNull
+	        )
+	        select(&(bp.paramdate), &(bp.priceclean.get))
+	      ).toSeq : _*)
+  	}
+  
+  def getJPYPriceSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
+    transaction {
+	  TreeMap(
+	      from(bondprices)(bp =>
+	        where(
+	          (bp.paramdate gte start) and
+	          (bp.paramdate lte end) and
+	          (bp.paramset like "%-000") and
+	          bp.instrument === "BONDPRICE" and
+	          bp.bondid      === bondid and
+	          bp.priceclean_jpy.isNotNull
+	        )
+	        select(&(bp.paramdate), &(bp.priceclean_jpy.get))
+	      ).toSeq : _*)
+  	}
+  
+  /**
+   * Inserts bond prices to the database.
+   *
+   * @param objects A List of Squeryl model objects.
+   * @return Whether or not the statement ran successfully.
+   *          However, this does not guarantee whether every row has been inserted.
+   */
+  def insert(prices:Traversable[BondPrice]):Boolean = {
     val idset = prices.map(b => b.id)
     transaction {
       DB.bondprices.deleteWhere(b => b.id in idset)
-//      DB.bondprices.insert(prices)
     }
     insertMany(prices.toList)
   }
@@ -308,7 +445,7 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def insertMany(objects:List[AnyRef]):Boolean = {
+  def insertMany(objects:Traversable[AnyRef]):Boolean = {
     buildCSVImportStatement(objects).foreach(runSQLStatement)
 
     true
@@ -334,12 +471,12 @@ object DB extends Schema {
    * @param objects List of a Squeryl objects of a same Model, such as List[BondPrice]
    * @return A List of strings of prepared SQL statement.
    */
-  def buildCSVImportStatement(objects:List[AnyRef]):List[String] = {
+  def buildCSVImportStatement(objects:Traversable[AnyRef]):List[String] = {
     val tempFile            = File.createTempFile("squantlib", ".csv")
     tempFile.deleteOnExit()
     val tempFilePath        = tempFile.getAbsolutePath
     val tableNames          = tables.toList.map(t => t.posoMetaData.clasz.getSimpleName)
-    val clazz               = objects(0).getClass
+    val clazz               = objects.head.getClass
     val className           = clazz.getSimpleName.toString()
     val table               = tables(tableNames.indexOf(className))
     val tableName           = tables(tableNames.indexOf(className)).name
@@ -403,7 +540,7 @@ object DB extends Schema {
    * @param value A List of Anything that's supported by quoteValue() method.
    * @return A string of corresponding SQL representation.
    */
-  def quoteList(value:List[Any]):String = "(" + value.map(quoteValue).mkString(",") + ")"
+  def quoteList(value:Traversable[Any]):String = "(" + value.map(quoteValue).mkString(",") + ")"
 
   /**
    * Converts a java.sql.Timestamp into SQL (MySQL) representation without time-zone information.

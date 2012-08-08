@@ -5,7 +5,7 @@ import org.jquantlib.indexes.IborIndex
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.{ ActualActual, Thirty360, Actual365Fixed, Actual360, DayCounter }
 import org.jquantlib.time.{TimeUnit, Frequency, Date => JDate, Period=>JPeriod}
-import scala.collection.immutable.SortedMap
+import scala.collection.SortedMap
 
 object RateConvention{
 	val getConvention = Map(

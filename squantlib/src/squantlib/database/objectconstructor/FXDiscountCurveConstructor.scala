@@ -1,6 +1,7 @@
 package squantlib.database.objectconstructor
 
-import scala.collection.immutable.TreeMap
+import scala.collection.SortedMap
+//import scala.collection.immutable.TreeMap
 import squantlib.database.schemadefinitions.InputParameter
 import squantlib.model.discountcurve.FXDiscountCurve
 import squantlib.model.currencies.RateConvention
@@ -30,8 +31,8 @@ object FXDiscountCurveConstructor {
   	  nonemptyinstruments.map{ case (k, v) => {
   		  val conv = conventions(k)
   		  val valuedate = new JDate(v(swappointKey).head.paramdate)
-  		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
-  		  val swapptcurve = conv.swappoint_constructor(valuedate, toTreeMap(swappointKey))
+  		  def toSortedMap(k:String) = SortedMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
+  		  val swapptcurve = conv.swappoint_constructor(valuedate, toSortedMap(swappointKey))
   		  new FXDiscountCurve(swapptcurve, v(fxKey).head.value)
   	  	}
   	  }

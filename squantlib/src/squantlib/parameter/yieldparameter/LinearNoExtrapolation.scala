@@ -1,7 +1,7 @@
 package squantlib.parameter.yieldparameter
 
-import scala.collection.immutable.TreeMap
-import scala.collection.immutable.SortedMap
+import scala.collection.SortedMap
+import scala.collection.Map
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.TimeUnit
@@ -18,10 +18,10 @@ import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
 class LinearNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double]) extends YieldParameter with AbstractYieldParameter {
 	require(values.size >= 2, "linear interpolation requires at least 2 point : found " + values.size)
   
-	val inputvalues = TreeMap(values.toSeq:_*)
+	val inputvalues = SortedMap(values.toSeq:_*)
 	
     val linearfunction = {
-	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty
+	    var inputpoints :SortedMap[Long, Double] = SortedMap.empty
 	    for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
 	    val keysarray = inputpoints.keySet.toArray
 	    val valarray = keysarray.map((i:Long) => inputpoints(i))

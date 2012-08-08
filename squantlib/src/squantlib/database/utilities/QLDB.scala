@@ -39,11 +39,11 @@ object QLDB {
 		}.filter(b => b != null)
 	}
 	
-	def getBonds(id:List[String], factory:DiscountCurveFactory = null):List[QLBond] = bondConstructor(DB.getBonds(id))
+	def getBonds(id:Traversable[String], factory:DiscountCurveFactory = null):List[QLBond] = bondConstructor(DB.getBonds(id))
 	def getBonds(factory:DiscountCurveFactory):List[QLBond] = bondConstructor(DB.getAllBonds, factory)
 	def getBonds:List[QLBond] = bondConstructor(DB.getAllBonds)
 	
-	def getBonds(id:List[String], builder:dbBond => QLBond, pricingengine:QLBond => PricingEngine, valuedate:qlDate):List[QLBond] = {
+	def getBonds(id:Traversable[String], builder:dbBond => QLBond, pricingengine:QLBond => PricingEngine, valuedate:qlDate):List[QLBond] = {
 		val dbbonds:List[dbBond] = DB.getBonds(id)
 		val qlbonds:List[QLBond] = dbbonds.map(b => builder(b)).filter(b => b != null)
 		qlbonds.foreach(b => b.setPricingEngine(pricingengine(b), valuedate))

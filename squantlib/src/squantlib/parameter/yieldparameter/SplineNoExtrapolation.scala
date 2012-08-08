@@ -1,7 +1,8 @@
 package squantlib.parameter.yieldparameter
 
-import scala.collection.immutable.TreeMap
-import scala.collection.immutable.SortedMap
+//import scala.collection.immutable.TreeMap
+import scala.collection.SortedMap
+import scala.collection.Map
 import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.time.{ Period => JPeriod }
 import org.jquantlib.time.TimeUnit
@@ -22,10 +23,10 @@ import org.apache.commons.math3.analysis.function.Exp
 class SplineNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], extrapoints:Int) extends YieldParameter with AbstractYieldParameter {
 	require(values.size >= 3, "spline requires at least 3 point : found " + values.size)
 	
-	val inputvalues = TreeMap(values.toSeq:_*)
+	val inputvalues = SortedMap(values.toSeq:_*)
 	
     val splinefunction = {
-	    var inputpoints :TreeMap[Long, Double] = TreeMap.empty
+	    var inputpoints :SortedMap[Long, Double] = SortedMap.empty
 	    for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
 	    for (i <- 1 to extrapoints) { inputpoints ++= Map((inputvalues.lastKey.days(valuedate) + (30L * i.toLong)) -> inputvalues.last._2) }
 	    val keysarray = inputpoints.keySet.toArray

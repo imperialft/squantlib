@@ -18,29 +18,29 @@ object BondPrice {
   private var pendingprice = scala.collection.mutable.ListBuffer.empty[BondPrice]
   var dbbonds:Map[String, dbBond] = Map.empty
   
-  def loadbonds = {
+  def loadbonds:Unit = {
     dbbonds = DB.getAllBonds.map(b => (b.id, b)).toMap
   }
   
-  def store(prices:List[BondPrice]) = pendingprice.synchronized{
+  def store(prices:List[BondPrice]):Unit = pendingprice.synchronized{
     pendingprice ++= prices
   }
   
-  def storedprice = pendingprice
+  def storedprice:Unit = pendingprice
   
-  def push = {
+  def push:Unit = {
     if (pendingprice.size != 0) {
 		val targetprices = pendingprice.filter(p => (!p.pricedirty.isNaN))
 	    printf("Writing " + targetprices.size + " items to Database...")
 		val t1 = System.nanoTime
-		DB.setBondPrice(targetprices)
+		DB.insert(targetprices)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
 		pendingprice.clear
 		}
 	}
   
-  def price(paramset:String):Unit = {
+  def price(paramset:String, bondid:Traversable[String] = null):Unit = {
     
     var outputstring = ""
     def output(s:String):Unit = { outputstring += s }
@@ -60,7 +60,7 @@ object BondPrice {
 	 * Initialise priceable bonds with default bond engine
 	 */
 	val t2 = System.nanoTime
-	val bonds:List[QLBond] = QLDB.getBonds(factory)
+	val bonds:List[QLBond] = if (bondid == null) QLDB.getBonds(factory) else QLDB.getBonds(bondid, factory)
 	
 	/**
 	 * Compute bond price
@@ -74,7 +74,6 @@ object BondPrice {
 	 */
 	val t4 = System.nanoTime
 	
-//	val dbbonds = DB.getAllBonds.map(b => (b.id, b)).toMap;
 	if (dbbonds.isEmpty) loadbonds
 	val bondlist = bonds.map(b => (b.bondid, b)).toMap;
 	val fixedratebonds:Map[String, FixedRateBond] = bonds.map(bond => bond match { case b:FixedRateBond => (b.bondid, b); case _ => null}).filter(b => b != null).toMap;
@@ -136,7 +135,6 @@ object BondPrice {
 	outputln("\n*** END OUTPUT " + paramset + "***\n")
 	
 	printf(outputstring)
-	
 	store(bondprices)
   }
  

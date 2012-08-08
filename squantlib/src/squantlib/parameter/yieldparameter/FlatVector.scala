@@ -1,7 +1,7 @@
 package squantlib.parameter.yieldparameter
 
 import org.jquantlib.time.{ TimeUnit, Period => JPeriod, Date => JDate }
-
+import scala.collection.Map
 
 /**
  * Flat vector
