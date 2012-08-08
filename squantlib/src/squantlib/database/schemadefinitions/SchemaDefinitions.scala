@@ -123,12 +123,14 @@ class Distributor(@Column("ID")				var id: String,
  */
 class FXRate(@Column("ID")            var id:Int,
               @Column("LastModified") var lastmodified:Option[Date],
+              @Column("PARAMSET")     var paramset:String,
               @Column("PARAMDATE")    var paramdate:Date,
               @Column("CurrencyID")   var currencyid:String,
               @Column("FXRATE_JPY")   var fxrate_jpy:Double) extends KeyedEntity[Int] {
   def this() = this(
     id = 0,
     lastmodified = Some(new Date),
+    paramset = null,
     paramdate = null,
     currencyid = null,
     fxrate_jpy = 0.0

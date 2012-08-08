@@ -100,6 +100,18 @@ object DB extends Schema {
     }
   }
 
+  def getFXRates(currencyid:String, on:String):List[FXRate] = {
+    transaction {
+      from(fxrates)(fxrate =>
+        where(
+          (fxrate.currencyid === currencyid) and
+          (fxrate.paramset   like on + "%")
+        )
+        select(fxrate)
+      ).toList
+    }
+  }
+
   def getFXRates(currencyid:String, on:JavaDate):List[FXRate] = {
     transaction {
       from(fxrates)(fxrate =>
@@ -107,7 +119,7 @@ object DB extends Schema {
           fxrate.currencyid === currencyid and
           fxrate.paramdate  === on
         )
-        select(fxrate)
+      select(fxrate)
       ).toList
     }
   }
