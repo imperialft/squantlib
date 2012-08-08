@@ -5,22 +5,22 @@ import scala.collection.immutable.TreeMap
 import squantlib.test.sample.TimeSeriesSamples
 import squantlib.math.timeseries._
 import squantlib.model.timeseries.TsAnalysis._
+import squantlib.database.QLConstructors._
 import org.jquantlib.QL
 import org.jquantlib.model.volatility._
-import org.jquantlib.time.TimeSeries
+import org.jquantlib.time.{Date => qlDate, TimeSeries}
 import org.junit.Test
 import scala.collection.SortedMap
+import java.lang.{Double => JavaDouble}
 //import squantlib.model.timeseries.TsConversions.Ts2SortedMap
 
 object TimeSeriesTest {
   
-    val data = TimeSeriesSamples.USDFX
-    val data2 = TimeSeriesSamples.EURFX
+    val data:Array[(org.jquantlib.time.Date, Double)] = TimeSeriesSamples.USDFX
+    val data2:Array[(org.jquantlib.time.Date, Double)] = TimeSeriesSamples.EURFX
     
-    val datamap = data.map(d => (d._1, new java.lang.Double(d._2))).toMap
-    val ts = new TimeSeries[java.lang.Double](java.lang.Double.TYPE, datamap)
-    val datamap2 = data2.map(d => (d._1 -> new java.lang.Double(d._2))).toMap
-    val ts2 = new TimeSeries[java.lang.Double](java.lang.Double.TYPE, datamap2)
+    val ts = TreeMap(data.toSeq :_*).toTimeSeries
+    val ts2 = TreeMap(data2.toSeq :_*).toTimeSeries
 
 	def main(args: Array[String]): Unit = {
 	    println("*** TS ***")
