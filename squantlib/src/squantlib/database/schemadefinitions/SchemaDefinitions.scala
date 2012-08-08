@@ -424,25 +424,25 @@ class FXRate(@Column("ID")					var id:Int,
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramdate, paramset, currencyid, fxjpy)
 }
 
-class Volatility(@Column("ID")				var id:Int,
+class Volatility(@Column("ID")				var id:String,
               @Column("INSTRUMENT")			var instrument:String,
               @Column("ASSET")				var asset:String,
               @Column("MATURITY")			var maturity:String,
               @Column("VALUEDATE")			var valuedate:Date,
               @Column("PERIODICITY")		var periodicity:Int,
-              @Column("NBDAYS")				var nbdays:Date,
+              @Column("NBDAYS")				var nbdays:Int,
               @Column("VALUE")				var value:Double,
               @Column("LastModified")		var lastmodified:Option[Date]
-              ) extends KeyedEntity[Int] {
+              ) extends KeyedEntity[String] {
   
   def this() = this(
-      id = -99999, 
+      id = null, 
       instrument = null,
       asset = null,
       maturity = null,
       valuedate = null,
       periodicity = -999999,
-      nbdays = null,
+      nbdays = -99999,
       value = -99999999,
       lastmodified = Some(new Date))
 

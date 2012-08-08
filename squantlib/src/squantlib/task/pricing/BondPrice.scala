@@ -8,7 +8,6 @@ import squantlib.model.discountcurve._
 import org.jquantlib.time._
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.bonds.FixedRateBond
-import squantlib.database.utilities._
 import org.jquantlib.instruments.{Bond => QLBond}
 import org.jquantlib.currencies.Asia.JPYCurrency
 import scala.collection.immutable.StringLike
@@ -26,14 +25,14 @@ object BondPrice {
     pendingprice ++= prices
   }
   
-  def storedprice:Unit = pendingprice
-  
+  def storedprice = pendingprice
+   
   def push:Unit = {
     if (pendingprice.size != 0) {
 		val targetprices = pendingprice.filter(p => (!p.pricedirty.isNaN))
 	    printf("Writing " + targetprices.size + " items to Database...")
 		val t1 = System.nanoTime
-		DB.insert(targetprices)
+		DB.insertOrReplace(targetprices)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
 		pendingprice.clear

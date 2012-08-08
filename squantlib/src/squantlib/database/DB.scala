@@ -6,6 +6,7 @@ import com.mchange.v2.c3p0._
 import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory, Schema}
 import org.squeryl.PrimitiveTypeMode._
+import org.squeryl.{KeyedEntity, Table}
 import squantlib.database.schemadefinitions._
 import scala.collection.mutable.{MutableList, StringBuilder}
 import scala.collection.immutable.TreeMap
@@ -15,6 +16,7 @@ import java.io.{File, FileWriter, BufferedWriter}
 import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
+
 
 object DB extends Schema {
 
@@ -58,6 +60,7 @@ object DB extends Schema {
   val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
+  val volatilities = table[Volatility]("Volatilities")
 
   /**
    * Returns a List of Country objects identified by a List of ID.
@@ -463,12 +466,21 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def insert(prices:Traversable[BondPrice]):Boolean = {
-    val idset = prices.map(b => b.id)
-    transaction {
-      DB.bondprices.deleteWhere(b => b.id in idset)
+  
+  def insertOrReplace[T <: KeyedEntity[String]](data:Traversable[T]):Boolean = {
+    val datatable = data.head.getClass.getSimpleName.toString match {
+      case "BondPrice" => bondprices
+      case "Volatility" => volatilities
+      case _ => null
     }
-    insertMany(prices.toList)
+    
+    if (datatable == null) return false
+    
+    val idset = data.map(_.id)
+    transaction {
+      datatable.deleteWhere(_.id in idset)
+    }
+    insertMany(data)
   }
 
   /**
