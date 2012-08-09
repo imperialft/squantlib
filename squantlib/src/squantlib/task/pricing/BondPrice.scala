@@ -18,7 +18,7 @@ object BondPrice {
   var dbbonds:Map[String, dbBond] = Map.empty
   
   def loadbonds:Unit = {
-    dbbonds = DB.getAllBonds.map(b => (b.id, b)).toMap
+    dbbonds = DB.getBonds.map(b => (b.id, b)).toMap
   }
   
   def store(prices:List[BondPrice]):Unit = pendingprice.synchronized{

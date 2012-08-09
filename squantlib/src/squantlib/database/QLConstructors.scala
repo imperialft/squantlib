@@ -15,6 +15,9 @@ import scala.collection.JavaConversions._
 * Implicit functions to convert between database objects and model objects
 */
 object QLConstructors {
+  
+	implicit def JavaDate2QlDate(d:JavaDate) = new qlDate(d)
+	implicit def QlDate2JavaDate(d:qlDate) = d.longDate
 
 	implicit def InputParameter2ParamSet(params:Traversable[InputParameter]) = new InputParameterSet(params)
  	class InputParameterSet(val inputparameters:Traversable[InputParameter]){

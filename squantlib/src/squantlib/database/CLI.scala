@@ -29,7 +29,6 @@ object CLI {
   val requiredImports = List("java.io.File",
                                 "squantlib.database._",
                                 "squantlib.database.schemadefinitions._",
-                                "squantlib.database.objectconstructor._",
                                 "org.jquantlib.time._",
                                 "org.squeryl.PrimitiveTypeMode._",
                                 "java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}",

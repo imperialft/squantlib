@@ -61,6 +61,7 @@ object DB extends Schema {
   val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
   val volatilities = table[Volatility]("Volatilities")
+  val correlations = table[Correlation]("Correlations")
 
   /**
    * Returns a List of Country objects identified by a List of ID.
@@ -78,6 +79,12 @@ object DB extends Schema {
     }
   }
 
+  def getCountries:List[Country] = {
+    transaction {
+      from(countries)(country => select(country)).toList
+    }
+  }
+  
   def getCurrencies(ids:Traversable[String]):List[Currency] = {
     transaction {
       from(currencies)(currency =>
@@ -87,6 +94,12 @@ object DB extends Schema {
     }
   }
 
+  def getCurrencies:List[Currency] = {
+    transaction {
+      from(currencies)(currency => select(currency)).toList
+    }
+  }
+  
   def getDistributers(ids:Traversable[String]):List[Distributor] = {
     transaction {
       from(distributors)(distributor =>
@@ -96,6 +109,18 @@ object DB extends Schema {
     }
   }
 
+  def getDistributers:List[Distributor] = {
+    transaction {
+      from(distributors)(distributor => select(distributor)).toList
+    }
+  }
+  
+  def getFXRates:List[FXRate] = {
+    transaction {
+      from(fxrates)(fxrate => select(fxrate)).toList
+    }
+  }
+  
   def getFXRates(currencyid:String):List[FXRate] = {
     transaction {
       from(fxrates)(fxrate =>
@@ -116,7 +141,7 @@ object DB extends Schema {
       ).toList
     }
   }
-
+  
   def getFXRates(currencyid:String, on:JavaDate):List[FXRate] = {
     transaction {
       from(fxrates)(fxrate =>
@@ -128,6 +153,12 @@ object DB extends Schema {
       ).toList
     }
   }
+  
+  def getFXList:List[String] = {
+    transaction {
+      from(fxrates)(fxrate => select(&(fxrate.currencyid))).distinct.toList
+    }
+  }
 
   def getIssuers(ids:Traversable[String]):List[Issuer] = {
     transaction {
@@ -135,6 +166,12 @@ object DB extends Schema {
         where(issuer.id in ids)
         select(issuer)
       ).toList
+    }
+  }
+  
+  def getIssuers:List[Issuer] = {
+    transaction {
+      from(issuers)(issuer => select(issuer)).toList
     }
   }
 
@@ -147,6 +184,12 @@ object DB extends Schema {
     }
   }
   
+  def getProducts:List[Product] = {
+    transaction {
+      from(products)(product => select(product)).toList
+    }
+  }
+  
   def getBonds(ids:Traversable[String]):List[Bond] = {
     transaction {
       from(bonds)(bond =>
@@ -156,11 +199,9 @@ object DB extends Schema {
     }
   }
   
-  def getAllBonds:List[Bond] = {
+  def getBonds:List[Bond] = {
     transaction {
-      from(bonds)(bond =>
-        select(bond)
-      ).toList
+      from(bonds)(bond => select(bond)).toList
     }
   }
   
@@ -313,14 +354,14 @@ object DB extends Schema {
    * @param issuerid An identifier of the issuer.
    * @return A list of matching CDSParameters.
    */
-  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = 
+  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String, instrument:String):List[CDSParameter] = 
     transaction {
       from(cdsparameters)(cds =>
         where(
           (cds.paramdate  gte fromDate) and
           (cds.paramdate  lt  toDate) and
-          cds.maturity   === maturity and
           cds.instrument === instrument and
+          cds.maturity   === maturity and
           cds.issuerid   === issuerid and
           cds.currencyid === currencyid
         )
@@ -328,12 +369,25 @@ object DB extends Schema {
       ).toList
     }
   
-  def getCDSParameters(on:JavaDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = 
+  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String):List[CDSParameter] = 
+    transaction {
+      from(cdsparameters)(cds =>
+        where(
+          (cds.paramdate  gte fromDate) and
+          (cds.paramdate  lt  toDate) and
+          cds.maturity   === maturity and
+          cds.issuerid   === issuerid and
+          cds.currencyid === currencyid
+        )
+        select(cds)
+      ).toList
+    }
+
+  def getCDSParameters(on:JavaDate, maturity:String, issuerid:String, currencyid:String):List[CDSParameter] = 
     transaction {
       from(cdsparameters)(cds =>
         where(
           cds.paramdate  === on and
-          cds.instrument === instrument and
           cds.issuerid   === issuerid and
           cds.currencyid === currencyid
         )
@@ -348,13 +402,10 @@ object DB extends Schema {
           select(p)
           ).toList
     }
-  
-  def getCDSParameters(on:JQuantDate, maturity:String, instrument:String, issuerid:String, currencyid:String):List[CDSParameter] = 
-    getCDSParameters(on, maturity, instrument, issuerid, currencyid)
 
   /**
-   * Returns historical values for a parameter that falls onto a range of Dates.
-   * Only the "official" parameters (ie. paramset ending with "-000") is taken.
+   * Returns historical values of input parameter.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
    *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
@@ -385,7 +436,19 @@ object DB extends Schema {
 	    
   private def EmptyFXSeries(fromDate:JavaDate, toDate:JavaDate):SortedMap[JavaDate, Double] = 
     TreeMap(getFXParamDates(fromDate, toDate).map(d => (d, 1.0)).toSeq : _*)
-
+    
+  /**
+   * Returns historical values of FX spot rate against JPY.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @return fx1 Currency to be measured in JPY.
+   */
   def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String):SortedMap[JavaDate, Double] = 
     if (fx1 == "JPY") EmptyFXSeries(fromDate, toDate)
     else transaction {
@@ -403,6 +466,20 @@ object DB extends Schema {
 	} 
   
   
+  /**
+   * Returns historical values of FX spot rate between 2 currencies.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @return fx1 Currency to be measured.
+   * @return fx2 Measuring currency.
+   * 			 For example, fx1 = "USD" & fx2 = "JPY" returns USD/JPY spot rate = around 80.00
+   */
   def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String, fx2:String):SortedMap[JavaDate, Double] = 
     if (fx1 == fx2)	EmptyFXSeries(fromDate, toDate)
     else transaction {
@@ -411,6 +488,20 @@ object DB extends Schema {
       TreeMap((fxset1.keySet & fxset2.keySet).map(d => (d, fxset1(d) / fxset2(d))).toSeq : _*)
     }
 
+  /**
+   * Returns historical values of CDS.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @return currencyid CDS quotation currency. eg. "USD"
+   * @return issuerid Issuer id. eg. "ADB"
+   * @return maturity CDS maturity. eg. "6M" or "5Y"
+   */
   def getCDSTimeSeries(fromDate:JavaDate, toDate:JavaDate, currencyid:String, issuerid:String, maturity:String):SortedMap[JavaDate, Double] = 
     transaction {
       TreeMap(
@@ -427,6 +518,18 @@ object DB extends Schema {
 	      ).toSeq : _*)
     }
   
+  /**
+   * Returns historical price of a bond, quoted in issue currency.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @return bondid Bond id. eg. "ADB-00001"
+   */
   def getPriceSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
     transaction {
 	  TreeMap(
@@ -443,6 +546,18 @@ object DB extends Schema {
 	      ).toSeq : _*)
   	}
   
+  /**
+   * Returns historical price of a bond, quoted in JPY.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @return bondid Bond id. eg. "ADB-00001"
+   */
   def getJPYPriceSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
     transaction {
 	  TreeMap(

@@ -37,12 +37,12 @@ object QLDB {
     * @param factory Optional. Providing discount curve factory would automatically set discounting bond engine as default pricing engine (where applicable)
     */
 	def getBonds(id:Traversable[String], factory:DiscountCurveFactory = null):List[QLBond] = bondConstructor(DB.getBonds(id))
-	def getBonds(factory:DiscountCurveFactory):List[QLBond] = bondConstructor(DB.getAllBonds, factory)
-	def getBonds:List[QLBond] = bondConstructor(DB.getAllBonds)
+	def getBonds(factory:DiscountCurveFactory):List[QLBond] = bondConstructor(DB.getBonds, factory)
+	def getBonds:List[QLBond] = bondConstructor(DB.getBonds)
 	
 	def getBonds(id:Traversable[String], builder:dbBond => QLBond, pricingengine:QLBond => PricingEngine, valuedate:qlDate):List[QLBond] = {
 		val dbbonds:List[dbBond] = DB.getBonds(id)
-		val qlbonds:List[QLBond] = dbbonds.map(b => builder(b)).filter(b => b != null)
+		val qlbonds:List[QLBond] = dbbonds.map(builder(_)).filter(_ != null)
 		qlbonds.foreach(b => b.setPricingEngine(pricingengine(b), valuedate))
 		qlbonds
 	}
@@ -59,7 +59,7 @@ object QLDB {
 		    case _ =>
 		      null
 		  }
-		}.filter(b => b != null)
+		}.filter(_ != null)
 	}
 	 
    /**
