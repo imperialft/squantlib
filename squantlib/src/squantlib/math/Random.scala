@@ -70,4 +70,4 @@ class MersenneTwister(seed:Long) extends Generator {
 class Java(seed:Long) extends Generator {
   override def toString = "java.util.Random[Double]"
   val generator = new java.util.Random(seed)
-}                s
+}                

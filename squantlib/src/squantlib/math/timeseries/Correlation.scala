@@ -1,7 +1,7 @@
 package squantlib.math.timeseries
 
 import scala.collection.SortedMap
-import scala.collection.immutable.TreeMap
+//import scala.collection.immutable.TreeMap
 import org.jquantlib.time.{ Date => JDate }
 
 object Correlation {
@@ -25,7 +25,7 @@ object Correlation {
 		val keys = logset1.keySet.toIndexedSeq; 
         val datacount = nbData - 1
         
-		TreeMap((datacount to logset1.size).map( i => { 
+		SortedMap((datacount to logset1.size).map( i => { 
 				val startdate = keys(i - datacount)
 				val enddate = keys(i - 1)
 				val q1 = logset1.from(startdate).to(enddate).map(v => v._2).toArray

@@ -19,8 +19,8 @@ object TimeSeriesTest {
     val data:Array[(org.jquantlib.time.Date, Double)] = TimeSeriesSamples.USDFX
     val data2:Array[(org.jquantlib.time.Date, Double)] = TimeSeriesSamples.EURFX
     
-    val ts = TreeMap(data.toSeq :_*).toTimeSeries
-    val ts2 = TreeMap(data2.toSeq :_*).toTimeSeries
+    val ts = data.toMap.toTimeSeries
+    val ts2 = data2.toMap.toTimeSeries
 
 	def main(args: Array[String]): Unit = {
 	    println("*** TS ***")

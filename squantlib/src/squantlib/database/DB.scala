@@ -70,6 +70,12 @@ object DB extends Schema {
    * @param ids A List of Country IDs.
    * @return A List of Country objects.
    */
+  def getCountries:List[Country] = {
+    transaction {
+      from(countries)(country => select(country)).toList
+    }
+  }
+  
   def getCountries(ids:Traversable[String]):List[Country] = {
     transaction {
       from(countries)(country =>
@@ -79,9 +85,9 @@ object DB extends Schema {
     }
   }
 
-  def getCountries:List[Country] = {
+  def getCurrencies:List[Currency] = {
     transaction {
-      from(countries)(country => select(country)).toList
+      from(currencies)(currency => select(currency)).toList
     }
   }
   
@@ -94,9 +100,9 @@ object DB extends Schema {
     }
   }
 
-  def getCurrencies:List[Currency] = {
+  def getDistributers:List[Distributor] = {
     transaction {
-      from(currencies)(currency => select(currency)).toList
+      from(distributors)(distributor => select(distributor)).toList
     }
   }
   
@@ -109,12 +115,6 @@ object DB extends Schema {
     }
   }
 
-  def getDistributers:List[Distributor] = {
-    transaction {
-      from(distributors)(distributor => select(distributor)).toList
-    }
-  }
-  
   def getFXRates:List[FXRate] = {
     transaction {
       from(fxrates)(fxrate => select(fxrate)).toList
@@ -160,6 +160,12 @@ object DB extends Schema {
     }
   }
 
+  def getIssuers:List[Issuer] = {
+    transaction {
+      from(issuers)(issuer => select(issuer)).toList
+    }
+  }
+
   def getIssuers(ids:Traversable[String]):List[Issuer] = {
     transaction {
       from(issuers)(issuer =>
@@ -169,12 +175,12 @@ object DB extends Schema {
     }
   }
   
-  def getIssuers:List[Issuer] = {
+  def getProducts:List[Product] = {
     transaction {
-      from(issuers)(issuer => select(issuer)).toList
+      from(products)(product => select(product)).toList
     }
   }
-
+  
   def getProducts(ids:Traversable[String]):List[Product] = {
     transaction {
       from(products)(product =>
@@ -184,9 +190,9 @@ object DB extends Schema {
     }
   }
   
-  def getProducts:List[Product] = {
+  def getBonds:List[Bond] = {
     transaction {
-      from(products)(product => select(product)).toList
+      from(bonds)(bond => select(bond)).toList
     }
   }
   
@@ -199,19 +205,54 @@ object DB extends Schema {
     }
   }
   
-  def getBonds:List[Bond] = {
+  def getBonds(valuedate:JavaDate):List[Bond] = {
     transaction {
-      from(bonds)(bond => select(bond)).toList
+      from(bonds)(bond =>
+        where(bond.maturity gt valuedate)
+        select(bond)
+      ).toList
     }
   }
-  
-  def getBondsByProducts(productids:Traversable[String]):List[String] = 
+
+  def getBondsByProducts(productids:Traversable[String]):List[Bond] = 
     transaction {
       from(bonds)(b =>
         where(b.productid in productids)
-        select( &(b.id) )
+        select(b)
       ).toList
     }
+  
+  def getBondsByIssuers(issuerids:Traversable[String]):List[Bond] = 
+    transaction {
+      from(bonds)(b =>
+        where(b.issuerid in issuerids)
+        select(b)
+      ).toList
+    }
+  
+  def getPriceByParamset(paramset:String):List[BondPrice] =
+    transaction {
+      from(bondprices)(b =>
+        where(b.paramset === paramset)
+        select(b)
+      ).toList
+    }
+  
+  def getPriceByDate(paramdate:JavaDate):List[BondPrice] =
+    transaction {
+      from(bondprices)(b =>
+        where(b.paramdate === paramdate)
+        select(b)
+      ).toList
+    }
+  
+  def getPriceParamsets:List[(String, JavaDate)] =
+    transaction {
+      from(bondprices)(b =>
+        select((&(b.paramset), &(b.paramdate)))
+      ).distinct.toList
+    }
+  
 
   
   /**
@@ -420,18 +461,18 @@ object DB extends Schema {
    */
   def getTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):SortedMap[JavaDate, Double] = 
     transaction {
-	  TreeMap(
-	      from(inputparameters)(ip =>
-	        where(
-	          (ip.paramdate gte fromDate) and
-	          (ip.paramdate lte toDate) and
-	          (ip.paramset like "%-000") and
-	          ip.instrument === instrument and
-	          ip.asset      === asset and
-	          ip.maturity   === maturity
-	        )
-	        select((&(ip.paramdate), &(ip.value)))
-	      ).toSeq : _*)
+      val qresult = from(inputparameters)(ip =>
+        where(
+          (ip.paramdate gte fromDate) and
+          (ip.paramdate lte toDate) and
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity
+        )
+        select((&(ip.paramdate), &(ip.value)))
+      ).toSeq
+      TreeMap(qresult : _*)
 	 }
 	    
   private def EmptyFXSeries(fromDate:JavaDate, toDate:JavaDate):SortedMap[JavaDate, Double] = 
@@ -451,19 +492,20 @@ object DB extends Schema {
    */
   def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String):SortedMap[JavaDate, Double] = 
     if (fx1 == "JPY") EmptyFXSeries(fromDate, toDate)
-    else transaction {
-      TreeMap(
-	      from(fxrates)(fx =>
-	        where(
-	          (fx.paramdate gte fromDate) and
-	          (fx.paramdate lte toDate) and
-	          (fx.paramset like "%-000") and
-	          fx.currencyid      === fx1
-	        )
-	        select((&(fx.paramdate), &(fx.fxjpy)))
-	      ).toSeq 
-	   : _*)
-	} 
+    else synchronized {
+    	transaction {
+          val qresult = from(fxrates)(fx =>
+		        where(
+		          (fx.paramdate gte fromDate) and
+		          (fx.paramdate lte toDate) and
+		          (fx.paramset like "%-000") and
+		          fx.currencyid      === fx1
+		        )
+		        select((&(fx.paramdate), &(fx.fxjpy)))
+		      ).toSeq
+		  TreeMap(qresult : _*)
+        }
+    	}
   
   
   /**
@@ -482,7 +524,7 @@ object DB extends Schema {
    */
   def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String, fx2:String):SortedMap[JavaDate, Double] = 
     if (fx1 == fx2)	EmptyFXSeries(fromDate, toDate)
-    else transaction {
+    else {
       val fxset1 = getFXTimeSeries(fromDate, toDate, fx1)
       val fxset2 = getFXTimeSeries(fromDate, toDate, fx2)
       TreeMap((fxset1.keySet & fxset2.keySet).map(d => (d, fxset1(d) / fxset2(d))).toSeq : _*)
@@ -504,18 +546,18 @@ object DB extends Schema {
    */
   def getCDSTimeSeries(fromDate:JavaDate, toDate:JavaDate, currencyid:String, issuerid:String, maturity:String):SortedMap[JavaDate, Double] = 
     transaction {
-      TreeMap(
-          from(cdsparameters)(ip =>
-	        where(
-	          (ip.paramdate gte fromDate) and
-	          (ip.paramdate lte toDate) and
-	          (ip.paramset like "%-000") and
-	          ip.issuerid      === issuerid and
-	          ip.currencyid      === currencyid and
-	          ip.maturity   === maturity
-	        )
-	        select((&(ip.paramdate), &(ip.spread)))
-	      ).toSeq : _*)
+      val qresult = from(cdsparameters)(ip =>
+        where(
+          (ip.paramdate gte fromDate) and
+          (ip.paramdate lte toDate) and
+          (ip.paramset like "%-000") and
+          ip.issuerid      === issuerid and
+          ip.currencyid      === currencyid and
+          ip.maturity   === maturity
+        )
+        select((&(ip.paramdate), &(ip.spread)))
+      ).toSeq
+      TreeMap(qresult : _*)
     }
   
   /**
@@ -532,18 +574,18 @@ object DB extends Schema {
    */
   def getPriceSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
     transaction {
-	  TreeMap(
-	      from(bondprices)(bp =>
-	        where(
-	          (bp.paramdate gte start) and
-	          (bp.paramdate lte end) and
-	          (bp.paramset like "%-000") and
-	          bp.instrument === "BONDPRICE" and
-	          bp.bondid      === bondid and
-	          bp.priceclean.isNotNull
-	        )
-	        select(&(bp.paramdate), &(bp.priceclean.get))
-	      ).toSeq : _*)
+      val qresult = from(bondprices)(bp =>
+        where(
+          (bp.paramdate gte start) and
+          (bp.paramdate lte end) and
+          (bp.paramset like "%-000") and
+          bp.instrument === "BONDPRICE" and
+          bp.bondid      === bondid and
+          bp.priceclean.isNotNull
+        )
+        select(&(bp.paramdate), &(bp.priceclean.get))
+      ).toSeq
+      TreeMap(qresult : _*)
   	}
   
   /**
@@ -560,18 +602,18 @@ object DB extends Schema {
    */
   def getJPYPriceSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
     transaction {
-	  TreeMap(
-	      from(bondprices)(bp =>
-	        where(
-	          (bp.paramdate gte start) and
-	          (bp.paramdate lte end) and
-	          (bp.paramset like "%-000") and
-	          bp.instrument === "BONDPRICE" and
-	          bp.bondid      === bondid and
-	          bp.priceclean_jpy.isNotNull
-	        )
-	        select(&(bp.paramdate), &(bp.priceclean_jpy.get))
-	      ).toSeq : _*)
+      val qresult = from(bondprices)(bp =>
+        where(
+          (bp.paramdate gte start) and
+          (bp.paramdate lte end) and
+          (bp.paramset like "%-000") and
+          bp.instrument === "BONDPRICE" and
+          bp.bondid      === bondid and
+          bp.priceclean_jpy.isNotNull
+        )
+        select(&(bp.paramdate), &(bp.priceclean_jpy.get))
+      ).toSeq
+      TreeMap(qresult : _*)
   	}
   
   /**
@@ -586,6 +628,7 @@ object DB extends Schema {
     val datatable = data.head.getClass.getSimpleName.toString match {
       case "BondPrice" => bondprices
       case "Volatility" => volatilities
+      case "Correlation" => correlations
       case _ => null
     }
     

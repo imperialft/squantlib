@@ -47,22 +47,32 @@ object QLConstructors {
 	}
 
 	
-    implicit def SortedMap2Ts(values:SortedMap[qlDate, Double]) : TimeSeries[JavaDouble] = 
-      new TimeSeries[java.lang.Double](JavaDouble.TYPE, mapAsJavaMap(values.mapValues(q => q.doubleValue)))
-        
-    implicit def SortedMapJava2Ts(values:SortedMap[JavaDate, Double]) : TimeSeries[JavaDouble] = 
-      new TimeSeries[java.lang.Double](JavaDouble.TYPE, values.map(q => (new qlDate(q._1), new JavaDouble(q._2))))
+//    implicit def SortedMap2Ts(values:SortedMap[qlDate, Double]) : TimeSeries[JavaDouble] = 
+//      new TimeSeries[java.lang.Double](JavaDouble.TYPE, mapAsJavaMap(values.mapValues(q => q.doubleValue)))
+//        
+//    implicit def SortedMapJava2Ts(values:SortedMap[JavaDate, Double]) : TimeSeries[JavaDouble] = 
+//      new TimeSeries[java.lang.Double](JavaDouble.TYPE, values.map(q => (new qlDate(q._1), new JavaDouble(q._2))))
+//
+//	implicit def Sortedmap2Ts(m:SortedMap[qlDate, Double]) = new ConvertableSortedMap(m)
+//	class ConvertableSortedMap(m:SortedMap[qlDate, Double]) {
+//	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (q._1, new JavaDouble(q._2))))
+//	}
 
-	implicit def Sortedmap2Ts(m:SortedMap[qlDate, Double]) = new ConvertableSortedMap(m)
-	class ConvertableSortedMap(m:SortedMap[qlDate, Double]) {
+	implicit def Map2Ts(m:scala.collection.Map[qlDate, Double]) = new ConvertableMap(m)
+	class ConvertableMap(m:scala.collection.Map[qlDate, Double]) {
 	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (q._1, new JavaDouble(q._2))))
 	}
-
-	implicit def JavaSortedmap2Ts(m:SortedMap[JavaDate, Double]) = new ConvertableJavaSortedMap(m)
-	class ConvertableJavaSortedMap(m:SortedMap[JavaDate, Double]) {
+	
+//	implicit def JavaSortedmap2Ts(m:SortedMap[JavaDate, Double]) = new ConvertableJavaSortedMap(m)
+//	class ConvertableJavaSortedMap(m:SortedMap[JavaDate, Double]) {
+//	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (new qlDate(q._1), new JavaDouble(q._2))))
+//	}
+	
+	implicit def JavaMap2Ts(m:scala.collection.Map[JavaDate, Double]) = new ConvertableJavaMap(m)
+	class ConvertableJavaMap(m:scala.collection.Map[JavaDate, Double]) {
 	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (new qlDate(q._1), new JavaDouble(q._2))))
 	}
-	
+
 	implicit def TimeSeriesToConvertibleTs(ts:TimeSeries[JavaDouble]) = new ConvertibleTimeSeries(ts)
 	class ConvertibleTimeSeries(ts:TimeSeries[JavaDouble]) {
 	  def toSortedMap = SortedMap(ts.mapValues(d => d.doubleValue).toSeq:_*)

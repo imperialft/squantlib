@@ -7,13 +7,12 @@
 
 
 import squantlib.database._
+import squantlib.database.QLConstructors._
 import squantlib.database.schemadefinitions.{ Bond => dbBond, _}
-import squantlib.database.objectconstructor._
 import squantlib.model.discountcurve._
 import org.jquantlib.time._
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.bonds.FixedRateBond
-import squantlib.database.utilities._
 import org.jquantlib.instruments.{Bond => QLBond}
 import org.jquantlib.currencies.Asia.JPYCurrency
 import scala.collection.immutable.TreeMap
@@ -43,11 +42,13 @@ val bonds:List[QLBond] = {
  * Compute bond price
  */
 val t3 = System.nanoTime
-val bondprices = bonds map{ b => {
-  val termstructure = factory.getyieldtermstructure(b)
-  val fx = factory.fx(b.currency.code, jpyccy.code)
-  QLDB.getBondPrice(b, factory.valuedate, fx, paramset, termstructure)
-}}
+val bondprices = bonds map { b => b.bondprice(valuedate, factory) }
+  
+//  {
+//  val termstructure = factory.getyieldtermstructure(b)
+//  val fx = factory.fx(b.currency.code, jpyccy.code)
+////  QLDB.getBondPrice(b, factory.valuedate, fx, paramset, termstructure)
+//}}
 
 
 /**
@@ -60,7 +61,7 @@ println("paramset :\t" + paramset)
 
 println("\n*** Created Variables ***")
 println("dbbonds:\t all bonds")
-val dbbonds = DB.getAllBonds.map(b => (b.id, b)).toMap;
+val dbbonds = DB.getBonds.map(b => (b.id, b)).toMap;
 
 println("factory:\t discount curve factory")
 println("bondlist:\t list of all bonds")
@@ -138,7 +139,7 @@ println("pushdb:\t update price to database")
 def pushdb = {
 	println("Writing to Database")
 	val start = System.nanoTime
-	DB.setBondPrice(bondprices.filter(p => (!p.pricedirty.isNaN)))
+	DB.insertOrReplace(bondprices.filter(p => (!p.pricedirty.isNaN)))
 	val end = System.nanoTime
 	println("Done (%.3f sec)".format(((end - start)/1000000000.0)))
 }

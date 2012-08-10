@@ -15,16 +15,16 @@ object TsAnalysis {
 	  val tsmap = ts.toSortedMap
 	  
 	  def correlation(series:TimeSeries[JavaDouble], nbdays:Int = -1):TimeSeries[JavaDouble] = 
-		Correlation.calculate(tsmap, series.toSortedMap, nbdays) 
+		Correlation.calculate(tsmap, series.toSortedMap, nbdays).toTimeSeries
 		
 	  def volatility(nbdays:Int = -1, annualdays:Double = 260.0):TimeSeries[JavaDouble] = 
-	    Volatility.calculate(tsmap, if (nbdays > 0) nbdays else tsmap.size, annualdays)
+	    Volatility.calculate(tsmap, if (nbdays > 0) nbdays else tsmap.size, annualdays).toTimeSeries
 	  
 	  def variance(nbDays:Int):TimeSeries[JavaDouble] =
-		Variance.calculate(tsmap, nbDays)
+		Variance.calculate(tsmap, nbDays).toTimeSeries
 	
 	  def movingaverage(nbDays:Int):TimeSeries[JavaDouble] = 
-		MovingAverage.calculate(tsmap, nbDays)
+		MovingAverage.calculate(tsmap, nbDays).toTimeSeries
 		
 	  def describe = ts.foreach(t => println(t._1.shortDate.toString + "\t" + t._2))
 	}
