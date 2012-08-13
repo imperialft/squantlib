@@ -62,6 +62,7 @@ object DB extends Schema {
   val bondprices = table[BondPrice]("BondPrices")
   val volatilities = table[Volatility]("Volatilities")
   val correlations = table[Correlation]("Correlations")
+  val coupons = table[Coupon]("Coupons")
 
   /**
    * Returns a List of Country objects identified by a List of ID.
@@ -629,6 +630,7 @@ object DB extends Schema {
       case "BondPrice" => bondprices
       case "Volatility" => volatilities
       case "Correlation" => correlations
+      case "Coupon" => coupons
       case _ => null
     }
     

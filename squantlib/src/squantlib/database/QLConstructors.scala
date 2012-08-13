@@ -3,7 +3,7 @@ package squantlib.database
 import squantlib.database.schemadefinitions.{ Bond => dbBond, CDSParameter, BondPrice, InputParameter, FXRate}
 import squantlib.model.discountcurve.{RateCurve, FXCurve, DiscountableCurve, CDSCurve, DiscountCurveFactory}
 import squantlib.database.objectconstructor.{LiborDiscountCurveConstructor, FXDiscountCurveConstructor, CDSCurveConstructor, BondPriceConstructor}
-import org.jquantlib.instruments.Bond
+import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.termstructures.YieldTermStructure
 import org.jquantlib.time.{Date => qlDate, TimeSeries}
 import scala.collection.SortedMap
@@ -68,6 +68,7 @@ object QLConstructors {
 //	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (new qlDate(q._1), new JavaDouble(q._2))))
 //	}
 	
+	
 	implicit def JavaMap2Ts(m:scala.collection.Map[JavaDate, Double]) = new ConvertableJavaMap(m)
 	class ConvertableJavaMap(m:scala.collection.Map[JavaDate, Double]) {
 	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (new qlDate(q._1), new JavaDouble(q._2))))
@@ -78,9 +79,8 @@ object QLConstructors {
 	  def toSortedMap = SortedMap(ts.mapValues(d => d.doubleValue).toSeq:_*)
 	}
 	
-
-	implicit def Bond2RichBond(bond:Bond) = new RichBond(bond)
-	class RichBond(val bond:Bond){
+	implicit def Bond2RichBond(bond:qlBond) = new RichBond(bond)
+	class RichBond(val bond:qlBond){
 	  def bondprice(valuedate:qlDate, factory:DiscountCurveFactory) = BondPriceConstructor.getprice(bond, factory)
 	  def bondprice(valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure):BondPrice 
 			= BondPriceConstructor.getprice(bond, valuedate, fx, paramset, termstructure)

@@ -9,7 +9,7 @@ object FixedRateBondConstructor {
   
 	val productlist = List("SB", "STEPUP", "DISC")
 	
-	def ratetoarray(formula:String, size:Int) = {
+	def ratetoarray(formula:String, size:Int):Array[Double] = {
 		val numarray = formula.split(";").map(x => (try{x.replace("%", "").trim.toDouble / 100.0} catch { case _ => Double.NaN}))
 		(0 to (size-1)).map(i => { val m = size - numarray.size; if(i < m) numarray(0) else numarray(i - m)}).toArray
 	}

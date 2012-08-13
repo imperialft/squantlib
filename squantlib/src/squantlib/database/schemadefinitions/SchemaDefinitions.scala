@@ -272,6 +272,7 @@ class Bond(@Column("ID")					var id: String,
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
   
   def toFixedRateBond = FixedRateBondConstructor.getbond(this)
+  def getCoupons = CouponConstructor.getCoupons(this)
 }
 
 
@@ -478,5 +479,39 @@ class Correlation(@Column("ID")				var id:String,
       lastmodified = Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, underlying1, underlying2, valuedate, value)
+}
+
+class Coupon(@Column("ID")				var id:String,
+			@Column("BondID")			var bondid:String,
+			@Column("CurrencyID")		var currency:String,
+			@Column("Rate")				var rate:String,
+			@Column("EventDate")		var eventdate:Date,
+			@Column("StartDate")		var startdate:Date,
+			@Column("EndDate")			var enddate:Date,
+			@Column("PaymentDate")		var paymentdate:Date,
+			@Column("FixedAmount")		var fixedamount:Option[Double],
+			@Column("Comment")			var comment:String,
+			@Column("Daycount")			var daycount:String,
+			@Column("PaymentType")		var paymenttype:String,
+			@Column("LastModified")		var lastmodified:Option[Date]
+              ) extends KeyedEntity[String] {
+  
+  def this() = this(
+      id = null,
+      bondid = null,
+      currency = null,
+      rate = null,
+      eventdate = null,
+      startdate = null,
+      enddate = null,
+      paymentdate = null,
+      fixedamount = Some(-999.0),
+      comment = null,
+      daycount = null,
+      paymenttype = null,
+      lastmodified = Some(new Date))
+      
+  override def toString():String = format("%-15s %-5s %-15s %tF %tF %tF %tF %-15s", bondid, currency, rate, eventdate, startdate, enddate, paymentdate, fixedamount.getOrElse(""))
+      
 }
 
