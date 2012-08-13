@@ -20,10 +20,10 @@ object CorrelPrice {
    
   def push:Unit = {
     if (pendingprice.size != 0) {
-		val targetprices = pendingprice.filter(!_.value.isNaN)
-	    printf("Writing " + targetprices.size + " items to Database...")
+		pendingprice.retain(!_.value.isNaN)
+	    printf("Writing " + pendingprice.size + " items to Database...")
 		val t1 = System.nanoTime
-		DB.insertOrReplace(targetprices)
+		DB.insertOrReplace(pendingprice)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
 		pendingprice.clear
@@ -51,12 +51,24 @@ object CorrelPrice {
       return
     }
 	
+	val commondays = series1.keySet & series2.keySet
+	
 	/**
 	 * Creates factory from given paramset.
 	 */
-	val ts1 = SortedMap(series1.mapValues(d => d.doubleValue).toSeq:_*)
-	val ts2 = SortedMap(series2.mapValues(d => d.doubleValue).toSeq:_*)
-	val resultseries = Correlation.calculate(ts1, ts2, nbDays).filter(c => ((c._1 ge startDate) && (c._1 le endDate)))
+	val ts1 = commondays.map(d => (d, series1(d).doubleValue))
+	val ts2 = commondays.map(d => (d, series2(d).doubleValue))
+	
+    if (ts1.size < nbDays) {
+      outputln("Error - Not enough elements: found " + ts1.size + " require " + nbDays)
+      printf(outputstring)
+      return
+    }
+	
+	
+	val sortedts1 = SortedMap(ts1.toSeq:_*)
+	val sortedts2 = SortedMap(ts2.toSeq:_*)
+	val resultseries = Correlation.calculate(sortedts1, sortedts2, nbDays).filter(c => ((c._1 ge startDate) && (c._1 le endDate)))
 	
 	val result = resultseries.map { v =>
     	new Correlation(

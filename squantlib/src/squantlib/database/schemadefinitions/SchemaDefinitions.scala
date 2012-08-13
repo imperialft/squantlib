@@ -420,33 +420,41 @@ class FXRate(@Column("ID")					var id:Int,
       currencyid = null, 
       fxjpy = -99999.0, 
       lastmodified = Some(new Date))
+      
+  def toInputParameter:InputParameter = new InputParameter(
+      id = -id, 
+      paramset = paramset, 
+      paramdate = paramdate, 
+      instrument = "FX", 
+      asset = currencyid, 
+      maturity = null, 
+      value = fxjpy, 
+      option = null, 
+      comment = null, 
+      created = Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramdate, paramset, currencyid, fxjpy)
 }
 
 class Volatility(@Column("ID")				var id:String,
-              @Column("INSTRUMENT")			var instrument:String,
-              @Column("ASSET")				var asset:String,
-              @Column("MATURITY")			var maturity:String,
-              @Column("VALUEDATE")			var valuedate:Date,
-              @Column("PERIODICITY")		var periodicity:Int,
-              @Column("NBDAYS")				var nbdays:Int,
-              @Column("VALUE")				var value:Double,
+              @Column("UnderlyingID")		var underlying:String,
+              @Column("ValueDate")			var valuedate:Date,
+              @Column("Periodicity")		var periodicity:Int,
+              @Column("NbDays")				var nbdays:Int,
+              @Column("Value")				var value:Double,
               @Column("LastModified")		var lastmodified:Option[Date]
               ) extends KeyedEntity[String] {
   
   def this() = this(
       id = null, 
-      instrument = null,
-      asset = null,
-      maturity = null,
+      underlying = null,
       valuedate = null,
       periodicity = -999999,
       nbdays = -99999,
       value = -99999999,
       lastmodified = Some(new Date))
 
-  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, instrument, asset, maturity, value)
+  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, underlying, valuedate, periodicity, value)
 }
 
 class Correlation(@Column("ID")				var id:String,

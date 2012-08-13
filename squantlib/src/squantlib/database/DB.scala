@@ -246,7 +246,7 @@ object DB extends Schema {
       ).toList
     }
   
-  def getPriceParamsets:List[(String, JavaDate)] =
+  def getPricedParamsets:List[(String, JavaDate)] =
     transaction {
       from(bondprices)(b =>
         select((&(b.paramset), &(b.paramdate)))
@@ -572,7 +572,7 @@ object DB extends Schema {
    *                 To be concise, the operator used for toDate in where-clause is "less than."
    * @return bondid Bond id. eg. "ADB-00001"
    */
-  def getPriceSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
+  def getPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
     transaction {
       val qresult = from(bondprices)(bp =>
         where(
@@ -600,7 +600,7 @@ object DB extends Schema {
    *                 To be concise, the operator used for toDate in where-clause is "less than."
    * @return bondid Bond id. eg. "ADB-00001"
    */
-  def getJPYPriceSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
+  def getJPYPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
     transaction {
       val qresult = from(bondprices)(bp =>
         where(
