@@ -96,9 +96,11 @@ object CLI {
         // Run script
         if (line.startsWith("run ")) {
           val file = line.slice(4, line.length)
-          try
-            intp.interpret(getSourceContent(file))
-          catch {
+          try {
+            intp.beQuietDuring {
+              intp.interpret(getSourceContent(file))
+            }
+          } catch {
             case e: UnmappableCharacterException => println("Encoding issue found. Is it in UTF-8?")
             case e: FileNotFoundException => println("File '" + file + "' does not exist.")
           }
