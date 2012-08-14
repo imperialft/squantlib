@@ -74,9 +74,20 @@ t0 = System.nanoTime
 
 println("Well44497b")
 val well44497b = new Well44497b(18927491241L)
-val wbrand = () => cauchy.sample
+val wbrand = () => well44497b.sample
 paths.foreach(p => {
   val price = MonteCarlo_BS.simpleVanilla(spot, ratedom, ratefor, sigma, NormSInv, wbrand, flow, time, discount, p)
+  println(p + " paths => " + price._1 + " stddev " + price._2)
+})
+println("%-27.27s %.3f sec".format("Process time:", ((System.nanoTime - t0)/1000000000.0)))
+
+t0 = System.nanoTime
+
+println("Cauchy")
+val cauchy = new Cauchy(0.0, 0.5, 93897412816L)
+val caurand = () => cauchy.sample
+paths.foreach(p => {
+  val price = MonteCarlo_BS.simpleVanilla(spot, ratedom, ratefor, sigma, NormSInv, caurand, flow, time, discount, p)
   println(p + " paths => " + price._1 + " stddev " + price._2)
 })
 println("%-27.27s %.3f sec".format("Process time:", ((System.nanoTime - t0)/1000000000.0)))
