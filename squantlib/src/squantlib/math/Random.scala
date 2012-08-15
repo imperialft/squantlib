@@ -19,18 +19,16 @@ abstract class Generator extends Stream[Double] {
    */
   override def isEmpty = false
 
-  protected
-
   /**
    * Set this Stream to be infinitely long.
    */
-  def tailDefined = false
+  protected def tailDefined = false
 
   /**
    * An abstract accessor to random number generator implementation.
    *
    */
-  val generator:{def nextDouble():Double}
+  protected val generator:{def nextDouble():Double}
 
   /**
    * Generates next random number.
@@ -44,7 +42,7 @@ abstract class Generator extends Stream[Double] {
    *
    * @return A random number in a near-Gaussian distribution.
    */
-  def sum_12_samples_then_minus_6():Double = {
+  protected def sum_12_samples_then_minus_6():Double = {
     var sum:Double = 0
     for (i <- 1 to 12)
       sum += sample()
@@ -74,6 +72,29 @@ class Java(seed:Long) extends Generator {
   val generator = new java.util.Random(seed)
 }
 
+/**
+ * Lazy random number generator with Cauchy-distribution (CDF) using MersenneTwister.
+ *
+ * @param location
+ * @param scale
+ * @param seed A seed number for the sequence.
+ */
+class Cauchy(val location:Double, val scale:Double, val seed:Long) extends MersenneTwister(seed) {
+  import java.lang.Math.{PI, tan, atan}
+  override def toString = "Cauchy[Double]"
+  override def head() = sample()
+  override def sample() = {
+    var n = generator.nextDouble()
+    while (n == 0.0) n = generator.nextDouble() // Cauchy needs n <= (0,1) instead of [0,1)
+    // (location + scale * tan(PI * (n - 0.5)))
+    val x = (location + scale * tan(PI * (n - 0.5)))
+    1 / PI * atan((x - location) / scale) + 0.5 // return CDF(n)
+  }
+}
+
+class Well44497b(seed:Long) extends Generator {
+  val generator = new org.apache.commons.math3.random.Well44497b(seed)
+}
 
 @tailrec class CorputBase2(var N:Long) extends Generator {
 //   Returns the equivalent first van der Corput sequence number
@@ -115,7 +136,6 @@ class CorputBase2_NR(var N:Long) extends Generator {
   }
 }
 
-
 @tailrec class CorputBaseb(val b:Long, var N:Long) extends Generator {
 //   Returns the equivalent first van der Corput sequence number
   val generator = this
@@ -132,7 +152,6 @@ class CorputBase2_NR(var N:Long) extends Generator {
 		nextDouble(n2, c + ib * i, ib / b)
     }
     else c
-  
 }
 
 object CorputBase2 {
