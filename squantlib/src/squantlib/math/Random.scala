@@ -2,6 +2,7 @@ package squantlib.math.random
 
 import org.apache.commons.math3.random.{MersenneTwister => MT}
 import scala.annotation.tailrec
+import scala.collection.mutable.SynchronizedQueue
 
 /**
  * Abstract random number Generator class. Numbers are lazily generated to save memory.
@@ -134,3 +135,26 @@ class CorputBase2_NR(var N:Long) extends Generator {
   
 }
 
+object CorputBase2 {
+//   Returns the equivalent first van der Corput sequence number
+
+  def generate(N:Long):Double = {
+    var n1:Long = N
+    var c:Double = 0.0
+    var ib:Double = 0.5
+    while (n1 > 0){
+	    val n2:Long = n1 / 2
+		val i:Long = n1 - n2 * 2
+		c = c + ib * i
+		ib = ib / 2.0
+		n1 = n2
+    }
+    c
+  }
+  
+  def generateSet(nbData:Long, initialN:Long):SynchronizedQueue[Double] = {
+    val queue = new SynchronizedQueue[Double]
+    (initialN to (initialN + nbData - 1)).par.foreach(n => queue.enqueue(generate(n)))
+    queue
+  }
+}
