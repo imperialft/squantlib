@@ -29,9 +29,9 @@ val jpyccy = new JPYCurrency
  * Initialise bonds with bond engine
  */
 val t2 = System.nanoTime
-val bonds:List[QLBond] = {
+val bonds:Set[QLBond] = {
   val fixedrateproducts = List("SB", "STEPUP", "DISC")
-  val fixedrateids = DB.getBondsByProducts(fixedrateproducts)
+  val fixedrateids = DB.getBondsByProducts(fixedrateproducts).map(_.id)
   val fixedratebuilder = (b:dbBond) => b.toFixedRateBond
   val fixedrateengine = (b:QLBond) => factory.getdiscountbondengine(b)
   val fixedratebonds = QLDB.getBonds(fixedrateids, fixedratebuilder, fixedrateengine, valuedate)

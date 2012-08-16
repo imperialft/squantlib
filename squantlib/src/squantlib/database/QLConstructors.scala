@@ -43,7 +43,35 @@ object QLConstructors {
 	  									else if (ccy2 == "JPY") fxjpy(ccy1)
 	  									else fxjpy(ccy1) / fxjpy(ccy2)
 	  									
-	  def fxusd(ccy:String):Double = fx(ccy, "USD")
+	  def fxusd(ccy:String):Double = fx("USD", ccy)
+	  
+	  def toInputParameter:Set[InputParameter] = fxset.map(fx => 
+	    new InputParameter(
+	      id = -fx.id,
+	      paramset = fx.paramset, 
+	      paramdate = fx.paramdate, 
+	      instrument = "FX", 
+	      asset = fx.currencyid, 
+	      maturity = null, 
+	      value = fxusd(fx.currencyid), 
+	      option = null, 
+	      comment = null, 
+	      created = fx.lastmodified
+	      )).toSet + inputParamJpy
+	      
+	  def inputParamJpy:InputParameter = 
+	    new InputParameter(
+	      id = -(fxset.map(_.id).max + 1),
+	      paramset = fxset.head.paramset, 
+	      paramdate = fxset.head.paramdate, 
+	      instrument = "FX", 
+	      asset = "JPY", 
+	      maturity = null, 
+	      value = fxusd("JPY"), 
+	      option = null, 
+	      comment = null, 
+	      created = fxset.head.lastmodified
+	      )
 	}
 
 	

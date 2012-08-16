@@ -51,8 +51,7 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	 * Returns FX spot ccy1 / ccy2
 	 * @param currency code, 
 	 */
-	def fx(ccy1:String, ccy2:String):Double = curves(ccy2).fx / curves(ccy1).fx
-	
+	def fx(ccy1:String, ccy2:String):Double = try {curves(ccy2).fx / curves(ccy1).fx } catch { case _ => Double.NaN}
 
 	/**
 	 * Returns discount curve. Discount currency is flat and same currency with given spread.

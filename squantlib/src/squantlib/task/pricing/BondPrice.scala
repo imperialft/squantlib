@@ -11,34 +11,32 @@ import org.jquantlib.instruments.bonds.FixedRateBond
 import org.jquantlib.instruments.{Bond => QLBond}
 import org.jquantlib.currencies.Asia.JPYCurrency
 import scala.collection.immutable.StringLike
+import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 
 object BondPrice {
   
-  private var pendingprice = scala.collection.mutable.ListBuffer.empty[BondPrice]
+  var storedprice = new HashSet[BondPrice] with SynchronizedSet[BondPrice]
+  
   var dbbonds:Map[String, dbBond] = Map.empty
   
   def loadbonds:Unit = {
     dbbonds = DB.getBonds.map(b => (b.id, b)).toMap
   }
   
-  def store(prices:List[BondPrice]):Unit = pendingprice.synchronized{
-    pendingprice ++= prices
-  }
-  
-  def storedprice = pendingprice
-   
   def push:Unit = {
-    if (pendingprice.size != 0) {
-		val targetprices = pendingprice.filter(p => (!p.pricedirty.isNaN))
-	    printf("Writing " + targetprices.size + " items to Database...")
+    if (storedprice.size != 0) {
+      
+    	printf("Extracting valid price ..")
+		storedprice.retain(!_.pricedirty.isNaN)
+	    printf("Writing " + storedprice.size + " items to Database...")
 		val t1 = System.nanoTime
-		DB.insertOrReplace(targetprices)
+		DB.insertOrReplace(storedprice)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
-		pendingprice.clear
+		storedprice.clear
 		}
 	}
-  
+      
   def price(paramset:String, bondid:Traversable[String] = null):Unit = {
     
     var outputstring = ""
@@ -59,7 +57,7 @@ object BondPrice {
 	 * Initialise priceable bonds with default bond engine
 	 */
 	val t2 = System.nanoTime
-	val bonds:List[QLBond] = if (bondid == null) QLDB.getBonds(factory) else QLDB.getBonds(bondid, factory)
+	val bonds:Set[QLBond] = if (bondid == null) QLDB.getBonds(factory) else QLDB.getBonds(bondid, factory)
 	
 	/**
 	 * Compute bond price
@@ -134,7 +132,7 @@ object BondPrice {
 	outputln("\n*** END OUTPUT " + paramset + "***\n")
 	
 	printf(outputstring)
-	store(bondprices)
+	storedprice ++= bondprices
   }
  
 }

@@ -118,23 +118,81 @@ object MonteCarlo_BS{
     
     val dates = datebuffer.sortBy(_.eventdate).toArray
     val nbdates = dates.size
-     
-    val mcresult = new Array[Array[Double]](paths)
-    (0 to paths - 1).foreach{path => {
-      var s = spot
-      val price = new Array[Double](nbdates)
-      (0 to nbdates - 1).foreach{d => {
-        val rnd = rand()
-        val ninv = normSInv(rnd)
-        s = s * scala.math.exp(dates(d).drift + (dates(d).sigt * ninv))
-        price(d) = dates(d).flow(s)
-     }}
-     mcresult(path) = price}}
+    val spotprice = Array.fill[Double](paths)(spot)
+    val mcresult = Array.fill[Array[Double]](paths)(new Array[Double](nbdates))
+
+    (0 to nbdates - 1).foreach {dateindex => {
+      val d = dates(dateindex)
+      (0 to paths - 1).foreach { path => {
+			val rnd = rand()
+			val ninv = normSInv(rnd)
+			spotprice(path) = spotprice(path) * scala.math.exp(d.drift + (d.sigt * ninv))
+			mcresult(path)(dateindex) = d.flow(spotprice(path))
+        }
+      }
+    }}
     
     new MCResult(dates, mcresult)
     
   }
-	
+
+  def MCPrice2(spot: Double, 
+      ratedom: Double => Double, 
+      ratefor: Double => Double, 
+      sigma: Double => Double, 
+      normSInv: Double => Double, 
+      rand: () => Double, 
+      eventDates: Array[Double], 
+      payDates: Array[Double], 
+      flows: Array[Double => Double], 
+      discount: Double => Double, 
+      paths: Int):MCResult = {
+    
+    val inputdates = (0 to eventDates.size-1).map(i => 
+      new {val eventdate = eventDates(i); val paydate = payDates(i); val flow = flows(i)}).sortBy(d => d.eventdate)
+
+    var prev:CalcPeriod = null
+    var datebuffer = ListBuffer.empty[CalcPeriod]
+    (0 to inputdates.size - 1).foreach(i => {
+      val eventdate = inputdates(i).eventdate
+      val paydate = inputdates(i).paydate
+      val cp = new CalcPeriod(
+	      eventdate = eventdate,
+	      paydate = paydate, 
+	      flow = inputdates(i).flow,
+	      sigma = sigma(eventdate),
+	      ratedom = ratedom(eventdate),
+	      ratefor = ratefor(eventdate),
+		  zc = discount(paydate),
+		  prev
+		)
+      prev = cp
+      datebuffer += cp 
+    })
+    
+    val dates = datebuffer.sortBy(_.eventdate).toArray
+    val nbdates = dates.size
+    val spotprice = Array.fill[Double](paths * 2)(spot)
+    val mcresult = Array.fill[Array[Double]](paths * 2)(new Array[Double](nbdates))
+
+    (0 to nbdates - 1).foreach {dateindex => {
+      val d = dates(dateindex)
+      (0 to paths - 1).foreach { path => {
+			val rnd = rand()
+			val ninv1 = normSInv(rnd)
+			spotprice(path*2) *= scala.math.exp(d.drift + (d.sigt * ninv1))
+			mcresult(path*2)(dateindex) = d.flow(spotprice(path*2))
+			
+			val ninv2 = -ninv1
+			spotprice(path*2+1) *= scala.math.exp(d.drift + (d.sigt * ninv2))
+			mcresult(path*2+1)(dateindex) = d.flow(spotprice(path*2+1))
+        }
+      }
+    }}
+    
+    new MCResult(dates, mcresult)
+    
+  }  
 	def NormSInv(u:Double):Double =
 	{
 		// This function generates a standard normal random 
@@ -215,6 +273,7 @@ class MCResult(val dates:Array[CalcPeriod], val modeloutput:Array[Array[Double]]
     
     override def toString() = dates.map(_.toString).mkString("\n") + 
     					"\n#legs: " + legs + 
+    					"\n#paths: " + paths + 
     					"\nprice: " + price + 
     					"\nstdev : " + stdev + 
     					"\nlegs: " + legprices.map(l => (l._1.eventdate + " => " + l._2)).mkString("\n")
