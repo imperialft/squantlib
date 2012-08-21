@@ -70,187 +70,142 @@ object DB extends Schema {
    * @param ids A List of Country IDs.
    * @return A List of Country objects.
    */
-  def getCountries:List[Country] = {
+  def getCountries:Set[Country] = {
     transaction {
-      from(countries)(country => select(country)).toList
+      from(countries)(country => select(country)).toSet
     }
   }
   
-  def getCountries(ids:Traversable[String]):List[Country] = {
+  def getCountries(ids:Traversable[String]):Set[Country] = {
     transaction {
       from(countries)(country =>
         where(country.id in ids)
         select(country)
-      ).toList
+      ).toSet
     }
   }
 
-  def getCurrencies:List[Currency] = {
+  def getCurrencies:Set[Currency] = {
     transaction {
-      from(currencies)(currency => select(currency)).toList
+      from(currencies)(currency => select(currency)).toSet
     }
   }
   
-  def getCurrencies(ids:Traversable[String]):List[Currency] = {
+  def getCurrencies(ids:Traversable[String]):Set[Currency] = {
     transaction {
       from(currencies)(currency =>
         where(currency.id in ids)
         select(currency)
-      ).toList
+      ).toSet
     }
   }
 
-  def getDistributers:List[Distributor] = {
+  def getDistributers:Set[Distributor] = {
     transaction {
-      from(distributors)(distributor => select(distributor)).toList
+      from(distributors)(distributor => select(distributor)).toSet
     }
   }
   
-  def getDistributers(ids:Traversable[String]):List[Distributor] = {
+  def getDistributers(ids:Traversable[String]):Set[Distributor] = {
     transaction {
       from(distributors)(distributor =>
         where(distributor.id in ids)
         select(distributor)
-      ).toList
+      ).toSet
     }
   }
 
-  def getFXRates:List[FXRate] = {
+  def getIssuers:Set[Issuer] = {
     transaction {
-      from(fxrates)(fxrate => select(fxrate)).toList
-    }
-  }
-  
-  def getFXRates(currencyid:String):List[FXRate] = {
-    transaction {
-      from(fxrates)(fxrate =>
-        where(fxrate.currencyid === currencyid)
-        select(fxrate)
-      ).toList
+      from(issuers)(issuer => select(issuer)).toSet
     }
   }
 
-  def getFXRates(currencyid:String, on:String):List[FXRate] = {
-    transaction {
-      from(fxrates)(fxrate =>
-        where(
-          (fxrate.currencyid === currencyid) and
-          (fxrate.paramset   like on + "%")
-        )
-        select(fxrate)
-      ).toList
-    }
-  }
-  
-  def getFXRates(currencyid:String, on:JavaDate):List[FXRate] = {
-    transaction {
-      from(fxrates)(fxrate =>
-        where(
-          fxrate.currencyid === currencyid and
-          fxrate.paramdate  === on
-        )
-      select(fxrate)
-      ).toList
-    }
-  }
-  
-  def getFXList:List[String] = {
-    transaction {
-      from(fxrates)(fxrate => select(&(fxrate.currencyid))).distinct.toList
-    }
-  }
-
-  def getIssuers:List[Issuer] = {
-    transaction {
-      from(issuers)(issuer => select(issuer)).toList
-    }
-  }
-
-  def getIssuers(ids:Traversable[String]):List[Issuer] = {
+  def getIssuers(ids:Traversable[String]):Set[Issuer] = {
     transaction {
       from(issuers)(issuer =>
         where(issuer.id in ids)
         select(issuer)
-      ).toList
+      ).toSet
     }
   }
   
-  def getProducts:List[Product] = {
+  def getProducts:Set[Product] = {
     transaction {
-      from(products)(product => select(product)).toList
+      from(products)(product => select(product)).toSet
     }
   }
   
-  def getProducts(ids:Traversable[String]):List[Product] = {
+  def getProducts(ids:Traversable[String]):Set[Product] = {
     transaction {
       from(products)(product =>
         where(product.id in ids)
         select(product)
-      ).toList
+      ).toSet
     }
   }
   
-  def getBonds:List[Bond] = {
+  def getBonds:Set[Bond] = {
     transaction {
-      from(bonds)(bond => select(bond)).toList
+      from(bonds)(bond => select(bond)).toSet
     }
   }
   
-  def getBonds(ids:Traversable[String]):List[Bond] = {
+  def getBonds(ids:Traversable[String]):Set[Bond] = {
     transaction {
       from(bonds)(bond =>
         where(bond.id in ids)
         select(bond)
-      ).toList
+      ).toSet
     }
   }
   
-  def getBonds(valuedate:JavaDate):List[Bond] = {
+  def getBonds(valuedate:JavaDate):Set[Bond] = {
     transaction {
       from(bonds)(bond =>
         where(bond.maturity gt valuedate)
         select(bond)
-      ).toList
+      ).toSet
     }
   }
 
-  def getBondsByProducts(productids:Traversable[String]):List[Bond] = 
+  def getBondsByProducts(productids:Traversable[String]):Set[Bond] = 
     transaction {
       from(bonds)(b =>
         where(b.productid in productids)
         select(b)
-      ).toList
+      ).toSet
     }
   
-  def getBondsByIssuers(issuerids:Traversable[String]):List[Bond] = 
+  def getBondsByIssuers(issuerids:Traversable[String]):Set[Bond] = 
     transaction {
       from(bonds)(b =>
         where(b.issuerid in issuerids)
         select(b)
-      ).toList
+      ).toSet
     }
   
-  def getPriceByParamset(paramset:String):List[BondPrice] =
+  def getPriceByParamset(paramset:String):Set[BondPrice] =
     transaction {
       from(bondprices)(b =>
         where(b.paramset === paramset)
         select(b)
-      ).toList
+      ).toSet
     }
   
-  def getPriceByDate(paramdate:JavaDate):List[BondPrice] =
+  def getPriceByDate(paramdate:JavaDate):Set[BondPrice] =
     transaction {
       from(bondprices)(b =>
         where(b.paramdate === paramdate)
         select(b)
-      ).toList
+      ).toSet
     }
   
-  def getPricedParamsets:List[(String, JavaDate)] =
+  def getPricedParamsets:Set[(String, JavaDate)] =
     transaction {
       from(bondprices)(b =>
         select((&(b.paramset), &(b.paramdate)))
-      ).distinct.toList
+      ).distinct.toSet
     }
   
 
@@ -341,7 +296,7 @@ object DB extends Schema {
    * @param maturity An identifier of the maturity.
    * @return A List of matching InputParameters.
    */
-  def getInputParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = 
+  def getInputParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):Set[InputParameter] = 
     transaction {
       from(inputparameters)(ip =>
         where(
@@ -352,7 +307,7 @@ object DB extends Schema {
           ip.maturity   === maturity
         )
         select(ip)
-      ).toList
+      ).toSet
     }
   
   def getInputParameters(paramset:String) =
@@ -363,7 +318,8 @@ object DB extends Schema {
   	    ).toSet
   	}
   
-  def getInputParameters(on:JavaDate, instrument:String, asset:String, maturity:String):List[InputParameter] = 
+  
+  def getInputParameters(on:JavaDate, instrument:String, asset:String, maturity:String):Set[InputParameter] = 
     transaction {
       from(inputparameters)(ip =>
         where(
@@ -373,12 +329,13 @@ object DB extends Schema {
           ip.maturity   === maturity
         )
         select(ip)
-      ).toList
+      ).toSet
     }
   
-  def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):List[InputParameter] = 
+  def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):Set[InputParameter] = 
     getInputParameters(on.longDate, instrument, asset, maturity)
- 
+
+    
 
   /**
    * Returns a List of CDSParameters that falls onto a range of Dates.
@@ -395,7 +352,7 @@ object DB extends Schema {
    * @param issuerid An identifier of the issuer.
    * @return A list of matching CDSParameters.
    */
-  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String, instrument:String):List[CDSParameter] = 
+  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String, instrument:String):Set[CDSParameter] = 
     transaction {
       from(cdsparameters)(cds =>
         where(
@@ -407,10 +364,10 @@ object DB extends Schema {
           cds.currencyid === currencyid
         )
         select(cds)
-      ).toList
+      ).toSet
     }
   
-  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String):List[CDSParameter] = 
+  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String):Set[CDSParameter] = 
     transaction {
       from(cdsparameters)(cds =>
         where(
@@ -421,10 +378,10 @@ object DB extends Schema {
           cds.currencyid === currencyid
         )
         select(cds)
-      ).toList
+      ).toSet
     }
 
-  def getCDSParameters(on:JavaDate, maturity:String, issuerid:String, currencyid:String):List[CDSParameter] = 
+  def getCDSParameters(on:JavaDate, maturity:String, issuerid:String, currencyid:String):Set[CDSParameter] = 
     transaction {
       from(cdsparameters)(cds =>
         where(
@@ -433,17 +390,76 @@ object DB extends Schema {
           cds.currencyid === currencyid
         )
         select(cds)
-      ).toList
+      ).toSet
     }
 
-  def getCDSParameters(paramset:String):List[CDSParameter] = 
+  def getCDSParameters(paramset:String):Set[CDSParameter] = 
     transaction {
         from(cdsparameters)(p => 
           where(p.paramset === paramset)
           select(p)
-          ).toList
+          ).toSet
     }
 
+  /**
+   * Returns a List of FX parameters that falls onto a range of Dates.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param currencyid target currency (quoted in JPY).
+   * @return A List of matching InputParameters.
+   */
+  def getFXRates(fromDate:JavaDate, toDate:JavaDate, currencyid:String):Set[FXRate] = 
+    transaction {
+      from(fxrates)(ip =>
+        where(
+          (ip.paramdate  gte fromDate) and
+          (ip.paramdate  lt  toDate) and
+          ip.currencyid === currencyid
+        )
+        select(ip)
+      ).toSet
+    }
+  
+  def getFXRates(paramset:String):Set[FXRate] =
+  	transaction { 
+  	  from(fxrates)(c => 
+  	    where(c.paramset === paramset)
+  	    select(c)
+  	    ).toSet
+  	}
+  
+  def getFXRates(on:JavaDate, currencyid:String):Set[FXRate] = 
+    transaction {
+      from(fxrates)(ip =>
+        where(
+          ip.paramdate  === on and
+          ip.currencyid === currencyid
+        )
+        select(ip)
+      ).toSet
+    }
+  
+  def getFXRates(on:JQuantDate, currencyid:String):Set[FXRate] = 
+    getFXRates(on.longDate, currencyid)
+    
+  def getFXRates:Set[FXRate] = {
+    transaction {
+      from(fxrates)(fxrate => select(fxrate)).toSet
+    }
+  }
+  
+  def getFXlist:Set[String] = {
+    transaction {
+      from(fxrates)(fxrate => select(&(fxrate.currencyid))).distinct.toSet
+    }
+  }
+    
+  
   /**
    * Returns historical values of input parameter.
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.

@@ -27,7 +27,7 @@ trait FXCurve extends DiscountableCurve{
 	  Array(currency.code, "pivot: " + pivotcurrency.code, "fx: " + fx).mkString(sys.props("line.separator"))
   }
   
-  def describe = (currency.code + " : " + valuedate.shortDate + " - " + swappoint.points.maxdate.shortDate + (if (swappoint != null) " swappt" else ""))
+  def describe = (currency.code + " : " + fx + " : " + valuedate.shortDate + " - " + swappoint.points.maxdate.shortDate + (if (swappoint != null) " swappt" else ""))
   
   override def toString():String = swappoint.currency.code + ":fxcurve"
 }

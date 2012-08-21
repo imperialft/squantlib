@@ -419,7 +419,7 @@ class BondPrice(@Column("ID")			var id:String,
 class FXRate(@Column("ID")					var id:Int,
               @Column("PARAMDATE")			var paramdate:Date,
               @Column("PARAMSET")			var paramset:String,
-              @Column("CurrencyID")				var currencyid:String,
+              @Column("CurrencyID")			var currencyid:String,
               @Column("FXRATE_JPY")			var fxjpy:Double,
               @Column("LastModified")		var lastmodified:Option[Date]
               ) extends KeyedEntity[Int] {
@@ -431,18 +431,6 @@ class FXRate(@Column("ID")					var id:Int,
       currencyid = null, 
       fxjpy = -99999.0, 
       lastmodified = Some(new Date))
-      
-  def toInputParameter:InputParameter = new InputParameter(
-      id = -id, 
-      paramset = paramset, 
-      paramdate = paramdate, 
-      instrument = "FX", 
-      asset = currencyid, 
-      maturity = null, 
-      value = fxjpy, 
-      option = null, 
-      comment = null, 
-      created = Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramdate, paramset, currencyid, fxjpy)
 }

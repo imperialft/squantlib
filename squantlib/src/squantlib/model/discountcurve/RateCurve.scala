@@ -31,7 +31,7 @@ trait RateCurve extends DiscountableCurve{
 	  Array(cash.currency.code, "cash: " + cashdescribe(cash), "swap: " + swapdescribe(swap), "bs: " + basisdescribe(basis), "bs3m6m: " + basis36describe(tenorbasis)).mkString(sys.props("line.separator"))
   }
   
-  def describe = (cash.currency.code + " : " + valuedate.shortDate + " - " + swap.rate.maxdate.shortDate +  
+  def describe = (cash.currency.code + " : " + fx + " : " + valuedate.shortDate + " - " + swap.rate.maxdate.shortDate +  
       (if (cash != null) " cash" else "") + (if (swap != null) " swap" else "") +
       (if (basis != null) " basis" else "") + (if (tenorbasis != null) " bs3m6m" else ""))
   

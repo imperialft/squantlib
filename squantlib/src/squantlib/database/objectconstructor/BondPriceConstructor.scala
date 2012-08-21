@@ -109,8 +109,15 @@ object BondPriceConstructor {
 			}
 			
 			val initialfx = bond.initialFX
-			val pricedirty_jpy = if (initialfx > 0) Some(price * fx / initialfx) else null
-			val priceclean_jpy = if (price_clean != null && initialfx > 0) Some(price_clean.get * fx / initialfx) else null
+			
+			val pricedirty_jpy = if (bond.issueDate ge valuedate) Some(price)
+			  					 else if (initialfx > 0) Some(price * fx / initialfx) 
+								 else null
+								 
+			val priceclean_jpy = if (price_clean != null && (bond.issueDate ge valuedate)) Some(price_clean.get)
+			  					 else if (price_clean != null && initialfx > 0) Some(price_clean.get * fx / initialfx) 
+			  					 else null
+			  					 
 			val accrued_jpy = if (price_accrued != null && initialfx > 0) Some(price_accrued.get * fx / initialfx) else null
 			
 			new BondPrice(

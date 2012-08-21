@@ -21,7 +21,19 @@ object QLDB {
     * Returns discount curve factory.
     */
 	def getDiscountCurveFactory(paramset:String):DiscountCurveFactory = {
-	  val discountcurves = DB.getInputParameters(paramset).toDiscountCurves 
+	  val inputparameters:Set[InputParameter] = (DB.getFXRates(paramset).toInputParameter ++ DB.getInputParameters(paramset).filter(p => p.instrument != "FX")).toSet
+	  val discountcurves = inputparameters.toDiscountCurves 
+	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
+	  
+	  new DiscountCurveFactory(
+	    discountcurves.map(c => (c.currency.code, c)).toMap, 
+	    cdscurves.map(c => (c.issuerid, c)).toMap, 
+	    paramset)
+	}
+	
+	def getDiscountCurveFactoryFromInputParameter(paramset:String):DiscountCurveFactory = {
+	  val inputparameters:Set[InputParameter] = DB.getInputParameters(paramset)
+	  val discountcurves = inputparameters.toDiscountCurves 
 	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
 	  
 	  new DiscountCurveFactory(
@@ -36,18 +48,18 @@ object QLDB {
     * @param id Identifications of the target bonds
     * @param factory Optional. Providing discount curve factory would automatically set discounting bond engine as default pricing engine (where applicable)
     */
-	def getBonds(id:Traversable[String], factory:DiscountCurveFactory = null):List[QLBond] = bondConstructor(DB.getBonds(id))
-	def getBonds(factory:DiscountCurveFactory):List[QLBond] = bondConstructor(DB.getBonds, factory)
-	def getBonds:List[QLBond] = bondConstructor(DB.getBonds)
+	def getBonds(id:Traversable[String], factory:DiscountCurveFactory = null):Set[QLBond] = bondConstructor(DB.getBonds(id))
+	def getBonds(factory:DiscountCurveFactory):Set[QLBond] = bondConstructor(DB.getBonds, factory)
+	def getBonds:Set[QLBond] = bondConstructor(DB.getBonds)
 	
-	def getBonds(id:Traversable[String], builder:dbBond => QLBond, pricingengine:QLBond => PricingEngine, valuedate:qlDate):List[QLBond] = {
-		val dbbonds:List[dbBond] = DB.getBonds(id)
-		val qlbonds:List[QLBond] = dbbonds.map(builder(_)).filter(_ != null)
+	def getBonds(id:Traversable[String], builder:dbBond => QLBond, pricingengine:QLBond => PricingEngine, valuedate:qlDate):Set[QLBond] = {
+		val dbbonds:Set[dbBond] = DB.getBonds(id)
+		val qlbonds:Set[QLBond] = dbbonds.map(builder(_)).filter(_ != null)
 		qlbonds.foreach(b => b.setPricingEngine(pricingengine(b), valuedate))
 		qlbonds
 	}
 	
-	private def bondConstructor(dbbonds:List[dbBond], factory:DiscountCurveFactory = null):List[QLBond] = {
+	private def bondConstructor(dbbonds:Set[dbBond], factory:DiscountCurveFactory = null):Set[QLBond] = {
 		dbbonds.map { b =>
 		  b.productid match {
 		    
@@ -59,7 +71,7 @@ object QLDB {
 		    case _ =>
 		      null
 		  }
-		}.filter(_ != null)
+		}.filter(_ != null).toSet
 	}
 	 
    /**
