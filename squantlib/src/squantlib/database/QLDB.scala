@@ -1,7 +1,7 @@
 package squantlib.database
 
 import squantlib.model.discountcurve.DiscountCurveFactory
-import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, InputParameter}
+import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXParameter}
 import squantlib.database.objectconstructor._
 import squantlib.database.QLConstructors._
 import squantlib.model.timeseries.TsAnalysis._
@@ -21,8 +21,8 @@ object QLDB {
     * Returns discount curve factory.
     */
 	def getDiscountCurveFactory(paramset:String):DiscountCurveFactory = {
-	  val inputparameters:Set[InputParameter] = (DB.getFXRates(paramset).toInputParameter ++ DB.getInputParameters(paramset).filter(p => p.instrument != "FX")).toSet
-	  val discountcurves = inputparameters.toDiscountCurves 
+	  val ratefxparameters:Set[RateFXParameter] = DB.getRateFXParameters(paramset)
+	  val discountcurves = ratefxparameters.toDiscountCurves 
 	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
 	  
 	  new DiscountCurveFactory(
@@ -32,8 +32,8 @@ object QLDB {
 	}
 	
 	def getDiscountCurveFactoryFromInputParameter(paramset:String):DiscountCurveFactory = {
-	  val inputparameters:Set[InputParameter] = DB.getInputParameters(paramset)
-	  val discountcurves = inputparameters.toDiscountCurves 
+	  val ratefxparameters:Set[RateFXParameter] = DB.getRateFXParameters(paramset)
+	  val discountcurves = ratefxparameters.toDiscountCurves 
 	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
 	  
 	  new DiscountCurveFactory(

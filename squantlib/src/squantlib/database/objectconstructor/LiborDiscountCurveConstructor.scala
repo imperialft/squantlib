@@ -1,7 +1,7 @@
 package squantlib.database.objectconstructor
 
 import scala.collection.immutable.TreeMap
-import squantlib.database.schemadefinitions.InputParameter
+import squantlib.database.schemadefinitions.RateFXParameter
 import squantlib.model.discountcurve.LiborDiscountCurve
 import squantlib.model.currencies.RateConvention
 import org.jquantlib.time.{Period => JPeriod, Date => JDate}
@@ -24,7 +24,7 @@ object LiborDiscountCurveConstructor {
 	 * @param set of InputParameter
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getcurves(params:Traversable[InputParameter]):Iterable[LiborDiscountCurve] = {
+  	def getcurves(params:Traversable[RateFXParameter]):Iterable[LiborDiscountCurve] = {
 	  val conventions:Map[String, RateConvention] = RateConvention.getConvention.filter{case (k, v) => v.useratediscount }
   	  val dateassetgroup = params.groupBy(p => p.asset).filter{case(k, v) => conventions.keySet.contains(k)}
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 

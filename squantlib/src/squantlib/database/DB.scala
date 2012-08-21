@@ -17,7 +17,6 @@ import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
 
-
 object DB extends Schema {
 
   val dataSource = new ComboPooledDataSource
@@ -53,11 +52,12 @@ object DB extends Schema {
   val countries = table[Country]("Countries")
   val currencies = table[Currency]("Currencies")
   val distributors = table[Distributor]("Distributors")
-  val fxrates = table[FXRate]("FXRates")
+//  val fxrates = table[FXRate]("FXRates")
   val issuers = table[Issuer]("Issuers")
   val products = table[Product]("Products")
   val bonds = table[Bond]("Bonds")
-  val inputparameters = table[InputParameter]("InputParameters")
+//  val inputparameters = table[InputParameter]("InputParameters")
+  val ratefxparameters = table[RateFXParameter]("RateFXParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
   val volatilities = table[Volatility]("Volatilities")
@@ -220,24 +220,24 @@ object DB extends Schema {
    * @param toDate: A ending point of Date. Range does not include this date.
    *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
   **/
-  def getParamSets:Set[(String, JavaDate)] = getInputParamSets & getCDSParamSets & getFXParamSets
+  def getParamSets:Set[(String, JavaDate)] = getRateFXParamSets & getCDSParamSets
   
   def getParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-    getInputParamSets(fromDate, toDate) & getCDSParamSets(fromDate, toDate) & getFXParamSets(fromDate, toDate)
+    getRateFXParamSets(fromDate, toDate) & getCDSParamSets(fromDate, toDate)
   
   
   /**
    * Returns paramsets for each database.
    **/
-  def getInputParamSets:Set[(String, JavaDate)] = 
+  def getRateFXParamSets:Set[(String, JavaDate)] = 
     transaction {
-        from(inputparameters)(p => 
+        from(ratefxparameters)(p => 
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
-  def getInputParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
+  def getRateFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
-        from(inputparameters)(p =>
+        from(ratefxparameters)(p =>
           where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
@@ -255,23 +255,26 @@ object DB extends Schema {
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
-  def getFXParamSets:Set[(String, JavaDate)] = 
-    transaction {
-        from(fxrates)(p => 
-          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-    }
-  
-  def getFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-    transaction {
-        from(fxrates)(p =>
-          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
-          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-    }
- 
+//  def getFXParamSets:Set[(String, JavaDate)] = 
+//    transaction {
+//        from(fxrates)(p => 
+//          select(&(p.paramset), &(p.paramdate))).distinct.toSet
+//    }
+//  
+//  def getFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
+//    transaction {
+//        from(fxrates)(p =>
+//          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+//          select(&(p.paramset), &(p.paramdate))).distinct.toSet
+//    }
+// 
   def getFXParamDates(fromDate:JavaDate, toDate:JavaDate):Set[JavaDate] = 
     transaction {
-        from(fxrates)(p =>
-          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+        from(ratefxparameters)(p =>
+          where(
+              (p.paramdate gte fromDate) and 
+              (p.paramdate lte toDate) and
+              (p.instrument === "FX"))
           select(&(p.paramdate))).distinct.toSet
     }
 
@@ -284,7 +287,7 @@ object DB extends Schema {
 
 
   /**
-   * Returns a List of InputParameters that falls onto a range of Dates.
+   * Returns a List of RateFXParameters that falls onto a range of Dates.
    *
    * @param fromDate A starting point of Date. Range includes this date.
    *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
@@ -295,11 +298,11 @@ object DB extends Schema {
    * @param instrument An identifier of the instrument.
    * @param asset An identifier of the asset.
    * @param maturity An identifier of the maturity.
-   * @return A List of matching InputParameters.
+   * @return A List of matching RateFXParameters.
    */
-  def getInputParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):Set[InputParameter] = 
+  def getRateFXParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = 
     transaction {
-      from(inputparameters)(ip =>
+      from(ratefxparameters)(ip =>
         where(
           (ip.paramdate  gte fromDate) and
           (ip.paramdate  lt  toDate) and
@@ -311,18 +314,18 @@ object DB extends Schema {
       ).toSet
     }
   
-  def getInputParameters(paramset:String) =
+  def getRateFXParameters(paramset:String):Set[RateFXParameter] =
   	transaction { 
-  	  from(DB.inputparameters)(c => 
+  	  from(ratefxparameters)(c => 
   	    where(c.paramset === paramset)
   	    select(c)
   	    ).toSet
   	}
   
   
-  def getInputParameters(on:JavaDate, instrument:String, asset:String, maturity:String):Set[InputParameter] = 
+  def getRateFXParameters(on:JavaDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = 
     transaction {
-      from(inputparameters)(ip =>
+      from(ratefxparameters)(ip =>
         where(
           ip.paramdate  === on and
           ip.instrument === instrument and
@@ -333,8 +336,8 @@ object DB extends Schema {
       ).toSet
     }
   
-  def getInputParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):Set[InputParameter] = 
-    getInputParameters(on.longDate, instrument, asset, maturity)
+  def getRateFXParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = 
+    getRateFXParameters(on.longDate, instrument, asset, maturity)
 
     
 
@@ -402,67 +405,69 @@ object DB extends Schema {
           ).toSet
     }
 
-  /**
-   * Returns a List of FX parameters that falls onto a range of Dates.
-   *
-   * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
-   * @param currencyid target currency (quoted in JPY).
-   * @return A List of matching InputParameters.
-   */
-  def getFXRates(fromDate:JavaDate, toDate:JavaDate, currencyid:String):Set[FXRate] = 
-    transaction {
-      from(fxrates)(ip =>
-        where(
-          (ip.paramdate  gte fromDate) and
-          (ip.paramdate  lt  toDate) and
-          ip.currencyid === currencyid
-        )
-        select(ip)
-      ).toSet
-    }
-  
-  def getFXRates(paramset:String):Set[FXRate] =
-  	transaction { 
-  	  from(fxrates)(c => 
-  	    where(c.paramset === paramset)
-  	    select(c)
-  	    ).toSet
-  	}
-  
-  def getFXRates(on:JavaDate, currencyid:String):Set[FXRate] = 
-    transaction {
-      from(fxrates)(ip =>
-        where(
-          ip.paramdate  === on and
-          ip.currencyid === currencyid
-        )
-        select(ip)
-      ).toSet
-    }
-  
-  def getFXRates(on:JQuantDate, currencyid:String):Set[FXRate] = 
-    getFXRates(on.longDate, currencyid)
-    
-  def getFXRates:Set[FXRate] = {
-    transaction {
-      from(fxrates)(fxrate => select(fxrate)).toSet
-    }
-  }
-  
+//  /**
+//   * Returns a List of FX parameters that falls onto a range of Dates.
+//   *
+//   * @param fromDate A starting point of Date. Range includes this date.
+//   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+//   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+//   * @param toDate A ending point of Date. Range does not include this date.
+//   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+//   *                 To be concise, the operator used for toDate in where-clause is "less than."
+//   * @param currencyid target currency (quoted in JPY).
+//   * @return A List of matching InputParameters.
+//   */
+//  def getFXRates(fromDate:JavaDate, toDate:JavaDate, currencyid:String):Set[FXRate] = 
+//    transaction {
+//      from(fxrates)(ip =>
+//        where(
+//          (ip.paramdate  gte fromDate) and
+//          (ip.paramdate  lt  toDate) and
+//          ip.currencyid === currencyid
+//        )
+//        select(ip)
+//      ).toSet
+//    }
+//  
+//  def getFXRates(paramset:String):Set[FXRate] =
+//  	transaction { 
+//  	  from(fxrates)(c => 
+//  	    where(c.paramset === paramset)
+//  	    select(c)
+//  	    ).toSet
+//  	}
+//  
+//  def getFXRates(on:JavaDate, currencyid:String):Set[FXRate] = 
+//    transaction {
+//      from(fxrates)(ip =>
+//        where(
+//          ip.paramdate  === on and
+//          ip.currencyid === currencyid
+//        )
+//        select(ip)
+//      ).toSet
+//    }
+//  
+//  def getFXRates(on:JQuantDate, currencyid:String):Set[FXRate] = 
+//    getFXRates(on.longDate, currencyid)
+//    
+//  def getFXRates:Set[FXRate] = {
+//    transaction {
+//      from(fxrates)(fxrate => select(fxrate)).toSet
+//    }
+//  }
+//  
   def getFXlist:Set[String] = {
     transaction {
-      from(fxrates)(fxrate => select(&(fxrate.currencyid))).distinct.toSet
+      from(ratefxparameters)(p => 
+        where (p.instrument === "FX")
+        select(&(p.asset))).distinct.toSet
     }
   }
     
   
   /**
-   * Returns historical values of input parameter.
+   * Returns historical values of RateFX parameter.
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
@@ -478,7 +483,7 @@ object DB extends Schema {
    */
   def getTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):SortedMap[JavaDate, Double] = 
     transaction {
-      val qresult = from(inputparameters)(ip =>
+      val qresult = from(ratefxparameters)(ip =>
         where(
           (ip.paramdate gte fromDate) and
           (ip.paramdate lte toDate) and
@@ -491,9 +496,24 @@ object DB extends Schema {
       ).toSeq
       TreeMap(qresult : _*)
 	 }
+  
+  def getTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String):SortedMap[JavaDate, Double] = 
+    transaction {
+      val qresult = from(ratefxparameters)(ip =>
+        where(
+          (ip.paramdate gte fromDate) and
+          (ip.paramdate lte toDate) and
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          ip.asset      === asset
+        )
+        select((&(ip.paramdate), &(ip.value)))
+      ).toSeq
+      TreeMap(qresult : _*)
+	 }
 	    
-  private def EmptyFXSeries(fromDate:JavaDate, toDate:JavaDate):SortedMap[JavaDate, Double] = 
-    TreeMap(getFXParamDates(fromDate, toDate).map(d => (d, 1.0)).toSeq : _*)
+//  private def EmptyFXSeries(fromDate:JavaDate, toDate:JavaDate):SortedMap[JavaDate, Double] = 
+//    TreeMap(getFXParamDates(fromDate, toDate).map(d => (d, 1.0)).toSeq : _*)
     
   /**
    * Returns historical values of FX spot rate against JPY.
@@ -507,22 +527,8 @@ object DB extends Schema {
    *                 To be concise, the operator used for toDate in where-clause is "less than."
    * @return fx1 Currency to be measured in JPY.
    */
-  def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String):SortedMap[JavaDate, Double] = 
-    if (fx1 == "JPY") EmptyFXSeries(fromDate, toDate)
-    else synchronized {
-    	transaction {
-          val qresult = from(fxrates)(fx =>
-		        where(
-		          (fx.paramdate gte fromDate) and
-		          (fx.paramdate lte toDate) and
-		          (fx.paramset like "%-000") and
-		          fx.currencyid      === fx1
-		        )
-		        select((&(fx.paramdate), &(fx.fxjpy)))
-		      ).toSeq
-		  TreeMap(qresult : _*)
-        }
-    	}
+  def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, currency:String):SortedMap[JavaDate, Double] 
+    = getTimeSeries(fromDate, toDate, "FX", currency)
   
   
   /**
@@ -539,9 +545,7 @@ object DB extends Schema {
    * @return fx2 Measuring currency.
    * 			 For example, fx1 = "USD" & fx2 = "JPY" returns USD/JPY spot rate = around 80.00
    */
-  def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String, fx2:String):SortedMap[JavaDate, Double] = 
-    if (fx1 == fx2)	EmptyFXSeries(fromDate, toDate)
-    else {
+  def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String, fx2:String):SortedMap[JavaDate, Double] = {
       val fxset1 = getFXTimeSeries(fromDate, toDate, fx1)
       val fxset2 = getFXTimeSeries(fromDate, toDate, fx2)
       TreeMap((fxset1.keySet & fxset2.keySet).map(d => (d, fxset1(d) / fxset2(d))).toSeq : _*)
@@ -705,7 +709,7 @@ object DB extends Schema {
     val builder             = new StringBuilder()
     val columnNames         = attrToField.map(pair => pair._2)
     builder.append(columnNames.mkString(",") + "\n")
-    for (val obj <- objects) {
+    for (obj <- objects) {
       builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(","))
       builder.append("\n")
     }
@@ -784,4 +788,24 @@ object DB extends Schema {
   def quoteTimestampWithTimezone(value:Timestamp):String = "'" + timeFormat.format(value) + "'"
   val timeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SZ")
 
+  /**
+   * Parses a risktag map from a string. Risktag is a Map[String, Int] structure where String represents a risk factor,
+   * and Int represents the weight of the factor, for instance, Map("euro-econ", 10, "france" -> 5).
+   *
+   * @param value String in "tag=weight; tag=weight; ..." format.
+   * @return A risktag Map
+   */
+  def loadRisktags(value:String):TreeMap[String, Int] = {
+    TreeMap(value.split(";").map(s => s.trim.split("=").map(t => t.trim)).map(s => (s(0), s(1).toInt)):_*)
+  }
+
+  /**
+   * Dumps a risktag into a string.
+   *
+   * @param value A risktag Map
+   * @return String in "tag=weight; tag=weight; ..." format.
+   */
+  def dumpRisktags(value:TreeMap[String, Int]):String = {
+    value.map(t => t._1 + "=" + t._2).mkString("; ")
+  }
 }

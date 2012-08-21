@@ -1,6 +1,6 @@
 package squantlib.database
 
-import squantlib.database.schemadefinitions.{ Bond => dbBond, CDSParameter, BondPrice, InputParameter, FXRate}
+import squantlib.database.schemadefinitions.{ Bond => dbBond, CDSParameter, BondPrice, RateFXParameter}
 import squantlib.model.discountcurve.{RateCurve, FXCurve, DiscountableCurve, CDSCurve, DiscountCurveFactory}
 import squantlib.database.objectconstructor.{LiborDiscountCurveConstructor, FXDiscountCurveConstructor, CDSCurveConstructor, BondPriceConstructor}
 import org.jquantlib.instruments.{Bond => qlBond}
@@ -19,10 +19,10 @@ object QLConstructors {
 	implicit def JavaDate2QlDate(d:JavaDate) = new qlDate(d)
 	implicit def QlDate2JavaDate(d:qlDate) = d.longDate
 
-	implicit def InputParameter2ParamSet(params:Traversable[InputParameter]) = new InputParameterSet(params)
- 	class InputParameterSet(val inputparameters:Traversable[InputParameter]){
-	  def toLiborDiscountCurves:Iterable[RateCurve] = LiborDiscountCurveConstructor.getcurves(inputparameters)
-	  def toFXDiscountCurves:Iterable[FXCurve] = FXDiscountCurveConstructor.getcurves(inputparameters)
+	implicit def RateFXParameter2ParamSet(params:Traversable[RateFXParameter]) = new RateFXParameterSet(params)
+ 	class RateFXParameterSet(val parameters:Traversable[RateFXParameter]){
+	  def toLiborDiscountCurves:Iterable[RateCurve] = LiborDiscountCurveConstructor.getcurves(parameters)
+	  def toFXDiscountCurves:Iterable[FXCurve] = FXDiscountCurveConstructor.getcurves(parameters)
 	  def toDiscountCurves:Iterable[DiscountableCurve] = toLiborDiscountCurves ++ toFXDiscountCurves
 	}
 
@@ -33,46 +33,46 @@ object QLConstructors {
 	}
 
 
-	implicit def FXRate2FXRateSet(params:Traversable[FXRate]) = new FXRateSet(params)
-	class FXRateSet(val fxset:Traversable[FXRate]){
-	  def fxjpy(ccy:String):Double = try { fxset.filter(fx => fx.currencyid == ccy).head.fxjpy }
-	  								catch {case e => Double.NaN}
-	   
-	  def fx(ccy1:String, ccy2:String):Double = if (ccy1 == ccy2) 1.0
-			  							else if (ccy1 == "JPY") 1.0/fxjpy(ccy2)
-	  									else if (ccy2 == "JPY") fxjpy(ccy1)
-	  									else fxjpy(ccy1) / fxjpy(ccy2)
-	  									
-	  def fxusd(ccy:String):Double = fx("USD", ccy)
-	  
-	  def toInputParameter:Set[InputParameter] = fxset.map(fx => 
-	    new InputParameter(
-	      id = -fx.id,
-	      paramset = fx.paramset, 
-	      paramdate = fx.paramdate, 
-	      instrument = "FX", 
-	      asset = fx.currencyid, 
-	      maturity = null, 
-	      value = fxusd(fx.currencyid), 
-	      option = null, 
-	      comment = null, 
-	      created = fx.lastmodified
-	      )).toSet + inputParamJpy
-	      
-	  def inputParamJpy:InputParameter = 
-	    new InputParameter(
-	      id = -(fxset.map(_.id).max + 1),
-	      paramset = fxset.head.paramset, 
-	      paramdate = fxset.head.paramdate, 
-	      instrument = "FX", 
-	      asset = "JPY", 
-	      maturity = null, 
-	      value = fxusd("JPY"), 
-	      option = null, 
-	      comment = null, 
-	      created = fxset.head.lastmodified
-	      )
-	}
+//	implicit def FXRate2FXRateSet(params:Traversable[FXRate]) = new FXRateSet(params)
+//	class FXRateSet(val fxset:Traversable[FXRate]){
+//	  def fxjpy(ccy:String):Double = try { fxset.filter(fx => fx.currencyid == ccy).head.fxjpy }
+//	  								catch {case e => Double.NaN}
+//	   
+//	  def fx(ccy1:String, ccy2:String):Double = if (ccy1 == ccy2) 1.0
+//			  							else if (ccy1 == "JPY") 1.0/fxjpy(ccy2)
+//	  									else if (ccy2 == "JPY") fxjpy(ccy1)
+//	  									else fxjpy(ccy1) / fxjpy(ccy2)
+//	  									
+//	  def fxusd(ccy:String):Double = fx("USD", ccy)
+//	  
+//	  def toInputParameter:Set[InputParameter] = fxset.map(fx => 
+//	    new InputParameter(
+//	      id = -fx.id,
+//	      paramset = fx.paramset, 
+//	      paramdate = fx.paramdate, 
+//	      instrument = "FX", 
+//	      asset = fx.currencyid, 
+//	      maturity = null, 
+//	      value = fxusd(fx.currencyid), 
+//	      option = null, 
+//	      comment = null, 
+//	      created = fx.lastmodified
+//	      )).toSet + inputParamJpy
+//	      
+//	  def inputParamJpy:InputParameter = 
+//	    new InputParameter(
+//	      id = -(fxset.map(_.id).max + 1),
+//	      paramset = fxset.head.paramset, 
+//	      paramdate = fxset.head.paramdate, 
+//	      instrument = "FX", 
+//	      asset = "JPY", 
+//	      maturity = null, 
+//	      value = fxusd("JPY"), 
+//	      option = null, 
+//	      comment = null, 
+//	      created = fxset.head.lastmodified
+//	      )
+//	}
 
 	
 //    implicit def SortedMap2Ts(values:SortedMap[qlDate, Double]) : TimeSeries[JavaDouble] = 
