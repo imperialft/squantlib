@@ -17,7 +17,6 @@ import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
 
-
 object DB extends Schema {
 
   val dataSource = new ComboPooledDataSource
@@ -689,7 +688,7 @@ object DB extends Schema {
     val builder             = new StringBuilder()
     val columnNames         = attrToField.map(pair => pair._2)
     builder.append(columnNames.mkString(",") + "\n")
-    for (val obj <- objects) {
+    for (obj <- objects) {
       builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(","))
       builder.append("\n")
     }
@@ -768,4 +767,24 @@ object DB extends Schema {
   def quoteTimestampWithTimezone(value:Timestamp):String = "'" + timeFormat.format(value) + "'"
   val timeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SZ")
 
+  /**
+   * Parses a risktag map from a string. Risktag is a Map[String, Int] structure where String represents a risk factor,
+   * and Int represents the weight of the factor, for instance, Map("euro-econ", 10, "france" -> 5).
+   *
+   * @param value String in "tag=weight; tag=weight; ..." format.
+   * @return A risktag Map
+   */
+  def loadRisktags(value:String):TreeMap[String, Int] = {
+    TreeMap(value.split(";").map(s => s.trim.split("=").map(t => t.trim)).map(s => (s(0), s(1).toInt)):_*)
+  }
+
+  /**
+   * Dumps a risktag into a string.
+   *
+   * @param value A risktag Map
+   * @return String in "tag=weight; tag=weight; ..." format.
+   */
+  def dumpRisktags(value:TreeMap[String, Int]):String = {
+    value.map(t => t._1 + "=" + t._2).mkString("; ")
+  }
 }

@@ -18,6 +18,7 @@ class Country(@Column("ID")				var id: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("ADDRESS_LAT")	var address_lat: Option[Double],
               @Column("ADDRESS_LNG")	var address_lng: Option[Double],
+              @Column("RISKTAGS") var risktags: String,
               @Column("Created")	var created: Option[Date],
               @Column("LastModified")	var lastmodified: Option[Date]
               ) extends KeyedEntity[String] {
@@ -32,6 +33,7 @@ class Country(@Column("ID")				var id: String,
     description_eng = null,
     address_lat = Some(0.0),
     address_lng = Some(0.0),
+    risktags = "",
     created = Some(new Date),
     lastmodified = Some(new Date)
   )
@@ -46,6 +48,7 @@ class Currency(@Column("ID")				var id: String,
               @Column("NAME_ENG_SHORT")		var name_eng_short: String,
               @Column("DESCRIPTION_JPN")	var description_jpn: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
+              @Column("RISKTAGS") var risktags: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends KeyedEntity[String] {
@@ -57,7 +60,8 @@ class Currency(@Column("ID")				var id: String,
       name_eng = null, 
       name_eng_short = null, 
       description_jpn = null, 
-      description_eng = null, 
+      description_eng = null,
+      risktags = "",
       created = Some(new Date), 
       lastmodified = Some(new Date))
 
@@ -135,6 +139,7 @@ class Issuer(@Column("ID")					var id: String,
               @Column("EDINET_ADDRESS")		var edinet_address: String,
               @Column("DESCRIPTION_JPN")	var description_jpn: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
+              @Column("RISKTAGS") var risktags: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends KeyedEntity[String] {
@@ -162,6 +167,7 @@ class Issuer(@Column("ID")					var id: String,
 		edinet_address = null,
 		description_jpn = null,
 		description_eng = null,
+    risktags = "",
 		created = Some(new Date),
 		lastmodified  = Some(new Date))
 
@@ -177,6 +183,7 @@ class Product(@Column("ID")					var id: String,
               @Column("TYPE")				var producttype: String,
               @Column("DESCRIPTION_JPN")	var description_jpn: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
+              @Column("RISKTAGS") var risktags: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends KeyedEntity[String] {
@@ -190,6 +197,7 @@ class Product(@Column("ID")					var id: String,
 		producttype = null,
 		description_jpn = null,
 		description_eng = null,
+    risktags = "",
 		created = Some(new Date),
 		lastmodified  = Some(new Date))
 
@@ -224,6 +232,7 @@ class Bond(@Column("ID")					var id: String,
               @Column("CurrencyID")			var currencyid: String,
               @Column("ProductID")			var productid: String,
               @Column("IssuerID")			var issuerid: String,
+              @Column("RISKTAGS") var risktags: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends KeyedEntity[String] {
@@ -266,6 +275,7 @@ class Bond(@Column("ID")					var id: String,
 		currencyid = null,
 		productid = null,
 		issuerid = null,
+    risktags = "",
 		created = Some(new Date),
 		lastmodified  = Some(new Date))
 
@@ -514,4 +524,3 @@ class Coupon(@Column("ID")				var id:String,
   override def toString():String = format("%-15s %-5s %-15s %tF %tF %tF %tF %-15s", bondid, currency, rate, eventdate, startdate, enddate, paymentdate, fixedamount.getOrElse(""))
       
 }
-
