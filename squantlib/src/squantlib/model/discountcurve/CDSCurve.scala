@@ -1,23 +1,24 @@
-package squantlib.database.objectconstructor
+package squantlib.model.discountcurve
 
 import scala.collection.immutable.{TreeMap, SortedMap}
 import squantlib.database.schemadefinitions.CDSParameter
-import squantlib.model.discountcurve.{CDSCurve, LiborDiscountCurve}
 import squantlib.parameter.yieldparameter.YieldParameter
-import squantlib.model.currencies.CurrencyConversion
+import squantlib.initializer.Currencies
 import org.jquantlib.time.{Period => JPeriod, Date => JDate}
 import org.jquantlib.currencies.Currency
 import squantlib.parameter.yieldparameter.{FlatVector, LinearNoExtrapolation}
 
 
-object CDSCurveConstructor {
+/**
+ * @constructor stores each information 
+ * @param floatindex can take any maturity.
+ */
+class CDSCurve(val rate:YieldParameter, val currency:Currency, val issuerid:String) extends AbstractCurve{
+  def this(r:YieldParameter, c:String, id:String) = this(r, Currencies.getcurrency(c), id)
+}
 
-	def curveconstructor(valuedate:JDate, values:SortedMap[JPeriod, Double]):YieldParameter
-		= (values.keySet.size) match {
-			case 1 => new FlatVector(valuedate, values)
-			case _ => new LinearNoExtrapolation(valuedate, values)
-			}
-	
+object CDSCurve{
+  
 	/**
 	 * Constructs CDScurve from CDSParameter per each combination of issuerid, currency, paramset.
 	 * @param set of CDSParameter
@@ -25,11 +26,11 @@ object CDSCurveConstructor {
 	 */
   	def getallcurves(params:Traversable[CDSParameter]):Map[(String, String), CDSCurve] = {
   	  val cdsgroups = params.groupBy(p => (p.issuerid, p.currencyid))
-  	  
+  	   
   	  cdsgroups.map{ case ((issuer, ccy), v) => {
   		  val valuedate = new JDate(v.head.paramdate)
   		  val cdscurve = curveconstructor(valuedate, TreeMap(v.toSeq.map(p => (new JPeriod(p.maturity), p.spread / 10000.0)) :_*))
-  		  ((issuer, ccy), new CDSCurve(cdscurve, CurrencyConversion.getcurrency(ccy), issuer))
+  		  ((issuer, ccy), new CDSCurve(cdscurve, Currencies.getcurrency(ccy), issuer))
   	  	}}
   	}
   
@@ -37,7 +38,7 @@ object CDSCurveConstructor {
 	 * Constructs CDScurve from one CDSParameter as flat spread.
 	 */
   	def getcurve(p:CDSParameter):CDSCurve = 
-  	  new CDSCurve(new FlatVector(new JDate(p.paramdate), p.spread), CurrencyConversion.getcurrency(p.currencyid), p.issuerid)
+  	  new CDSCurve(new FlatVector(new JDate(p.paramdate), p.spread), Currencies.getcurrency(p.currencyid), p.issuerid)
 
 	/**
 	 * Constructs CDScurve from CDSParameter per each combination of issuerid, currency, paramset.
@@ -49,7 +50,12 @@ object CDSCurveConstructor {
   	  curves.map(c => c._2.getOrElse((c._1, defaultccy), c._2.head._2))
   	}
   	
-  	
   	private def defaultccy = "USD"
-} 
-
+  	  
+	def curveconstructor(valuedate:JDate, values:SortedMap[JPeriod, Double]):YieldParameter
+		= (values.keySet.size) match {
+			case 1 => new FlatVector(valuedate, values)
+			case _ => new LinearNoExtrapolation(valuedate, values)
+			}
+  	  
+}

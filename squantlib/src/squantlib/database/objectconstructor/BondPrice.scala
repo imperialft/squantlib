@@ -5,19 +5,19 @@ import org.jquantlib.time.{Date => qlDate, Frequency }
 import org.jquantlib.pricingengines.PricingEngine
 import org.jquantlib.daycounters.Thirty360
 import org.jquantlib.instruments.{Bond => QLBond}
-import squantlib.database.schemadefinitions.BondPrice
+import squantlib.database.schemadefinitions.{BondPrice => dbBondPrice}
 import org.jquantlib.termstructures.{YieldTermStructure, Compounding}
 import org.jquantlib.cashflow.CashFlows
 import java.util.{Date => javaDate}
 import squantlib.model.discountcurve.DiscountCurveFactory
 
 
-object BondPriceConstructor {
-	
-	def getprice(bond:QLBond, factory:DiscountCurveFactory):BondPrice = 
-	  getprice(bond, factory.valuedate, factory.fx(bond.currency.code, "JPY"), factory.paramset, factory.getyieldtermstructure(bond))
+object BondPrice {
+	 
+	def build(bond:QLBond, factory:DiscountCurveFactory):dbBondPrice = 
+	  build(bond, factory.valuedate, factory.fx(bond.currency.code, "JPY"), factory.paramset, factory.getyieldtermstructure(bond))
 
-  	def getprice(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):BondPrice = {
+  	def build(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):dbBondPrice = {
 		if (bond == null) return null
 		
 		val currenttime = java.util.Calendar.getInstance.getTime
@@ -30,7 +30,7 @@ object BondPriceConstructor {
 		val toofarfromissue = if (bond.issueDate gt pricefrom) { msg = "too far from issue (" + bond.issueDate.shortDate + ">=" + pricefrom.shortDate + ")"; true} else false
 		
 		if (price.isNaN || price.isInfinite || fx.isNaN || toofarfromissue) 
-			new BondPrice(
+			new dbBondPrice(
 				id = bond.bondid + ":" + paramset + ":" + bond.currency.code,
 				bondid = bond.bondid,
 				currencyid = bond.currency.code,
@@ -120,7 +120,7 @@ object BondPriceConstructor {
 			  					 
 			val accrued_jpy = if (price_accrued != null && initialfx > 0) Some(price_accrued.get * fx / initialfx) else null
 			
-			new BondPrice(
+			new dbBondPrice(
 				id = bond.bondid + ":" + paramset + ":" + bond.currency.code,
 				bondid = bond.bondid,
 				currencyid = bond.currency.code,

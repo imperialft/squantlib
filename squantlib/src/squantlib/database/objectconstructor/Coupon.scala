@@ -1,9 +1,10 @@
 package squantlib.database.objectconstructor
 
-import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon}
+import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon}
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}
+import squantlib.initializer.Daycounter
 
-object CouponConstructor {
+object Coupon {
   
 	def ratetoarray(formula:String, size:Int):Array[(String, Double)] = {
 		val arrayedschedule = formula.split(";").map(x => (
@@ -12,10 +13,10 @@ object CouponConstructor {
 		(0 to (size-1)).map(i => { val m = size - arrayedschedule.size; if(i < m) arrayedschedule(0) else arrayedschedule(i - m)}).toArray
 	}
 	
-	def getbonds(bonds:Set[dbBond]):Map[String, List[Coupon]] = 
-	  bonds.map(b => (b.id, getCoupons(b))).toMap
+	def getbonds(bonds:Set[dbBond]):Map[String, List[dbCoupon]] = 
+	  bonds.map(b => (b.id, build(b))).toMap
 	
-	def getCoupons(bond:dbBond):List[Coupon] = {
+	def build(bond:dbBond):List[dbCoupon] = {
 	  if (!bond.coupon_freq.isDefined || 
 	      bond.maturity == null || 
 	      bond.coupon == null ||
@@ -39,20 +40,20 @@ object CouponConstructor {
 		    )
 	  
 		
-		val accrualdaycounter = DaycountConstructor.getdaycount(bond.daycount)
+		val accrualdaycounter = Daycounter.getdaycount(bond.daycount)
 		
 		val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
 		val ratearray = ratetoarray(bond.coupon, baseschedule.size - 1)
-		val calcadjust = DaycountConstructor.getdaycount_adj(bond.daycount_adj)
-		val payadjust = DaycountConstructor.getdaycount_adj(bond.payment_adj)
-		val daycount = DaycountConstructor.getdaycount(bond.daycount)
+		val calcadjust = Daycounter.getdaycount_adj(bond.daycount_adj)
+		val payadjust = Daycounter.getdaycount_adj(bond.payment_adj)
+		val daycount = Daycounter.getdaycount(bond.daycount)
 		val calendar = bond.calendar
 		
 		var cpnlist = (0 to (baseschedule.size - 2)).map { i => {
 	      val startdate = calendar.adjust(baseschedule.date(i), calcadjust)
 	      val enddate = calendar.adjust(baseschedule.date(i+1), calcadjust)
 	      val paymentdate = calendar.adjust(baseschedule.date(i+1), payadjust)
-		  new Coupon(
+		  new dbCoupon(
 		      id = bond.id + ":" + i + ":COUPON",
 		      bondid = bond.id,
 		      currency = bond.currencyid, 
@@ -74,7 +75,7 @@ object CouponConstructor {
 			}
 		}.toList
 		
-		cpnlist ++= List(new Coupon(
+		cpnlist ++= List(new dbCoupon(
 	      id = bond.id + ":" + cpnlist.size + ":REDEMPTION",
 	      bondid = bond.id,
 	      currency = bond.currencyid,

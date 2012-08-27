@@ -39,7 +39,7 @@ object CorrelPrice {
       
     val series1 = storedts(underlying1) 
     val series2 = storedts(underlying2) 
-    
+     
     var outputstring = ""
     def output(s:String):Unit = { outputstring += s }
     def outputln(s:String):Unit = { outputstring += s + "\n"}
@@ -67,8 +67,21 @@ object CorrelPrice {
 	
 	
 	val sortedts1 = SortedMap(ts1.toSeq:_*)
+//	println("TS1")
+//	sortedts1.foreach(p => println(p))
 	val sortedts2 = SortedMap(ts2.toSeq:_*)
+//	println("TS2")
+//	sortedts2.foreach(p => println(p))
 	val resultseries = Correlation.calculate(sortedts1, sortedts2, nbDays).filter(c => ((c._1 ge startDate) && (c._1 le endDate)))
+//	println("Result")
+//	resultseries.foreach(p => println(p))
+	
+	if (resultseries == null || resultseries.size == 0)
+	{
+      outputln("Error - Empty Result")
+      printf(outputstring)
+      return
+	}
 	
 	val result = resultseries.map { v =>
     	new Correlation(

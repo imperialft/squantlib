@@ -1,8 +1,8 @@
 package squantlib.database.objectconstructor
 
 import squantlib.database.schemadefinitions.Bond
-import squantlib.model.currencies.CurrencyConversion
-import org.jquantlib.instruments.bonds.FixedRateBond
+import squantlib.initializer.{Currencies, Daycounter}
+import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond }
 import org.jquantlib.time.{Date => JDate, Period => JPeriod, TimeUnit, Schedule, DateGeneration}
 
 object FixedRateBondConstructor {
@@ -14,11 +14,11 @@ object FixedRateBondConstructor {
 		(0 to (size-1)).map(i => { val m = size - numarray.size; if(i < m) numarray(0) else numarray(i - m)}).toArray
 	}
 	
-	def getbonds(bonds:Set[Bond]):Map[String, FixedRateBond] = {
+	def getbonds(bonds:Set[Bond]):Map[String, qlFixedRateBond] = {
 	  bonds.map(b => (b.id, getbond(b))).filter(b => b._2 != null).toMap
 	}
 	
-	def getbond(bond:Bond):FixedRateBond = {
+	def getbond(bond:Bond):qlFixedRateBond = {
 	  val isvalid = productlist.contains(bond.productid) && !bond.coupon.isEmpty && !bond.coupon_freq.isEmpty && !bond.redemprice.isEmpty && !bond.daycount_adj.isEmpty
 	  if (!isvalid) null
 	  else {
@@ -29,23 +29,23 @@ object FixedRateBondConstructor {
 				val schedule = {
 				  val tenor = new JPeriod(bond.coupon_freq.get, TimeUnit.Months)
 				  val calendar = bond.calendar
-				  val convention = DaycountConstructor.getdaycount_adj(bond.daycount_adj)
-				  val maturityconvention = DaycountConstructor.getdaycount_adj(bond.daycount_adj)
+				  val convention = Daycounter.getdaycount_adj(bond.daycount_adj)
+				  val maturityconvention = Daycounter.getdaycount_adj(bond.daycount_adj)
 				  val rule = DateGeneration.Rule.Backward
 				  val endofmonth = false
 				  new Schedule(issuedate, maturity, tenor, calendar, convention, maturityconvention, rule, endofmonth)
 				}
 				
-				val currency = CurrencyConversion.getcurrency(bond.currencyid)
+				val currency = Currencies.getcurrency(bond.currencyid)
 				val settlementdays = 0
 				val faceamount = 100.0
 				val coupons:Array[Double] = ratetoarray(bond.coupon, schedule.size - 1)
-				val accrualdaycounter = DaycountConstructor.getdaycount(bond.daycount)
-				val paymentconvention = DaycountConstructor.getdaycount_adj(bond.payment_adj)
+				val accrualdaycounter = Daycounter.getdaycount(bond.daycount)
+				val paymentconvention = Daycounter.getdaycount_adj(bond.payment_adj)
 				val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
 				val initialfx = bond.initialfx
 				
-				new FixedRateBond(settlementdays, 
+				new qlFixedRateBond(settlementdays, 
 				    faceamount, 
 				    schedule, 
 				    coupons, 

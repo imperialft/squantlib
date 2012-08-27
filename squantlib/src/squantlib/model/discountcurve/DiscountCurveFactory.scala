@@ -3,12 +3,12 @@ package squantlib.model.discountcurve
 import scala.collection.mutable.HashMap
 import scala.collection.JavaConversions
 import squantlib.parameter.yieldparameter.{YieldParameter, FlatVector}
+import squantlib.model.fx.{FX, FX_novol, FX_flatvol, FX_nosmile, FX_smiled}
 import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Date => JDate, Period => JPeriod, TimeUnit, Calendar}
+import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
 import org.jquantlib.instruments.Bond
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.termstructures.YieldTermStructure
-
 
 /** 
  * Stores rate curve information and initialize discount curves as requested.
@@ -18,28 +18,33 @@ import org.jquantlib.termstructures.YieldTermStructure
  */
 class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = null, val paramset:String = null) {
 
-	val valuedate = curves.head._2.valuedate
+	var valuedate:qlDate = curves.head._2.valuedate
 	require(curves.forall(c => c._2.valuedate == valuedate))
+	
+	val FX_basespread = 0.0
+	val FX_basecurrency = "USD"
 	
 	/** 
 	 * USD
-	 */
-	val pivotcurrency = BasisSwapCurve.pivotcurrency.code
+	 */ 
+	val pivotcurrency:String = BasisSwapCurve.pivotcurrency.code
 	
 	/** 
 	 * Currencies
 	 */
-	val currencies = curves.map { case (k, v) => v.currency }
+	val currencies:Iterable[Currency] = curves.map { case (k, v) => v.currency }
 
 	/** 
 	 * Issuers
 	 */
-	val cdsnames = if (cdscurves == null) null else cdscurves.keySet
+	val cdsnames:Set[String] = if (cdscurves == null) null else cdscurves.keySet
 	
 	/** 
 	 * Discounting Curves
 	 */
-	val discountingcurves = { curves.map{ case (cur, curve) => (cur, curve match { case r:RateCurve => r; case _ => null})}}.filter{case(k, c) => c != null}
+	val discountingcurves:Map[String, RateCurve] = { 
+	  curves.map{ case (cur, curve) => (cur, curve match { case r:RateCurve => r; case _ => null})}}
+							.filter{case(k, c) => c != null}
 	
 	/**
 	 * Stores already calculated discount curves.
@@ -51,31 +56,37 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	 * Returns FX spot ccy1 / ccy2
 	 * @param currency code, 
 	 */
-	def fx(ccy1:String, ccy2:String):Double = try {curves(ccy2).fx / curves(ccy1).fx } catch { case _ => Double.NaN}
+	def fx(ccy1:String, ccy2:String):Double = 
+	  try {curves(ccy2).fx / curves(ccy1).fx } catch { case _ => Double.NaN}
 
 	/**
 	 * Returns discount curve. Discount currency is flat and same currency with given spread.
 	 * @param currency code, spread
 	 */
-	def getdiscountcurve(ccy:String, spread:Double):DiscountCurve = getdiscountcurve(ccy, ccy, spread)
+	def getdiscountcurve(ccy:String, spread:Double):DiscountCurve = 
+	  getdiscountcurve(ccy, ccy, spread)
 	
 	/**
 	 * Returns discount curve, flat spread, using specific currency.
 	 * @param currency code, discounting currency name, spread
 	 */
-	def getdiscountcurve(ccy:String, discountccy:String, spread:Double) : DiscountCurve = getdiscountcurve(ccy, discountccy, new FlatVector(valuedate, spread), null)
+	def getdiscountcurve(ccy:String, discountccy:String, spread:Double) : DiscountCurve = 
+	  getdiscountcurve(ccy, discountccy, new FlatVector(valuedate, spread), null)
 
 	/**
 	 * Returns discount curve using spread of given cds curve.
 	 * @param currency code, cds id
 	 */
-	def getdiscountcurve(ccy:String, cdsid:String) : DiscountCurve = if (cdsnames.isEmpty || cdsnames.contains(cdsid)) getdiscountcurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid) else null
+	def getdiscountcurve(ccy:String, cdsid:String) : DiscountCurve = 
+	  if (cdsnames.isEmpty || cdsnames.contains(cdsid)) getdiscountcurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid) 
+	  else null
 
 	/**
 	 * Returns discount curve from given CDS curve.
 	 * @param currency code, CDS curve
 	 */
-	def getdiscountcurve(ccy:String, spread:CDSCurve) : DiscountCurve = getdiscountcurve(ccy, spread.currency.code, spread.rate, null)
+	def getdiscountcurve(ccy:String, spread:CDSCurve) : DiscountCurve = 
+	  getdiscountcurve(ccy, spread.currency.code, spread.rate, null)
 	
 	/**
 	 * Returns discount curve from full given parameter.
@@ -102,6 +113,37 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 		    else repository(cdsid) += (ccy -> newcurve)}
 	    newcurve
 	  }
+	
+	/**
+	 * Returns zero volatility FX object representing the FX exchange rate between given currencies.
+	 * @param currency code
+	 */
+	def getFX(ccy1:String, ccy2:String) : FX = 
+	  new FX_novol(getdiscountcurve(ccy1, FX_basecurrency, FX_basespread), getdiscountcurve(ccy2, FX_basecurrency, FX_basespread))
+	
+	/**
+	 * Returns flat volatility FX object representing the FX exchange rate between given currencies.
+	 * @param currency code
+	 * @param volatility (flat over timeline & strike)
+	 */
+	def getFX(ccy1:String, ccy2:String, vol:Double) : FX = 
+	  new FX_flatvol(getdiscountcurve(ccy1, FX_basecurrency, FX_basespread), getdiscountcurve(ccy2, FX_basecurrency, FX_basespread), vol)
+	
+	/**
+	 * Returns non-smiled volatility FX object representing the FX exchange rate between given currencies.
+	 * @param currency code
+	 * @param volatility as function of time t
+	 */
+	def getFX(ccy1:String, ccy2:String, vol:Long => Double) : FX = 
+	  new FX_nosmile(getdiscountcurve(ccy1, FX_basecurrency, FX_basespread), getdiscountcurve(ccy2, FX_basecurrency, FX_basespread), vol)
+
+	/**
+	 * Returns smiled volatility FX object representing the FX exchange rate between given currencies.
+	 * @param currency code
+	 * @param volatility as function of time t and strike k
+	 */
+	def getFX(ccy1:String, ccy2:String, vol:(Long, Double) => Double) : FX = 
+	  new FX_smiled(getdiscountcurve(ccy1, FX_basecurrency, FX_basespread), getdiscountcurve(ccy2, FX_basecurrency, FX_basespread), vol)
 	
 	private def ratecurve(c:String):RateCurve = if (discountingcurves.keySet.contains(c)) discountingcurves(c) else throw new ClassCastException
 	

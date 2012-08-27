@@ -1,4 +1,4 @@
-package squantlib.model.currencies
+package squantlib.initializer
 
 import squantlib.parameter.yieldparameter.YieldParameter
 import org.jquantlib.indexes.IborIndex

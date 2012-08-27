@@ -1,17 +1,17 @@
 package squantlib.parameter.yieldparameter
 
 import scala.collection.mutable.MutableList
-import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit }
+import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit }
 import org.jquantlib.daycounters.DayCounter
 
 /**
  * Encapsulate time series vector parameter with interpolation, extrapolation and other adjustments functions.
  */
-trait YieldParameter extends Iterable[Pair[JDate, Double]] {
+trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
 	/**
 	 * Returns base date of this vector. 
 	 */
-	var valuedate : JDate
+	var valuedate : qlDate
 	/**
 	 * Returns number of days between value date and first defined point.
 	 * This point is the low boundary between interpolation & extrapolation.
@@ -26,12 +26,12 @@ trait YieldParameter extends Iterable[Pair[JDate, Double]] {
 	 * Returns date of final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-	val maxdate : JDate
+	val maxdate : qlDate
 	/**
 	 * Returns period between valueDate and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-	val maxperiod: JPeriod
+	val maxperiod: qlPeriod
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
@@ -46,18 +46,18 @@ trait YieldParameter extends Iterable[Pair[JDate, Double]] {
 	 * Returns the value corresponding to the given date.
 	 * @param observation date
 	 */
-    def value(date : JDate) : Double = value(date.serialNumber() - valuedate.serialNumber())
+    def value(date : qlDate) : Double = value(date.serialNumber() - valuedate.serialNumber())
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the period from value date.
 	 */
-    def value(period : JPeriod) : Double = value(period.days(valuedate))
+    def value(period : qlPeriod) : Double = value(period.days(valuedate))
   /**
    * Returns an Iterator that provides data during mindays..maxdays incremented by 1 day
    */
-    def iterator:Iterator[Pair[JDate, Double]] = {
+    def iterator:Iterator[Pair[qlDate, Double]] = {
       // FIXME: This could be inefficient.
-      val list = MutableList[Pair[JDate, Double]]()
+      val list = MutableList[Pair[qlDate, Double]]()
       for (i <- mindays to maxdays)
         list += Pair(valuedate.add(i.toInt), value(i)) // .toInt, srsly?
       return list.iterator
@@ -69,5 +69,5 @@ trait YieldParameter extends Iterable[Pair[JDate, Double]] {
       getClass + " (" + valuedate.add(mindays.toInt) + " to " + valuedate.add(maxdays.toInt) + ")"
     }
     
-    def describe:String = ((1 to 10) ++ List(12, 15, 20, 25, 30)).map(i => {val m = new JPeriod(i, TimeUnit.Years); m.toString + " " + value(m).toString + sys.props("line.separator")}).mkString("")
+    def describe:String = ((1 to 10) ++ List(12, 15, 20, 25, 30)).map(i => {val m = new qlPeriod(i, TimeUnit.Years); m.toString + " " + value(m).toString + sys.props("line.separator")}).mkString("")
 }

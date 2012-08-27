@@ -52,7 +52,7 @@ object DB extends Schema {
   val countries = table[Country]("Countries")
   val currencies = table[Currency]("Currencies")
   val distributors = table[Distributor]("Distributors")
-//  val fxrates = table[FXRate]("FXRates")
+  val fxrates = table[FXRate]("FXRates")
   val issuers = table[Issuer]("Issuers")
   val products = table[Product]("Products")
   val bonds = table[Bond]("Bonds")
@@ -63,6 +63,7 @@ object DB extends Schema {
   val volatilities = table[Volatility]("Volatilities")
   val correlations = table[Correlation]("Correlations")
   val coupons = table[Coupon]("Coupons")
+  val forwardprices = table[ForwardPrice]("ForwardPrices")
 
   /**
    * Returns a List of Country objects identified by a List of ID.
@@ -202,7 +203,7 @@ object DB extends Schema {
       ).toSet
     }
   
-  def getPricedParamsets:Set[(String, JavaDate)] =
+  def getPricedParamSets:Set[(String, JavaDate)] =
     transaction {
       from(bondprices)(b =>
         select((&(b.paramset), &(b.paramdate)))
@@ -548,7 +549,7 @@ object DB extends Schema {
   def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, fx1:String, fx2:String):SortedMap[JavaDate, Double] = {
       val fxset1 = getFXTimeSeries(fromDate, toDate, fx1)
       val fxset2 = getFXTimeSeries(fromDate, toDate, fx2)
-      TreeMap((fxset1.keySet & fxset2.keySet).map(d => (d, fxset1(d) / fxset2(d))).toSeq : _*)
+      TreeMap((fxset1.keySet & fxset2.keySet).map(d => (d, fxset2(d) / fxset1(d))).toSeq : _*)
     }
 
   /**

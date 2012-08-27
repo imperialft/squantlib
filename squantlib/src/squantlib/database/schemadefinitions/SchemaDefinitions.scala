@@ -239,12 +239,12 @@ class Bond(@Column("ID")					var id: String,
 
   import org.jquantlib.time.Calendar
   import org.jquantlib.time.calendars.JointCalendar
-  import squantlib.model.currencies.CurrencyConversion
+  import squantlib.initializer.Currencies
   
   def calendar:Calendar = {
     val cdrlist = calendar_str.split(",").map(s => s.trim)
-    if (cdrlist.size == 1) CurrencyConversion.getcalendar(cdrlist.head)
-    else new JointCalendar(cdrlist.map(c => CurrencyConversion.getcalendar(c)))
+    if (cdrlist.size == 1) Currencies.getcalendar(cdrlist.head)
+    else new JointCalendar(cdrlist.map(c => Currencies.getcalendar(c)))
   }
   
   def this() = this(
@@ -278,11 +278,11 @@ class Bond(@Column("ID")					var id: String,
 		risktags = "",
 		created = Some(new Date),
 		lastmodified  = Some(new Date))
-
+ 
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
   
   def toFixedRateBond = FixedRateBondConstructor.getbond(this)
-  def getCoupons = CouponConstructor.getCoupons(this)
+  def getCoupons = squantlib.database.objectconstructor.Coupon.build(this)
 }
 
 
@@ -325,6 +325,8 @@ class CDSParameter(@Column("ID")			var id: Int,
               @Column("Created")			var created: Option[Date]
               ) extends KeyedEntity[Int] {
   
+  import squantlib.model.discountcurve.CDSCurve
+  
   def this() = this(
       id = -99999, 
       paramset = null, 
@@ -339,7 +341,7 @@ class CDSParameter(@Column("ID")			var id: Int,
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, issuerid, currencyid, spread)
   
-  def toCDSCurve = CDSCurveConstructor.getcurve(this)
+  def toCDSCurve = CDSCurve.getcurve(this)
 }
 
 
@@ -415,25 +417,25 @@ class BondPrice(@Column("ID")			var id:String,
   override def toString():String = format("%-15s %-5s %-10s %-15s %-10s", id, currencyid, pricedirty, paramset, if (accrued.isEmpty) "" else accrued.get)
       
 }
-//
-//class FXRate(@Column("ID")					var id:Int,
-//              @Column("PARAMDATE")			var paramdate:Date,
-//              @Column("PARAMSET")			var paramset:String,
-//              @Column("CurrencyID")			var currencyid:String,
-//              @Column("FXRATE_JPY")			var fxjpy:Double,
-//              @Column("LastModified")		var lastmodified:Option[Date]
-//              ) extends KeyedEntity[Int] {
-//  
-//  def this() = this(
-//      id = -99999, 
-//      paramdate = new Date, 
-//      paramset = null,
-//      currencyid = null, 
-//      fxjpy = -99999.0, 
-//      lastmodified = Some(new Date))
-//
-//  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramdate, paramset, currencyid, fxjpy)
-//}
+
+class FXRate(@Column("ID")					var id:Int,
+              @Column("PARAMDATE")			var paramdate:Date,
+              @Column("PARAMSET")			var paramset:String,
+              @Column("CurrencyID")			var currencyid:String,
+              @Column("FXRATE_JPY")			var fxjpy:Double,
+              @Column("LastModified")		var lastmodified:Option[Date]
+              ) extends KeyedEntity[Int] {
+  
+  def this() = this(
+      id = -99999, 
+      paramdate = new Date, 
+      paramset = null,
+      currencyid = null, 
+      fxjpy = -99999.0, 
+      lastmodified = Some(new Date))
+
+  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramdate, paramset, currencyid, fxjpy)
+}
 
 class RateFXParameter(@Column("ID")			var id: Int,
               @Column("PARAMSET")			var paramset: String,
@@ -449,6 +451,33 @@ class RateFXParameter(@Column("ID")			var id: Int,
   
   def this() = this(
       id = -99999, 
+      paramset = null, 
+      paramdate = new Date, 
+      instrument = null, 
+      asset = null, 
+      maturity = null, 
+      value = -99999, 
+      option = null, 
+      comment = null, 
+      created = Some(new Date))
+
+  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
+}
+
+class ForwardPrice(@Column("ID")			var id: String,
+              @Column("PARAMSET")			var paramset: String,
+              @Column("PARAMDATE")			var paramdate: Date,
+              @Column("INSTRUMENT")			var instrument: String,
+              @Column("ASSET")				var asset: String,
+              @Column("MATURITY")			var maturity: String,
+              @Column("VALUE")				var value: Double,
+              @Column("OPTION")				var option: String,
+              @Column("COMMENT")			var comment: String,
+              @Column("Created")			var created: Option[Date]
+              ) extends KeyedEntity[String] {
+  
+  def this() = this(
+      id = null, 
       paramset = null, 
       paramdate = new Date, 
       instrument = null, 

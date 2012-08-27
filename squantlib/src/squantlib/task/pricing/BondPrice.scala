@@ -50,6 +50,11 @@ object BondPrice {
 	 */
 	val t1 = System.nanoTime
 	val factory = QLDB.getDiscountCurveFactory(paramset)
+	if (factory == null || factory.curves.size == 0) {
+	  outputln("Curve not found")
+	  return
+	}
+	  
 	val valuedate = factory.valuedate
 	val jpyccy = new JPYCurrency
 	

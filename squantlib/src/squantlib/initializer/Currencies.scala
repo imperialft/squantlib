@@ -1,4 +1,4 @@
-package squantlib.model.currencies
+package squantlib.initializer
 
 import org.jquantlib.currencies.Africa._
 import org.jquantlib.currencies.Asia._
@@ -6,16 +6,16 @@ import org.jquantlib.currencies.America._
 import org.jquantlib.currencies.Europe._
 import org.jquantlib.currencies.Oceania._
 import org.jquantlib.time.calendars._
-import org.jquantlib.currencies.Currency
+import org.jquantlib.currencies.{Currency => qlCurrency}
 
 /**
  * Default conversion table for ID => Currency => Calendar.
  */
-object CurrencyConversion {
+object Currencies {
   
 	def getcurrency(id:String) = id_currency(id)
 	def getcalendar(id:String) = ccyid_calendar(id)
-	def getcalendar(currency:Currency) = ccyid_calendar(currency.code)
+	def getcalendar(currency:qlCurrency) = ccyid_calendar(currency.code)
   
 	private val id_currency = Map(
 			("ARS" -> new ARSCurrency),

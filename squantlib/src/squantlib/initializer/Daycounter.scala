@@ -1,9 +1,9 @@
-package squantlib.database.objectconstructor
+package squantlib.initializer
 
 import org.jquantlib.daycounters._
 import org.jquantlib.time.BusinessDayConvention
 
-object DaycountConstructor {
+object Daycounter {
   
   	def getdaycount_adj = Map(
 			("UNADJUSTED" -> BusinessDayConvention.Unadjusted),

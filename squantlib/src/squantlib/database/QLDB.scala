@@ -25,10 +25,13 @@ object QLDB {
 	  val discountcurves = ratefxparameters.toDiscountCurves 
 	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
 	  
-	  new DiscountCurveFactory(
-	    discountcurves.map(c => (c.currency.code, c)).toMap, 
-	    cdscurves.map(c => (c.issuerid, c)).toMap, 
-	    paramset)
+	  if (discountcurves.size == 0 || cdscurves.size == 0) null
+	  else {
+		  new DiscountCurveFactory(
+		    discountcurves.map(c => (c.currency.code, c)).toMap, 
+		    cdscurves.map(c => (c.issuerid, c)).toMap, 
+		    paramset)
+	  }
 	}
 	
 	def getDiscountCurveFactoryFromInputParameter(paramset:String):DiscountCurveFactory = {

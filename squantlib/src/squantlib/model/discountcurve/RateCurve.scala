@@ -1,7 +1,6 @@
 package squantlib.model.discountcurve
 
 import squantlib.parameter.yieldparameter.YieldParameter
-import squantlib.model.currencies.CurrencyConversion
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
@@ -103,12 +102,3 @@ class TenorBasisSwapCurve (val rate:YieldParameter, val shortindex:IborIndex, va
   val currency = shortindex.currency
 }
 
-/**
- * CDS
- * 
- * @constructor stores each information
- * @param floatindex can take any maturity.
- */
-class CDSCurve(val rate:YieldParameter, val currency:Currency, val issuerid:String) extends AbstractCurve{
-  def this(r:YieldParameter, c:String, id:String) = this(r, CurrencyConversion.getcurrency(c), id)
-}
