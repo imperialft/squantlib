@@ -15,8 +15,6 @@ class FlatVector(var valuedate : JDate, inputvalues:Map[JPeriod, Double]) extend
 	
 	val mindays = inputvalues.first._1.days(valuedate)
 	val maxdays = mindays
-	val maxdate = new JDate(valuedate.serialNumber() + maxdays)
-	val maxperiod = new JPeriod(maxdays.toInt, TimeUnit.Days)
 
 	def lowextrapolation(v : Long) = constantvalue
     def highextrapolation(v : Long) = constantvalue

@@ -11,7 +11,7 @@ import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, Synchronized
 import squantlib.math.timeseries.Correlation
 import scala.collection.SortedMap
 
-object CorrelPrice {
+object Correlations {
   
   private var pendingprice = new HashSet[Correlation] with SynchronizedSet[Correlation]
   private var storedts = new HashMap[String, TimeSeries[JavaDouble]] with SynchronizedMap[String, TimeSeries[JavaDouble]]
@@ -23,7 +23,7 @@ object CorrelPrice {
 		pendingprice.retain(!_.value.isNaN)
 	    printf("Writing " + pendingprice.size + " items to Database...")
 		val t1 = System.nanoTime
-		DB.insertOrReplace(pendingprice)
+		DB.insertOrUpdate(pendingprice, false)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
 		pendingprice.clear
@@ -67,14 +67,8 @@ object CorrelPrice {
 	
 	
 	val sortedts1 = SortedMap(ts1.toSeq:_*)
-//	println("TS1")
-//	sortedts1.foreach(p => println(p))
 	val sortedts2 = SortedMap(ts2.toSeq:_*)
-//	println("TS2")
-//	sortedts2.foreach(p => println(p))
 	val resultseries = Correlation.calculate(sortedts1, sortedts2, nbDays).filter(c => ((c._1 ge startDate) && (c._1 le endDate)))
-//	println("Result")
-//	resultseries.foreach(p => println(p))
 	
 	if (resultseries == null || resultseries.size == 0)
 	{
@@ -82,6 +76,8 @@ object CorrelPrice {
       printf(outputstring)
       return
 	}
+	
+	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
 	val result = resultseries.map { v =>
     	new Correlation(
@@ -92,7 +88,7 @@ object CorrelPrice {
 	      periodicity = 1,
 	      nbdays = nbDays,
 	      value = v._2,
-	      lastmodified = Some(java.util.Calendar.getInstance.getTime))
+	      lastmodified = Some(currenttime))
     	}
 	
 	

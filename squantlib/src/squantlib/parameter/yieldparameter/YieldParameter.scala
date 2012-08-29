@@ -26,12 +26,12 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
 	 * Returns date of final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-	val maxdate : qlDate
+	def maxdate : qlDate = new qlDate(valuedate.serialNumber() + maxdays)
 	/**
 	 * Returns period between valueDate and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-	val maxperiod: qlPeriod
+	def maxperiod = new qlPeriod(maxdays.toInt, TimeUnit.Days)
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.

@@ -29,8 +29,6 @@ class SplineEExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], e
 	
 	val mindays = inputvalues.firstKey.days(valuedate)
 	val maxdays = inputvalues.lastKey.days(valuedate)
-	val maxdate = new JDate(valuedate.serialNumber() + maxdays)
-	val maxperiod = new JPeriod(maxdays.toInt, TimeUnit.Days)
 
 	def lowextrapolation(v : Long) = inputvalues.first._2
     def highextrapolation(v : Long) = if (impliedrate.isNaN) Double.MinPositiveValue else firstvalue * extrapolator.value(-1.0 * impliedrate * v.toDouble)

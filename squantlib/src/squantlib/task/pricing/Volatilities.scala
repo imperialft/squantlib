@@ -11,20 +11,18 @@ import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, Synchronized
 import squantlib.math.timeseries.{Volatility => VolScala}
 import scala.collection.SortedMap
 
-object VolPrice {
+object Volatilities {
   
   var storedprice = new HashSet[Volatility] with SynchronizedSet[Volatility]
   private var storedts = new HashMap[String, TimeSeries[JavaDouble]] with SynchronizedMap[String, TimeSeries[JavaDouble]]
   
-//  def storedprice = pendingprice
-   
-  def push:Unit = {
+  def push:Unit =  {
     if (storedprice.size != 0) {
     	printf("Extracting valid price ..")
 		storedprice.retain(!_.value.isNaN)
 	    printf("Writing " + storedprice.size + " items to Database...")
 		val t1 = System.nanoTime
-		DB.insertOrReplace(storedprice)
+		DB.insertOrUpdate(storedprice, false)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
 		storedprice.clear
@@ -61,6 +59,7 @@ object VolPrice {
 	val sortedts = SortedMap(ts.toSeq:_*)
 	val volresult = VolScala.calculate(sortedts, nbDays, annualDays)
 	val resultseries = volresult.filter(c => ((c._1 ge startDate) && (c._1 le endDate)))
+	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
 	val result = resultseries.map { v =>
     	new Volatility(
@@ -70,11 +69,14 @@ object VolPrice {
 	      periodicity = 1,
 	      nbdays = nbDays,
 	      value = v._2,
-	      lastmodified = Some(java.util.Calendar.getInstance.getTime))
+	      lastmodified = Some(currenttime))
     	}
 	
 	outputln("source:\t" + series.size + " data from " + series.firstKey.shortDate + " to " + series.lastKey.shortDate)
-	outputln("result:\t" + resultseries.size + " data from " + resultseries.keySet.min.shortDate + " to " + resultseries.keySet.max.shortDate)
+	
+	if (resultseries.keySet.isEmpty) outputln("result: empty")
+	else outputln("result:\t" + resultseries.size + " data from " + resultseries.keySet.min.shortDate + " to " + resultseries.keySet.max.shortDate)
+		
 	outputln("errors:\t" + resultseries.filter(_._2.isNaN).size)
 	storedprice ++= result
 	outputln("total price:\t" + storedprice.size)

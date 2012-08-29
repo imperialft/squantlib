@@ -20,9 +20,9 @@ object BondPrice {
   	def build(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):dbBondPrice = {
 		if (bond == null) return null
 		
-		val currenttime = java.util.Calendar.getInstance.getTime
+		val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	    val stddaycount = new Thirty360
-	    val pricefrom = valuedate.add(30)
+	    val pricefrom = valuedate.add(265)
 	    
 		var expired = bond.maturityDate le bond.valuedate
 		var msg:String = if (expired) "expired (" + bond.maturityDate.shortDate + "<=" + valuedate.shortDate + ")" else null
@@ -110,11 +110,11 @@ object BondPrice {
 			
 			val initialfx = bond.initialFX
 			
-			val pricedirty_jpy = if (bond.issueDate ge valuedate) Some(price)
+			val pricedirty_jpy = if (bond.issueDate ge valuedate) null
 			  					 else if (initialfx > 0) Some(price * fx / initialfx) 
 								 else null
 								 
-			val priceclean_jpy = if (price_clean != null && (bond.issueDate ge valuedate)) Some(price_clean.get)
+			val priceclean_jpy = if (bond.issueDate ge valuedate) null
 			  					 else if (price_clean != null && initialfx > 0) Some(price_clean.get * fx / initialfx) 
 			  					 else null
 			  					 

@@ -9,5 +9,5 @@ import squantlib.database.schemadefinitions.Coupon
 
 val bonds = DB.getBonds
 val coupons = bonds.map(_.getCoupons).filter(_ != null).flatten
-//DB.insertOrReplace(coupons)
+DB.insertOrReplace(coupons)
 

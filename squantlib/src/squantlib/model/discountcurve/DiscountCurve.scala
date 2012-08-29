@@ -20,13 +20,21 @@ class DiscountCurve(val currency:Currency, val zc : YieldParameter, val discount
   	def toZCImpliedYieldTermStructure = new ZCImpliedYieldTermStructure(this)
   	def toZCImpliedYieldTermStructure(calendar:Calendar) = new ZCImpliedYieldTermStructure(this, calendar)
   
-  	def toDiscountBondEngine = new DiscountingBondEngine(this.toZCImpliedYieldTermStructure)
-  	def toDiscountBondEngine(calendar:Calendar) = new DiscountingBondEngine(this.toZCImpliedYieldTermStructure(calendar))
+  	def toDiscountBondEngine = new DiscountingBondEngine(toZCImpliedYieldTermStructure)
+  	def toDiscountBondEngine(calendar:Calendar) = new DiscountingBondEngine(toZCImpliedYieldTermStructure(calendar))
+	
+	private var vd = zc.valuedate
   
 	/**
 	 * Returns base date of this vector. 
 	 */
-	var valuedate = zc.valuedate
+	def valuedate = vd
+	def valuedate_= (d:qlDate) = {
+	  zc.valuedate = d
+	  if (discountspread != null) discountspread.valuedate = d
+	  vd = d
+	}
+	
 	/**
 	 * Returns number of days between value date and first defined point.
 	 * This point is the low boundary between interpolation & extrapolation.
@@ -38,24 +46,14 @@ class DiscountCurve(val currency:Currency, val zc : YieldParameter, val discount
 	 */
     val maxdays : Long = zc.maxdays
 	/**
-	 * Returns date of final defined point. 
-	 * This point is the high boundary between interpolation & extrapolation.
-	 */
-	val maxdate : qlDate = zc.maxdate
-	/**
-	 * Returns period between valueDate and final defined point. 
-	 * This point is the high boundary between interpolation & extrapolation.
-	 */
-	val maxperiod: qlPeriod = zc.maxperiod
-	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
 	 */
     def value(days : Long) : Double = zc.value(days)
   
-  
     override def describe = "Currency:\t" + currency.code + sys.props("line.separator") + 
-  				 "Spread:\t" + discountspread.describe + sys.props("line.separator") + 
+  				 "Spread:\t" + (if (discountspread == null) "N/A" else discountspread.describe) + 
+  				 sys.props("line.separator") + 
   				 "ZC:\t" + zc.describe + sys.props("line.separator") 
 }
 

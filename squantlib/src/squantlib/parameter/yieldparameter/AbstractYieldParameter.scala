@@ -1,6 +1,6 @@
 package squantlib.parameter.yieldparameter
 
-import org.jquantlib.time.{ Date => JDate }
+import org.jquantlib.time.{ Date => qlDate }
 import squantlib.chart.LineChart
 
 /**
@@ -8,7 +8,7 @@ import squantlib.chart.LineChart
  * Points are interpolated between max and min range, and extrapolated outside.
  */
 trait AbstractYieldParameter{
-	var valuedate : JDate
+	var valuedate : qlDate
 	val mindays : Long
 	val maxdays : Long
 

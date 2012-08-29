@@ -13,7 +13,7 @@ import org.jquantlib.currencies.Asia.JPYCurrency
 import scala.collection.immutable.StringLike
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 
-object BondPrice {
+object BondPrices {
   
   var storedprice = new HashSet[BondPrice] with SynchronizedSet[BondPrice]
   
@@ -30,7 +30,7 @@ object BondPrice {
 		storedprice.retain(!_.pricedirty.isNaN)
 	    printf("Writing " + storedprice.size + " items to Database...")
 		val t1 = System.nanoTime
-		DB.insertOrReplace(storedprice)
+		DB.insertOrUpdate(storedprice, false)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
 		storedprice.clear

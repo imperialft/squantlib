@@ -187,7 +187,7 @@ object DB extends Schema {
       ).toSet
     }
   
-  def getPriceByParamset(paramset:String):Set[BondPrice] =
+  def getPriceByParamSet(paramset:String):Set[BondPrice] =
     transaction {
       from(bondprices)(b =>
         where(b.paramset === paramset)
@@ -201,7 +201,7 @@ object DB extends Schema {
         where(b.paramdate === paramdate)
         select(b)
       ).toSet
-    }
+    } 
   
   def getPricedParamSets:Set[(String, JavaDate)] =
     transaction {
@@ -210,6 +210,7 @@ object DB extends Schema {
       ).distinct.toSet
     }
   
+  def latestPrice:String = getPricedParamSets.maxBy(_._2)._1
 
   
   /**
@@ -226,6 +227,7 @@ object DB extends Schema {
   def getParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     getRateFXParamSets(fromDate, toDate) & getCDSParamSets(fromDate, toDate)
   
+  def latestParamSet:String = getParamSets.maxBy(_._2)._1
   
   /**
    * Returns paramsets for each database.
@@ -256,19 +258,6 @@ object DB extends Schema {
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
-//  def getFXParamSets:Set[(String, JavaDate)] = 
-//    transaction {
-//        from(fxrates)(p => 
-//          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-//    }
-//  
-//  def getFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-//    transaction {
-//        from(fxrates)(p =>
-//          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
-//          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-//    }
-// 
   def getFXParamDates(fromDate:JavaDate, toDate:JavaDate):Set[JavaDate] = 
     transaction {
         from(ratefxparameters)(p =>
@@ -611,8 +600,9 @@ object DB extends Schema {
   	}
   
   /**
-   * Returns historical price of a bond, quoted in JPY.
+   * Returns historical price of a bond, quoted as JPY percentage value from original fx fixing.
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   * It only returns prices for dates which JPY price is defined.
    *
    * @param fromDate A starting point of Date. Range includes this date.
    *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
@@ -620,6 +610,8 @@ object DB extends Schema {
    * @param toDate A ending point of Date. Range does not include this date.
    *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
    *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param bondid target bond id
+   * @param defaultfx default fx value in case JPY price is not available for all currencies
    * @return bondid Bond id. eg. "ADB-00001"
    */
   def getJPYPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):SortedMap[JavaDate, Double] = 
@@ -635,8 +627,56 @@ object DB extends Schema {
         )
         select(&(bp.paramdate), &(bp.priceclean_jpy.get))
       ).toSeq
+      
       TreeMap(qresult : _*)
   	}
+  
+  
+  /**
+   * Returns historical price of a bond, quoted as JPY percentage value from given fx fixing.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   * It returns prices for dates which price in original currency is defined.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
+   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
+   * @param toDate A ending point of Date. Range does not include this date.
+   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param bondid target bond id
+   * @param defaultfx default fx value in case JPY price is not available for all currencies
+   * @param fx	
+   * @return bondid Bond id. eg. "ADB-00001"
+   */
+  def getJPYPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String, basefx:Double):SortedMap[JavaDate, Double] = 
+    transaction {
+      val qresult = from(bondprices)(bp =>
+        where(
+          (bp.paramdate gte start) and
+          (bp.paramdate lte end) and
+          (bp.paramset like "%-000") and
+          bp.instrument === "BONDPRICE" and
+          bp.bondid      === bondid and
+          bp.priceclean.isNotNull
+        )
+        select(&(bp.paramdate), &(bp.priceclean.get))
+      ).toMap
+      
+      val quoteccy = from(bonds)(b => 
+        where (b.id === bondid)
+        select (&(b.currencyid))
+        ).singleOption
+      
+      if (quoteccy.isEmpty) TreeMap.empty[JavaDate, Double]
+      else
+      {
+	      val fxseries = getFXTimeSeries(start, end, quoteccy.get, "JPY")
+	      val commondates = fxseries.keySet & qresult.keySet
+	      val result = commondates.map{ d => (d, qresult(d) * fxseries(d) / basefx) }
+	      TreeMap(result.toSeq : _*)
+      }
+  	}
+  
   
   /**
    * Inserts bond prices to the database.
@@ -645,25 +685,36 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  
-  def insertOrReplace[T <: KeyedEntity[String]](data:Traversable[T]):Boolean = {
+  def insertOrUpdate[T <: KeyedEntity[String]](data:Traversable[T], overwrite:Boolean):Boolean = {
+    
+    if (data.isEmpty) return false
+    
     val datatable = data.head.getClass.getSimpleName.toString match {
       case "BondPrice" => bondprices
       case "Volatility" => volatilities
       case "Correlation" => correlations
       case "Coupon" => coupons
+      case "ForwardPrice" => forwardprices
       case _ => null
     }
     
     if (datatable == null) return false
-    
-    val idset = data.map(_.id)
-    transaction {
-      datatable.deleteWhere(_.id in idset)
-    }
-    insertMany(data)
+    insertMany(data.toSet, overwrite)
   }
 
+  /**
+   * Inserts bond prices to the database.
+   *
+   * @param objects A List of Squeryl model objects.
+   * @return Whether or not the statement ran successfully.
+   *          However, this does not guarantee whether every row has been inserted.
+   */
+  def empty[T <: KeyedEntity[String]](table:Table[T]):Boolean = {
+    val tablename = table.name
+    runSQLStatement("TRUNCATE TABLE " + tablename)
+    true
+  }
+  
   /**
    * Inserts many Squeryl model objects via CSV.
    *
@@ -671,12 +722,12 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def insertMany(objects:Traversable[AnyRef]):Boolean = {
-    buildCSVImportStatement(objects).foreach(runSQLStatement)
-
+  def insertMany(objects:Traversable[AnyRef], overwrite:Boolean):Boolean = {
+    val csv = buildCSVImportStatement(objects.toSet, overwrite)
+    csv.foreach(runSQLStatement)
     true
   }
-
+  
   /**
    * Runs a SQL statement.
    *
@@ -697,7 +748,7 @@ object DB extends Schema {
    * @param objects List of a Squeryl objects of a same Model, such as List[BondPrice]
    * @return A List of strings of prepared SQL statement.
    */
-  def buildCSVImportStatement(objects:Traversable[AnyRef]):List[String] = {
+  def buildCSVImportStatement(objects:Set[AnyRef], overwrite:Boolean):List[String] =  {
     val tempFile            = File.createTempFile("squantlib", ".csv")
     tempFile.deleteOnExit()
     val tempFilePath        = tempFile.getAbsolutePath
@@ -722,7 +773,7 @@ object DB extends Schema {
       "START TRANSACTION;",
       "SET FOREIGN_KEY_CHECKS = 1;",
       "LOAD DATA LOCAL INFILE '" + tempFilePath.replaceAll("\\\\", "\\\\\\\\") + "' " +
-        "INTO TABLE " + tableName + " " +
+        (if(overwrite) "REPLACE " else "") + "INTO TABLE " + tableName + " " +
         "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +
         "IGNORE 1 LINES " +
         "(" + columnNames.mkString(", ") + ")" + ";",

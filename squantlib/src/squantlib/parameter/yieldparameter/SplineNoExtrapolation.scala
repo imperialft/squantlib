@@ -36,8 +36,7 @@ class SplineNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], 
     
 	val mindays = inputvalues.firstKey.days(valuedate)
 	val maxdays = inputvalues.lastKey.days(valuedate)
-	val maxdate = new JDate(valuedate.serialNumber() + maxdays)
-	val maxperiod = new JPeriod(maxdays.toInt, TimeUnit.Days)
+
 
 	def lowextrapolation(v : Long) = inputvalues.first._2
     def highextrapolation(v : Long) = inputvalues.last._2
