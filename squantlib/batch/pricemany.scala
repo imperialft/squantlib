@@ -16,13 +16,13 @@ val enddate = new JavaGCalendar(2008, JavaCalendar.DECEMBER, 30).getTime
 //val dates = DB.getParamSets(startdate, enddate).toList sortBy(_._2)
 val dates = DB.getParamSets(startdate, enddate).toSet
 
-Console.withOut(ps) {
+//Console.withOut(ps) {
   	println("Start pricing " + dates.size + " items\n")
   	val starttime = System.nanoTime
 	dates.par.foreach(d => BondPrices.price(d._1))
   	val endtime = System.nanoTime
 	println("Pricing completed: %.3f sec".format((endtime - starttime)/1000000000.0))
-}
+//}
 
 BondPrices.push
 

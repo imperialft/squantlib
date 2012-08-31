@@ -21,9 +21,9 @@ class Volparams(val name:String,
 
 val ps = new java.io.FileOutputStream("log/volatility.log")
 var resultstart = new Date(1, 1, 2001)
-var resultend = new Date(1, 1, 2020)
+var resultend = new Date(30, 12, 2007)
 val datastart = new Date(1, 1, 2000)
-val dataend = new Date(1, 1, 2020)
+val dataend = resultend
 val fxpairs = DB.getFXlist.map(fx => (fx, "JPY"))
 //val fxpairs = List(("EUR", "JPY"), ("USD", "JPY"))
 val nbDays = List(65, 130, 260)

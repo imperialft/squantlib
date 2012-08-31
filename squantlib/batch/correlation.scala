@@ -40,7 +40,7 @@ val currencies = DB.getFXlist & squantlib.initializer.RateConvention.getConventi
 val fxpairs = currencies.map(fx1 => currencies.filter(_ >= fx1).map(fx2 => (fx1, fx2))).flatten
 val nbDays = 130
 
-val inputparamsfx:List[Correlparams] = fxpairs.map(fx => {
+val inputparamsfx:Set[Correlparams] = fxpairs.map(fx => {
   val inputparam = new Correlparams(name1 = "FX:" + fx._1 + "JPY",
       				name2 = "FX:" + fx._2 + "JPY", 
       				nbDays = nbDays, 
@@ -51,12 +51,13 @@ val inputparamsfx:List[Correlparams] = fxpairs.map(fx => {
   inputparam.ts1 = () => {println("db access") ; DB.getFXTimeSeries(inputparam.datastart, inputparam.dataend, fx._1, "JPY").toTimeSeries}
   inputparam.ts2 = () => {println("db access") ; DB.getFXTimeSeries(inputparam.datastart, inputparam.dataend, fx._2, "JPY").toTimeSeries}
   inputparam}
-  ).toList
+  ).toSet
 
 
 //val latestparamset = DB.getPricedParamSets.maxBy(_._2)._1
-val bondids = DB.getPriceByParamSet(resultparam).map(_.bondid)
-val inputparamsfxbond:List[Correlparams] = bondids.map(bond => {
+val pricedbonds = DB.getPriceByParamSet(resultparam)
+val bondids = pricedbonds.map(_.bondid)
+val inputparamsfxbond:Set[Correlparams] = bondids.map(bond => {
   currencies.map(fx => {
 	  val inputparam = new Correlparams(name1 = "PRICE:" + bond, 
 	      				name2 = "FX:" + fx + "JPY", 
@@ -65,30 +66,31 @@ val inputparamsfxbond:List[Correlparams] = bondids.map(bond => {
 	      				dataend = dataend, 
 	      				resultstart = resultstart, 
 	      				resultend = resultend)
-	  inputparam.ts1 = () => {println("db access") ; DB.getJPYPriceTimeSeries(inputparam.datastart, inputparam.dataend, bond).toTimeSeries}
+	  inputparam.ts1 = () => {println("db access") ; DB.getJPYPriceTimeSeries(inputparam.datastart, inputparam.dataend, bond, 1.00).toTimeSeries}
 	  inputparam.ts2 = () => {println("db access") ; DB.getFXTimeSeries(inputparam.datastart, inputparam.dataend, fx, "JPY").toTimeSeries}
 	  inputparam	  
   })
-}).flatten.toList
+}).flatten.toSet
 
-val inputparamsbondbond:List[Correlparams] = bondids.map(bond1 => {
-  bondids.map(bond2 => {
-	  val inputparam = new Correlparams(name1 = "PRICE:" + bond1, 
-	      				name2 = "PRICE:" + bond2, 
-	      				nbDays = nbDays, 
-	      				datastart = datastart, 
-	      				dataend = dataend, 
-	      				resultstart = resultstart, 
-	      				resultend = resultend)
-	  inputparam.ts1 = () => {println("db access") ; DB.getJPYPriceTimeSeries(inputparam.datastart, inputparam.dataend, bond1).toTimeSeries}
-	  inputparam.ts2 = () => {println("db access") ; DB.getJPYPriceTimeSeries(inputparam.datastart, inputparam.dataend, bond2).toTimeSeries}
-	  inputparam	  
-  })
-}).flatten.toList
+//val inputparamsbondbond:Set[Correlparams] = bondids.map(bond1 => {
+//  bondids.map(bond2 => {
+//	  val inputparam = new Correlparams(name1 = "PRICE:" + bond1, 
+//	      				name2 = "PRICE:" + bond2, 
+//	      				nbDays = nbDays, 
+//	      				datastart = datastart, 
+//	      				dataend = dataend, 
+//	      				resultstart = resultstart, 
+//	      				resultend = resultend)
+//	  inputparam.ts1 = () => {println("db access") ; DB.getJPYPriceTimeSeries(inputparam.datastart, inputparam.dataend, bond1).toTimeSeries}
+//	  inputparam.ts2 = () => {println("db access") ; DB.getJPYPriceTimeSeries(inputparam.datastart, inputparam.dataend, bond2).toTimeSeries}
+//	  inputparam	  
+//  })
+//}).flatten.toSet
 
-val inputparams:List[Correlparams] = inputparamsfx ++ inputparamsfxbond ++ inputparamsbondbond
+//val inputparams:List[Correlparams] = inputparamsfx ++ inputparamsfxbond ++ inputparamsbondbond
+val inputparams:Set[Correlparams] = inputparamsfx ++ inputparamsfxbond
 
-Console.withOut(ps) {
+//Console.withOut(ps) {
   	val starttime = System.nanoTime
 	inputparams.par.foreach(p => {
 	  Correlations.price(p.name1, p.ts1, p.name2, p.ts2, p.nbDays, p.resultstart, p.resultend)
@@ -96,8 +98,8 @@ Console.withOut(ps) {
 	)
   	val endtime = System.nanoTime
 	println("Pricing completed: %.3f sec".format((endtime - starttime)/1000000000.0))
-}
+//}
 
 //CorrelPrice.pushdb
 
-CorrelPrice.storedprice.foreach(p => println(p))
+Correlations.storedprice.foreach(p => println(p))
