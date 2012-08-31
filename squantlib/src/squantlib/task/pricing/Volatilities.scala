@@ -7,19 +7,17 @@ import squantlib.database.schemadefinitions.Volatility
 //import squantlib.model.timeseries.TsAnalysis._
 import scala.collection.JavaConversions._ 
 import org.jquantlib.time.{ Date => qlDate }
-import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
+import scala.collection.mutable.{Queue, SynchronizedQueue, HashMap, SynchronizedMap, MutableList}
 import squantlib.math.timeseries.{Volatility => VolScala}
 import scala.collection.SortedMap
 
 object Volatilities {
   
-  var storedprice = new HashSet[Volatility] with SynchronizedSet[Volatility]
+  var storedprice = new SynchronizedQueue[Volatility]
   private var storedts = new HashMap[String, TimeSeries[JavaDouble]] with SynchronizedMap[String, TimeSeries[JavaDouble]]
   
   def push:Unit =  {
     if (storedprice.size != 0) {
-    	printf("Extracting valid price ..")
-		storedprice.retain(!_.value.isNaN)
 	    printf("Writing " + storedprice.size + " items to Database...")
 		val t1 = System.nanoTime
 		DB.insertOrUpdate(storedprice, false)
@@ -28,7 +26,7 @@ object Volatilities {
 		storedprice.clear
 		}
 	}
-  
+
   def clear:Unit = storedprice.clear
   
   def price(underlying:String, source:() => TimeSeries[JavaDouble], nbDays:Int = -1, startDate:qlDate, endDate:qlDate, annualDays:Int = 260):Unit = {
@@ -58,7 +56,7 @@ object Volatilities {
 	
 	val sortedts = SortedMap(ts.toSeq:_*)
 	val volresult = VolScala.calculate(sortedts, nbDays, annualDays)
-	val resultseries = volresult.filter(c => ((c._1 ge startDate) && (c._1 le endDate)))
+	val resultseries = volresult.filter(c => ((c._1 ge startDate) && (c._1 le endDate) && (!c._2.isNaN)))
 	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
 	val result = resultseries.map { v =>

@@ -48,16 +48,19 @@ object ForwardPrices {
 	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
 	val forwardprices:Set[ForwardPrice] = bonds.filter(b => isvalidbond(b.bondid)).par.map { bond => {
+		val fx = factory.getFX(bond.currency.code, "JPY")
 		val originalengine = bond.getPricingEngine
 		val cdr = bond.calendar
 		val simulstart = factory.valuedate.serialNumber
 		val simulend = bond.maturityDate.serialNumber
 		val simuldates = (simulstart to simulend) map (new qlDate(_)) filter(cdr.isBusinessDay(_))
+		val initialfx = bond.initialFX
 		
 		val pricelist = simuldates map { d => {
 			val newengine = factory.getcustomdiscountbondengine(bond, cdr, d)
 			bond.setPricingEngine(newengine, d)
 			val cprice = try bond.cleanPrice catch { case e => Double.NaN }
+			val fxvalue = try fx.forwardfx(d) catch { case e => Double.NaN }
 			new ForwardPrice (
 			    id = "BOND:" + bond.bondid + ":" + paramset + ":" + ("%tY%<tm%<td" format d.longDate),
 			    paramset = paramset,
@@ -65,6 +68,8 @@ object ForwardPrices {
 				valuedate = d.longDate,
 				underlying = "BOND:" + bond.bondid,
 				value = cprice,
+				valuejpy = if (initialfx == 0 || cprice.isNaN || fxvalue.isNaN) None 
+							else Some(cprice * fxvalue / initialfx),
 				created = Some(currenttime)
 			    )
 			}
@@ -113,6 +118,7 @@ object ForwardPrices {
 				valuedate = d.longDate,
 				underlying = "FX:" + fx.name,
 				value = fxvalue,
+				valuejpy = None,
 				created = Some(currenttime)
 			    )
 			}

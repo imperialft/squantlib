@@ -470,6 +470,7 @@ class ForwardPrice(@Column("ID")			var id: String,
               @Column("ValueDate")			var valuedate: Date,
               @Column("UnderlyingID")		var underlying: String,
               @Column("VALUE")				var value: Double,
+              @Column("VALUEJPY")			var valuejpy: Option[Double],
               @Column("Created")			var created: Option[Date]
               ) extends KeyedEntity[String] {
   
@@ -480,6 +481,7 @@ class ForwardPrice(@Column("ID")			var id: String,
       valuedate = null, 
       underlying = null, 
       value = -99999, 
+      valuejpy = Some(0.0), 
       created = Some(new Date))
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramset, valuedate, underlying, value)
