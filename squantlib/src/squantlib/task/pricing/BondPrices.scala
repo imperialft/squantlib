@@ -12,20 +12,21 @@ import org.jquantlib.instruments.{Bond => QLBond}
 import org.jquantlib.currencies.Asia.JPYCurrency
 import scala.collection.immutable.StringLike
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
+import scala.collection.immutable.TreeMap
+import java.util.{Date => JavaDate}
 
 object BondPrices {
   
   var storedprice = new HashSet[BondPrice] with SynchronizedSet[BondPrice]
-  
+    
   var dbbonds:Map[String, dbBond] = Map.empty
   
   def loadbonds:Unit = {
     dbbonds = DB.getBonds.map(b => (b.id, b)).toMap
   }
   
-  def push:Unit = {
+  def push:Unit = { 
     if (storedprice.size != 0) {
-      
     	printf("Extracting valid price ..")
 		storedprice.retain(!_.pricedirty.isNaN)
 	    printf("Writing " + storedprice.size + " items to Database...")
@@ -36,8 +37,47 @@ object BondPrices {
 		storedprice.clear
 		}
 	}
-      
-  def price(paramset:String, bondid:Traversable[String] = null):Unit = {
+  
+  def notPricedBonds:Set[String] = {
+	val (latestparamset, latestpricedate) = DB.latestPriceParam
+	val factory = QLDB.getDiscountCurveFactory(latestparamset)
+	val priceablebonds = QLDB.getBonds(factory).filter(b => b.isPriceable)
+	val pricedbonds = DB.getPricedBonds
+	priceablebonds.filter(b => !pricedbonds.contains(b.bondid)).map(_.bondid)
+  }
+  
+  def notPricedParams:Set[(String, JavaDate)] = DB.getParamSetsAfter(DB.latestPriceParam._2)
+  
+  def updateNewDates:Unit = 
+    if (!notPricedParams.isEmpty) notPricedParams.foreach(p => price(p._1))
+    
+  def updateNewDates_par:Unit = 
+    if (!notPricedParams.isEmpty) notPricedParams.par.foreach(p => price(p._1))
+  
+  def updateNewBonds:Unit = {
+    if (notPricedBonds.isEmpty) return
+    val bonds = DB.getBonds(notPricedBonds)
+	val dates = DB.getParamSetsAfter(bonds.minBy(_.issuedate).issuedate.sub(400))
+	if (!dates.isEmpty) dates.foreach(d => price(d._1, notPricedBonds))
+  }
+  
+  def updateNewBonds_par:Unit = {
+    if (notPricedBonds.isEmpty) return
+    val bonds = DB.getBonds(notPricedBonds)
+	val dates = DB.getParamSetsAfter(bonds.minBy(_.issuedate).issuedate.sub(400))
+	if (!dates.isEmpty) dates.par.foreach(d => price(d._1, notPricedBonds))
+  }
+  
+  def price(paramsets:Traversable[String]):Unit = price(paramsets, null)
+  
+  def price(paramsets:Traversable[String], bondid:Traversable[String]):Unit ={
+    val params:Set[String] = paramsets.toSet
+    params.foreach(d => price(d, bondid))
+  } 
+  
+  def price(paramset:String):Unit = price(paramset, null)
+   
+  def price(paramset:String, bondid:Traversable[String]):Unit = {
     
     var outputstring = ""
     def output(s:String):Unit = { outputstring += s }
@@ -61,7 +101,7 @@ object BondPrices {
 	/**
 	 * Initialise priceable bonds with default bond engine
 	 */
-	val t2 = System.nanoTime
+	val t2 = System.nanoTime 
 	val bonds:Set[QLBond] = if (bondid == null) QLDB.getBonds(factory) else QLDB.getBonds(bondid, factory)
 	
 	/**
@@ -94,7 +134,7 @@ object BondPrices {
 	val errorlist = if (gps.keySet.contains("ERROR")) gps("ERROR").toMap else null
 	val expirelist = if (gps.keySet.contains("EXPIRED")) gps("EXPIRED").toMap else null
 	val nonissuelist = if (gps.keySet.contains("NOTISSUED")) gps("NOTISSUED").toMap else null
-	val tmap = if (errorlist == null || errorlist.isEmpty) null else scala.collection.immutable.TreeMap(errorlist.toArray:_*)
+	val tmap:TreeMap[String, String] = if (errorlist == null || errorlist.isEmpty) null else TreeMap(errorlist.toArray:_*)
 	
 	val resultsummary = bond_product.groupBy(p => p._2).map{ p => {
 	  val vdlong = valuedate.longDate

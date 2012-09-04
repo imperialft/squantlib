@@ -8,7 +8,10 @@ import org.jquantlib.time.{TimeUnit, Frequency, Date => JDate, Period=>JPeriod}
 import scala.collection.SortedMap
 
 object RateConvention{
-	val getConvention = Map(
+  
+	def apply(ccy:String) = allConventions(ccy)
+  
+	val allConventions = Map(
 			("AUD" -> new AudRateConvention),
 			("BRL" -> new BrlRateConvention),
 			("CAD" -> new CadRateConvention),
@@ -29,6 +32,8 @@ object RateConvention{
 			("TRY" -> new TryRateConvention),
 			("USD" -> new UsdRateConvention),
 			("ZAR" -> new ZarRateConvention))
+			
+	def currencies = allConventions.keySet
 }
 
 /**

@@ -14,7 +14,7 @@ import squantlib.parameter.yieldparameter.{FlatVector, LinearNoExtrapolation}
  * @param floatindex can take any maturity.
  */
 class CDSCurve(val rate:YieldParameter, val currency:Currency, val issuerid:String) extends AbstractCurve{
-  def this(r:YieldParameter, c:String, id:String) = this(r, Currencies.getcurrency(c), id)
+  def this(r:YieldParameter, c:String, id:String) = this(r, Currencies(c), id)
 }
 
 object CDSCurve{
@@ -30,7 +30,7 @@ object CDSCurve{
   	  cdsgroups.map{ case ((issuer, ccy), v) => {
   		  val valuedate = new JDate(v.head.paramdate)
   		  val cdscurve = curveconstructor(valuedate, TreeMap(v.toSeq.map(p => (new JPeriod(p.maturity), p.spread / 10000.0)) :_*))
-  		  ((issuer, ccy), new CDSCurve(cdscurve, Currencies.getcurrency(ccy), issuer))
+  		  ((issuer, ccy), new CDSCurve(cdscurve, Currencies(ccy), issuer))
   	  	}}
   	}
   
@@ -38,7 +38,7 @@ object CDSCurve{
 	 * Constructs CDScurve from one CDSParameter as flat spread.
 	 */
   	def getcurve(p:CDSParameter):CDSCurve = 
-  	  new CDSCurve(new FlatVector(new JDate(p.paramdate), p.spread), Currencies.getcurrency(p.currencyid), p.issuerid)
+  	  new CDSCurve(new FlatVector(new JDate(p.paramdate), p.spread), Currencies(p.currencyid), p.issuerid)
 
 	/**
 	 * Constructs CDScurve from CDSParameter per each combination of issuerid, currency, paramset.

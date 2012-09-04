@@ -36,7 +36,7 @@ object FixedRateBondConstructor {
 				  new Schedule(issuedate, maturity, tenor, calendar, convention, maturityconvention, rule, endofmonth)
 				}
 				
-				val currency = Currencies.getcurrency(bond.currencyid)
+				val currency = Currencies(bond.currencyid)
 				val settlementdays = 0
 				val faceamount = 100.0
 				val coupons:Array[Double] = ratetoarray(bond.coupon, schedule.size - 1)

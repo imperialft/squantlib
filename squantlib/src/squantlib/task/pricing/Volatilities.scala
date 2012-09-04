@@ -10,6 +10,9 @@ import org.jquantlib.time.{ Date => qlDate }
 import scala.collection.mutable.{Queue, SynchronizedQueue, HashMap, SynchronizedMap, MutableList}
 import squantlib.math.timeseries.{Volatility => VolScala}
 import scala.collection.SortedMap
+import squantlib.database.QLConstructors._
+import java.util.{Date => JavaDate}
+
 
 object Volatilities {
   
@@ -29,9 +32,49 @@ object Volatilities {
 
   def clear:Unit = storedprice.clear
   
-  def price(underlying:String, source:() => TimeSeries[JavaDouble], nbDays:Int = -1, startDate:qlDate, endDate:qlDate, annualDays:Int = 260):Unit = {
+  def pricefx(currencies:Set[String], nbDays:Set[Int], startDate:qlDate, endDate:qlDate, annualDays:Int = 260) = {
+    val pricesets = for (ccy <- currencies; d <- nbDays) yield (ccy, d)
+    pricesets.par.foreach { case (ccy, d) => 
+      price("FX:" + ccy + "JPY", fxTimeSeries(ccy), d, startDate, endDate, annualDays)
+  }}
+  
+  def notPricedBonds:Set[String] = (DB.latestPrices.map(_.bondid) -- DB.getVolUnderlyings.map(_.drop(6))).map(_.toString)
+  def notPricedDateRange:(JavaDate, JavaDate) = (DB.latestVolatilityDate, DB.latestPriceParam._2)
+
+  def updateNewDates(nbDays:Set[Int], bondids:Set[String] = null, fxids:Set[String] = null, annualDays:Int = 260) = {
+    val bonds:Set[String] = if (bondids == null) DB.latestPrices.map(_.bondid) else bondids
+    val fxs:Set[String] = if (fxids == null) DB.getFXlist else fxids
+    val (startdate, enddate) = notPricedDateRange
+    if (enddate.after(startdate)) {
+      pricebond(bonds, nbDays, startdate, enddate, annualDays)
+      pricefx(fxs, nbDays, startdate, enddate, annualDays)
+    }
+  }
+  
+  def updateNewBonds(nbDays:Set[Int], startDate:qlDate, endDate:qlDate, annualDays:Int = 260) = 
+    if (!notPricedBonds.isEmpty) pricebond(notPricedBonds, nbDays, startDate, endDate, annualDays)
     
-    if (storedts.isEmpty || !storedts.keySet.contains(underlying)) storedts(underlying) = source()
+  def pricebond(bondids:Set[String], nbDays:Set[Int], startDate:qlDate, endDate:qlDate, annualDays:Int = 260) = {
+    val pricesets = for (id <- bondCurrency(bondids); d <- nbDays) yield (id, d)
+    pricesets.par.foreach { case ((bondid, ccy), d) => 
+      price("PRICE:" + bondid, bondTimeSeries(bondid, ccy), d, startDate, endDate, annualDays)
+    }
+  }
+
+  def fxTimeSeries(ccy:String) = DB.getFXTimeSeries(ccy).toTimeSeries
+  
+  def bondTimeSeries(bondid:String, ccy:String):TimeSeries[JavaDouble] = { 
+    val priceseries = DB.getPriceTimeSeries(bondid).toTimeSeries
+    val fxid = "FX:" + ccy + "JPY"
+    if (!storedts.keySet.contains(fxid)) storedts(fxid) = DB.getFXTimeSeries(ccy).toTimeSeries
+    (priceseries.keySet & storedts(fxid).keySet).map(p => (p, priceseries(p) / storedts(fxid)(p))).toMap.toTimeSeries
+  }
+  
+  def bondCurrency(bondids:Set[String]):Map[String, String] = DB.getBonds(bondids).map(b => (b.id, b.currencyid)).toMap
+
+  def price(underlying:String, source: => TimeSeries[JavaDouble], nbDays:Int = -1, startDate:qlDate, endDate:qlDate, annualDays:Int = 260):Unit = {
+    
+    if (storedts.isEmpty || !storedts.keySet.contains(underlying)) storedts(underlying) = source
       
     val series = storedts(underlying) 
     
@@ -46,7 +89,7 @@ object Volatilities {
       return
     }
 	
-	val ts = series.map(s => (s._1, s._2.doubleValue))
+	val ts = series.map{ case (s, t) => (s, t.doubleValue)}
 	
     if (ts.size < nbDays) {
       outputln("Error - Not enough elements: found " + ts.size + " require " + nbDays)
@@ -56,17 +99,17 @@ object Volatilities {
 	
 	val sortedts = SortedMap(ts.toSeq:_*)
 	val volresult = VolScala.calculate(sortedts, nbDays, annualDays)
-	val resultseries = volresult.filter(c => ((c._1 ge startDate) && (c._1 le endDate) && (!c._2.isNaN)))
+	val resultseries = volresult.filter{case (d, v) => ((d ge startDate) && (d le endDate) && (!v.isNaN))}
 	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
-	val result = resultseries.map { v =>
+	val result = resultseries.map { case (d, v) =>
     	new Volatility(
-	      id = (underlying + ":" + ("%tY%<tm%<td" format v._1.longDate) + ":" + 1 + ":" + nbDays),
+	      id = (underlying + ":" + ("%tY%<tm%<td" format d.longDate) + ":" + 1 + ":" + nbDays),
 	      underlying = underlying,
-	      valuedate = v._1.longDate,
+	      valuedate = d.longDate,
 	      periodicity = 1,
 	      nbdays = nbDays,
-	      value = v._2,
+	      value = v,
 	      lastmodified = Some(currenttime))
     	}
 	
@@ -82,4 +125,3 @@ object Volatilities {
   }
     
 }
-

@@ -10,6 +10,9 @@ import org.jquantlib.time.{ Date => qlDate }
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 import squantlib.math.timeseries.Correlation
 import scala.collection.SortedMap
+import squantlib.database.QLConstructors._
+import java.util.{Date => JavaDate}
+import squantlib.initializer.RateConvention
 
 object Correlations {
   
@@ -32,12 +35,62 @@ object Correlations {
   
   def clear:Unit = pendingprice.clear
   
-  def price(underlying1:String, source1:() => TimeSeries[JavaDouble], underlying2:String, source2:() => TimeSeries[JavaDouble], nbDays:Int = -1, startDate:qlDate, endDate:qlDate):Unit = {
+  def cleardb:Unit = DB.empty(DB.correlations)
+  
+  def lastDate:qlDate = DB.latestCorrelationDate 
+  
+  def defaultValueDate:qlDate = DB.latestPriceParam._2
+  def defaultCurrencies:Set[String] = DB.getFXlist & RateConvention.currencies
+  def defaultFXpairs:Set[(String, String)] = for(ccy1 <- defaultCurrencies; ccy2 <- defaultCurrencies if ccy1 >= ccy2) yield (ccy1, ccy2)
+  def defaultBonds:Set[String] = DB.latestPrices.map(d => d.bondid)
+  
+  def pricefxfx(nbDays:Int):Unit = pricefxfx(nbDays, defaultValueDate)
+  def pricefxfx(nbDays:Int, valueDate:qlDate):Unit = pricefxfx(defaultFXpairs, nbDays, defaultValueDate)
+  
+  def pricefxfx(fxpairs:Set[(String, String)], nbDays:Int, valuedate:qlDate):Unit = fxpairs.foreach{fx =>
+	  price(underlying1 = "FX:" + fx._1 + "JPY",
+    		source1 = fxTimeSeries(fx._1),
+    		underlying2 = "FX:" + fx._2 + "JPY", 
+    		source2 = fxTimeSeries(fx._2),
+    		nbDays = nbDays, 
+    		startDate = valuedate, 
+    		endDate = valuedate)
+  }
+  
+  def fxTimeSeries(ccy:String) = DB.getFXTimeSeries(ccy).toTimeSeries
+  
+  def bondCurrency(bondids:Set[String]):Map[String, String] = DB.getBonds(bondids).map(b => (b.id, b.currencyid)).toMap
+
+  def bondTimeSeries(bondid:String, ccy:String):TimeSeries[JavaDouble] = { 
+    val priceseries = DB.getPriceTimeSeries(bondid).toTimeSeries
+    val fxid = "FX:" + ccy + "JPY"
+    if (!storedts.keySet.contains(fxid)) storedts(fxid) = DB.getFXTimeSeries(ccy).toTimeSeries
+    (priceseries.keySet & storedts(fxid).keySet).map(p => (p, priceseries(p) / storedts(fxid)(p))).toMap.toTimeSeries
+  } 
+  
+  def pricefxbond(nbDays:Int):Unit = pricefxbond(defaultCurrencies, defaultBonds, nbDays, defaultValueDate)
+  def pricefxbond(nbDays:Int, valuedate:qlDate):Unit = pricefxbond(defaultCurrencies, defaultBonds, nbDays, valuedate)
+  
+  def pricefxbond(bondlist:Set[String], ccylist:Set[String], nbDays:Int, valuedate:qlDate):Unit = {
+    val ccybond = for(bond <- bondCurrency(bondlist); ccy <- ccylist) yield (bond, ccy)
+    ccybond.foreach{case ((bond, ccy), fx) =>
+	  price(underlying1 = "PRICE:" + bond,
+			source1 = bondTimeSeries(bond, ccy),
+			underlying2 = "FX:" + fx + "JPY", 
+			source2 = fxTimeSeries(fx),
+			nbDays = nbDays, 
+			startDate = valuedate, 
+			endDate = valuedate)
+  }}
+  
+  
+  def price(underlying1:String, source1: => TimeSeries[JavaDouble], underlying2:String, source2: => TimeSeries[JavaDouble], nbDays:Int = -1, startDate:qlDate, endDate:qlDate):Unit = {
     
-    if (storedts.isEmpty || !storedts.keySet.contains(underlying1)) storedts(underlying1) = source1()
-    if (storedts.isEmpty || !storedts.keySet.contains(underlying2)) storedts(underlying2) = source2()
-      
-    val series1 = storedts(underlying1) 
+    if (storedts.isEmpty || !storedts.keySet.contains(underlying1)) storedts(underlying1) = source1
+    if (storedts.isEmpty || !storedts.keySet.contains(underlying2)) storedts(underlying2) = source2
+    
+//    val datastart =  startDate.sub(nbDays, )
+    val series1 = storedts(underlying1)
     val series2 = storedts(underlying2) 
      
     var outputstring = ""
@@ -51,13 +104,11 @@ object Correlations {
       return
     }
 	
-	val commondays = series1.keySet & series2.keySet
-	
 	/**
 	 * Creates factory from given paramset.
 	 */
-	val ts1 = commondays.map(d => (d, series1(d).doubleValue))
-	val ts2 = commondays.map(d => (d, series2(d).doubleValue))
+	val ts1 = (series1.keySet & series2.keySet).map(d => (d, series1(d).doubleValue))
+	val ts2 = (series1.keySet & series2.keySet).map(d => (d, series2(d).doubleValue))
 	
     if (ts1.size < nbDays) {
       outputln("Error - Not enough elements: found " + ts1.size + " require " + nbDays)

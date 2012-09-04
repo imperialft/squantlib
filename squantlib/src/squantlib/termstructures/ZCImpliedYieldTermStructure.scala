@@ -2,7 +2,7 @@ package squantlib.termstructures
 
 import squantlib.model.discountcurve.{DiscountableCurve, DiscountCurve}
 import squantlib.parameter.yieldparameter.YieldParameter
-import squantlib.initializer.Currencies
+import squantlib.initializer.Calendars
 import org.jquantlib.time.{ Date => qlDate, Calendar}
 import org.jquantlib.termstructures.AbstractYieldTermStructure
 import org.jquantlib.daycounters.DayCounter
@@ -36,7 +36,7 @@ extends AbstractYieldTermStructure(referencedate)  {
 	}
 	 
 	def this(d:DiscountCurve, cdr:Calendar) = this(d, cdr, 0, d.valuedate)
-	def this(d:DiscountCurve) = this(d, Currencies.getcalendar(d.currency), 0, d.valuedate)
+	def this(d:DiscountCurve) = this(d, Calendars(d.currency), 0, d.valuedate)
 
 }
 

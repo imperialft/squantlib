@@ -240,11 +240,12 @@ class Bond(@Column("ID")					var id: String,
   import org.jquantlib.time.Calendar
   import org.jquantlib.time.calendars.JointCalendar
   import squantlib.initializer.Currencies
+  import squantlib.initializer.Calendars
   
   def calendar:Calendar = {
     val cdrlist = calendar_str.split(",").map(s => s.trim)
-    if (cdrlist.size == 1) Currencies.getcalendar(cdrlist.head)
-    else new JointCalendar(cdrlist.map(c => Currencies.getcalendar(c)))
+    if (cdrlist.size == 1) Calendars(cdrlist.head)
+    else new JointCalendar(cdrlist.map(c => Calendars(c)))
   }
   
   def this() = this(

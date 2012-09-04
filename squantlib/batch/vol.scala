@@ -3,21 +3,24 @@
 import java.util.{Date => JavaDate, Calendar => JavaCalendar, GregorianCalendar => JavaGCalendar, UUID}
 import org.jquantlib.time.Date
 import squantlib.task.pricing.Volatilities
+import squantlib.task.pricing.Volparams
 import java.io.FileOutputStream
 import squantlib.database.DB
 import squantlib.database.QLConstructors._
 import scala.collection.mutable.Map
 import java.lang.{Double => JavaDouble}
 
+
 class Volparams(val name:String, 
 				    val nbDays:Int, 
-				    val datastart:Date, 
-				    val dataend:Date, 
-				    val resultstart:Date, 
-				    val resultend:Date) {
+				    val datastart:qlDate, 
+				    val dataend:qlDate, 
+				    val resultstart:qlDate, 
+				    val resultend:qlDate) {
   
 		var ts:() => TimeSeries[JavaDouble] = null
 }
+
 
 val ps = new java.io.FileOutputStream("log/volatility.log")
 var resultstart = new Date(1, 1, 2001)
@@ -67,7 +70,7 @@ val inputparams:List[Volparams] = inputparamsfx ++ inputparamsbond
 Console.withOut(ps) {
   	val starttime = System.nanoTime
   	println("Start Calculation : ")
-	inputparams.par.foreach(p => {
+	inputparams.foreach(p => {
 	  Volatilities.price(p.name, p.ts, p.nbDays, p.resultstart, p.resultend)
 	}
 	)
@@ -75,9 +78,8 @@ Console.withOut(ps) {
 	println("Pricing completed: %.3f sec".format((endtime - starttime)/1000000000.0))
 }
 
-Volatilities.push
+//Volatilities.push
 
-//BondPrice.pushdb
 
 
 

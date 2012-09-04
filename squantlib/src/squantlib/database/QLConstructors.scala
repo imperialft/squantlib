@@ -52,67 +52,19 @@ object QLConstructors {
 	  def bondprice(valuedate:qlDate, factory:DiscountCurveFactory) = BondPrice.build(bond, factory)
 	  def bondprice(valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure):BondPrice 
 			= BondPrice.build(bond, valuedate, fx, paramset, termstructure)
+			
+	  def isPriceable = {
+	    val estream = new java.io.PrintStream(new java.io.OutputStream{
+	    	override def write(b:Int) = {}})
+	    val err = System.err
+	    System.setErr(estream)
+	    val result = try { val p = bond.dirtyPrice; !p.isNaN } catch { case e:Exception => false }
+	    System.setErr(err)
+	    result
+	  }
 	}
 	
 	
 }
 
 
-//	implicit def FXRate2FXRateSet(params:Traversable[FXRate]) = new FXRateSet(params)
-//	class FXRateSet(val fxset:Traversable[FXRate]){
-//	  def fxjpy(ccy:String):Double = try { fxset.filter(fx => fx.currencyid == ccy).head.fxjpy }
-//	  								catch {case e => Double.NaN}
-//	   
-//	  def fx(ccy1:String, ccy2:String):Double = if (ccy1 == ccy2) 1.0
-//			  							else if (ccy1 == "JPY") 1.0/fxjpy(ccy2)
-//	  									else if (ccy2 == "JPY") fxjpy(ccy1)
-//	  									else fxjpy(ccy1) / fxjpy(ccy2)
-//	  									
-//	  def fxusd(ccy:String):Double = fx("USD", ccy)
-//	  
-//	  def toInputParameter:Set[InputParameter] = fxset.map(fx => 
-//	    new InputParameter(
-//	      id = -fx.id,
-//	      paramset = fx.paramset, 
-//	      paramdate = fx.paramdate, 
-//	      instrument = "FX", 
-//	      asset = fx.currencyid, 
-//	      maturity = null, 
-//	      value = fxusd(fx.currencyid), 
-//	      option = null, 
-//	      comment = null, 
-//	      created = fx.lastmodified
-//	      )).toSet + inputParamJpy
-//	      
-//	  def inputParamJpy:InputParameter = 
-//	    new InputParameter(
-//	      id = -(fxset.map(_.id).max + 1),
-//	      paramset = fxset.head.paramset, 
-//	      paramdate = fxset.head.paramdate, 
-//	      instrument = "FX", 
-//	      asset = "JPY", 
-//	      maturity = null, 
-//	      value = fxusd("JPY"), 
-//	      option = null, 
-//	      comment = null, 
-//	      created = fxset.head.lastmodified
-//	      )
-//	}
-//
-//	
-//    implicit def SortedMap2Ts(values:SortedMap[qlDate, Double]) : TimeSeries[JavaDouble] = 
-//      new TimeSeries[java.lang.Double](JavaDouble.TYPE, mapAsJavaMap(values.mapValues(q => q.doubleValue)))
-//        
-//    implicit def SortedMapJava2Ts(values:SortedMap[JavaDate, Double]) : TimeSeries[JavaDouble] = 
-//      new TimeSeries[java.lang.Double](JavaDouble.TYPE, values.map(q => (new qlDate(q._1), new JavaDouble(q._2))))
-//
-//	implicit def Sortedmap2Ts(m:SortedMap[qlDate, Double]) = new ConvertableSortedMap(m)
-//	class ConvertableSortedMap(m:SortedMap[qlDate, Double]) {
-//	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (q._1, new JavaDouble(q._2))))
-//	}
-//
-//	
-//	implicit def JavaSortedmap2Ts(m:SortedMap[JavaDate, Double]) = new ConvertableJavaSortedMap(m)
-//	class ConvertableJavaSortedMap(m:SortedMap[JavaDate, Double]) {
-//	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (new qlDate(q._1), new JavaDouble(q._2))))
-//	}
