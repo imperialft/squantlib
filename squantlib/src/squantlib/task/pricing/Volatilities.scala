@@ -9,7 +9,7 @@ import scala.collection.JavaConversions._
 import org.jquantlib.time.{ Date => qlDate }
 import scala.collection.mutable.{Queue, SynchronizedQueue, HashMap, SynchronizedMap, MutableList}
 import squantlib.math.timeseries.{Volatility => VolScala}
-import scala.collection.SortedMap
+import scala.collection.{SortedMap, SortedSet}
 import squantlib.database.QLConstructors._
 import java.util.{Date => JavaDate}
 
@@ -29,6 +29,21 @@ object Volatilities {
 		storedprice.clear
 		}
 	}
+  
+  def push(nb:Int):Unit =  {
+    if (storedprice.size != 0) {
+        val splitsize:Int = storedprice.size / nb + nb
+        val splitprice = storedprice.grouped(splitsize)
+        splitprice.foreach { p => {
+		    printf("Writing " + p.size + " items to Database...")
+			val t1 = System.nanoTime
+			DB.insertOrUpdate(p, false)
+			val t2 = System.nanoTime
+			printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
+        }}
+		storedprice.clear
+		}
+	}
 
   def clear:Unit = storedprice.clear
   
@@ -38,24 +53,26 @@ object Volatilities {
       price("FX:" + ccy + "JPY", fxTimeSeries(ccy), d, startDate, endDate, annualDays)
   }}
   
-  def notPricedBonds:Set[String] = (DB.latestPrices.map(_.bondid) -- DB.getVolUnderlyings.map(_.drop(6))).map(_.toString)
-  def notPricedDateRange:(JavaDate, JavaDate) = (DB.latestVolatilityDate, DB.latestPriceParam._2)
-
+  def pricedBonds:Set[String] = DB.getVolatilityBondUnderlyings
+  def notPricedBonds:Set[String] = (DB.latestPrices.map(_.bondid) -- pricedBonds).map(_.toString)
+  def notPricedDateRange:(JavaDate, JavaDate) = (
+      if (DB.latestVolatilityDate != null) DB.latestVolatilityDate else DB.getPricedParamSets.map(_._2).min, 
+      DB.latestPriceParam._2)
+  
   def updateNewDates(nbDays:Set[Int], bondids:Set[String] = null, fxids:Set[String] = null, annualDays:Int = 260) = {
-    val bonds:Set[String] = if (bondids == null) DB.latestPrices.map(_.bondid) else bondids
+    val bonds:Set[String] = if (bondids == null) pricedBonds else bondids
     val fxs:Set[String] = if (fxids == null) DB.getFXlist else fxids
     val (startdate, enddate) = notPricedDateRange
-    if (enddate.after(startdate)) {
-      pricebond(bonds, nbDays, startdate, enddate, annualDays)
-      pricefx(fxs, nbDays, startdate, enddate, annualDays)
-    }
+    if (enddate.after(startdate) && !bonds.isEmpty) pricebond(bonds, nbDays, startdate, enddate, annualDays)
+    if (enddate.after(startdate) && !fxs.isEmpty) pricefx(fxs, nbDays, startdate, enddate, annualDays)
   }
   
   def updateNewBonds(nbDays:Set[Int], startDate:qlDate, endDate:qlDate, annualDays:Int = 260) = 
     if (!notPricedBonds.isEmpty) pricebond(notPricedBonds, nbDays, startDate, endDate, annualDays)
     
   def pricebond(bondids:Set[String], nbDays:Set[Int], startDate:qlDate, endDate:qlDate, annualDays:Int = 260) = {
-    val pricesets = for (id <- bondCurrency(bondids); d <- nbDays) yield (id, d)
+    val bondfx = bondCurrency(bondids).toSet
+    val pricesets = for (id <- bondfx; d <- nbDays) yield (id, d)
     pricesets.par.foreach { case ((bondid, ccy), d) => 
       price("PRICE:" + bondid, bondTimeSeries(bondid, ccy), d, startDate, endDate, annualDays)
     }
@@ -67,7 +84,7 @@ object Volatilities {
     val priceseries = DB.getPriceTimeSeries(bondid).toTimeSeries
     val fxid = "FX:" + ccy + "JPY"
     if (!storedts.keySet.contains(fxid)) storedts(fxid) = DB.getFXTimeSeries(ccy).toTimeSeries
-    (priceseries.keySet & storedts(fxid).keySet).map(p => (p, priceseries(p) / storedts(fxid)(p))).toMap.toTimeSeries
+    (priceseries.keySet & storedts(fxid).keySet).map(p => (p, priceseries(p) * storedts(fxid)(p))).toMap.toTimeSeries
   }
   
   def bondCurrency(bondids:Set[String]):Map[String, String] = DB.getBonds(bondids).map(b => (b.id, b.currencyid)).toMap
@@ -89,15 +106,21 @@ object Volatilities {
       return
     }
 	
-	val ts = series.map{ case (s, t) => (s, t.doubleValue)}
+	val targetkeys = {
+	  val sortedkeys = SortedSet(series.keySet.toSeq :_*)
+	  sortedkeys.takeRight(sortedkeys.count(startDate le) + nbDays)
+	}
 	
-    if (ts.size < nbDays) {
-      outputln("Error - Not enough elements: found " + ts.size + " require " + nbDays)
+    if (targetkeys.size < nbDays) {
+      outputln("Error - Not enough elements: found " + targetkeys.size + " require " + nbDays)
       printf(outputstring)
       return
     }
+    
+	val sortedts = SortedMap(series.filterKeys(targetkeys contains).mapValues(_.doubleValue).toSeq:_*)
 	
-	val sortedts = SortedMap(ts.toSeq:_*)
+//	val ts = series.map{ case (s, t) => (s, t.doubleValue)}
+//	val sortedts = SortedMap(ts.toSeq:_*)
 	val volresult = VolScala.calculate(sortedts, nbDays, annualDays)
 	val resultseries = volresult.filter{case (d, v) => ((d ge startDate) && (d le endDate) && (!v.isNaN))}
 	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)

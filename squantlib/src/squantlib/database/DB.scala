@@ -238,6 +238,13 @@ object DB extends Schema {
       ).distinct.toSet
     }
   
+  def getForwardPriceParams:Set[String] =
+    transaction {
+      from(forwardprices)(p =>
+        select(&(p.paramset))
+      ).distinct.toSet
+    }
+  
   def getVolUnderlyings:Set[String] =
     transaction {
       from(volatilities)(b =>
@@ -245,10 +252,38 @@ object DB extends Schema {
       ).distinct.toSet
     }
   
+  def getVolatilities(fromDate:JavaDate, toDate:JavaDate):Set[Volatility] = {
+    transaction {
+      from(volatilities)(vol =>
+        where((vol.valuedate gte fromDate) and (vol.valuedate lte toDate))
+        select(vol)
+      ).toSet
+    }
+  }
+  
+  def getCoupons(bondids:Traversable[String]):Set[Coupon] = 
+    transaction {
+      from(coupons)(c =>
+        where(c.bondid in bondids)
+        select(c)
+      ).toSet
+    }
+  
+  def getCouponMissingBonds:Set[Bond] = 
+    transaction {
+      val couponbonds = from(coupons)(c => select(&(c.bondid))).distinct.toSet
+	  from (bonds)(b => 
+	    where (not(b.id in couponbonds))
+	    select(b)).distinct.toSet
+    }
+  
   def latestPrices:Set[BondPrice] = getPriceByParamSet(latestPriceParam._1)
   def latestPriceParam:(String, JavaDate) = getPricedParamSets.maxBy(_._2)
-  def latestVolatilityDate:JavaDate = getVolatilityDates.max
-  def latestCorrelationDate:JavaDate = getCorrelationDates.max
+  def latestVolatilityDate:JavaDate = if (getVolatilityDates.isEmpty) null else getVolatilityDates.max
+  def latestCorrelationDate:JavaDate = if (getCorrelationDates.isEmpty) null else getCorrelationDates.max
+  
+  def getVolatilityBondUnderlyings = getVolUnderlyings.filter(_.substring(0, 6) == "PRICE:").map(_.substring(6))
+  def getVolatilityFXUnderlyings = getVolUnderlyings.filter(_.substring(0, 3) == "FX:").map(_.substring(3))
   
   /**
    * Returns list of valid paramsets satisfying the given constraints.

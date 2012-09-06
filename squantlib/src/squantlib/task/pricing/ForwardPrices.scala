@@ -7,9 +7,9 @@ import squantlib.database.schemadefinitions.ForwardPrice
 import org.jquantlib.time.{ Date => qlDate }
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 import org.jquantlib.instruments.{Bond => qlBond}
-import squantlib.initializer.Calendars
+import squantlib.initializer.{Calendars, RateConvention}
 
-object ForwardPrices {
+object ForwardPrices { 
   
   var storedprice = new HashSet[ForwardPrice] with SynchronizedSet[ForwardPrice]
   private var storedts = new HashMap[String, TimeSeries[JavaDouble]] with SynchronizedMap[String, TimeSeries[JavaDouble]]
@@ -20,7 +20,7 @@ object ForwardPrices {
 		storedprice.retain(!_.value.isNaN)
 	    printf("Writing " + storedprice.size + " items to Database...")
 		val t1 = System.nanoTime
-		DB.insertOrUpdate(storedprice, true)
+		DB.insertOrUpdate(storedprice, false)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
 		storedprice.clear
@@ -28,6 +28,19 @@ object ForwardPrices {
 	}
   
   def clear:Unit = storedprice.clear
+  
+  def defaultCurrencies:Set[String] = DB.getFXlist & RateConvention.allConventions.map(_._1).toSet
+  def defaultFXpairs:Set[(String, String)] = defaultCurrencies.map(fx => (fx, "JPY"))
+  def defaultBonds:Set[String] = DB.latestPrices.map(_.bondid)
+  
+  def nextParamSet:String = DB.latestPriceParam._1
+  def currentParamSets:Set[String] = DB.getForwardPriceParams
+  def updated:Boolean = currentParamSets contains nextParamSet 
+  
+  def update:Unit = {
+    pricefx(nextParamSet, defaultFXpairs)
+    pricebonds(nextParamSet, defaultBonds)
+  }
   
   def pricebonds(paramset:String, bondid:Traversable[String] = null):Unit = {
 	val factory = QLDB.getDiscountCurveFactory(paramset)

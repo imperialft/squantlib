@@ -9,8 +9,6 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 
 /** 
  * Update Bond Price
- * - New Pricing Dates
- * - New Bonds
 */
 
 {
@@ -24,12 +22,22 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 	
 	System.setErr(new PrintStream(new FileOutputStream("log/javaexceptions.log")))
 	Console.withOut(pricestream){
-	  BondPrices.updateNewDates
-	  BondPrices.updateNewBonds
+	  BondPrices.updateNewDates_par
+	  BondPrices.updateNewBonds_par
 	}
 	System.setErr(System.err)
+	pricestream.close
 	
 	BondPrices.push
+}
+
+/** 
+ * Update Coupons
+*/
+{
+	val bonds = DB.getCouponMissingBonds
+	val coupons = bonds.map(_.getCoupons).filter(_ != null).flatten
+	if (!coupons.isEmpty) DB.insertOrUpdate(coupons, false)
 }
 
 /** 
@@ -54,7 +62,7 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 	  Volatilities.updateNewDates(nbDays, null, null, annualDays)
 	  Volatilities.updateNewBonds(nbDays, startdate, enddate, annualDays)
 	}
-	
+	volstream.close
 	Volatilities.push
 	
 }
@@ -67,15 +75,36 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 	val nbDays = 130
 	val lastcorrel = Correlations.lastDate
 	val currentvd = Correlations.defaultValueDate
+	val correlstream = new java.io.FileOutputStream("log/correlation.log")
 	
 	println("Correlation: last priced: " + lastcorrel.shortDate + " current vd: " + currentvd.shortDate)
 	
-	if (currentvd gt lastcorrel)
-	{
+	if (currentvd gt lastcorrel) {
+	  DB.empty(DB.correlations)
+	  Console.withOut(correlstream){
 		println("=> Update")
 		Correlations.pricefxfx(nbDays)
 		Correlations.pricefxbond(nbDays)
+	  }
+	  correlstream.close
+	  Correlations.push
 	}
-  
 }
 
+/** 
+ * Update Forward Prices
+*/
+
+{
+	if (ForwardPrices.updated) println("Foward Price is up-to-date")
+	else {
+		val forwardstream = new java.io.FileOutputStream("log/forwardprice.log")
+		println("Update Forward Price")
+		DB.empty(DB.forwardprices)
+		Console.withOut(forwardstream){
+			ForwardPrices.update
+			ForwardPrices.push		  
+		}
+		ForwardPrices.push
+	}
+}

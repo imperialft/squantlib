@@ -1,18 +1,18 @@
 package squantlib.task.pricing
 
 import squantlib.database._
+import squantlib.initializer.RateConvention
+import squantlib.math.timeseries.Correlation
+import squantlib.database.QLConstructors._
 import java.lang.{Double => JavaDouble}
-import org.jquantlib.time.TimeSeries
 import squantlib.database.schemadefinitions.Correlation
 import squantlib.model.timeseries.TsAnalysis._
-import scala.collection.JavaConversions._ 
+import org.jquantlib.time.TimeSeries
 import org.jquantlib.time.{ Date => qlDate }
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
-import squantlib.math.timeseries.Correlation
-import scala.collection.SortedMap
-import squantlib.database.QLConstructors._
+import scala.collection.{SortedMap, SortedSet}
+import scala.collection.JavaConversions._ 
 import java.util.{Date => JavaDate}
-import squantlib.initializer.RateConvention
 
 object Correlations {
   
@@ -40,14 +40,15 @@ object Correlations {
   def lastDate:qlDate = DB.latestCorrelationDate 
   
   def defaultValueDate:qlDate = DB.latestPriceParam._2
-  def defaultCurrencies:Set[String] = DB.getFXlist & RateConvention.currencies
+  def defaultCurrencies:Set[String] = (DB.getFXlist & RateConvention.currencies) - "JPY"
   def defaultFXpairs:Set[(String, String)] = for(ccy1 <- defaultCurrencies; ccy2 <- defaultCurrencies if ccy1 >= ccy2) yield (ccy1, ccy2)
   def defaultBonds:Set[String] = DB.latestPrices.map(d => d.bondid)
   
   def pricefxfx(nbDays:Int):Unit = pricefxfx(nbDays, defaultValueDate)
   def pricefxfx(nbDays:Int, valueDate:qlDate):Unit = pricefxfx(defaultFXpairs, nbDays, defaultValueDate)
   
-  def pricefxfx(fxpairs:Set[(String, String)], nbDays:Int, valuedate:qlDate):Unit = fxpairs.foreach{fx =>
+  def pricefxfx(fxpairs:Set[(String, String)], nbDays:Int, valuedate:qlDate):Unit = 
+    fxpairs.par.foreach{fx =>
 	  price(underlying1 = "FX:" + fx._1 + "JPY",
     		source1 = fxTimeSeries(fx._1),
     		underlying2 = "FX:" + fx._2 + "JPY", 
@@ -57,23 +58,24 @@ object Correlations {
     		endDate = valuedate)
   }
   
-  def fxTimeSeries(ccy:String) = DB.getFXTimeSeries(ccy).toTimeSeries
+  def fxTimeSeries(ccy:String) = { println("db access FX"); DB.getFXTimeSeries(ccy).toTimeSeries}
   
   def bondCurrency(bondids:Set[String]):Map[String, String] = DB.getBonds(bondids).map(b => (b.id, b.currencyid)).toMap
 
   def bondTimeSeries(bondid:String, ccy:String):TimeSeries[JavaDouble] = { 
-    val priceseries = DB.getPriceTimeSeries(bondid).toTimeSeries
+    val priceseries = { println("db access bond"); DB.getPriceTimeSeries(bondid).toTimeSeries}
     val fxid = "FX:" + ccy + "JPY"
-    if (!storedts.keySet.contains(fxid)) storedts(fxid) = DB.getFXTimeSeries(ccy).toTimeSeries
-    (priceseries.keySet & storedts(fxid).keySet).map(p => (p, priceseries(p) / storedts(fxid)(p))).toMap.toTimeSeries
+    if (!storedts.keySet.contains(fxid)) storedts(fxid) = fxTimeSeries(ccy)
+    (priceseries.keySet & storedts(fxid).keySet).map(p => (p, priceseries(p) * storedts(fxid)(p))).toMap.toTimeSeries
   } 
   
-  def pricefxbond(nbDays:Int):Unit = pricefxbond(defaultCurrencies, defaultBonds, nbDays, defaultValueDate)
-  def pricefxbond(nbDays:Int, valuedate:qlDate):Unit = pricefxbond(defaultCurrencies, defaultBonds, nbDays, valuedate)
+  def pricefxbond(nbDays:Int):Unit = pricefxbond(defaultBonds, defaultCurrencies, nbDays, defaultValueDate)
+  def pricefxbond(nbDays:Int, valuedate:qlDate):Unit = pricefxbond(defaultBonds, defaultCurrencies, nbDays, valuedate)
   
   def pricefxbond(bondlist:Set[String], ccylist:Set[String], nbDays:Int, valuedate:qlDate):Unit = {
-    val ccybond = for(bond <- bondCurrency(bondlist); ccy <- ccylist) yield (bond, ccy)
-    ccybond.foreach{case ((bond, ccy), fx) =>
+    val bondfx  = bondCurrency(bondlist).toSet
+    val ccybond = for(bond <- bondfx; ccy <- ccylist) yield (bond, ccy)
+    ccybond.par.foreach{case ((bond, ccy), fx) =>
 	  price(underlying1 = "PRICE:" + bond,
 			source1 = bondTimeSeries(bond, ccy),
 			underlying2 = "FX:" + fx + "JPY", 
@@ -89,7 +91,6 @@ object Correlations {
     if (storedts.isEmpty || !storedts.keySet.contains(underlying1)) storedts(underlying1) = source1
     if (storedts.isEmpty || !storedts.keySet.contains(underlying2)) storedts(underlying2) = source2
     
-//    val datastart =  startDate.sub(nbDays, )
     val series1 = storedts(underlying1)
     val series2 = storedts(underlying2) 
      
@@ -107,20 +108,19 @@ object Correlations {
 	/**
 	 * Creates factory from given paramset.
 	 */
-	val ts1 = (series1.keySet & series2.keySet).map(d => (d, series1(d).doubleValue))
-	val ts2 = (series1.keySet & series2.keySet).map(d => (d, series2(d).doubleValue))
+	val commonkeys = SortedSet((series1.keySet & series2.keySet).toSeq :_*)
+	val targetkeys = commonkeys.takeRight(commonkeys.count(startDate le) + nbDays)
 	
-    if (ts1.size < nbDays) {
-      outputln("Error - Not enough elements: found " + ts1.size + " require " + nbDays)
+    if (targetkeys.size < nbDays) {
+      outputln("Error - Not enough elements: found " + commonkeys.size + " require " + nbDays)
       printf(outputstring)
       return
     }
 	
-	
-	val sortedts1 = SortedMap(ts1.toSeq:_*)
-	val sortedts2 = SortedMap(ts2.toSeq:_*)
+	val sortedts1 = SortedMap(series1.filterKeys(targetkeys contains).mapValues(_.doubleValue).toSeq:_*)
+	val sortedts2 = SortedMap(series2.filterKeys(targetkeys contains).mapValues(_.doubleValue).toSeq:_*)
+	    
 	val resultseries = Correlation.calculate(sortedts1, sortedts2, nbDays).filter(c => ((c._1 ge startDate) && (c._1 le endDate)))
-	
 	if (resultseries == null || resultseries.size == 0)
 	{
       outputln("Error - Empty Result")
@@ -143,8 +143,8 @@ object Correlations {
     	}
 	
 	
-	outputln("source1:\t" + series1.size + " data from " + series1.firstKey.shortDate + " to " + series1.lastKey.shortDate)
-	outputln("source2:\t" + series2.size + " data from " + series2.firstKey.shortDate + " to " + series2.lastKey.shortDate)
+	outputln("source1:\t" + sortedts1.size + " data from " + sortedts1.firstKey.shortDate + " to " + sortedts1.lastKey.shortDate)
+	outputln("source2:\t" + sortedts2.size + " data from " + sortedts2.firstKey.shortDate + " to " + sortedts2.lastKey.shortDate)
 	outputln("result:\t" + resultseries.size + " data from " + resultseries.keySet.min.shortDate + " to " + resultseries.keySet.max.shortDate)
 	outputln("errors:\t" + resultseries.filter(_._2.isNaN).size)
 	pendingprice ++= result
