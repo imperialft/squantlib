@@ -895,12 +895,12 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def insertMany(objects:Traversable[AnyRef], overwrite:Boolean):Boolean = {
-    val csv = buildCSVImportStatement(objects.toSet, overwrite)
+  def insertMany(objects:Set[AnyRef], overwrite:Boolean):Boolean = {
+    val csv = buildCSVImportStatement(objects, overwrite)
     csv.foreach(runSQLStatement)
     true
   }
-  
+
   /**
    * Runs a SQL statement.
    *
@@ -911,7 +911,9 @@ object DB extends Schema {
   def runSQLStatement(statement:String):Boolean = {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement(statement)
-    preparedStatement.execute()
+    val result = preparedStatement.execute()
+    session.close
+    result
   }
 
   /**
@@ -921,37 +923,48 @@ object DB extends Schema {
    * @param objects List of a Squeryl objects of a same Model, such as List[BondPrice]
    * @return A List of strings of prepared SQL statement.
    */
-  def buildCSVImportStatement(objects:Set[AnyRef], overwrite:Boolean):List[String] =  {
-    val tempFile            = File.createTempFile("squantlib", ".csv")
-    tempFile.deleteOnExit()
-    val tempFilePath        = tempFile.getAbsolutePath
-    val tableNames          = tables.toList.map(t => t.posoMetaData.clasz.getSimpleName)
-    val clazz               = objects.head.getClass
+  def buildCSVImportStatement(objects:Set[AnyRef], overwrite:Boolean, batchsize:Int = 100000):List[String] =  {
+	val tableNames          = tables.toList.map(t => t.posoMetaData.clasz.getSimpleName)
+	val clazz               = objects.head.getClass
     val className           = clazz.getSimpleName.toString()
     val table               = tables(tableNames.indexOf(className))
     val tableName           = tables(tableNames.indexOf(className)).name
     val attrToField         = table.posoMetaData.fieldsMetaData.toList.map(fmd => (fmd.nameOfProperty, fmd.columnName))
-    val builder             = new StringBuilder()
-    val columnNames         = attrToField.map(pair => pair._2)
-    builder.append(columnNames.mkString(",") + "\n")
-    for (obj <- objects) {
-      builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(","))
-      builder.append("\n")
-    }
-    val out = new BufferedWriter(new FileWriter(tempFile))
-    out.write(builder.toString)
-    out.close()
-
-    List(
-      "START TRANSACTION;",
-      "SET FOREIGN_KEY_CHECKS = 1;",
-      "LOAD DATA LOCAL INFILE '" + tempFilePath.replaceAll("\\\\", "\\\\\\\\") + "' " +
+	val columnNames         = attrToField.map(pair => pair._2)
+	
+    val tempfiles:List[String] = objects.grouped(batchsize).map(objs => {
+	    val tempFile            = File.createTempFile("squantlib", ".csv")
+	    tempFile.deleteOnExit()
+	    val tempFilePath        = tempFile.getAbsolutePath
+	    val builder             = new StringBuilder()
+	    builder.append(columnNames.mkString(",") + "\n")
+	    for (obj <- objs) {
+	      builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(","))
+	      builder.append("\n")
+	    }
+	    val out = new BufferedWriter(new FileWriter(tempFile))
+	    out.write(builder.toString)
+	    out.close()
+	    tempFilePath
+    }).toList
+    
+    val insertstatement = tempfiles.map(f => 
+      "LOAD DATA LOCAL INFILE '" + f.replaceAll("\\\\", "\\\\\\\\") + "' " +
         (if(overwrite) "REPLACE " else "") + "INTO TABLE " + tableName + " " +
         "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +
         "IGNORE 1 LINES " +
-        "(" + columnNames.mkString(", ") + ")" + ";",
-      "COMMIT;"
+        "(" + columnNames.mkString(", ") + ")" + ";"
     )
+    
+    insertstatement.foreach(println)
+
+    List(
+      "START TRANSACTION;", "SET FOREIGN_KEY_CHECKS = 1;") ++ insertstatement ++ List("COMMIT;")
+//      "LOAD DATA LOCAL INFILE '" + tempFilePath.replaceAll("\\\\", "\\\\\\\\") + "' " +
+//        (if(overwrite) "REPLACE " else "") + "INTO TABLE " + tableName + " " +
+//        "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +
+//        "IGNORE 1 LINES " +
+//        "(" + columnNames.mkString(", ") + ")" + ";",
   }
 
   /**

@@ -12,23 +12,28 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 */
 
 {
-	println("Price: new parameters")
-	BondPrices.notPricedParams.foreach(println)
-	
-	println("Price: new bonds")
-	BondPrices.notPricedBonds.foreach(println)
-	 
+    println("Bond Price:")
 	val pricestream = new FileOutputStream("log/bondprice.log")
-	
 	System.setErr(new PrintStream(new FileOutputStream("log/javaexceptions.log")))
-	Console.withOut(pricestream){
-	  BondPrices.updateNewDates_par
-	  BondPrices.updateNewBonds_par
+    
+    if (BondPrices.notPricedParams.isEmpty) println("No new paramters")
+	else {
+	  println("Found new parameters") 
+	  BondPrices.notPricedParams.foreach(println)
+	  Console.withOut(pricestream){ BondPrices.updateNewDates_par }
 	}
+	
+    if (BondPrices.notPricedBonds.isEmpty) println("No new bonds")
+    else {
+      println("Found new bonds")
+      BondPrices.notPricedBonds.foreach(println)
+      Console.withOut(pricestream){ BondPrices.updateNewBonds_par }
+    }
+	
 	System.setErr(System.err)
 	pricestream.close
-	
 	BondPrices.push
+	println("Price update complete")
 }
 
 /** 
@@ -45,26 +50,27 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 */
 
 {
+	println("Volatilities:")
 	val volstream = new java.io.FileOutputStream("log/volatility.log")
-	val startdate = new Date(1, 1, 2000)
-	val (lastparam, enddate) = DB.latestPriceParam
 	val nbDays = Set(65, 130, 260)
 	val annualDays = 260
 	
-	println("Volatilities: new bonds")
-	Volatilities.notPricedBonds.foreach(println)
-	
-	println("Volatilities: new dates")
-	val (start, end) = Volatilities.notPricedDateRange
-	if (end after start) println("from " + start.shortDate + " to " + end.shortDate)
-	
-	Console.withOut(volstream){
-	  Volatilities.updateNewDates(nbDays, null, null, annualDays)
-	  Volatilities.updateNewBonds(nbDays, startdate, enddate, annualDays)
+	if (Volatilities.notPricedBonds.isEmpty) println("No new bonds:")
+	else {
+	  println("Found new bonds:")
+	  Volatilities.notPricedBonds.foreach(println)
+	  Console.withOut(volstream){ Volatilities.updateNewBonds(nbDays, null, null, annualDays)}
 	}
+	
+	val (start, end) = Volatilities.notPricedDateRange
+	if (end after start) {
+	  println("Found new dates from " + start + " to " + end)
+	  Console.withOut(volstream){ Volatilities.updateNewDates(nbDays, null, null, annualDays)}
+	}
+	
 	volstream.close
 	Volatilities.push
-	
+	println("Vol update complete")
 }
 
 /** 
@@ -72,23 +78,22 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 */
 
 {
+	println("Correlation:")
 	val nbDays = 130
-	val lastcorrel = Correlations.lastDate
-	val currentvd = Correlations.defaultValueDate
-	val correlstream = new java.io.FileOutputStream("log/correlation.log")
 	
-	println("Correlation: last priced: " + lastcorrel.shortDate + " current vd: " + currentvd.shortDate)
-	
-	if (currentvd gt lastcorrel) {
+	if (Correlations.updated) println("=> Correlation is up-to-date")
+	else{
+	  val correlstream = new java.io.FileOutputStream("log/correlation.log")
+	  println("=> Update - Replace price " + Correlations.lastDate + " by " + Correlations.defaultValueDate)
 	  DB.empty(DB.correlations)
 	  Console.withOut(correlstream){
-		println("=> Update")
 		Correlations.pricefxfx(nbDays)
 		Correlations.pricefxbond(nbDays)
 	  }
 	  correlstream.close
 	  Correlations.push
 	}
+	println("Correlation update complete")
 }
 
 /** 
@@ -96,15 +101,14 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 */
 
 {
-	if (ForwardPrices.updated) println("Foward Price is up-to-date")
+	println("Forward Price:")
+	if (ForwardPrices.updated) println("=> Foward Price is up-to-date")
 	else {
 		val forwardstream = new java.io.FileOutputStream("log/forwardprice.log")
-		println("Update Forward Price")
+		println("=> Update")
 		DB.empty(DB.forwardprices)
-		Console.withOut(forwardstream){
-			ForwardPrices.update
-			ForwardPrices.push		  
-		}
+		Console.withOut(forwardstream){ ForwardPrices.update }
 		ForwardPrices.push
 	}
+	println("Forward price update complete")
 }

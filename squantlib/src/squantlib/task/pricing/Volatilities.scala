@@ -12,7 +12,7 @@ import squantlib.math.timeseries.{Volatility => VolScala}
 import scala.collection.{SortedMap, SortedSet}
 import squantlib.database.QLConstructors._
 import java.util.{Date => JavaDate}
-
+import squantlib.database.DB
 
 object Volatilities {
   
@@ -26,21 +26,6 @@ object Volatilities {
 		DB.insertOrUpdate(storedprice, false)
 		val t2 = System.nanoTime
 		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
-		storedprice.clear
-		}
-	}
-  
-  def push(nb:Int):Unit =  {
-    if (storedprice.size != 0) {
-        val splitsize:Int = storedprice.size / nb + nb
-        val splitprice = storedprice.grouped(splitsize)
-        splitprice.foreach { p => {
-		    printf("Writing " + p.size + " items to Database...")
-			val t1 = System.nanoTime
-			DB.insertOrUpdate(p, false)
-			val t2 = System.nanoTime
-			printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
-        }}
 		storedprice.clear
 		}
 	}
@@ -70,11 +55,14 @@ object Volatilities {
   def updateNewBonds(nbDays:Set[Int], startDate:qlDate, endDate:qlDate, annualDays:Int = 260) = 
     if (!notPricedBonds.isEmpty) pricebond(notPricedBonds, nbDays, startDate, endDate, annualDays)
     
-  def pricebond(bondids:Set[String], nbDays:Set[Int], startDate:qlDate, endDate:qlDate, annualDays:Int = 260) = {
+  def pricebond(bondids:Set[String], nbDays:Set[Int], startDate:qlDate = null, endDate:qlDate = null, annualDays:Int = 260) = {
     val bondfx = bondCurrency(bondids).toSet
     val pricesets = for (id <- bondfx; d <- nbDays) yield (id, d)
+	val sdate = if (startDate == null) new qlDate(1, 1, 2000) else startDate
+	val edate:qlDate = if (endDate == null) DB.latestPriceParam._2 else endDate
+    
     pricesets.par.foreach { case ((bondid, ccy), d) => 
-      price("PRICE:" + bondid, bondTimeSeries(bondid, ccy), d, startDate, endDate, annualDays)
+      price("PRICE:" + bondid, bondTimeSeries(bondid, ccy), d, sdate, edate, annualDays)
     }
   }
 
