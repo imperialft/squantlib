@@ -10,6 +10,8 @@ import org.jquantlib.currencies.{Currency => qlCurrency}
 object Currencies {
   
 	def apply(id:String) = id_currency(id)
+	
+	def contains(s:String) = id_currency.keySet.contains(s)
   
 	private val id_currency = Map(
 			("ARS" -> new ARSCurrency),

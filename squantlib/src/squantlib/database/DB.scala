@@ -956,8 +956,6 @@ object DB extends Schema {
         "(" + columnNames.mkString(", ") + ")" + ";"
     )
     
-    insertstatement.foreach(println)
-
     List(
       "START TRANSACTION;", "SET FOREIGN_KEY_CHECKS = 1;") ++ insertstatement ++ List("COMMIT;")
 //      "LOAD DATA LOCAL INFILE '" + tempFilePath.replaceAll("\\\\", "\\\\\\\\") + "' " +
