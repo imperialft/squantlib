@@ -61,33 +61,33 @@ trait FX {
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
 	 */
-    def forwardfx(days : Long) : Double = spot * curve1.value(days) / curve2.value(days)
-    def zc1(days:Long) = curve1.value(days)
-    def zc2(days:Long) = curve2.value(days)
+    def forwardfx(days : Long) : Double = spot * curve1(days) / curve2(days)
+    def zc1(days:Long) = curve1(days)
+    def zc2(days:Long) = curve2(days)
     
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as day count fraction and its day count method.
 	 */
     def forwardfx(dayfrac : Double, dayCounter:DayCounter) : Double = forwardfx(toDays(dayfrac, dayCounter))
-    def zc1(dayfrac:Double, dayCounter:DayCounter) = curve1.value(toDays(dayfrac, dayCounter))
-    def zc2(dayfrac:Double, dayCounter:DayCounter) = curve2.value(toDays(dayfrac, dayCounter))
+    def zc1(dayfrac:Double, dayCounter:DayCounter) = curve1(toDays(dayfrac, dayCounter))
+    def zc2(dayfrac:Double, dayCounter:DayCounter) = curve2(toDays(dayfrac, dayCounter))
     
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date
 	 */
     def forwardfx(date : qlDate) : Double = forwardfx(toDays(date))
-    def zc1(date:qlDate) = curve1.value(toDays(date))
-    def zc2(date:qlDate) = curve2.value(toDays(date))
+    def zc1(date:qlDate) = curve1(toDays(date))
+    def zc2(date:qlDate) = curve2(toDays(date))
     
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the period from value date.
 	 */
     def forwardfx(period : qlPeriod) : Double = forwardfx(toDays(period))
-    def zc1(period : qlPeriod) = curve1.value(toDays(period))
-    def zc2(period : qlPeriod) = curve2.value(toDays(period))
+    def zc1(period : qlPeriod) = curve1(toDays(period))
+    def zc2(period : qlPeriod) = curve2(toDays(period))
     
     def maxdays = Math.min(curve1.maxdays, curve2.maxdays)
 	

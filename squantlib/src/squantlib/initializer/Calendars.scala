@@ -1,13 +1,28 @@
 package squantlib.initializer
 
 import org.jquantlib.time.calendars._
+import org.jquantlib.time.Calendar
 import org.jquantlib.currencies.{Currency => qlCurrency}
 
 object Calendars {
   
-	def apply(id:String) = ccyid_calendar(id)
-	def apply(currency:qlCurrency) = ccyid_calendar(currency.code)
-  
+	def apply(id:String):Option[Calendar] = ccyid_calendar.get(id)
+	def apply(currency:qlCurrency):Option[Calendar] = apply(currency.code)
+	
+	def apply(ids:Traversable[String]):Option[Calendar] = {
+	  val cdrlist = ids.filter(all.contains)
+	  cdrlist.size match {
+	    case 0 => None
+	    case 1 => apply(cdrlist.head)
+	    case 2 => Some(new JointCalendar(cdrlist.map(c => ccyid_calendar(c)).toArray))
+	  }
+	}
+	
+	def getOrElse(id:String, defaultvalue:Calendar):Calendar = apply(id).getOrElse(defaultvalue)
+	def getOrElse(id:qlCurrency, defaultvalue:Calendar):Calendar = apply(id).getOrElse(defaultvalue)
+ 
+	def all = ccyid_calendar.keySet
+	
 	private val ccyid_calendar = Map(
 		("ARS" -> new Argentina),
 		("AUD" -> new Australia),

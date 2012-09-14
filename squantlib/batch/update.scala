@@ -6,6 +6,14 @@ import java.io.{FileOutputStream, PrintStream}
 
 val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 
+/** 
+ * Update Coupons
+*/
+{
+	val bonds = DB.getCouponMissingBonds
+	val coupons = bonds.map(_.getCoupons).filter(_ != null).flatten
+	if (!coupons.isEmpty) DB.insertOrUpdate(coupons, false)
+}
 
 /** 
  * Update Bond Price
@@ -36,14 +44,18 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 	println("Price update complete")
 }
 
+
 /** 
- * Update Coupons
+ * Update ImpliedRates
 */
 {
-	val bonds = DB.getCouponMissingBonds
-	val coupons = bonds.map(_.getCoupons).filter(_ != null).flatten
-	if (!coupons.isEmpty) DB.insertOrUpdate(coupons, false)
+	val ratestream = new FileOutputStream("log/imprates.log")
+	Console.withOut(ratestream) {
+		ImpliedRates.update
+	}
+	ImpliedRates.push
 }
+
 
 /** 
  * Update Volatility

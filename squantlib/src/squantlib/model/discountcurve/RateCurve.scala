@@ -37,12 +37,14 @@ trait RateCurve extends DiscountableCurve{
   override def toString():String = cash.currency.code + ":ratecurve"
 }
 
-trait AbstractCurve{
+trait AbstractCurve extends YieldParameter{
   val rate : YieldParameter
-  def value(d:JDate) = rate.value(d)
-  def value(d:JPeriod) = rate.value(d)
-  def value(d:Long) = rate.value(d)
-  def valuedate = rate.valuedate
+//  def value(d:JDate) = rate.value(d)
+//  def value(d:JPeriod) = rate.value(d)
+  def value(d:Long) = rate(d)
+  var valuedate = rate.valuedate
+  val mindays = rate.mindays
+  val maxdays = rate.maxdays
 }
 
 /**
@@ -97,7 +99,7 @@ object BasisSwapCurve {
  * @constructor stores each information
  * @param daycount and frequency convention (should be quarterly with standard cash daycount)
  */
-class TenorBasisSwapCurve (val rate:YieldParameter, val shortindex:IborIndex, val longindex:IborIndex) extends AbstractCurve  {
+class TenorBasisSwapCurve (val rate:YieldParameter, val shortindex:IborIndex, val longindex:IborIndex) extends AbstractCurve {
   require(shortindex.tenor().length == 3 && longindex.tenor().length == 6 && shortindex.currency == longindex.currency)
   val currency = shortindex.currency
 }

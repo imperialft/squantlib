@@ -33,6 +33,7 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	 * Currencies
 	 */
 	val currencies:Iterable[Currency] = curves.map { case (k, v) => v.currency }
+	val curvelist:Set[String] = curves.keySet
 
 	/** 
 	 * Issuers

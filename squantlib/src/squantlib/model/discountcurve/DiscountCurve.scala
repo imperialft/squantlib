@@ -40,7 +40,7 @@ class DiscountCurve(val currency:Currency, val zc : YieldParameter, val discount
 	 * This point is the low boundary between interpolation & extrapolation.
 	 */
     val mindays : Long = zc.mindays
-	/**
+	/** 
 	 * Returns number of days between value date and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
@@ -49,8 +49,8 @@ class DiscountCurve(val currency:Currency, val zc : YieldParameter, val discount
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
 	 */
-    def value(days : Long) : Double = zc.value(days)
-  
+    def value(days : Long) : Double = zc(days)
+    
     override def describe = "Currency:\t" + currency.code + sys.props("line.separator") + 
   				 "Spread:\t" + (if (discountspread == null) "N/A" else discountspread.describe) + 
   				 sys.props("line.separator") + 

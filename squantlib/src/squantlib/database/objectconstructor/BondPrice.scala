@@ -14,6 +14,9 @@ import squantlib.model.discountcurve.DiscountCurveFactory
 
 object BondPrice {
 	 
+	def apply(bond:QLBond, factory:DiscountCurveFactory):dbBondPrice = build(bond, factory)
+  	def apply(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):dbBondPrice = build(bond, valuedate, fx, paramset, termstructure:YieldTermStructure)
+	
 	def build(bond:QLBond, factory:DiscountCurveFactory):dbBondPrice = 
 	  build(bond, factory.valuedate, factory.fx(bond.currency.code, "JPY"), factory.paramset, factory.getyieldtermstructure(bond))
 

@@ -237,15 +237,11 @@ class Bond(@Column("ID")					var id: String,
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends KeyedEntity[String] {
 
-  import org.jquantlib.time.Calendar
-  import org.jquantlib.time.calendars.JointCalendar
-  import squantlib.initializer.Currencies
   import squantlib.initializer.Calendars
   
-  def calendar:Calendar = {
-    val cdrlist = calendar_str.split(",").map(s => s.trim)
-    if (cdrlist.size == 1) Calendars(cdrlist.head)
-    else new JointCalendar(cdrlist.map(c => Calendars(c)))
+  def calendar:org.jquantlib.time.Calendar = {
+    val cdrlist:Set[String] = calendar_str.split(",").map(_.trim).toSet
+    Calendars(cdrlist).getOrElse(Calendars(currencyid).get)
   }
   
   def this() = this(
@@ -541,6 +537,7 @@ class Coupon(@Column("ID")				var id:String,
 			@Column("StartDate")		var startdate:Date,
 			@Column("EndDate")			var enddate:Date,
 			@Column("PaymentDate")		var paymentdate:Date,
+			@Column("FixedRate")		var fixedrate:Option[Double],
 			@Column("FixedAmount")		var fixedamount:Option[Double],
 			@Column("Comment")			var comment:String,
 			@Column("Daycount")			var daycount:String,
@@ -557,6 +554,7 @@ class Coupon(@Column("ID")				var id:String,
       startdate = null,
       enddate = null,
       paymentdate = null,
+      fixedrate = Some(-999.0),
       fixedamount = Some(-999.0),
       comment = null,
       daycount = null,
@@ -565,4 +563,29 @@ class Coupon(@Column("ID")				var id:String,
       
   override def toString():String = format("%-15s %-5s %-15s %tF %tF %tF %tF %-15s", bondid, currency, rate, eventdate, startdate, enddate, paymentdate, fixedamount.getOrElse(""))
       
+}
+
+class ImpliedRate(@Column("ID")			var id: String,
+              @Column("PARAMSET")			var paramset: String,
+              @Column("PARAMDATE")			var paramdate: Date,
+              @Column("INSTRUMENT")			var instrument: String,
+              @Column("ASSET")				var asset: String,
+              @Column("MATURITY")			var maturity: String,
+              @Column("VALUE")				var value: Double,
+              @Column("COMMENT")			var comment: String,
+              @Column("Created")			var created: Option[Date]
+              ) extends KeyedEntity[String] {
+  
+  def this() = this(
+      id = null, 
+      paramset = null, 
+      paramdate = new Date, 
+      instrument = null, 
+      asset = null, 
+      maturity = null, 
+      value = -99999, 
+      comment = null, 
+      created = Some(new Date))
+
+  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
 }

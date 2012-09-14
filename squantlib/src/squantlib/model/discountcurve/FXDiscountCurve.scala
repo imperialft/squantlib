@@ -53,12 +53,12 @@ class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCur
 		  /**
 		   * initialize refinancing zc
 		   */
-		  val refinZCvector = swapptperiods.map(p => (p._1, refinZC.zc.value(p._2)))
+		  val refinZCvector = swapptperiods.map{case (m, p) => (m, refinZC.zc(p))}
 		  
 		  /**
 		   * initialize forward fx
 		   */
-		  val fwdfxvector = swapptperiods.map(p => (p._1, swappoint.value(p._2, fx)))
+		  val fwdfxvector = swapptperiods.map{case (m, p) => (m, swappoint.value(p, fx))}
 		  
 		  
 		  /**
@@ -106,6 +106,9 @@ object FXDiscountCurve {
   	  	}
   	  }
   	}
+  
+  	def apply(params:Traversable[RateFXParameter]):Iterable[FXDiscountCurve] = getcurves(params)
+
 //  	  
 //	/**
 //	 * Constructs LiborDiscountCurve from InputParameter per each currency, only with specified paramset.

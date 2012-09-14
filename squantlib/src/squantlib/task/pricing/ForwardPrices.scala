@@ -12,7 +12,6 @@ import squantlib.initializer.{Calendars, RateConvention}
 object ForwardPrices { 
   
   var storedprice = new HashSet[ForwardPrice] with SynchronizedSet[ForwardPrice]
-  private var storedts = new HashMap[String, TimeSeries[JavaDouble]] with SynchronizedMap[String, TimeSeries[JavaDouble]]
   
   def push:Unit =  {
     if (storedprice.size != 0) {
@@ -118,7 +117,7 @@ object ForwardPrices {
 	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
 	val forwardprices:Set[ForwardPrice] = fxs.par.map { fx => {
-		val cdr = Calendars(fx.currency2)
+		val cdr = Calendars(fx.currency2).get
 		val simulstart = factory.valuedate.serialNumber
 		val simulend = factory.valuedate.serialNumber + fx.maxdays.toInt
 		val simuldates = (simulstart to simulend) map (new qlDate(_)) filter(cdr.isBusinessDay(_))

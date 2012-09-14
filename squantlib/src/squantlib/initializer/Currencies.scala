@@ -9,10 +9,15 @@ import org.jquantlib.currencies.{Currency => qlCurrency}
 
 object Currencies {
   
-	def apply(id:String) = id_currency(id)
+	def apply(id:String):Option[qlCurrency] = id_currency.get(id)
 	
-	def contains(s:String) = id_currency.keySet.contains(s)
+	def getOrElse(id:String, defaultvalue:qlCurrency):qlCurrency = apply(id).getOrElse(defaultvalue)
+	
+	def contains(s:String):Boolean = id_currency.contains(s)
+	
+	def all:Set[String] = id_currency.keySet
   
+	
 	private val id_currency = Map(
 			("ARS" -> new ARSCurrency),
 			("ATS" -> new ATSCurrency),

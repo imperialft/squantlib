@@ -53,14 +53,14 @@ object FormulaInterpreter {
       splitsum.foreach( s => {
         if (s.head == '<') {
         	val outvalue = parseDouble(s.tail)
-            if (cap.isEmpty) cap = outvalue match {case Some(v) => Some(v/100); case _ => None}
-            else if (outvalue.isDefined) cap = Some(cap.get.min(outvalue.get/100))
+            if (cap.isEmpty) cap = outvalue.collect{case v => v/100}
+            else cap = outvalue.collect{case v => cap.get.min(v/100)}
         }
           
         else if (s.head == '>') {
         	val outvalue = parseDouble(s.tail)
-            if (floor.isEmpty) floor = outvalue match {case Some(v) => Some(v/100); case _ => None}
-            else if (outvalue.isDefined) floor = Some(floor.get.max(outvalue.get/100))
+            if (floor.isEmpty) floor = outvalue.collect{case v => v/100}
+            else floor = outvalue.collect{case v => floor.get.max(v/100)}
         }
         
         else {

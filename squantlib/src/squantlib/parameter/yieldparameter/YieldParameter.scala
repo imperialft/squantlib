@@ -37,21 +37,26 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
 	 * @param observation date as the number of calendar days after value date.
 	 */
     def value(days : Long) : Double
+    def apply(days:Long) = value(days)
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as day count fraction and its day count method.
 	 */
     def value(dayfrac : Double, dayCounter:DayCounter) : Double = value((dayfrac * 365 / dayCounter.annualDayCount).toLong)
+    def apply(dayfrac : Double, dayCounter:DayCounter) = value(dayfrac, dayCounter)
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date
 	 */
     def value(date : qlDate) : Double = value(date.serialNumber() - valuedate.serialNumber())
+    def apply(date : qlDate) = value(date)
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the period from value date.
 	 */
     def value(period : qlPeriod) : Double = value(period.days(valuedate))
+    def apply(date:qlPeriod) = value(date)
+    
   /**
    * Returns an Iterator that provides data during mindays..maxdays incremented by 1 day
    */

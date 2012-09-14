@@ -37,7 +37,10 @@ object DB extends Schema {
     dataSource.setPassword(password)
     dataSource.setMinPoolSize(5)
     dataSource.setMaxPoolSize(10)
-    SessionFactory.concreteFactory = Some(() => Session.create(dataSource.getConnection, new MySQLInnoDBAdapter))
+    dataSource.setCheckoutTimeout(10000)
+    SessionFactory.concreteFactory = Some(() => {
+      Session.create(dataSource.getConnection, new MySQLInnoDBAdapter)
+    })
   }
 
   /**
@@ -63,6 +66,7 @@ object DB extends Schema {
   val correlations = table[Correlation]("Correlations")
   val coupons = table[Coupon]("Coupons")
   val forwardprices = table[ForwardPrice]("ForwardPrices")
+  val impliedrates = table[ImpliedRate]("ImpliedRates")
 
   /**
    * Returns a List of Country objects identified by a List of ID.
@@ -245,6 +249,13 @@ object DB extends Schema {
       ).distinct.toSet
     }
   
+  def getImpliedRateParams:Set[String] =
+    transaction {
+      from(impliedrates)(p =>
+        select(&(p.paramset))
+      ).distinct.toSet
+    }
+  
   def getVolUnderlyings:Set[String] =
     transaction {
       from(volatilities)(b =>
@@ -272,6 +283,8 @@ object DB extends Schema {
   def getCouponMissingBonds:Set[Bond] = 
     transaction {
       val couponbonds = from(coupons)(c => select(&(c.bondid))).distinct.toSet
+      if (couponbonds.isEmpty) getBonds
+      else
 	  from (bonds)(b => 
 	    where (not(b.id in couponbonds))
 	    select(b)).distinct.toSet
@@ -418,6 +431,18 @@ object DB extends Schema {
     getRateFXParameters(on.longDate, instrument, asset, maturity)
 
     
+  def getRateFX(paramset:String, instrument:String, asset:String, maturity:String):Option[Double] = 
+    transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          ip.paramset === paramset  and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity
+        )
+        select(&(ip.value))
+      ).firstOption
+    }
 
   /**
    * Returns a List of CDSParameters that falls onto a range of Dates.
@@ -541,6 +566,24 @@ object DB extends Schema {
         select((&(ip.paramdate), &(ip.value)))
       ).toMap
 	 }
+  
+  
+  def getFX(paramset:String, ccy:String):Option[Double] = 
+    transaction {
+      from(fxrates)(ip =>
+        where(
+          ip.paramset === paramset  and
+          ip.currencyid === ccy
+        )
+        select(&(ip.fxjpy))
+      ).firstOption
+    }
+  
+  def getFX(paramset:String, ccy:String, ccy2:String):Option[Double] = {
+    val fx1 = getFX(paramset, ccy)
+    val fx2 = getFX(paramset, ccy2)
+    if (fx1.isDefined && fx2.isDefined) Some(fx2.get / fx1.get) else None
+  }
   
   /**
    * Returns list of all currencies in the FX database (against JPY).
@@ -858,9 +901,9 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def insertOrUpdate[T <: KeyedEntity[String]](data:Traversable[T], overwrite:Boolean):Boolean = {
+  def insertOrUpdate[T <: KeyedEntity[String]](data:Traversable[T], overwrite:Boolean):Int = {
     
-    if (data.isEmpty) return false
+    if (data.isEmpty) return 0
     
     val datatable = data.head.getClass.getSimpleName.toString match {
       case "BondPrice" => bondprices
@@ -868,10 +911,11 @@ object DB extends Schema {
       case "Correlation" => correlations
       case "Coupon" => coupons
       case "ForwardPrice" => forwardprices
+      case "ImpliedRate" => impliedrates
       case _ => null
     }
     
-    if (datatable == null) return false
+    if (datatable == null) return 0
     insertMany(data.toSet, overwrite)
   }
 
@@ -895,10 +939,11 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def insertMany(objects:Set[AnyRef], overwrite:Boolean):Boolean = {
+  def insertMany(objects:Set[AnyRef], overwrite:Boolean):Int = {
     val csv = buildCSVImportStatement(objects, overwrite)
-    csv.foreach(runSQLStatement)
-    true
+    var result = 0
+    csv.foreach(x => result += runSQLUpdateStatement(x))
+    result
   }
 
   /**
@@ -911,10 +956,25 @@ object DB extends Schema {
   def runSQLStatement(statement:String):Boolean = {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement(statement)
-    val result = preparedStatement.execute()
-    session.close
+    val result = preparedStatement.execute
+    if (dataSource.getNumBusyConnections > 1) session.close
     result
   }
+  
+  /**
+   * Runs a SQL update statement.
+   *
+   * @param statement A SQL statement to run.
+   * @return Number of impacted rows
+   */
+  def runSQLUpdateStatement(statement:String):Int = {
+    val session           = SessionFactory.concreteFactory.get()
+    val preparedStatement = session.connection.prepareStatement(statement)
+    val result = preparedStatement.executeUpdate
+    if (dataSource.getNumBusyConnections > 1) session.close
+    result
+  }
+  
 
   /**
    * Builds MySQL CSV import statement from multiple Squeryl objects.

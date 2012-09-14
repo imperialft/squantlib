@@ -21,15 +21,15 @@ object QLConstructors {
 
 	implicit def RateFXParameter2ParamSet(params:Traversable[RateFXParameter]) = new RateFXParameterSet(params)
  	class RateFXParameterSet(val parameters:Traversable[RateFXParameter]){
-	  def toLiborDiscountCurves:Iterable[RateCurve] = LiborDiscountCurve.getcurves(parameters)
-	  def toFXDiscountCurves:Iterable[FXCurve] = FXDiscountCurve.getcurves(parameters)
+	  def toLiborDiscountCurves:Iterable[RateCurve] = LiborDiscountCurve(parameters)
+	  def toFXDiscountCurves:Iterable[FXCurve] = FXDiscountCurve(parameters)
 	  def toDiscountCurves:Iterable[DiscountableCurve] = toLiborDiscountCurves ++ toFXDiscountCurves
 	} 
 
 	
 	implicit def CDSParameter2ParamSet(params:Traversable[CDSParameter]) = new CDSParameterSet(params)
 	class CDSParameterSet(val cdsparameters:Traversable[CDSParameter]){
-	  def toCDSCurves:Iterable[CDSCurve] = CDSCurve.getcurves(cdsparameters)
+	  def toCDSCurves:Iterable[CDSCurve] = CDSCurve(cdsparameters)
 	}
 
 	implicit def Map2Ts(m:scala.collection.Map[qlDate, Double]) = new ConvertableMap(m)
@@ -49,9 +49,9 @@ object QLConstructors {
 	
 	implicit def Bond2RichBond(bond:qlBond) = new RichBond(bond)
 	class RichBond(val bond:qlBond){
-	  def bondprice(valuedate:qlDate, factory:DiscountCurveFactory) = BondPrice.build(bond, factory)
+	  def bondprice(valuedate:qlDate, factory:DiscountCurveFactory) = BondPrice(bond, factory)
 	  def bondprice(valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure):BondPrice 
-			= BondPrice.build(bond, valuedate, fx, paramset, termstructure)
+			= BondPrice(bond, valuedate, fx, paramset, termstructure)
 			
 	  def isPriceable = {
 	    val estream = new java.io.PrintStream(new java.io.OutputStream{
