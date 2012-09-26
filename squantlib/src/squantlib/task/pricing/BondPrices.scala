@@ -39,14 +39,14 @@ object BondPrices {
 	}
   
   def notPricedBonds:Set[String] = {
-	val (latestparamset, latestpricedate) = DB.latestPriceParam
+	val (latestparamset, latestpricedate) = DB.getLatestPriceParam
 	val factory = QLDB.getDiscountCurveFactory(latestparamset)
 	val priceablebonds = QLDB.getBonds(factory).filter(b => b.isPriceable)
 	val pricedbonds = DB.getPricedBonds
 	priceablebonds.filter(b => !pricedbonds.contains(b.bondid)).map(_.bondid)
   }
   
-  def notPricedParams:Set[(String, JavaDate)] = DB.getParamSetsAfter(DB.latestPriceParam._2)
+  def notPricedParams:Set[(String, JavaDate)] = DB.getParamSetsAfter(DB.getLatestPriceParam._2)
   
   def updateNewDates:Unit = 
     if (!notPricedParams.isEmpty) notPricedParams.foreach(p => price(p._1))

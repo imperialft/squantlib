@@ -7,8 +7,10 @@ import java.util.{Date => JavaDate}
 
 object Fixings {
   
-  def apply(name:String, paramset:String):Option[Double] = fixings(name)(paramset)
-  def apply(name:String, date:JavaDate):Option[Double] = fixings(name)(("%tY%<tm%<td" format date) + "-000")
+  def apply(name:String, paramset:String):Option[Double] = fixings.get(name) match {
+    	case Some(f) => f(paramset); case None => None}
+  
+  def apply(name:String, date:JavaDate):Option[Double] = apply(name, ("%tY%<tm%<td" format date) + "-000")
   def apply(name:String, date:qlDate):Option[Double] = apply(name, date.longDate)
   
   val cmt = Map("CMT10" -> ((p:String) => DB.getRateFX(p, "Fixing", "JGBY", "10Y")))

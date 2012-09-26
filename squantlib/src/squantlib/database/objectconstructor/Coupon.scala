@@ -1,42 +1,98 @@
 package squantlib.database.objectconstructor
 
+import squantlib.database.util.Fixings
+import squantlib.math.FormulaInterpreter
 import squantlib.initializer.{Daycounters, DayAdjustments}
 import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon}
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration}
 import org.jquantlib.time.BusinessDayConvention.{ModifiedFollowing, Unadjusted}
 import org.jquantlib.daycounters.Thirty360
+import java.util.{Date => JavaDate}
 
 object Coupon {
   
-	def apply(bond:dbBond):List[dbCoupon] = build(bond)
+	private implicit def dateconversion_javaql(jdate:JavaDate):qlDate = new qlDate(jdate)
+	private implicit def dateconversion_qlJava(jdate:qlDate):JavaDate = jdate.longDate
 	
-	def ratetoarray(formula:String, size:Int):Array[(String, Option[Double], Boolean)] = {
-		val arrayedschedule = formula.split(";").map(x => {
-		  val fixvalue:Option[Double] = try Some(x.replace("%", "").trim.toDouble / 100.0)
-				  catch {case _ => None}
-		  val fixingvalue:Option[Double] = if (fixvalue.isDefined) fixvalue else None
-		  (x, fixingvalue, fixvalue.isDefined)})
-		    
+	def apply(bond:dbBond):List[dbCoupon] = build(bond)
+	def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
+	
+//	def ratetoarray(formula:String, size:Int):Array[(String, Option[Double], Boolean)] = {
+//		val arrayedschedule = formula.split(";").map(x => {
+//		  val fixvalue:Option[Double] = try Some(x.replace("%", "").trim.toDouble / 100.0)
+//				  catch {case _ => None}
+//		  val fixingvalue:Option[Double] = if (fixvalue.isDefined) fixvalue else None
+//		  (x, fixingvalue, fixvalue.isDefined)})
+//		    
+//		(0 to (size-1)).map(i => { 
+//		  val m = size - arrayedschedule.size; 
+//		  if(i < m) arrayedschedule(0) else arrayedschedule(i - m)}).toArray
+//	}
+	
+	def ratetoarray(formula:String, size:Int):Array[String] = {
+		val arrayedschedule = formula.split(";")
 		(0 to (size-1)).map(i => { 
 		  val m = size - arrayedschedule.size; 
 		  if(i < m) arrayedschedule(0) else arrayedschedule(i - m)}).toArray
 	}
 	
+	def parseFixCoupon(formula:String):Option[Double] = 
+	  try Some(formula.replace("%", "").trim.toDouble / 100.0) catch {case _ => None}
+	
 	def getbonds(bonds:Set[dbBond]):Map[String, List[dbCoupon]] = 
 	  bonds.map(b => (b.id, build(b))).toMap
 	
+	   
+	def update(cpn:dbCoupon):dbCoupon = {
+	  val fixcpn = parseFixCoupon(cpn.rate)
+	  
+	  val (fixedrate, comment) = 
+	    if (fixcpn.isDefined) (fixcpn, null)
+		else {
+			  val interpreter = new FormulaInterpreter(cpn.rate)
+			  val varfixings = interpreter.variables.map(v => (v -> Fixings(v, cpn.eventdate))).toMap
+			  
+			  if (!varfixings.forall(_._2.isDefined)) (None, null)
+			  else {
+			    val fixedrate = Some(interpreter.price(varfixings.mapValues(_.get)))
+			    val cmt:String = (if (cpn.comment == null) "" else cpn.comment) + varfixings.map{case (k, v) => k + "=" + "%.4f".format(v.get)}.mkString(", ")
+				(fixedrate, cmt)
+			  }
+		  }
+	  
+	  if (fixedrate.isEmpty) return cpn
+	  
+	  val daycount = Daycounters.getOrElse(cpn.daycount, new Thirty360)
+	  val fixedamount = Some(fixedrate.get * daycount.yearFraction(cpn.startdate, cpn.enddate))
+	  
+	  new dbCoupon(
+		      id = cpn.id,
+		      bondid = cpn.bondid,
+		      currency = cpn.currency, 
+		      rate = cpn.rate,
+		      eventdate = cpn.eventdate,
+		      startdate = cpn.startdate,
+		      enddate = cpn.enddate,
+		      paymentdate = cpn.paymentdate,
+		      fixedrate = fixedrate,
+		      fixedamount = fixedamount,
+		      comment = comment,
+		      daycount = cpn.daycount,
+		      paymenttype = "COUPON",
+		      lastmodified = Some(currenttime))
+	}
 	
 	def build(bond:dbBond):List[dbCoupon] = {
 	  if (!bond.coupon_freq.isDefined || 
 	      bond.maturity == null || 
 	      bond.coupon == null ||
 	      bond.daycount == null ||
-	      bond.daycount_adj == null) return null
+	      bond.daycount_adj == null) return List.empty
 		
   		val bondid = bond.id
   		val issuerid = bond.issuerid
-  		val issuedate = new qlDate(bond.issuedate)
-		val maturity = new qlDate(bond.maturity)
+  		val issuedate:qlDate = bond.issuedate
+		val maturity:qlDate = bond.maturity
   		
 	  	val baseschedule = new Schedule(
 		    issuedate, 
@@ -53,9 +109,9 @@ object Coupon {
 		val accrualdaycounter = Daycounters(bond.daycount)
 		
 		val ratearray = ratetoarray(bond.coupon, baseschedule.size - 1)
-		val calcadjust = DayAdjustments(bond.daycount_adj).getOrElse(ModifiedFollowing)
-		val payadjust = DayAdjustments(bond.payment_adj).getOrElse(ModifiedFollowing)
-		val daycount = Daycounters(bond.daycount).getOrElse(new Thirty360)
+		val calcadjust = DayAdjustments.getOrElse(bond.daycount_adj, ModifiedFollowing)
+		val payadjust = DayAdjustments.getOrElse(bond.payment_adj, ModifiedFollowing)
+		val daycount = Daycounters.getOrElse(bond.daycount, new Thirty360)
 		val calendar = bond.calendar
 		
 		val redemption = try Some(bond.redemprice.replace("%", "").trim.toDouble / 100.0) 
@@ -63,17 +119,18 @@ object Coupon {
 		
 		
 		var cpnlist = (0 to (baseschedule.size - 2)).map ( i => {
-		  val (cpnformula, cpnrate, isfixcpn) = ratearray(i)
+		  val cpnformula = ratearray(i)
+		  val fixcpn = parseFixCoupon(cpnformula)
 	      val startdate = calendar.adjust(baseschedule.date(i), calcadjust)
 	      val enddate = calendar.adjust(baseschedule.date(i+1), calcadjust)
 	      val paymentdate = calendar.adjust(baseschedule.date(i+1), payadjust)
 	      
-	      val (fixedrate, fixedamount) = cpnrate match {
+	      val (fixedrate, fixedamount) = fixcpn match {
 		    case Some(r) => (Some(r), Some(r * daycount.yearFraction(startdate, enddate)))
 		    case None => (None, None)
 		  }
 	      
-	      val eventdate = if (isfixcpn) issuedate
+	      val eventdate = if (fixcpn.isDefined) issuedate
 		      else bond.inarrears match {
 			        case Some(1) | None => bond.calendar.advance(enddate, -bond.cpnnotice.getOrElse(0), TimeUnit.Days)
 			        case Some(0) => bond.calendar.advance(startdate, -bond.cpnnotice.getOrElse(0), TimeUnit.Days)
@@ -85,17 +142,16 @@ object Coupon {
 		      bondid = bond.id,
 		      currency = bond.currencyid, 
 		      rate = cpnformula,
-		      eventdate = eventdate.longDate,
-		      startdate = startdate.longDate,
-		      enddate = enddate.longDate,
-		      paymentdate = paymentdate.longDate,
+		      eventdate = eventdate,
+		      startdate = startdate,
+		      enddate = enddate,
+		      paymentdate = paymentdate,
 		      fixedrate = fixedrate,
 		      fixedamount = fixedamount,
 		      comment = null,
 		      daycount = bond.daycount,
 		      paymenttype = "COUPON",
-		      lastmodified = Some(java.util.Calendar.getInstance.getTime)
-		      )
+		      lastmodified = Some(currenttime))
 			}
 		).toList
 		
@@ -105,18 +161,18 @@ object Coupon {
 	      currency = bond.currencyid,
 	      rate = bond.redemprice,
 	      eventdate = bond.calendar.advance(
-	          new qlDate(bond.maturity),
+	          bond.maturity,
 	          - bond.cpnnotice.getOrElse(0),
-	          org.jquantlib.time.TimeUnit.Days).longDate,
+	          org.jquantlib.time.TimeUnit.Days),
 	      startdate = bond.issuedate,
 	      enddate = bond.maturity,
-	      paymentdate = bond.calendar.adjust(new qlDate(bond.maturity)).longDate,
+	      paymentdate = bond.calendar.adjust(bond.maturity),
 	      fixedrate = redemption,
 	      fixedamount = redemption,
 	      comment = null,
 	      daycount = "ABSOLUTE",
 	      paymenttype = "REDEMPTION",
-	      lastmodified = Some(java.util.Calendar.getInstance.getTime)
+	      lastmodified = Some(currenttime)
 	      ))
 		
 	      cpnlist

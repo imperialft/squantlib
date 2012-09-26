@@ -14,7 +14,7 @@ object Calendars {
 	  cdrlist.size match {
 	    case 0 => None
 	    case 1 => apply(cdrlist.head)
-	    case 2 => Some(new JointCalendar(cdrlist.map(c => ccyid_calendar(c)).toArray))
+	    case _ => Some(new JointCalendar(cdrlist.map(c => ccyid_calendar(c)).toArray))
 	  }
 	}
 	

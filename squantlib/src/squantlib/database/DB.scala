@@ -43,7 +43,7 @@ object DB extends Schema {
     })
   }
 
-  /**
+  /** 
    * Attach schema definitions to the tables.
    *
    * Example: 
@@ -216,7 +216,7 @@ object DB extends Schema {
   def getPricedParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] =
     transaction {
       from(bondprices)(b =>
-        where ((b.paramdate gte fromDate) and (b.paramdate lte toDate))
+        where (b.paramdate between (fromDate, toDate))
         select((&(b.paramset), &(b.paramdate)))
       ).distinct.toSet
     }
@@ -266,7 +266,7 @@ object DB extends Schema {
   def getVolatilities(fromDate:JavaDate, toDate:JavaDate):Set[Volatility] = {
     transaction {
       from(volatilities)(vol =>
-        where((vol.valuedate gte fromDate) and (vol.valuedate lte toDate))
+        where(vol.valuedate between (fromDate, toDate))
         select(vol)
       ).toSet
     }
@@ -276,6 +276,40 @@ object DB extends Schema {
     transaction {
       from(coupons)(c =>
         where(c.bondid in bondids)
+        select(c)
+      ).toSet
+    }
+  
+  def getUnfixedCoupons(d:JavaDate):Set[Coupon] = 
+    transaction {
+      from(coupons)(c =>
+        where(
+          (c.eventdate lte d) and
+          (c.rate isNotNull) and
+          not (c.rate === "") and
+          ((c.fixedrate.isNull) or (c.fixedamount.isNull))
+        )
+        select(c)
+      ).toSet
+    }
+  
+  def getDefinedCoupons(d:JavaDate):Set[Coupon] = 
+    transaction {
+      from(coupons)(c =>
+        where(
+          (c.eventdate lte d) and
+          (c.rate isNotNull) and
+          not (c.rate === "")
+        )
+        select(c)
+      ).toSet
+    }
+  
+    
+  def getCoupons(d:JavaDate):Set[Coupon] = 
+    transaction {
+      from(coupons)(c =>
+        where(c.eventdate lte d)
         select(c)
       ).toSet
     }
@@ -290,13 +324,13 @@ object DB extends Schema {
 	    select(b)).distinct.toSet
     }
   
-  def latestPrices:Set[BondPrice] = getPriceByParamSet(latestPriceParam._1)
-  def latestPriceParam:(String, JavaDate) = getPricedParamSets.maxBy(_._2)
-  def latestVolatilityDate:JavaDate = if (getVolatilityDates.isEmpty) null else getVolatilityDates.max
-  def latestCorrelationDate:JavaDate = if (getCorrelationDates.isEmpty) null else getCorrelationDates.max
+  def getLatestPrices:Set[BondPrice] = getPriceByParamSet(getLatestPriceParam._1)
+  def getLatestPriceParam:(String, JavaDate) = getPricedParamSets.maxBy(_._2)
+  def getLatestVolatilityDate:JavaDate = if (getVolatilityDates.isEmpty) null else getVolatilityDates.max
+  def getLatestCorrelationDate:JavaDate = if (getCorrelationDates.isEmpty) null else getCorrelationDates.max
   
-  def getVolatilityBondUnderlyings = getVolUnderlyings.filter(_.substring(0, 6) == "PRICE:").map(_.substring(6))
-  def getVolatilityFXUnderlyings = getVolUnderlyings.filter(_.substring(0, 3) == "FX:").map(_.substring(3))
+  def getVolatilityBondUnderlyings = getVolUnderlyings.withFilter(_.substring(0, 6) == "PRICE:").map(_.substring(6))
+  def getVolatilityFXUnderlyings = getVolUnderlyings.withFilter(_.substring(0, 3) == "FX:").map(_.substring(3))
   
   /**
    * Returns list of valid paramsets satisfying the given constraints.
@@ -315,7 +349,7 @@ object DB extends Schema {
   def getParamSetsAfter(basedate:JavaDate):Set[(String, JavaDate)] = 
     getParamSets.filter{case (pset, pdate) => pdate after basedate}
   
-  def latestParamSet:String = getParamSets.maxBy(_._2)._1
+  def getLatestParamSet:(String, JavaDate) = getParamSets.maxBy(_._2)
   
   /**
    * Returns paramsets for each database.
@@ -329,7 +363,7 @@ object DB extends Schema {
   def getFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
         from(fxrates)(p =>
-          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+          where(p.paramdate between (fromDate, toDate))
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
@@ -342,7 +376,7 @@ object DB extends Schema {
   def getRateFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
         from(ratefxparameters)(p =>
-          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+          where(p.paramdate between (fromDate, toDate))
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
@@ -355,7 +389,7 @@ object DB extends Schema {
   def getCDSParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
         from(cdsparameters)(p => 
-          where((p.paramdate gte fromDate) and (p.paramdate lte toDate))
+          where(p.paramdate between (fromDate, toDate))
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
@@ -363,8 +397,7 @@ object DB extends Schema {
     transaction {
         from(ratefxparameters)(p =>
           where(
-              (p.paramdate gte fromDate) and 
-              (p.paramdate lte toDate) and
+              (p.paramdate between (fromDate, toDate)) and
               (p.instrument === "FX"))
           select(&(p.paramdate))).distinct.toSet
     }
@@ -584,6 +617,7 @@ object DB extends Schema {
     val fx2 = getFX(paramset, ccy2)
     if (fx1.isDefined && fx2.isDefined) Some(fx2.get / fx1.get) else None
   }
+  
   
   /**
    * Returns list of all currencies in the FX database (against JPY).
@@ -971,7 +1005,7 @@ object DB extends Schema {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement(statement)
     val result = preparedStatement.executeUpdate
-    if (dataSource.getNumBusyConnections > 1) session.close
+    if (dataSource.getNumBusyConnections > 3) session.close
     result
   }
   
