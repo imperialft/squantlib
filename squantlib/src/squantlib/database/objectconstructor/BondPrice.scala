@@ -43,27 +43,28 @@ object BondPrice {
 				paramdate = valuedate.longDate,
 				fxjpy = fx,
 				pricedirty = Double.NaN,
-				priceclean = null,
+				priceclean = None,
 				accrued = Some(Double.NaN),
-				pricedirty_jpy = null,
-				priceclean_jpy = null,
-				accrued_jpy = null,
-				yield_continuous = null,
-				yield_annual = null,
-				yield_semiannual = null,
-				yield_simple = null,
+				pricedirty_jpy = None,
+				priceclean_jpy = None,
+				accrued_jpy = None,
+				yield_continuous = None,
+				yield_annual = None,
+				yield_semiannual = None,
+				yield_simple = None,
 				instrument = "BONDPRICE",
-				bpvalue = null,
-				atmrate = null,
-				irr = null,
-				currentrate = null,
-				nextamount = null,
-				nextdate = null,
-				dur_simple = null,
-				dur_modified = null,
-				dur_macauley = null,
-				yieldvaluebp = null,
-				convexity = null, 		
+				bpvalue = None,
+				atmrate = None,
+				irr = None,
+				currentrate = None,
+				nextamount = None,
+				nextdate = None,
+				dur_simple = None,
+				dur_modified = None,
+				dur_macauley = None,
+				yieldvaluebp = None,
+				convexity = None, 		
+				remaininglife = None, 		
 				created = Some(currenttime),
 				lastmodified = Some(currenttime)
 		      )
@@ -71,57 +72,58 @@ object BondPrice {
 		else {
 			msg = ""
 			  
-			def validvalue(f:Unit => Double) = {
-				val testvalue:Double = try f() catch {case e => {msg += e.getMessage; Double.NaN}}
-				if (testvalue.isNaN || testvalue.isInfinite) null else Some(testvalue)
+			def validvalue(f: => Double):Option[Double] = {
+				val testvalue:Double = try f catch {case e => {msg += e.getMessage; Double.NaN}}
+				if (testvalue.isNaN || testvalue.isInfinite) None else Some(testvalue)
 			}
 
-			val yield_continuous = validvalue(_ => bond.`yield`(stddaycount, Compounding.Continuous, Frequency.NoFrequency))
-			val yield_annual = validvalue(_ => bond.`yield`(stddaycount, Compounding.Compounded, Frequency.Annual))
-			val yield_semiann = validvalue(_ => bond.`yield`(stddaycount, Compounding.Compounded, Frequency.Semiannual))
-			val yield_simple = validvalue(_ => bond.`yield`(stddaycount, Compounding.None, Frequency.Annual))
-			val price_accrued = validvalue(_ => bond.accruedAmount)
-			val price_clean = validvalue(_ => bond.cleanPrice)
+			val yield_continuous = validvalue(bond.`yield`(stddaycount, Compounding.Continuous, Frequency.NoFrequency))
+			val yield_annual = validvalue(bond.`yield`(stddaycount, Compounding.Compounded, Frequency.Annual))
+			val yield_semiann = validvalue(bond.`yield`(stddaycount, Compounding.Compounded, Frequency.Semiannual))
+			val yield_simple = validvalue(bond.`yield`(stddaycount, Compounding.None, Frequency.Annual))
+			val price_accrued = validvalue(bond.accruedAmount)
+			val price_clean = validvalue(bond.cleanPrice)
 			
-			var bps:Option[Double] = null
-			var atmrate:Option[Double] = null
-			var simpleduration:Option[Double] = null
-			var modifiedduration:Option[Double] = null
-			var macauleyduration:Option[Double] = null
-			var yieldvaluebp:Option[Double] = null
-			var convexity:Option[Double] = null
+			var bps:Option[Double] = None
+			var atmrate:Option[Double] = None
+			var simpleduration:Option[Double] = None
+			var modifiedduration:Option[Double] = None
+			var macauleyduration:Option[Double] = None
+			var yieldvaluebp:Option[Double] = None
+			var convexity:Option[Double] = None
 			
 			val cfmodel = CashFlows.getInstance
 			val cashflows = bond.cashflows
-			val irr = validvalue(_ => cfmodel.irr(cashflows, price, new Thirty360, Compounding.Continuous, Frequency.NoFrequency, valuedate, 0.001, 1000, 0.01))
-			val nextrate = validvalue(_ => cfmodel.nextCouponRate(cashflows, valuedate))
-			val nextamount = validvalue(_ => cfmodel.nextCashFlows(cashflows, valuedate).map(c => c.amount).sum)
+			val irr = validvalue(cfmodel.irr(cashflows, price, new Thirty360, Compounding.Continuous, Frequency.NoFrequency, valuedate, 0.001, 1000, 0.01))
+			val nextrate = validvalue(cfmodel.nextCouponRate(cashflows, valuedate))
+			val nextamount = validvalue(cfmodel.nextCashFlows(cashflows, valuedate).map(c => c.amount).sum)
 			val nextdate = Some(cfmodel.nextCashFlow(cashflows, valuedate).date.longDate)
+			val remaininglife = validvalue(bond.remainingLife)
 		
 			if (termstructure != null)
 			{
-				bps = validvalue(_ => cfmodel.bps(cashflows, termstructure, valuedate))
-				atmrate = validvalue(_ => cfmodel.atmRate(cashflows, termstructure, valuedate, valuedate, 0, 0))
+				bps = validvalue(cfmodel.bps(cashflows, termstructure, valuedate))
+				atmrate = validvalue(cfmodel.atmRate(cashflows, termstructure, valuedate, valuedate, 0, 0))
 				
 				val interestrate = termstructure.forwardRate(valuedate, bond.maturityDate, termstructure.dayCounter, Compounding.Compounded, Frequency.Semiannual)
-				simpleduration = validvalue(_ => cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Simple, valuedate))
-				modifiedduration = validvalue(_ => cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Modified, valuedate))
-				macauleyduration = validvalue(_ => cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Macaulay, valuedate))
-				yieldvaluebp = validvalue(_ => cfmodel.yieldValueBasisPoint(cashflows, interestrate, valuedate))
-				convexity = validvalue(_ => cfmodel.convexity(cashflows, interestrate, valuedate))
+				simpleduration = validvalue(cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Simple, valuedate))
+				modifiedduration = validvalue(cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Modified, valuedate))
+				macauleyduration = validvalue(cfmodel.duration(cashflows, interestrate, CashFlows.Duration.Macaulay, valuedate))
+				yieldvaluebp = validvalue(cfmodel.yieldValueBasisPoint(cashflows, interestrate, valuedate))
+				convexity = validvalue(cfmodel.convexity(cashflows, interestrate, valuedate))
 			}
 			
 			val initialfx = bond.initialFX
 			
-			val pricedirty_jpy = if (bond.issueDate ge valuedate) null
+			val pricedirty_jpy = if (bond.issueDate ge valuedate) None
 			  					 else if (initialfx > 0) Some(price * fx / initialfx) 
-								 else null
+								 else None
 								 
-			val priceclean_jpy = if (bond.issueDate ge valuedate) null
-			  					 else if (price_clean != null && initialfx > 0) Some(price_clean.get * fx / initialfx) 
-			  					 else null
+			val priceclean_jpy = if (bond.issueDate ge valuedate) None
+			  					 else if (price_clean.isDefined && initialfx > 0) Some(price_clean.get * fx / initialfx) 
+			  					 else None
 			  					 
-			val accrued_jpy = if (price_accrued != null && initialfx > 0) Some(price_accrued.get * fx / initialfx) else null
+			val accrued_jpy = if (price_accrued.isDefined && initialfx > 0) Some(price_accrued.get * fx / initialfx) else None
 			
 			new dbBondPrice(
 				id = bond.bondid + ":" + paramset + ":" + bond.currency.code,
@@ -154,6 +156,7 @@ object BondPrice {
 				dur_macauley = macauleyduration,
 				yieldvaluebp = yieldvaluebp,
 				convexity = convexity,
+				remaininglife = remaininglife,
 				created = Some(currenttime),
 				lastmodified = Some(currenttime)
 		      )

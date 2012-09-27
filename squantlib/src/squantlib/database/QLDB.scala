@@ -58,7 +58,7 @@ object QLDB {
 	
 	def getBonds(id:Traversable[String], builder:dbBond => QLBond, pricingengine:QLBond => PricingEngine, valuedate:qlDate):Set[QLBond] = {
 		val dbbonds:Set[dbBond] = DB.getBonds(id)
-		val qlbonds:Set[QLBond] = dbbonds.map(builder(_)).filter(_ != null)
+		val qlbonds:Set[QLBond] = dbbonds.map(builder).filter(_ != null)
 		qlbonds.foreach(b => b.setPricingEngine(pricingengine(b), valuedate))
 		qlbonds
 	}

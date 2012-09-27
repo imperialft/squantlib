@@ -31,11 +31,11 @@ class Country(@Column("ID")				var id: String,
     region = null,
     description_jpn = null,
     description_eng = null,
-    address_lat = Some(0.0),
-    address_lng = Some(0.0),
+    address_lat = Some(-999.0),
+    address_lng = Some(-999.0),
     risktags = "",
-    created = Some(new Date),
-    lastmodified = Some(new Date)
+    created = None,
+    lastmodified = None
   )
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, name_eng, name_jpn, region, created.toString)
@@ -62,8 +62,8 @@ class Currency(@Column("ID")				var id: String,
       description_jpn = null, 
       description_eng = null,
       risktags = "",
-      created = Some(new Date), 
-      lastmodified = Some(new Date))
+      created = None, 
+      lastmodified = None)
 
   override def toString():String = format("%-5s %-15s %-15s %-15s", id, name_eng, name_jpn, created.toString)
 }
@@ -99,8 +99,8 @@ class Distributor(@Column("ID")				var id: String,
 	address = null,
 	post = null,
 	tel = null,
-	address_lat = Some(0.0),
-	address_lng = Some(0.0),
+	address_lat = Some(-999.0),
+	address_lng = Some(-999.0),
 	fsa_region = null,
 	fsa_id = null,
 	fsa_name = null,
@@ -109,8 +109,8 @@ class Distributor(@Column("ID")				var id: String,
 	fsa_tel = null,
 	description_jpn = null,
 	description_eng = null,
-	created = Some(new Date),
-	lastmodified  = Some(new Date))
+	created = None,
+	lastmodified  = None)
 
   override def toString():String = format("%-5s %-15s %-10s %-30s %-15s %-15s", id, name_jpn, post, address, tel, created.toString)
 }
@@ -150,15 +150,15 @@ class Issuer(@Column("ID")					var id: String,
 		name_jpn = null,
 		name_jpn_short = null,
 		address = null,
-		address_lat = Some(0.0),
-		address_lng = Some(0.0),
+		address_lat = Some(-999.0),
+		address_lng = Some(-999.0),
 		countryid = null,
 		issuertype = null,
-		rating_mdy = Some(0),
+		rating_mdy = Some(-999),
 		rating_mdy_watch = null,
-		rating_SP = Some(0),
+		rating_SP = Some(-999),
 		rating_SP_watch = null,
-		rating_FITCH = Some(0),
+		rating_FITCH = Some(-999),
 		rating_FITCH_watch = null,
 		bbg_eqty = null,
 		bbg_debt = null,
@@ -168,8 +168,8 @@ class Issuer(@Column("ID")					var id: String,
 		description_jpn = null,
 		description_eng = null,
 		risktags = "",
-		created = Some(new Date),
-		lastmodified  = Some(new Date))
+		created = None,
+		lastmodified  = None)
 
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, name, name_jpn, address, issuertype, created.toString)
 }
@@ -197,9 +197,9 @@ class Product(@Column("ID")					var id: String,
 		producttype = null,
 		description_jpn = null,
 		description_eng = null,
-		risktags = "",
-		created = Some(new Date),
-		lastmodified  = Some(new Date))
+		risktags = null,
+		created = None,
+		lastmodified  = None)
 
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, name_eng, name_jpn, producttype, producttype, created.toString)
 }
@@ -251,16 +251,16 @@ class Bond(@Column("ID")					var id: String,
 		issuedate = new Date,
 		maturity = new Date,
 		nominal = 0.0,
-		denomination = Some(0.0),
+		denomination = Some(-999.0),
 		coupon = null,
-		coupon_freq = Some(0),
+		coupon_freq = Some(9999),
 		daycount = null,
 		daycount_adj = null,
 		calendar_str = null,
 		payment_adj = null,
 		inarrears = Some(0),
 		cpnnotice = Some(0),
-		issueprice = Some(0.0),
+		issueprice = Some(-999.0),
 		redemprice = null,
 		call = null,
 		bondtype = null,
@@ -272,9 +272,9 @@ class Bond(@Column("ID")					var id: String,
 		currencyid = null,
 		productid = null,
 		issuerid = null,
-		risktags = "",
-		created = Some(new Date),
-		lastmodified  = Some(new Date))
+		risktags = null,
+		created = None,
+		lastmodified  = None)
  
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
   
@@ -305,7 +305,7 @@ class Bond(@Column("ID")					var id: String,
 //      value = -99999, 
 //      option = null, 
 //      comment = null, 
-//      created = Some(new Date))
+//      created = None)
 //
 //  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
 //}
@@ -334,7 +334,7 @@ class CDSParameter(@Column("ID")			var id: Int,
       spread = -99999.0, 
       maturity = null, 
       comment = null, 
-      created = Some(new Date))
+      created = None)
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, issuerid, currencyid, spread)
   
@@ -372,6 +372,7 @@ class BondPrice(@Column("ID")			var id:String,
 			@Column("DUR_MACAULEY")		var dur_macauley:Option[Double],
 			@Column("YIELDVALUE")		var yieldvaluebp:Option[Double],
 			@Column("CONVEXITY")		var convexity:Option[Double], 
+			@Column("REMAININGLIFE")	var remaininglife:Option[Double], 
 			@Column("Created")			var created:Option[Date],
 			@Column("LastModified")		var lastmodified:Option[Date]
 			) extends KeyedEntity[String]{
@@ -386,29 +387,30 @@ class BondPrice(@Column("ID")			var id:String,
 		paramdate = new Date,
 		fxjpy = 0.0,
 		pricedirty = 0.0,
-		priceclean = Some(0.0),
-		accrued = Some(0.0),
-		pricedirty_jpy = Some(0.0),
-		priceclean_jpy = Some(0.0),
-		accrued_jpy = Some(0.0),
-		yield_continuous = Some(0.0),
-		yield_annual = Some(0.0),
-		yield_semiannual = Some(0.0),
-		yield_simple = Some(0.0),
-		instrument = null,
-		bpvalue = Some(0.0),
-		atmrate = Some(0.0),
-		irr = Some(0.0),
-		currentrate = Some(0.0),
-		nextamount = Some(0.0),
-		nextdate = Some(new Date),
-		dur_simple = Some(0.0),
-		dur_modified= Some(0.0),
-		dur_macauley= Some(0.0),
-		yieldvaluebp = Some(0.0),
-		convexity = Some(0.0), 		
-		created = Some(new Date),
-		lastmodified = Some(new Date)
+		priceclean = Some(-999.0),
+		accrued = Some(-999.0),
+		pricedirty_jpy = Some(-999.0),
+		priceclean_jpy = Some(-999.0),
+		accrued_jpy = Some(-999.0),
+		yield_continuous = Some(-999.0),
+		yield_annual = Some(-999.0),
+		yield_semiannual = Some(-999.0),
+		yield_simple = Some(-999.0),
+		instrument = null, 
+		bpvalue = Some(-999.0),
+		atmrate = Some(-999.0),
+		irr = Some(-999.0),
+		currentrate = Some(-999.0),
+		nextamount = Some(-999.0),
+		nextdate = None,
+		dur_simple = Some(-999.0),
+		dur_modified= Some(-999.0),
+		dur_macauley= Some(-999.0),
+		yieldvaluebp = Some(-999.0),
+		convexity = Some(-999.0), 		
+		remaininglife = Some(999.0), 		
+		created = None,
+		lastmodified = None
       )
       
   override def toString():String = format("%-15s %-5s %-10s %-15s %-10s", id, currencyid, pricedirty, paramset, if (accrued.isEmpty) "" else accrued.get)
@@ -429,7 +431,7 @@ class FXRate(@Column("ID")					var id:Int,
       paramset = null,
       currencyid = null, 
       fxjpy = -99999.0, 
-      lastmodified = Some(new Date))
+      lastmodified = None)
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramdate, paramset, currencyid, fxjpy)
 }
@@ -456,7 +458,7 @@ class RateFXParameter(@Column("ID")			var id: String,
       value = -99999, 
       option = null, 
       comment = null, 
-      created = Some(new Date))
+      created = None)
 
   override def toString():String = format("%-15s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
 }
@@ -478,8 +480,8 @@ class ForwardPrice(@Column("ID")			var id: String,
       valuedate = null, 
       underlying = null, 
       value = -99999, 
-      valuejpy = Some(0.0), 
-      created = Some(new Date))
+      valuejpy = Some(-999.0), 
+      created = None)
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramset, valuedate, underlying, value)
 }
@@ -501,7 +503,7 @@ class Volatility(@Column("ID")				var id:String,
       periodicity = -999999,
       nbdays = -99999,
       value = -99999999,
-      lastmodified = Some(new Date))
+      lastmodified = None)
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, underlying, valuedate, periodicity, value)
 }
@@ -524,7 +526,7 @@ class Correlation(@Column("ID")				var id:String,
       periodicity = -999999,
       nbdays = -99999,
       value = -99999999,
-      lastmodified = Some(new Date))
+      lastmodified = None)
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, underlying1, underlying2, valuedate, value)
 }
@@ -559,8 +561,8 @@ class Coupon(@Column("ID")				var id:String,
       comment = null,
       daycount = null,
       paymenttype = null,
-      lastmodified = Some(new Date))
-      
+      lastmodified = None)
+       
   override def toString():String = format("%-15s %-5s %-15s %tF %tF %tF %tF %-15s", bondid, currency, rate, eventdate, startdate, enddate, paymentdate, fixedamount.getOrElse(""))
       
 }
@@ -585,7 +587,7 @@ class ImpliedRate(@Column("ID")			var id: String,
       maturity = null, 
       value = -99999, 
       comment = null, 
-      created = Some(new Date))
+      created = None)
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
 }
