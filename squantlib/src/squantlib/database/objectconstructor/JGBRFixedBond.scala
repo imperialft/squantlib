@@ -1,38 +1,39 @@
 package squantlib.database.objectconstructor
 
-import squantlib.model.discountcurve.DiscountCurveFactory
+//import squantlib.model.discountcurve.DiscountCurveFactory
 import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.initializer.{Currencies, DayAdjustments, Daycounters}
-import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond }
+import squantlib.instruments.bonds.JGBFixedBond
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}
 import org.jquantlib.daycounters.Actual365Fixed
+import squantlib.pricingengines.bond.JGBRBondEngine
 
-object FixedRateBond {
+object JGBRFixedBond {
   
 	def apply(bond:dbBond) = getbond(bond)
-	def apply(bond:dbBond, factory:DiscountCurveFactory) = getbond(bond, factory)
+	def apply(bond:dbBond, valuedate:qlDate) = getbond(bond, valuedate)
   
-	val productlist = Set("SB", "STEPUP", "DISC")
+	val productlist = Set("JGBR3", "JGBR5")
 	def isCompatible(bond:dbBond) = productlist contains bond.productid.toUpperCase
 	
 	val defaultAdjustment = BusinessDayConvention.ModifiedFollowing
 	val defaultDayCounter = new Actual365Fixed
 	
-	def getbonds(bonds:Set[dbBond]):Map[String, qlFixedRateBond] = {
+	def getbonds(bonds:Set[dbBond]):Map[String, JGBFixedBond] = {
 	  bonds.map(b => (b.id, getbond(b))).filter(b => b._2 != null).toMap
 	}
 	
-	def getbonds(bonds:Set[dbBond], factory:DiscountCurveFactory):Map[String, qlFixedRateBond] = {
-	  bonds.map(b => (b.id, getbond(b, factory))).filter(b => b._2 != null).toMap
+	def getbonds(bonds:Set[dbBond], valuedate:qlDate):Map[String, JGBFixedBond] = {
+	  bonds.map(b => (b.id, getbond(b, valuedate))).filter(b => b._2 != null).toMap
 	}
 	
-	def getbond(bond:dbBond, factory:DiscountCurveFactory):qlFixedRateBond = {
+	def getbond(bond:dbBond, valuedate:qlDate):JGBFixedBond = {
 	  val newbond = getbond(bond)
-	  setDefaultPricingEngine(newbond, factory)
+	  setDefaultPricingEngine(newbond, valuedate)
 	  newbond
 	}
 	
-	def getbond(bond:dbBond):qlFixedRateBond = {
+	def getbond(bond:dbBond):JGBFixedBond = {
 	  val isvalidbond = productlist.contains(bond.productid) && 
 			  		!bond.coupon.isEmpty && 
 			  		!bond.coupon_freq.isEmpty && 
@@ -64,7 +65,7 @@ object FixedRateBond {
 			val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
 			val initialfx = bond.initialfx
 			
-			new qlFixedRateBond(settlementdays, 
+			new JGBFixedBond(settlementdays, 
 			    faceamount, 
 			    schedule, 
 			    coupons, 
@@ -79,9 +80,9 @@ object FixedRateBond {
 	  	}
 	}
 
-	def setDefaultPricingEngine(bond:qlFixedRateBond, factory:DiscountCurveFactory) ={
-	  if (bond != null && factory != null) 
-	    bond.setPricingEngine(factory.getdiscountbondengine(bond), factory.valuedate)
+	def setDefaultPricingEngine(bond:JGBFixedBond, valuedate:qlDate) ={
+	  if (bond != null) 
+	    bond.setPricingEngine(new JGBRBondEngine(valuedate), valuedate)
 	}
 
 	private def ratetoarray(formula:String, size:Int):Array[Double] = {

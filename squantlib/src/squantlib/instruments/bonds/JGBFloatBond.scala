@@ -10,7 +10,7 @@ import org.jquantlib.time.{BusinessDayConvention, Date => qlDate, Schedule => ql
 import org.jquantlib.currencies.Currency
 
 
-class JGBRBond(
+class JGBFloatBond(
 		settlementDays:Int,
         faceAmount:Double,
         schedule:qlSchedule,

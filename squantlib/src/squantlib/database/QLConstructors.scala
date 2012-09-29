@@ -29,7 +29,7 @@ object QLConstructors {
 	
 	implicit def CDSParameter2ParamSet(params:Traversable[CDSParameter]) = new CDSParameterSet(params)
 	class CDSParameterSet(val cdsparameters:Traversable[CDSParameter]){
-	  def toCDSCurves:Iterable[CDSCurve] = CDSCurve(cdsparameters)
+	  def toCDSCurves:Iterable[CDSCurve] = CDSCurve.getcurves(cdsparameters)
 	}
 
 	implicit def Map2Ts(m:scala.collection.Map[qlDate, Double]) = new ConvertableMap(m)

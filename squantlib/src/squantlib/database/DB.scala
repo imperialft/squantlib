@@ -272,15 +272,15 @@ object DB extends Schema {
     }
   }
   
-  def getCoupons(bondids:Traversable[String]):Set[Coupon] = 
+  def getCoupons(bondids:Traversable[String]):List[Coupon] = 
     transaction {
       from(coupons)(c =>
         where(c.bondid in bondids)
         select(c)
-      ).toSet
+      ).toList
     }
   
-  def getUnfixedCoupons(d:JavaDate):Set[Coupon] = 
+  def getUnfixedCoupons(d:JavaDate):List[Coupon] = 
     transaction {
       from(coupons)(c =>
         where(
@@ -290,10 +290,10 @@ object DB extends Schema {
           ((c.fixedrate.isNull) or (c.fixedamount.isNull))
         )
         select(c)
-      ).toSet
+      ).toList
     }
   
-  def getDefinedCoupons(d:JavaDate):Set[Coupon] = 
+  def getDefinedCoupons(d:JavaDate):List[Coupon] = 
     transaction {
       from(coupons)(c =>
         where(
@@ -302,17 +302,73 @@ object DB extends Schema {
           not (c.rate === "")
         )
         select(c)
-      ).toSet
+      ).toList
     }
   
-    
-  def getCoupons(d:JavaDate):Set[Coupon] = 
+  def getPreviousCoupons(bondid:String, d:JavaDate):List[Coupon] = 
     transaction {
       from(coupons)(c =>
-        where(c.eventdate lte d)
+        where(
+            (c.bondid === bondid) and
+            (c.paymentdate lte d) and
+            (c.paymenttype === "COUPON"))
         select(c)
-      ).toSet
+      ).toList
     }
+  
+  def getPreviousCoupons(bondid:String, d:JavaDate, nb:Int):List[Coupon] = {
+    val cpns = getPreviousCoupons(bondid, d)
+    if (cpns.size <= nb) cpns
+    else cpns.toList.sortBy(_.paymentdate).takeRight(nb).toList
+  }
+  
+  def getCurrentCoupons(bondid:String, d:JavaDate):List[Coupon] = 
+    transaction {
+      from(coupons)(c =>
+        where(
+            (c.bondid === bondid) and
+            (c.startdate lt d) and 
+            (c.enddate gte d) and
+            (c.paymenttype === "COUPON"))
+        select(c)
+      ).toList
+    }
+  
+  def getCurrentAndPreviousCoupons(bondid:String, d:JavaDate):(List[Coupon], List[Coupon]) = 
+    transaction {
+      val current = from(coupons)(c =>
+        where(
+            (c.bondid === bondid) and
+            (c.startdate lt d) and 
+            (c.enddate gte d) and
+            (c.paymenttype === "COUPON"))
+        select(c)
+      ).toList
+      
+      val previous = from(coupons)(c =>
+        where(
+            (c.bondid === bondid) and
+            (c.paymentdate lte d) and
+            (c.paymenttype === "COUPON"))
+        select(c)
+      ).toList
+      
+      (current, previous)
+    }
+  
+  def getCurrentAndPreviousCoupons(bondid:String, d:JavaDate, nb:Int):(List[Coupon], List[Coupon]) = {
+    val (current, previous) = getCurrentAndPreviousCoupons(bondid, d)
+    if (previous.size <= nb) (current, previous)
+    else (current, previous.toList.sortBy(_.paymentdate).takeRight(nb))
+  }
+    
+//  def getCoupons(d:JavaDate):Set[Coupon] = 
+//    transaction {
+//      from(coupons)(c =>
+//        where(c.eventdate lte d)
+//        select(c)
+//      ).toSet
+//    }
   
   def getCouponMissingBonds:Set[Bond] = 
     transaction {

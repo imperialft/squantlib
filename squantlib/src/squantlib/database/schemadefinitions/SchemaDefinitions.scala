@@ -8,6 +8,7 @@ import org.squeryl.dsl.{ManyToOne, ManyToMany, OneToMany}
 import org.squeryl.KeyedEntity
 import squantlib.database.DB
 import squantlib.database.objectconstructor._
+import squantlib.initializer._
 
 class Country(@Column("ID")				var id: String,
               @Column("CurrencyID")		var currencyid: String,
@@ -238,8 +239,9 @@ class Bond(@Column("ID")					var id: String,
               ) extends KeyedEntity[String] {
 
   import squantlib.initializer.Calendars
+  import org.jquantlib.time.Calendar
   
-  def calendar:org.jquantlib.time.Calendar = {
+  def calendar:Calendar = {
     val cdrlist:Set[String] = calendar_str.split(",").map(_.trim).toSet
     Calendars(cdrlist).getOrElse(Calendars(currencyid).get)
   }
@@ -278,8 +280,8 @@ class Bond(@Column("ID")					var id: String,
  
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
   
-  def toFixedRateBond = FixedRateBondConstructor.getbond(this)
-  def getCoupons = squantlib.database.objectconstructor.Coupon.build(this)
+  def toFixedRateBond = FixedRateBond(this)
+  def getCoupons = Coupon(this)
 }
 
 
@@ -338,7 +340,7 @@ class CDSParameter(@Column("ID")			var id: Int,
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, issuerid, currencyid, spread)
   
-  def toCDSCurve = CDSCurve.getcurve(this)
+  def toCDSCurve = CDSCurve(this)
 }
 
 
@@ -547,6 +549,7 @@ class Coupon(@Column("ID")				var id:String,
 			@Column("LastModified")		var lastmodified:Option[Date]
               ) extends KeyedEntity[String] {
   
+  
   def this() = this(
       id = null,
       bondid = null,
@@ -562,7 +565,21 @@ class Coupon(@Column("ID")				var id:String,
       daycount = null,
       paymenttype = null,
       lastmodified = None)
-       
+      
+  import org.jquantlib.daycounters.Actual365Fixed
+  import org.jquantlib.time.{Date => qlDate}
+  
+  def accruedCoupon(valuedate:Date):Option[Double] = {
+    if (valuedate.before(startdate) || valuedate.after(enddate)) None
+    else fixedrate match {
+      case None => None
+      case Some(r) => {
+        val dcf = Daycounters.getOrElse(daycount, new Actual365Fixed)
+        Some(r * dcf.yearFraction(new qlDate(startdate), new qlDate(valuedate)))
+      }
+    }
+  }
+      
   override def toString():String = format("%-15s %-5s %-15s %tF %tF %tF %tF %-15s", bondid, currency, rate, eventdate, startdate, enddate, paymentdate, fixedamount.getOrElse(""))
       
 }

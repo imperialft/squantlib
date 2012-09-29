@@ -51,6 +51,16 @@ object QLDB {
     * @param id Identifications of the target bonds
     * @param factory Optional. Providing discount curve factory would automatically set discounting bond engine as default pricing engine (where applicable)
     */
+	def getBond(id:String):Option[QLBond] = {
+	  val bonds = getBonds(Set(id))
+	  if (bonds.isEmpty) None else Some(bonds.head)
+	}
+	
+	def getBond(id:String, factory:DiscountCurveFactory):Option[QLBond] = {
+	  val bonds = getBonds(Set(id), factory)
+	  if (bonds.isEmpty) None else Some(bonds.head)
+	}
+	
 	def getBonds:Set[QLBond] = bondConstructor(DB.getBonds, null)
 	def getBonds(id:Traversable[String]):Set[QLBond] = bondConstructor(DB.getBonds(id), null)
 	def getBonds(factory:DiscountCurveFactory):Set[QLBond] = bondConstructor(DB.getBonds, factory)
@@ -65,15 +75,10 @@ object QLDB {
 	
 	private def bondConstructor(dbbonds:Set[dbBond], factory:DiscountCurveFactory):Set[QLBond] = {
 		dbbonds.map { b =>
-		  b.productid match {
-		    
-		    case "SB" | "STEPUP" | "DISC" =>
-		      val bond = b.toFixedRateBond
-		      if (bond != null && factory != null) bond.setPricingEngine(factory.getdiscountbondengine(bond), factory.valuedate)
-		      bond
-		      
-		    case _ =>
-		      null
+		  b match {
+		    case p if FixedRateBond.isCompatible(p) => FixedRateBond(p, factory)
+		    case p if JGBRFixedBond.isCompatible(p) => JGBRFixedBond(p, factory.valuedate)
+		    case _ => null
 		  }
 		}.filter(_ != null).toSet
 	}
