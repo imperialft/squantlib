@@ -100,17 +100,32 @@ trait FX {
     
 } 
 
+object FX_novol {
+	def apply(curve1:DiscountCurve, curve2:DiscountCurve):Option[FX_novol] = Some(new FX_novol(curve1, curve2))
+}
 
 class FX_novol(val curve1:DiscountCurve, val curve2:DiscountCurve) extends FX {
 	def volatility(days:Long, strike:Double):Double = Double.NaN
+}
+
+object FX_flatvol {
+	def apply(curve1:DiscountCurve, curve2:DiscountCurve, vol:Double):Option[FX_flatvol] = Some(new FX_flatvol(curve1, curve2, vol))
 }
 
 class FX_flatvol(val curve1:DiscountCurve, val curve2:DiscountCurve, vol:Double) extends FX {
 	def volatility(days:Long, strike:Double):Double = vol
 }
 
+object FX_nosmile {
+	def apply(curve1:DiscountCurve, curve2:DiscountCurve, vol:Long => Double):Option[FX_nosmile] = Some(new FX_nosmile(curve1, curve2, vol))
+}
+
 class FX_nosmile(val curve1:DiscountCurve, val curve2:DiscountCurve, vol:Long => Double) extends FX {
 	def volatility(days:Long, strike:Double):Double = vol(days)
+}
+
+object FX_smiled {
+	def apply(curve1:DiscountCurve, curve2:DiscountCurve, vol:(Long, Double) => Double):Option[FX_smiled] = Some(new FX_smiled(curve1, curve2, vol))
 }
 
 class FX_smiled(val curve1:DiscountCurve, val curve2:DiscountCurve, vol:(Long, Double) => Double) extends FX {

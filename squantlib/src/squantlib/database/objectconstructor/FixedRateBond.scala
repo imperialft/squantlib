@@ -19,27 +19,30 @@ object FixedRateBond {
 	val defaultDayCounter = new Actual365Fixed
 	
 	def getbonds(bonds:Set[dbBond]):Map[String, qlFixedRateBond] = {
-	  bonds.map(b => (b.id, getbond(b))).filter(b => b._2 != null).toMap
+	  bonds.map(b => (b.id, getbond(b))).collect{case (key, Some(b)) => (key, b)}.toMap
 	}
 	
 	def getbonds(bonds:Set[dbBond], factory:DiscountCurveFactory):Map[String, qlFixedRateBond] = {
-	  bonds.map(b => (b.id, getbond(b, factory))).filter(b => b._2 != null).toMap
+	  bonds.map(b => (b.id, getbond(b, factory))).collect{case (key, Some(b)) => (key, b)}.toMap
 	}
 	
-	def getbond(bond:dbBond, factory:DiscountCurveFactory):qlFixedRateBond = {
+	def getbond(bond:dbBond, factory:DiscountCurveFactory):Option[qlFixedRateBond] = {
 	  val newbond = getbond(bond)
-	  setDefaultPricingEngine(newbond, factory)
-	  newbond
+	  if (newbond.isEmpty) None
+	  else {
+	    setDefaultPricingEngine(newbond.get, factory)
+	    newbond
+	  }
 	}
 	
-	def getbond(bond:dbBond):qlFixedRateBond = {
+	def getbond(bond:dbBond):Option[qlFixedRateBond] = {
 	  val isvalidbond = productlist.contains(bond.productid) && 
 			  		!bond.coupon.isEmpty && 
 			  		!bond.coupon_freq.isEmpty && 
 			  		!bond.redemprice.isEmpty && 
 			  		!bond.daycount_adj.isEmpty
 	  
-	  if (!isvalidbond) null
+	  if (!isvalidbond) None
 	  else {
 	  		val bondid = bond.id
 	  		val issuerid = bond.issuerid
@@ -64,7 +67,7 @@ object FixedRateBond {
 			val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
 			val initialfx = bond.initialfx
 			
-			new qlFixedRateBond(settlementdays, 
+			val newbond = new qlFixedRateBond(settlementdays, 
 			    faceamount, 
 			    schedule, 
 			    coupons, 
@@ -76,12 +79,14 @@ object FixedRateBond {
 			    currency, 
 			    issuerid, 
 			    initialfx)
+			
+			Some(newbond)
 	  	}
 	}
 
 	def setDefaultPricingEngine(bond:qlFixedRateBond, factory:DiscountCurveFactory) ={
 	  if (bond != null && factory != null) 
-	    bond.setPricingEngine(factory.getdiscountbondengine(bond), factory.valuedate)
+	    bond.setPricingEngine(factory.getdiscountbondengine(bond).orNull, factory.valuedate)
 	}
 
 	private def ratetoarray(formula:String, size:Int):Array[Double] = {

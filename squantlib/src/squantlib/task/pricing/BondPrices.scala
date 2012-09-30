@@ -40,7 +40,7 @@ object BondPrices {
   
   def notPricedBonds:Set[String] = {
 	val (latestparamset, latestpricedate) = DB.getLatestPriceParam
-	val factory = QLDB.getDiscountCurveFactory(latestparamset)
+	val factory = QLDB.getDiscountCurveFactory(latestparamset).orNull
 	val priceablebonds = QLDB.getBonds(factory).filter(b => b.isPriceable)
 	val pricedbonds = DB.getPricedBonds
 	priceablebonds.filter(b => !pricedbonds.contains(b.bondid)).map(_.bondid)
@@ -89,7 +89,7 @@ object BondPrices {
 	 * Creates factory from given paramset.
 	 */
 	val t1 = System.nanoTime
-	val factory = QLDB.getDiscountCurveFactory(paramset)
+	val factory = QLDB.getDiscountCurveFactory(paramset).orNull
 	if (factory == null || factory.curves.size == 0) {
 	  outputln("Curve not found")
 	  return
@@ -118,7 +118,8 @@ object BondPrices {
 	
 	if (dbbonds.isEmpty) loadbonds
 	val bondlist = bonds.map(b => (b.bondid, b)).toMap;
-	val fixedratebonds:Map[String, FixedRateBond] = bonds.map(bond => bond match { case b:FixedRateBond => (b.bondid, b); case _ => null}).filter(b => b != null).toMap;
+//	val fixedratebonds:Map[String, FixedRateBond] = bonds.map(bond => bond match { case b:FixedRateBond => (b.bondid, b); case _ => null}).filter(b => b != null).toMap;
+	val fixedratebonds:Map[String, FixedRateBond] = bonds.collect { case b:FixedRateBond => (b.bondid, b)}.toMap;
 	val pricelist = bondprices.filter(p => !p.pricedirty.isNaN).map(p => (p.bondid, p)).toMap;
 	val bond_product:Map[String, String] = dbbonds.map(b => (b._1, b._2.productid)).toMap;
 	

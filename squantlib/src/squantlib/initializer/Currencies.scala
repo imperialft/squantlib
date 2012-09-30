@@ -5,20 +5,11 @@ import org.jquantlib.currencies.Asia._
 import org.jquantlib.currencies.America._
 import org.jquantlib.currencies.Europe._
 import org.jquantlib.currencies.Oceania._
-import org.jquantlib.currencies.{Currency => qlCurrency}
+import org.jquantlib.currencies.Currency
 
-object Currencies {
+object Currencies extends Initializer[Currency]{
   
-	def apply(id:String):Option[qlCurrency] = id_currency.get(id)
-	
-	def getOrElse(id:String, defaultvalue:qlCurrency):qlCurrency = apply(id).getOrElse(defaultvalue)
-	
-	def contains(s:String):Boolean = id_currency.contains(s)
-	
-	def all:Set[String] = id_currency.keySet
-  
-	
-	private val id_currency = Map(
+	val mapper = Map(
 			("ARS" -> new ARSCurrency),
 			("ATS" -> new ATSCurrency),
 			("AUD" -> new AUDCurrency),

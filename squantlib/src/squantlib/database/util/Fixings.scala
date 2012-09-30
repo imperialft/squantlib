@@ -17,20 +17,20 @@ object Fixings {
   
   val cash = {
     val maturities = Set("3M", "6M")
-    for (c <- Currencies.all; m <- maturities) 
+    for (c <- Currencies.keySet; m <- maturities) 
       yield ((c + m) -> ((p:String) => DB.getRateFX(p, "Cash", c, m)))
   }
   
   val swap = {
     val maturities = Set("1Y", "2Y", "3Y", "4Y", "5Y", "7Y", "10Y", "15Y", "20Y", "30Y")
-    for (c <- Currencies.all; m <- maturities) 
+    for (c <- Currencies.keySet; m <- maturities) 
       yield ((c + m) -> ((p:String) => DB.getRateFX(p, "Swap", c, m)))
   }
     
-  val fxjpy = Currencies.all.map(c => (c + "JPY") -> ((p:String) => DB.getFX(p, c))) ++
-	Currencies.all.map(c => ("JPY" + c) -> ((p:String) => DB.getFX(p, c).collect{case n => 1/n}))
+  val fxjpy = Currencies.keySet.map(c => (c + "JPY") -> ((p:String) => DB.getFX(p, c))) ++
+	Currencies.keySet.map(c => ("JPY" + c) -> ((p:String) => DB.getFX(p, c).collect{case n => 1/n}))
 	   
-  val fxother = for (c1 <- (Currencies.all - "JPY"); c2 <- (Currencies.all - "JPY"))
+  val fxother = for (c1 <- (Currencies.keySet - "JPY"); c2 <- (Currencies.keySet - "JPY"))
     yield((c1 + c2) -> ((p:String) => DB.getFX(p, c1, c2)))
 	    
   val fixings = cmt ++ fxjpy ++ fxother ++ cash ++ swap

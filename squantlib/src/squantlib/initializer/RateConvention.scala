@@ -7,11 +7,9 @@ import org.jquantlib.daycounters.{ ActualActual, Thirty360, Actual365Fixed, Actu
 import org.jquantlib.time.{TimeUnit, Frequency, Date => JDate, Period=>JPeriod}
 import scala.collection.SortedMap
 
-object RateConvention{
-  
-	def apply(ccy:String) = allConventions(ccy)
-  
-	val allConventions = Map(
+object RateConvention extends Initializer[RateConvention] {
+    
+	val mapper = Map(
 			("AUD" -> new AudRateConvention),
 			("BRL" -> new BrlRateConvention),
 			("CAD" -> new CadRateConvention),
@@ -33,7 +31,6 @@ object RateConvention{
 			("USD" -> new UsdRateConvention),
 			("ZAR" -> new ZarRateConvention))
 			
-	def currencies = allConventions.keySet
 }
 
 /**

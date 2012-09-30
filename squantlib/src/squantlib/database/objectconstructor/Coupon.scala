@@ -1,7 +1,7 @@
 package squantlib.database.objectconstructor
 
 import squantlib.database.util.Fixings
-import squantlib.math.FormulaInterpreter
+import squantlib.math.Payoff
 import squantlib.initializer.{Daycounters, DayAdjustments}
 import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon}
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration}
@@ -49,7 +49,7 @@ object Coupon {
 	  val (fixedrate, comment) = 
 	    if (fixcpn.isDefined) (fixcpn, null)
 		else {
-			  val interpreter = new FormulaInterpreter(cpn.rate)
+			  val interpreter = new Payoff(cpn.rate)
 			  val varfixings = interpreter.variables.map(v => (v -> Fixings(v, cpn.eventdate))).toMap
 			  
 			  if (!varfixings.forall(_._2.isDefined)) (None, null)

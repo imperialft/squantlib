@@ -20,18 +20,16 @@ object QLDB {
    /**
     * Returns discount curve factory.
     */
-	def getDiscountCurveFactory(paramset:String):DiscountCurveFactory = {
+	def getDiscountCurveFactory(paramset:String):Option[DiscountCurveFactory] = {
 	  val ratefxparameters:Set[RateFXParameter] = DB.getRateFXParameters(paramset)
 	  val discountcurves = ratefxparameters.toDiscountCurves 
 	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
 	  
 	  if (discountcurves.size == 0 || cdscurves.size == 0) null
-	  else {
-		  new DiscountCurveFactory(
+	  else Some(new DiscountCurveFactory(
 		    discountcurves.map(c => (c.currency.code, c)).toMap, 
 		    cdscurves.map(c => (c.issuerid, c)).toMap, 
-		    paramset)
-	  }
+		    paramset))
 	}
 	
 	def getDiscountCurveFactoryFromInputParameter(paramset:String):DiscountCurveFactory = {
@@ -80,7 +78,7 @@ object QLDB {
 		    case p if JGBRFixedBond.isCompatible(p) => JGBRFixedBond(p, factory.valuedate)
 		    case _ => null
 		  }
-		}.filter(_ != null).toSet
+		}.flatMap(p => p).toSet
 	}
 	 
    /**

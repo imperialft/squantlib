@@ -48,7 +48,7 @@ object ImpliedRates {
 
   def price(paramset:String):Unit = {
     println("PARAMSET:" + paramset)
-	val factory = QLDB.getDiscountCurveFactory(paramset)
+	val factory = QLDB.getDiscountCurveFactory(paramset).orNull
 	if (factory == null || factory.curves.size == 0) {
 	  println("Curve not found")
 	  return
@@ -62,14 +62,14 @@ object ImpliedRates {
 	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
 	val impliedrates:Set[ImpliedRate] = factory.curvelist.map ( c => {
-	  val curve = try factory.getdiscountcurve(c, discountcurve, discountspread) catch { case e => null}
+	  val zccurve = try factory.getdiscountcurve(c, discountcurve, discountspread).orNull catch { case e => null}
 	  
-	  if (curve == null) {
+	  if (zccurve == null) {
 	    println("failed to initialise curve : " + c)
 	  }
 	  dates.map { case (m, d) => {
 	    printf(c + " " + m + " " + d + " ")
-	    val zcvalue = try curve.zc(d) catch { case e => Double.NaN }
+	    val zcvalue = try zccurve(d) catch { case e => Double.NaN }
 	    val zcrate = if (zcvalue.isNaN) Double.NaN else - Math.log(zcvalue) / (d / 365.00)
 	    printf(zcvalue + " / " + zcrate + "\n")
 		new ImpliedRate (

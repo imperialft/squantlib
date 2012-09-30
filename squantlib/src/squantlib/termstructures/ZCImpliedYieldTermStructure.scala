@@ -36,7 +36,7 @@ extends AbstractYieldTermStructure(referencedate)  {
 	}
 	 
 	def this(d:DiscountCurve, cdr:Calendar) = this(d, cdr, 0, d.valuedate)
-	def this(d:DiscountCurve) = this(d, Calendars(d.currency).get, 0, d.valuedate)
+	def this(d:DiscountCurve) = this(d, Calendars(d.currency.code).get, 0, d.valuedate)
 
 }
 

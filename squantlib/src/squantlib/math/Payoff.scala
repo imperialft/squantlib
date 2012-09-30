@@ -3,11 +3,16 @@ package squantlib.math
 import squantlib.initializer.Currencies
 import scala.collection.mutable.{Map => mutableMap}
 
-class FormulaInterpreter(val formula:String){
+class Payoff(val formula:String){
   
-	val (parsedFormula, floor, cap) = FormulaInterpreter.split(formula)
+	val (parsedFormula:Map[Set[String], Double], floor:Option[Double], cap:Option[Double]) = Payoff.split(formula)
 	
 	val variables:Set[String] = parsedFormula.keySet.flatten
+	 
+	def leverage(index:String):Double = parsedFormula.getOrElse(Set(index), 0.0)
+	def leverage(index:Set[String]):Double = parsedFormula.getOrElse(index, 0.0)
+	
+	def constant:Double = parsedFormula.getOrElse(Set.empty, 0.0)
 	
 	def price(fixings:Map[String, Double]):Double = 
 	  if (!variables.forall(x => fixings.keySet.contains(x))) return Double.NaN
@@ -24,7 +29,7 @@ class FormulaInterpreter(val formula:String){
 	}.reduce((x, y) => x + "\n" + y)
 }
 
-object FormulaInterpreter {
+object Payoff {
   
     def variables(cashflow:String):Set[String] = {
       if (cashflow == null) return Set()

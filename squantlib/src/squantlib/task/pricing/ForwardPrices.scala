@@ -28,7 +28,7 @@ object ForwardPrices {
   
   def clear:Unit = storedprice.clear
   
-  def defaultCurrencies:Set[String] = DB.getFXlist & RateConvention.allConventions.map(_._1).toSet
+  def defaultCurrencies:Set[String] = DB.getFXlist & RateConvention.keySet
   def defaultFXpairs:Set[(String, String)] = defaultCurrencies.map(fx => (fx, "JPY"))
   def defaultBonds:Set[String] = DB.getLatestPrices.map(_.bondid)
   
@@ -42,7 +42,7 @@ object ForwardPrices {
   }
   
   def pricebonds(paramset:String, bondid:Traversable[String] = null):Unit = {
-	val factory = QLDB.getDiscountCurveFactory(paramset)
+	val factory = QLDB.getDiscountCurveFactory(paramset).orNull
 	if (factory == null || factory.curves.size == 0) {
 	  println("Curve not found")
 	  return
@@ -61,7 +61,7 @@ object ForwardPrices {
 	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
 	val forwardprices:Set[ForwardPrice] = bonds.filter(b => isvalidbond(b.bondid)).par.map { bond => {
-		val fx = factory.getFX(bond.currency.code, "JPY")
+		val fx = factory.getFX(bond.currency.code, "JPY").orNull
 		val originalengine = bond.getPricingEngine
 		val cdr = bond.calendar
 		val simulstart = factory.valuedate.serialNumber
@@ -70,7 +70,7 @@ object ForwardPrices {
 		val initialfx = bond.initialFX
 		
 		val pricelist = simuldates map { d => {
-			val newengine = factory.getcustomdiscountbondengine(bond, cdr, d)
+			val newengine = factory.getcustomdiscountbondengine(bond, cdr, d).orNull
 			bond.setPricingEngine(newengine, d)
 			val cprice = try bond.cleanPrice catch { case e => Double.NaN }
 			val fxvalue = try fx.forwardfx(d) catch { case e => Double.NaN }
@@ -102,13 +102,13 @@ object ForwardPrices {
   }
 
   def pricefx(paramset:String, fxpairs:Traversable[(String, String)] = null):Unit = {
-	val factory = QLDB.getDiscountCurveFactory(paramset)
+	val factory = QLDB.getDiscountCurveFactory(paramset).orNull
 	if (factory == null || factory.curves.size == 0) {
 	  println("Curve not found")
 	  return
 	}
 	  
-	val fxs = fxpairs.map(f => factory.getFX(f._1, f._2)).toSet.filter(_ != null)
+	val fxs = fxpairs.map(f => factory.getFX(f._1, f._2)).collect{case Some(s) => s}.toSet
 	
 	println("valuedate :\t" + factory.valuedate.shortDate + " paramset :\t" + paramset)
 	println("\n* Market *")
@@ -117,7 +117,7 @@ object ForwardPrices {
 	val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
 	val forwardprices:Set[ForwardPrice] = fxs.par.map { fx => {
-		val cdr = Calendars(fx.currency2).get
+		val cdr = Calendars(fx.currency2.code).get
 		val simulstart = factory.valuedate.serialNumber
 		val simulend = factory.valuedate.serialNumber + fx.maxdays.toInt
 		val simuldates = (simulstart to simulend) map (new qlDate(_)) filter(cdr.isBusinessDay(_))

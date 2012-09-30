@@ -1,6 +1,5 @@
 package squantlib.database.objectconstructor
 
-//import squantlib.model.discountcurve.DiscountCurveFactory
 import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.initializer.{Currencies, DayAdjustments, Daycounters}
 import squantlib.instruments.bonds.JGBFixedBond
@@ -20,27 +19,30 @@ object JGBRFixedBond {
 	val defaultDayCounter = new Actual365Fixed
 	
 	def getbonds(bonds:Set[dbBond]):Map[String, JGBFixedBond] = {
-	  bonds.map(b => (b.id, getbond(b))).filter(b => b._2 != null).toMap
+	  bonds.map(b => (b.id, getbond(b))).collect{case (key, Some(b)) => (key, b)}.toMap
 	}
 	
 	def getbonds(bonds:Set[dbBond], valuedate:qlDate):Map[String, JGBFixedBond] = {
-	  bonds.map(b => (b.id, getbond(b, valuedate))).filter(b => b._2 != null).toMap
+	  bonds.map(b => (b.id, getbond(b, valuedate))).collect{case (key, Some(b)) => (key, b)}.toMap
 	}
 	
-	def getbond(bond:dbBond, valuedate:qlDate):JGBFixedBond = {
+	def getbond(bond:dbBond, valuedate:qlDate):Option[JGBFixedBond] = {
 	  val newbond = getbond(bond)
-	  setDefaultPricingEngine(newbond, valuedate)
-	  newbond
+	  if (newbond.isEmpty) None
+	  else {
+	    setDefaultPricingEngine(newbond.get, valuedate)
+	    newbond
+	  }
 	}
 	
-	def getbond(bond:dbBond):JGBFixedBond = {
+	def getbond(bond:dbBond):Option[JGBFixedBond] = {
 	  val isvalidbond = productlist.contains(bond.productid) && 
 			  		!bond.coupon.isEmpty && 
 			  		!bond.coupon_freq.isEmpty && 
 			  		!bond.redemprice.isEmpty && 
 			  		!bond.daycount_adj.isEmpty
 	  
-	  if (!isvalidbond) null
+	  if (!isvalidbond) None
 	  else {
 	  		val bondid = bond.id
 	  		val issuerid = bond.issuerid
@@ -65,7 +67,7 @@ object JGBRFixedBond {
 			val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
 			val initialfx = bond.initialfx
 			
-			new JGBFixedBond(settlementdays, 
+			val newbond = new JGBFixedBond(settlementdays, 
 			    faceamount, 
 			    schedule, 
 			    coupons, 
@@ -77,6 +79,8 @@ object JGBRFixedBond {
 			    currency, 
 			    issuerid, 
 			    initialfx)
+			
+			Some(newbond)
 	  	}
 	}
 
