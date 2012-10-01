@@ -1,15 +1,19 @@
 package squantlib.database.objectconstructor
 
+import squantlib.database.IndexValue
 import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.initializer.{Currencies, DayAdjustments, Daycounters}
 import squantlib.instruments.bonds.JGBFloatBond
 import squantlib.pricingengines.bond.JGBRBondEngine
+import squantlib.cashflow.JGBRFloatingCouponPricer
 import squantlib.math.Payoff
+import scala.collection.JavaConversions._
 import squantlib.initializer.BondYieldIndices
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}
 import org.jquantlib.daycounters.Actual365Fixed
 import org.jquantlib.indexes.JpyJGBYieldIndex
 import org.jquantlib.math.matrixutilities.{Array => qlArray}
+import org.jquantlib.cashflow.CappedFlooredCmtCoupon
 
 object JGBRFloatBond {
   
@@ -121,9 +125,20 @@ object JGBRFloatBond {
 	  	}
 	}
 
-	def setDefaultPricingEngine(bond:JGBFloatBond, valuedate:qlDate) ={
-	  if (bond != null) 
+	def setDefaultPricingEngine(bond:JGBFloatBond, valuedate:qlDate):Unit = {
+		if (bond == null) return
+	  
 	    bond.setPricingEngine(new JGBRBondEngine(valuedate), valuedate)
+	    
+		val lastfixing = IndexValue(bond.refindex, valuedate.longDate) match {
+		  case Some((d, r)) => r
+		  case _ => Double.NaN
+		}
+		
+		bond.cashflows.foreach{
+		  case c:CappedFlooredCmtCoupon => c.setPricer(new JGBRFloatingCouponPricer(c, _ => lastfixing))
+		  case _ => {}
+		}
 	}
 
 	private def ratetoarray(formula:String, size:Int):Array[Payoff] = {

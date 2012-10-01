@@ -17,7 +17,7 @@ import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
 
-object DB extends Schema {
+object DB extends Schema { 
 
   val dataSource = new ComboPooledDataSource
 
@@ -628,7 +628,6 @@ object DB extends Schema {
         )
         select((&(ip.paramdate), &(ip.value)))
       ).toMap
-//      TreeMap(qresult : _*)
 	 }
   
   def getTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String):Map[JavaDate, Double] = 
@@ -657,6 +656,47 @@ object DB extends Schema {
         select((&(ip.paramdate), &(ip.value)))
       ).toMap
 	 }
+  
+  def getTimeSeries(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = 
+    transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity
+        )
+        select((&(ip.paramdate), &(ip.value)))
+      ).toMap
+	 }
+  
+  def getLatestParam(instrument:String, asset:String, maturity:String, valuedate:JavaDate):Option[(JavaDate, Double)] = 
+    transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity and
+          (ip.paramdate lte valuedate)
+        )
+        select((&(ip.paramdate), &(ip.value)))
+        orderBy (ip.paramdate desc)).page(0, 1).headOption
+	 }
+  
+  def getLatestParam(instrument:String, asset:String, valuedate:JavaDate):Option[(JavaDate, Double)] = 
+    transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          (ip.paramdate lte valuedate)
+        )
+        select((&(ip.paramdate), &(ip.value)))
+        orderBy (ip.paramdate desc)).page(0, 1).headOption
+	 }
+  
   
   
   def getFX(paramset:String, ccy:String):Option[Double] = 

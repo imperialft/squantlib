@@ -569,8 +569,11 @@ class Coupon(@Column("ID")				var id:String,
   import org.jquantlib.daycounters.Actual365Fixed
   import org.jquantlib.time.{Date => qlDate}
   
+  def isActive(valuedate:Date):Boolean = 
+    (!valuedate.before(startdate) && enddate.after(valuedate) && paymenttype.toUpperCase != "REDEMPTION")
+  
   def accruedCoupon(valuedate:Date):Option[Double] = {
-    if (valuedate.before(startdate) || valuedate.after(enddate) || paymenttype == "REDEMPTION") None
+    if (!isActive(valuedate)) None
     else fixedrate match {
       case None => None
       case Some(r) => {
