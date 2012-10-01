@@ -570,7 +570,7 @@ class Coupon(@Column("ID")				var id:String,
   import org.jquantlib.time.{Date => qlDate}
   
   def accruedCoupon(valuedate:Date):Option[Double] = {
-    if (valuedate.before(startdate) || valuedate.after(enddate)) None
+    if (valuedate.before(startdate) || valuedate.after(enddate) || paymenttype == "REDEMPTION") None
     else fixedrate match {
       case None => None
       case Some(r) => {

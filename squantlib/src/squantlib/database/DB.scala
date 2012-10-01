@@ -272,6 +272,8 @@ object DB extends Schema {
     }
   }
   
+  def getCoupons(bondid:String):List[Coupon] = getCoupons(Set(bondid))
+  
   def getCoupons(bondids:Traversable[String]):List[Coupon] = 
     transaction {
       from(coupons)(c =>

@@ -25,7 +25,7 @@ object QLDB {
 	  val discountcurves = ratefxparameters.toDiscountCurves 
 	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
 	  
-	  if (discountcurves.size == 0 || cdscurves.size == 0) null
+	  if (discountcurves.size == 0 || cdscurves.size == 0) None
 	  else Some(new DiscountCurveFactory(
 		    discountcurves.map(c => (c.currency.code, c)).toMap, 
 		    cdscurves.map(c => (c.issuerid, c)).toMap, 
@@ -76,9 +76,10 @@ object QLDB {
 		  b match {
 		    case p if FixedRateBond.isCompatible(p) => FixedRateBond(p, factory)
 		    case p if JGBRFixedBond.isCompatible(p) => JGBRFixedBond(p, factory.valuedate)
-		    case _ => null
+		    case p if JGBRFloatBond.isCompatible(p) => JGBRFloatBond(p, factory.valuedate)
+		    case _ => None
 		  }
-		}.flatMap(p => p).toSet
+		}.flatMap(m => m)
 	}
 	 
    /**

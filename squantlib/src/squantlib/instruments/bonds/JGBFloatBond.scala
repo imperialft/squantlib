@@ -8,6 +8,7 @@ import org.jquantlib.instruments.bonds.CmtRateBond
 import org.jquantlib.math.matrixutilities.{Array => qlArray}
 import org.jquantlib.time.{BusinessDayConvention, Date => qlDate, Schedule => qlSchedule}
 import org.jquantlib.currencies.Currency
+import squantlib.database.DB
 
 
 class JGBFloatBond(
@@ -48,5 +49,11 @@ class JGBFloatBond(
 	        id, 
 	        currency,
 	        creditSpreadID,
-	        initialFX)
+	        initialFX){
+	
+	val coupons = DB.getCoupons(id)
+	
+	override def accruedAmount(settlement:qlDate):Double = 
+	  coupons.map(c => c.accruedCoupon(settlement.longDate)).collect{case Some(r) => r}.sum * 100
 
+}
