@@ -10,15 +10,21 @@ import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.bonds.FixedRateBond
 import org.jquantlib.instruments.{Bond => QLBond}
 import org.jquantlib.currencies.Asia.JPYCurrency
+import org.jquantlib.time.{Date => qlDate}
 import scala.collection.immutable.StringLike
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 import scala.collection.immutable.TreeMap
 import java.util.{Date => JavaDate}
+import squantlib.instruments.bonds.{JGBFloatBond, JGBFixedBond}
 
 object BondPrices {
   
   var storedprice = new HashSet[BondPrice] with SynchronizedSet[BondPrice]
-    
+  var counter:Int = 0
+  
+  def setcount(i:Int) = synchronized { counter = i }
+  def addcount = synchronized { counter = counter + 1 }
+  
   var dbbonds:Map[String, dbBond] = Map.empty
   
   def loadbonds:Unit = {
@@ -37,7 +43,7 @@ object BondPrices {
 		storedprice.clear
 		}
 	}
-  
+   
   def notPricedBonds:Set[String] = {
 	val (latestparamset, latestpricedate) = DB.getLatestPriceParam
 	val factory = QLDB.getDiscountCurveFactory(latestparamset).orNull
@@ -58,32 +64,37 @@ object BondPrices {
     if (notPricedBonds.isEmpty) return
     val bonds = DB.getBonds(notPricedBonds)
 	val dates = DB.getParamSetsAfter(bonds.minBy(_.issuedate).issuedate.sub(400))
-	if (!dates.isEmpty) dates.foreach(d => price(d._1, notPricedBonds))
+	val notpriced = notPricedBonds
+	setcount(0)
+	if (!dates.isEmpty) dates.foreach(d => price(d._1, notpriced))
   }
   
   def updateNewBonds_par:Unit = {
     if (notPricedBonds.isEmpty) return
     val bonds = DB.getBonds(notPricedBonds)
 	val dates = DB.getParamSetsAfter(bonds.minBy(_.issuedate).issuedate.sub(400))
-	if (!dates.isEmpty) dates.par.foreach(d => price(d._1, notPricedBonds))
+	val notpriced = notPricedBonds
+	counter = 0
+	if (!dates.isEmpty) dates.foreach(d => price(d._1, notpriced))
   }
   
-  def price(paramsets:Traversable[String]):Unit = price(paramsets, null)
+  def price(paramsets:Set[String]):Unit = price(paramsets, null)
   
-  def price(paramsets:Traversable[String], bondid:Traversable[String]):Unit ={
+  def price(paramsets:Set[String], bondid:Set[String]):Unit ={
     val params:Set[String] = paramsets.toSet
     params.foreach(d => price(d, bondid))
   } 
   
-  def price(paramset:String):Unit = price(paramset, null)
+  def price(paramset:String):Unit = price(paramset, null.asInstanceOf[Set[String]])
+  
    
-  def price(paramset:String, bondid:Traversable[String]):Unit = {
+  def price(paramset:String, bondid:Set[String]):Unit = {
     
     var outputstring = ""
     def output(s:String):Unit = { outputstring += s }
     def outputln(s:String):Unit = { outputstring += s + "\n"}
     
-	outputln("\n*** START OUTPUT " + paramset + " ***")
+	outputln("\n*** START OUTPUT " + paramset + "(" + counter + ") ***")
 	
 	/**
 	 * Creates factory from given paramset.
@@ -108,7 +119,7 @@ object BondPrices {
 	 * Compute bond price
 	 */
 	val t3 = System.nanoTime
-	val bondprices = bonds map { b => b.bondprice(valuedate, factory) }
+	val bondprices = bonds map (_.bondprice(factory))
 	
 	
 	/**
@@ -179,6 +190,79 @@ object BondPrices {
 	
 	printf(outputstring)
 	storedprice ++= bondprices
+	addcount
+  }
+
+//-------------------------------------------------------  
+  
+  def push(bondprices:Set[BondPrice]):Unit = { 
+    if (bondprices.size != 0) {
+    	printf("Extracting valid price ..")
+	    printf("Writing " + bondprices.size + " items to Database...")
+		val t1 = System.nanoTime
+		DB.insertOrUpdate(bondprices.filter(!_.pricedirty.isNaN), false)
+		val t2 = System.nanoTime
+		printf("done (%.3f sec)\n".format(((t2 - t1)/1000000000.0)))
+		}
+	}
+  
+  def updateJGBR_par:Unit = {
+    println("searching not priced bonds")
+	val notpriced = notPricedBonds.filter(_.contains("JGBR"))
+    if (notpriced.isEmpty) return
+    notpriced.foreach(println)
+	counter = 0
+	val bondcount = notpriced.size
+	notpriced.par.foreach { b => {
+	  println("start " + b + " (" + counter + " / " + bondcount + ")")
+	  priceNoFactory(b)
+		}
+    }
+  }
+  
+  def JGBRConstructor(dbbond:dbBond, valuedate:qlDate):Option[QLBond] = {
+		dbbond match {
+		    case p if JGBRFixedBond.isCompatible(p) => JGBRFixedBond(p, valuedate)
+		    case p if JGBRFloatBond.isCompatible(p) => JGBRFloatBond(p, valuedate)
+		    case _ => None
+		  }
+	}
+  
+  def setJGBRPricingEngine(bond:QLBond, valuedate:qlDate):Unit = {
+		bond match {
+		    case p:JGBFixedBond => JGBRFixedBond.setDefaultPricingEngine(p, valuedate)
+		    case p:JGBFloatBond => JGBRFloatBond.setDefaultPricingEngine(p, valuedate)
+		    case _ => {}
+		  }
+	}
+  
+  def priceNoFactory(bondid:String):Unit = {
+    
+    var outputstring = ""
+//    def output(s:String):Unit = { outputstring += s }
+//    def outputln(s:String):Unit = { outputstring += s + "\n"}
+    def output(s:String):Unit = printf(s)
+    def outputln(s:String):Unit = println(s)
+    
+	if (dbbonds.isEmpty) loadbonds
+    val dbbond = dbbonds(bondid)
+    
+	val t1 = System.nanoTime
+	val dates = DB.getParamSets(dbbond.issuedate, dbbond.maturity).toSet
+    val bond:QLBond = JGBRConstructor(dbbond, dates.head._2).orNull
+	val bondprices = dates.map {case (paramset, valuedate) => {
+		setJGBRPricingEngine(bond, valuedate)
+		val price = BondPrice(bond, valuedate, 1.0, paramset, null)
+		outputln(bondid + " " + paramset + " " + price)
+		price
+	}}
+    
+	val t2 = System.nanoTime
+    output("\n" + bondid + " - created " + bondprices.size + " prices - ")	
+	output("%.3f sec".format(((t2 - t1)/1000000000.0)))
+	printf(outputstring)
+	push(bondprices)
+	addcount
   }
  
 }

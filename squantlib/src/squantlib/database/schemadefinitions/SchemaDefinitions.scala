@@ -415,7 +415,7 @@ class BondPrice(@Column("ID")			var id:String,
 		lastmodified = None
       )
       
-  override def toString():String = format("%-15s %-5s %-10s %-15s %-10s", id, currencyid, pricedirty, paramset, if (accrued.isEmpty) "" else accrued.get)
+  override def toString():String = format("%-15s %-5s %-5s %-10s %-5s", id, currencyid, pricedirty, paramset, if (accrued.isEmpty) "" else accrued.get)
       
 }
 

@@ -49,6 +49,7 @@ object QLConstructors {
 	
 	implicit def Bond2RichBond(bond:qlBond) = new RichBond(bond)
 	class RichBond(val bond:qlBond){
+	  def bondprice(factory:DiscountCurveFactory) = BondPrice(bond, factory)
 	  def bondprice(valuedate:qlDate, factory:DiscountCurveFactory) = BondPrice(bond, factory)
 	  def bondprice(valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure):BondPrice 
 			= BondPrice(bond, valuedate, fx, paramset, termstructure)

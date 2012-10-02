@@ -341,8 +341,8 @@ object DB extends Schema {
       val current = from(coupons)(c =>
         where(
             (c.bondid === bondid) and
-            (c.startdate lt d) and 
-            (c.enddate gte d) and
+            (c.startdate lte d) and 
+            (c.enddate gt d) and
             (c.paymenttype === "COUPON"))
         select(c)
       ).toList
@@ -350,7 +350,7 @@ object DB extends Schema {
       val previous = from(coupons)(c =>
         where(
             (c.bondid === bondid) and
-            (c.paymentdate lte d) and
+            (c.paymentdate lt d) and
             (c.paymenttype === "COUPON"))
         select(c)
       ).toList

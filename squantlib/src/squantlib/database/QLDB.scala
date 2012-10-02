@@ -71,7 +71,7 @@ object QLDB {
 		qlbonds
 	}
 	
-	private def bondConstructor(dbbonds:Set[dbBond], factory:DiscountCurveFactory):Set[QLBond] = {
+	def bondConstructor(dbbonds:Set[dbBond], factory:DiscountCurveFactory):Set[QLBond] = {
 		dbbonds.map { b =>
 		  b match {
 		    case p if FixedRateBond.isCompatible(p) => FixedRateBond(p, factory)
