@@ -92,7 +92,7 @@ object BondPrices {
   
   def price(paramset:String):Unit = price(paramset, null.asInstanceOf[Set[String]])
   
-   
+    
   def price(paramset:String, bondid:Set[String]):Unit = {
     var outputstring = ""
     def output(s:String):Unit = { outputstring += s }
