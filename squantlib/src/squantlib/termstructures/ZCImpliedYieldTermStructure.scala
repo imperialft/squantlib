@@ -2,7 +2,7 @@ package squantlib.termstructures
 
 import squantlib.model.discountcurve.{DiscountableCurve, DiscountCurve}
 import squantlib.parameter.yieldparameter.YieldParameter
-import squantlib.initializer.Calendars
+import squantlib.setting.initializer.Calendars
 import org.jquantlib.time.{ Date => qlDate, Calendar}
 import org.jquantlib.termstructures.AbstractYieldTermStructure
 import org.jquantlib.daycounters.DayCounter

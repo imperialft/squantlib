@@ -59,29 +59,20 @@ object QLDB {
 	  if (bonds.isEmpty) None else Some(bonds.head)
 	}
 	
-	def getBonds:Set[QLBond] = bondConstructor(DB.getBonds, null)
-	def getBonds(id:Traversable[String]):Set[QLBond] = bondConstructor(DB.getBonds(id), null)
-	def getBonds(factory:DiscountCurveFactory):Set[QLBond] = bondConstructor(DB.getBonds, factory)
-	def getBonds(id:Traversable[String], factory:DiscountCurveFactory):Set[QLBond] = bondConstructor(DB.getBonds(id), factory)
+	def getBonds:Set[QLBond] = bondsConstructor(DB.getBonds, null)
+	def getBonds(id:Traversable[String]):Set[QLBond] = bondsConstructor(DB.getBonds(id), null)
+	def getBonds(factory:DiscountCurveFactory):Set[QLBond] = bondsConstructor(DB.getBonds, factory)
+	def getBonds(id:Traversable[String], factory:DiscountCurveFactory):Set[QLBond] = bondsConstructor(DB.getBonds(id), factory)
 	
-	def getBonds(id:Traversable[String], builder:dbBond => QLBond, pricingengine:QLBond => PricingEngine, valuedate:qlDate):Set[QLBond] = {
-		val dbbonds:Set[dbBond] = DB.getBonds(id)
-		val qlbonds:Set[QLBond] = dbbonds.map(builder).filter(_ != null)
+	def getBonds(ids:Traversable[String], builder:dbBond => Option[QLBond], pricingengine:QLBond => PricingEngine, valuedate:qlDate):Set[QLBond] = {
+		val qlbonds:Set[QLBond] = DB.getBonds(ids).map(builder).flatMap(b => b)
 		qlbonds.foreach(b => b.setPricingEngine(pricingengine(b), valuedate))
 		qlbonds
 	}
 	
-	def bondConstructor(dbbonds:Set[dbBond], factory:DiscountCurveFactory):Set[QLBond] = {
-		dbbonds.map { b =>
-		  b match {
-		    case p if FixedRateBond.isCompatible(p) => FixedRateBond(p, factory)
-		    case p if JGBRFixedBond.isCompatible(p) => JGBRFixedBond(p, factory.valuedate)
-		    case p if JGBRFloatBond.isCompatible(p) => JGBRFloatBond(p, factory.valuedate)
-		    case _ => None
-		  }
-		}.flatMap(m => m)
-	}
-	 
+	def bondsConstructor(dbbonds:Set[dbBond], factory:DiscountCurveFactory):Set[QLBond] = 
+	  dbbonds.map(b => PricingConvention.bondConstructor(b, factory)).flatMap(b => b)
+	
    /**
     * Returns time series for non-FX input parameters.
     * @param fromDate A starting point of Date. Range includes this date.

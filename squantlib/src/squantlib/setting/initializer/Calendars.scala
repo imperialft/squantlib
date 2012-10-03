@@ -1,4 +1,4 @@
-package squantlib.initializer
+package squantlib.setting.initializer
 
 import org.jquantlib.time.calendars._
 import org.jquantlib.time.Calendar

@@ -2,10 +2,11 @@ package squantlib.database.objectconstructor
 
 import squantlib.model.discountcurve.DiscountCurveFactory
 import squantlib.database.schemadefinitions.{Bond => dbBond}
-import squantlib.initializer.{Currencies, DayAdjustments, Daycounters}
+import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
 import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond }
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}
+import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention, Calendar}
 import org.jquantlib.daycounters.Actual365Fixed
+import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 
 object FixedRateBond {
   
@@ -87,6 +88,20 @@ object FixedRateBond {
 	def setDefaultPricingEngine(bond:qlFixedRateBond, factory:DiscountCurveFactory) ={
 	  if (bond != null && factory != null) 
 	    bond.setPricingEngine(factory.getdiscountbondengine(bond).orNull, factory.valuedate)
+	}
+	
+	def getAdjustedPricingEngine(bond:qlFixedRateBond, factory:DiscountCurveFactory, newvaluedate:qlDate):Option[DiscountingBondEngine] = 
+		try { 
+		  val newcurve = factory.getdiscountcurve(bond.currency.code, bond.creditSpreadID).get
+		  newcurve.valuedate = newvaluedate
+		  Some(newcurve.toDiscountBondEngine(bond.calendar)) } 
+		catch { case e:Exception => None}
+	
+	def setAdjustedPricingEngine(bond:qlFixedRateBond, factory:DiscountCurveFactory, newvaluedate:qlDate):Unit = {
+	  getAdjustedPricingEngine(bond, factory, newvaluedate) match {
+	    case Some(engine) => bond.setPricingEngine(engine, newvaluedate)
+	    case None => {}
+	  }
 	}
 
 	private def ratetoarray(formula:String, size:Int):Array[Double] = {

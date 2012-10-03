@@ -1,7 +1,7 @@
 package squantlib.task.pricing
 
 import squantlib.database._
-import squantlib.initializer.RateConvention
+import squantlib.setting.initializer.RateConvention
 import squantlib.math.timeseries.Correlation
 import squantlib.database.QLConstructors._
 import java.lang.{Double => JavaDouble}

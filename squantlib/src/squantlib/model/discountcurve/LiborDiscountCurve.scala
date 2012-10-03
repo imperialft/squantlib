@@ -6,7 +6,7 @@ import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.database.schemadefinitions.RateFXParameter
 //import squantlib.model.discountcurve.LiborDiscountCurve
-import squantlib.initializer.RateConvention
+import squantlib.setting.initializer.RateConvention
 //import org.jquantlib.time.{Period => JPeriod, Date => JDate}
 //import org.jquantlib.currencies.Currency
 

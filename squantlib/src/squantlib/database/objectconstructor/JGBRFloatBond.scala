@@ -1,14 +1,14 @@
 package squantlib.database.objectconstructor
 
-import squantlib.database.IndexValue
+import squantlib.database.fixings.Fixings
 import squantlib.database.schemadefinitions.{Bond => dbBond}
-import squantlib.initializer.{Currencies, DayAdjustments, Daycounters}
+import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
 import squantlib.instruments.bonds.JGBFloatBond
 import squantlib.pricingengines.bond.JGBRBondEngine
 import squantlib.cashflow.JGBRFloatingCouponPricer
 import squantlib.math.Payoff
 import scala.collection.JavaConversions._
-import squantlib.initializer.BondYieldIndices
+import squantlib.setting.initializer.BondYieldIndices
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}
 import org.jquantlib.daycounters.Actual365Fixed
 import org.jquantlib.indexes.JpyJGBYieldIndex
@@ -130,7 +130,7 @@ object JGBRFloatBond {
 	  
 	    bond.setPricingEngine(new JGBRBondEngine(valuedate), valuedate)
 	    
-		val lastfixing = IndexValue(bond.refindex, valuedate.longDate) match {
+		val lastfixing = Fixings(bond.refindex, valuedate.longDate) match {
 		  case Some((d, r)) => r
 		  case _ => Double.NaN
 		}
@@ -141,6 +141,17 @@ object JGBRFloatBond {
 		}
 	}
 
+	def getAdjustedPricingEngine(bond:JGBFloatBond, newvaluedate:qlDate):Option[JGBRBondEngine] = 
+		try { Some(new JGBRBondEngine(newvaluedate)) } 
+		catch { case e:Exception => None}
+	
+	def setAdjustedPricingEngine(bond:JGBFloatBond, newvaluedate:qlDate):Unit = {
+	  getAdjustedPricingEngine(bond, newvaluedate) match {
+	    case Some(engine) => bond.setPricingEngine(engine, newvaluedate)
+	    case None => {}
+	  }
+	}
+	
 	private def ratetoarray(formula:String, size:Int):Array[Payoff] = {
 		val formulaarray = formula.split(";")
 		    

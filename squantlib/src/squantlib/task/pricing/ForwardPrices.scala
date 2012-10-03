@@ -7,7 +7,10 @@ import squantlib.database.schemadefinitions.ForwardPrice
 import org.jquantlib.time.{ Date => qlDate }
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 import org.jquantlib.instruments.{Bond => qlBond}
-import squantlib.initializer.{Calendars, RateConvention}
+import squantlib.setting.initializer.{Calendars, RateConvention}
+import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond}
+import squantlib.database.objectconstructor.{FixedRateBond, JGBRFixedBond, JGBRFloatBond}
+import squantlib.instruments.bonds.{JGBFixedBond => sJGBFixedBond, JGBFloatBond => sJGBFloatBond}
 
 object ForwardPrices { 
   
@@ -64,14 +67,24 @@ object ForwardPrices {
 		val fx = factory.getFX(bond.currency.code, "JPY").orNull
 		val originalengine = bond.getPricingEngine
 		val cdr = bond.calendar
-		val simulstart = factory.valuedate.serialNumber
-		val simulend = bond.maturityDate.serialNumber
+		val simulstart:Long = factory.valuedate.serialNumber
+		val simulend:Long = bond.maturityDate.serialNumber
 		val simuldates = (simulstart to simulend) map (new qlDate(_)) filter(cdr.isBusinessDay(_))
 		val initialfx = bond.initialFX
 		
 		val pricelist = simuldates map { d => {
-			val newengine = factory.getcustomdiscountbondengine(bond, cdr, d).orNull
-			bond.setPricingEngine(newengine, d)
+//			val newengine = factory.getcustomdiscountbondengine(bond, cdr, d).orNull
+//			bond.setPricingEngine(newengine, d)
+			bond match {
+			  case b:sJGBFixedBond => { // Use spot price for now
+									    //JGBRFixedBond.setAdjustedPricingEngine(b, d)
+									  }
+			  case b:sJGBFloatBond => {// Use spot price for now
+										//JGBRFloatBond.setAdjustedPricingEngine(b, d)
+									  }
+			  case b:qlFixedRateBond => FixedRateBond.setAdjustedPricingEngine(b, factory, d)
+			  case _ => {}
+			}
 			val cprice = try bond.cleanPrice catch { case e => Double.NaN }
 			val fxvalue = try fx.forwardfx(d) catch { case e => Double.NaN }
 			new ForwardPrice (

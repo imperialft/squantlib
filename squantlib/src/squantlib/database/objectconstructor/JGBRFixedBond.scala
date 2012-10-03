@@ -1,7 +1,7 @@
 package squantlib.database.objectconstructor
 
 import squantlib.database.schemadefinitions.{Bond => dbBond}
-import squantlib.initializer.{Currencies, DayAdjustments, Daycounters}
+import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
 import squantlib.instruments.bonds.JGBFixedBond
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}
 import org.jquantlib.daycounters.Actual365Fixed
@@ -87,6 +87,17 @@ object JGBRFixedBond {
 	def setDefaultPricingEngine(bond:JGBFixedBond, valuedate:qlDate) ={
 	  if (bond != null) 
 	    bond.setPricingEngine(new JGBRBondEngine(valuedate), valuedate)
+	}
+	
+	def getAdjustedPricingEngine(bond:JGBFixedBond, newvaluedate:qlDate):Option[JGBRBondEngine] = 
+		try { Some(new JGBRBondEngine(newvaluedate)) } 
+		catch { case e:Exception => None}
+	
+	def setAdjustedPricingEngine(bond:JGBFixedBond, newvaluedate:qlDate):Unit = {
+	  getAdjustedPricingEngine(bond, newvaluedate) match {
+	    case Some(engine) => bond.setPricingEngine(engine, newvaluedate)
+	    case None => {}
+	  }
 	}
 
 	private def ratetoarray(formula:String, size:Int):Array[Double] = {

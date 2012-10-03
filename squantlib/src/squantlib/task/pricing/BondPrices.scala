@@ -5,6 +5,7 @@ import squantlib.database.QLConstructors._
 import squantlib.database.schemadefinitions.{ Bond => dbBond, _}
 import squantlib.database.objectconstructor._
 import squantlib.model.discountcurve._
+import squantlib.instruments.bonds.{JGBFloatBond, JGBFixedBond}
 import org.jquantlib.time._
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.bonds.FixedRateBond
@@ -15,7 +16,6 @@ import scala.collection.immutable.StringLike
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 import scala.collection.immutable.TreeMap
 import java.util.{Date => JavaDate}
-import squantlib.instruments.bonds.{JGBFloatBond, JGBFixedBond}
 
 object BondPrices {
   
@@ -238,11 +238,6 @@ object BondPrices {
   
   def priceNoFactory(bondid:String):Unit = {
     
-    var outputstring = ""
-//    def output(s:String):Unit = { outputstring += s }
-//    def outputln(s:String):Unit = { outputstring += s + "\n"}
-    def output(s:String):Unit = printf(s)
-    def outputln(s:String):Unit = println(s)
     
 	if (dbbonds.isEmpty) loadbonds
     val dbbond = dbbonds(bondid)
@@ -253,16 +248,16 @@ object BondPrices {
 	val bondprices = dates.map {case (paramset, valuedate) => {
 		setJGBRPricingEngine(bond, valuedate)
 		val price = BondPrice(bond, valuedate, 1.0, paramset, null)
-		outputln(bondid + " " + paramset + " " + price)
+		println(bondid + " " + paramset + " " + price)
 		price
 	}}
     
 	val t2 = System.nanoTime
-    output("\n" + bondid + " - created " + bondprices.size + " prices - ")	
-	output("%.3f sec".format(((t2 - t1)/1000000000.0)))
-	printf(outputstring)
+    println("\n" + bondid + " - created " + bondprices.size + " prices - ")	
+	println("%.3f sec".format(((t2 - t1)/1000000000.0)))
 	push(bondprices)
 	addcount
   }
  
 }
+

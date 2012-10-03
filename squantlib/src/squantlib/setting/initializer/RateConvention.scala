@@ -1,4 +1,4 @@
-package squantlib.initializer
+package squantlib.setting.initializer
 
 import squantlib.parameter.yieldparameter.YieldParameter
 import org.jquantlib.indexes.IborIndex

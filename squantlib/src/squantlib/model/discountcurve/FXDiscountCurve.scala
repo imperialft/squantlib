@@ -6,7 +6,7 @@ import squantlib.parameter.yieldparameter.{YieldParameter, SplineEExtrapolation}
 import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit}
 import org.jquantlib.daycounters.Thirty360
 import squantlib.database.schemadefinitions.RateFXParameter
-import squantlib.initializer.RateConvention
+import squantlib.setting.initializer.RateConvention
 
 class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCurve{
 

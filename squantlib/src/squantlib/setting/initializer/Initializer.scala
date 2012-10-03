@@ -1,4 +1,4 @@
-package squantlib.initializer
+package squantlib.setting.initializer
 
 trait Initializer[A] {
    

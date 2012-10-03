@@ -1,4 +1,4 @@
-package squantlib.initializer
+package squantlib.setting.initializer
 
 import org.jquantlib.currencies.Africa._
 import org.jquantlib.currencies.Asia._

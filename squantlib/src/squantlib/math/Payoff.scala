@@ -1,6 +1,6 @@
 package squantlib.math
 
-import squantlib.initializer.Currencies
+import squantlib.setting.initializer.Currencies
 import scala.collection.mutable.{Map => mutableMap}
 
 class Payoff(val formula:String){

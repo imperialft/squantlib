@@ -8,7 +8,7 @@ import org.squeryl.dsl.{ManyToOne, ManyToMany, OneToMany}
 import org.squeryl.KeyedEntity
 import squantlib.database.DB
 import squantlib.database.objectconstructor._
-import squantlib.initializer._
+import squantlib.setting.initializer._
 
 class Country(@Column("ID")				var id: String,
               @Column("CurrencyID")		var currencyid: String,
@@ -238,7 +238,7 @@ class Bond(@Column("ID")					var id: String,
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends KeyedEntity[String] {
 
-  import squantlib.initializer.Calendars
+  import squantlib.setting.initializer.Calendars
   import org.jquantlib.time.Calendar
   
   def calendar:Calendar = {

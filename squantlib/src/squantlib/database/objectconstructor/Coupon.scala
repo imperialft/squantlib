@@ -1,8 +1,8 @@
 package squantlib.database.objectconstructor
 
-import squantlib.database.util.Fixings
+import squantlib.database.fixings.Fixings
 import squantlib.math.Payoff
-import squantlib.initializer.{Daycounters, DayAdjustments}
+import squantlib.setting.initializer.{Daycounters, DayAdjustments}
 import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon}
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration}
 import org.jquantlib.time.BusinessDayConvention.{ModifiedFollowing, Unadjusted}
@@ -54,7 +54,7 @@ object Coupon {
 			  
 			  if (!varfixings.forall(_._2.isDefined)) (None, null)
 			  else {
-			    val fixedrate = Some(interpreter.price(varfixings.mapValues(_.get)))
+			    val fixedrate = Some(interpreter.price(varfixings.mapValues(_.get._2)))
 			    val cmt:String = (if (cpn.comment == null) "" else cpn.comment) + varfixings.map{case (k, v) => k + "=" + "%.4f".format(v.get)}.mkString(", ")
 				(fixedrate, cmt)
 			  }

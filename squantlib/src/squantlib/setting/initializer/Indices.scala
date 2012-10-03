@@ -1,4 +1,4 @@
-package squantlib.initializer
+package squantlib.setting.initializer
 
 import org.jquantlib.indexes.{JpyJGBYieldIndex, Index}
 import org.jquantlib.indexes.JpyLiborSwapIsdaFixPm

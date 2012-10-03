@@ -3,7 +3,7 @@ package squantlib.model.discountcurve
 import scala.collection.immutable.{TreeMap, SortedMap}
 import squantlib.database.schemadefinitions.CDSParameter
 import squantlib.parameter.yieldparameter.YieldParameter
-import squantlib.initializer.Currencies
+import squantlib.setting.initializer.Currencies
 import org.jquantlib.time.{Period => JPeriod, Date => JDate}
 import org.jquantlib.currencies.Currency
 import squantlib.parameter.yieldparameter.{FlatVector, LinearNoExtrapolation}
