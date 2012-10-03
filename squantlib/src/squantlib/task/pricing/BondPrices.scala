@@ -99,7 +99,7 @@ object BondPrices {
     def outputln(s:String):Unit = { outputstring += s + "\n"}
     
 	outputln("\n*** START OUTPUT " + paramset + "(" + counter + ") ***")
-	
+	 
 	/**
 	 * Creates factory from given paramset.
 	 */
