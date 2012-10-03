@@ -6,7 +6,8 @@ import squantlib.parameter.yieldparameter.{YieldParameter, SplineEExtrapolation}
 import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit}
 import org.jquantlib.daycounters.Thirty360
 import squantlib.database.schemadefinitions.RateFXParameter
-import squantlib.setting.initializer.RateConvention
+import squantlib.setting.RateConvention
+import squantlib.setting.initializer.RateConventions
 
 class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCurve{
 
@@ -92,7 +93,7 @@ object FXDiscountCurve {
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
   	def getcurves(params:Traversable[RateFXParameter]):Iterable[FXDiscountCurve] = {
-	  val conventions:Map[String, RateConvention] = RateConvention.mapper.filter{case (k, v) => v.useFXdiscount}
+	  val conventions:Map[String, RateConvention] = RateConventions.mapper.filter{case (k, v) => v.useFXdiscount}
   	  val dateassetgroup = params.groupBy(p => p.asset).filter{case(k, v) => conventions.keySet.contains(k)}
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
   	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swappointKey) && v.keySet.contains(fxKey))}

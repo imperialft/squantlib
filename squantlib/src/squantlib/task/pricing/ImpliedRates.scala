@@ -7,7 +7,6 @@ import squantlib.database.schemadefinitions.ImpliedRate
 import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod }
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 import org.jquantlib.instruments.{Bond => qlBond}
-import squantlib.setting.initializer.{Calendars, RateConvention}
 
 object ImpliedRates { 
   

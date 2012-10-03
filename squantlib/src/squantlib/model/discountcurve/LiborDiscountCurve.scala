@@ -5,12 +5,8 @@ import squantlib.parameter.yieldparameter.{YieldParameter, SplineEExtrapolation,
 import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.database.schemadefinitions.RateFXParameter
-//import squantlib.model.discountcurve.LiborDiscountCurve
-import squantlib.setting.initializer.RateConvention
-//import org.jquantlib.time.{Period => JPeriod, Date => JDate}
-//import org.jquantlib.currencies.Currency
-
-
+import squantlib.setting.RateConvention
+import squantlib.setting.initializer.RateConventions
 
  
   /**
@@ -237,7 +233,7 @@ object LiborDiscountCurve {
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
   	def getcurves(params:Traversable[RateFXParameter]):Iterable[LiborDiscountCurve] = {
-	  val conventions:Map[String, RateConvention] = RateConvention.mapper.filter{case (k, v) => v.useratediscount }
+	  val conventions:Map[String, RateConvention] = RateConventions.mapper.filter{case (k, v) => v.useratediscount }
   	  val dateassetgroup = params.groupBy(p => p.asset).filter{case(k, v) => conventions.keySet.contains(k)}
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
   	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swapKey))}

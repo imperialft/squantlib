@@ -1,7 +1,8 @@
 package squantlib.task.pricing
 
 import squantlib.database._
-import squantlib.setting.initializer.RateConvention
+import squantlib.setting.RateConvention
+import squantlib.setting.initializer.RateConventions
 import squantlib.math.timeseries.Correlation
 import squantlib.database.QLConstructors._
 import java.lang.{Double => JavaDouble}
@@ -40,7 +41,7 @@ object Correlations {
   def lastDate:qlDate = if (DB.getLatestCorrelationDate == null) null else DB.getLatestCorrelationDate
   
   def defaultValueDate:qlDate = DB.getLatestPriceParam._2
-  def defaultCurrencies:Set[String] = (DB.getFXlist & RateConvention.keySet) - "JPY"
+  def defaultCurrencies:Set[String] = (DB.getFXlist & RateConventions.keySet) - "JPY"
   def defaultFXpairs:Set[(String, String)] = for(ccy1 <- defaultCurrencies; ccy2 <- defaultCurrencies if ccy1 >= ccy2) yield (ccy1, ccy2)
   def defaultBonds:Set[String] = DB.getLatestPrices.map(d => d.bondid)
   

@@ -7,7 +7,8 @@ import squantlib.database.schemadefinitions.ForwardPrice
 import org.jquantlib.time.{ Date => qlDate }
 import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 import org.jquantlib.instruments.{Bond => qlBond}
-import squantlib.setting.initializer.{Calendars, RateConvention}
+import squantlib.setting.initializer.Calendars
+import squantlib.setting.initializer.RateConventions
 import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond}
 import squantlib.database.objectconstructor.{FixedRateBond, JGBRFixedBond, JGBRFloatBond}
 import squantlib.instruments.bonds.{JGBFixedBond => sJGBFixedBond, JGBFloatBond => sJGBFloatBond}
@@ -31,7 +32,7 @@ object ForwardPrices {
   
   def clear:Unit = storedprice.clear
   
-  def defaultCurrencies:Set[String] = DB.getFXlist & RateConvention.keySet
+  def defaultCurrencies:Set[String] = DB.getFXlist & RateConventions.keySet
   def defaultFXpairs:Set[(String, String)] = defaultCurrencies.map(fx => (fx, "JPY"))
   def defaultBonds:Set[String] = DB.getLatestPrices.map(_.bondid)
   
