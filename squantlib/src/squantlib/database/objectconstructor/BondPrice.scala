@@ -6,6 +6,7 @@ import org.jquantlib.pricingengines.PricingEngine
 import org.jquantlib.daycounters.Thirty360
 import org.jquantlib.instruments.{Bond => QLBond}
 import squantlib.database.schemadefinitions.{BondPrice => dbBondPrice}
+import squantlib.setting.PricingConvention.bondPriceFrom
 import org.jquantlib.termstructures.{YieldTermStructure, Compounding}
 import org.jquantlib.cashflow.CashFlows
 import java.util.{Date => javaDate}
@@ -22,15 +23,18 @@ object BondPrice {
 	  
   	def build(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):dbBondPrice = {
 		if (bond == null) return null
-		
+		 
 		val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	    val stddaycount = new Thirty360
-	    val pricefrom = valuedate.add(265)
 	    
 		var expired = bond.maturityDate le bond.valuedate
 		var msg:String = if (expired) "expired (" + bond.maturityDate.shortDate + "<=" + valuedate.shortDate + ")" else null
 		val price = if (expired) Double.NaN else try bond.dirtyPrice catch { case e => {msg = e.getMessage; Double.NaN} }
-		val toofarfromissue = if (bond.issueDate gt pricefrom) { msg = "too far from issue (" + bond.issueDate.shortDate + ">=" + pricefrom.shortDate + ")"; true} else false
+		
+		val pricefrom = bondPriceFrom(bond)
+		val toofarfromissue = if (pricefrom.isEmpty || (pricefrom.get gt valuedate)) { 
+		  msg = "too far from issue (" + bond.issueDate.shortDate + ">=" + pricefrom.orNull + ")"; true
+		  } else false
 		
 		if (price.isNaN || price.isInfinite || fx.isNaN || toofarfromissue) 
 			new dbBondPrice(

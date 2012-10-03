@@ -6,6 +6,7 @@ import squantlib.database.schemadefinitions.{ Bond => dbBond, _}
 import squantlib.database.objectconstructor._
 import squantlib.model.discountcurve._
 import squantlib.instruments.bonds.{JGBFloatBond, JGBFixedBond}
+import squantlib.setting.PricingConvention.priceFrom
 import org.jquantlib.time._
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.bonds.FixedRateBond
@@ -63,7 +64,9 @@ object BondPrices {
   def updateNewBonds:Unit = {
     if (notPricedBonds.isEmpty) return
     val bonds = DB.getBonds(notPricedBonds)
-	val dates = DB.getParamSetsAfter(bonds.minBy(_.issuedate).issuedate.sub(400))
+    val startdates = bonds.map(priceFrom).flatMap(s => s)
+    if (startdates.isEmpty) return
+	val dates = DB.getParamSetsAfter(startdates.min)
 	val notpriced = notPricedBonds
 	setcount(0)
 	if (!dates.isEmpty) dates.foreach(d => price(d._1, notpriced))
@@ -72,7 +75,9 @@ object BondPrices {
   def updateNewBonds_par:Unit = {
     if (notPricedBonds.isEmpty) return
     val bonds = DB.getBonds(notPricedBonds)
-	val dates = DB.getParamSetsAfter(bonds.minBy(_.issuedate).issuedate.sub(400))
+    val startdates = bonds.map(priceFrom).flatMap(s => s)
+    if (startdates.isEmpty) return
+	val dates = DB.getParamSetsAfter(startdates.min)
 	val notpriced = notPricedBonds
 	counter = 0
 	if (!dates.isEmpty) dates.foreach(d => price(d._1, notpriced))
@@ -89,7 +94,6 @@ object BondPrices {
   
    
   def price(paramset:String, bondid:Set[String]):Unit = {
-    
     var outputstring = ""
     def output(s:String):Unit = { outputstring += s }
     def outputln(s:String):Unit = { outputstring += s + "\n"}

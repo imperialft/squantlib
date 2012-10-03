@@ -5,6 +5,7 @@ import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXP
 import squantlib.database.objectconstructor._
 import squantlib.database.QLConstructors._
 import squantlib.model.timeseries.TsAnalysis._
+import squantlib.setting.PricingConvention
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.{Bond => QLBond}
 import org.jquantlib.time.{Date => qlDate, Frequency, TimeSeries}

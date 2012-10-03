@@ -1,17 +1,18 @@
 package squantlib.task.pricing
 
 import squantlib.database.{DB, QLDB}
-import java.lang.{Double => JavaDouble}
-import org.jquantlib.time.TimeSeries
 import squantlib.database.schemadefinitions.ForwardPrice
-import org.jquantlib.time.{ Date => qlDate }
-import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
-import org.jquantlib.instruments.{Bond => qlBond}
-import squantlib.setting.initializer.Calendars
-import squantlib.setting.initializer.RateConventions
-import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond}
+import squantlib.setting.initializer.{Calendars, RateConventions}
+import squantlib.setting.PricingConvention
 import squantlib.database.objectconstructor.{FixedRateBond, JGBRFixedBond, JGBRFloatBond}
 import squantlib.instruments.bonds.{JGBFixedBond => sJGBFixedBond, JGBFloatBond => sJGBFloatBond}
+import squantlib.model.fx.FX
+import org.jquantlib.time.TimeSeries
+import org.jquantlib.time.{ Date => qlDate }
+import org.jquantlib.instruments.{Bond => qlBond}
+import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond}
+import java.lang.{Double => JavaDouble}
+import scala.collection.mutable.{HashSet, SynchronizedSet, HashMap, SynchronizedMap}
 
 object ForwardPrices { 
   
@@ -70,22 +71,12 @@ object ForwardPrices {
 		val cdr = bond.calendar
 		val simulstart:Long = factory.valuedate.serialNumber
 		val simulend:Long = bond.maturityDate.serialNumber
-		val simuldates = (simulstart to simulend) map (new qlDate(_)) filter(cdr.isBusinessDay(_))
+		val alldates:Iterable[qlDate] = (for(d <- simulstart to simulend) yield (new qlDate(d)))
+		val simuldates = alldates.filter(cdr.isBusinessDay).toSet
 		val initialfx = bond.initialFX
 		
-		val pricelist = simuldates map { d => {
-//			val newengine = factory.getcustomdiscountbondengine(bond, cdr, d).orNull
-//			bond.setPricingEngine(newengine, d)
-			bond match {
-			  case b:sJGBFixedBond => { // Use spot price for now
-									    //JGBRFixedBond.setAdjustedPricingEngine(b, d)
-									  }
-			  case b:sJGBFloatBond => {// Use spot price for now
-										//JGBRFloatBond.setAdjustedPricingEngine(b, d)
-									  }
-			  case b:qlFixedRateBond => FixedRateBond.setAdjustedPricingEngine(b, factory, d)
-			  case _ => {}
-			}
+		val pricelist:Set[ForwardPrice] = simuldates.map(d => {
+			PricingConvention.setAdjustedPricingEngine(bond, factory, d)
 			val cprice = try bond.cleanPrice catch { case e => Double.NaN }
 			val fxvalue = try fx.forwardfx(d) catch { case e => Double.NaN }
 			new ForwardPrice (
@@ -100,7 +91,7 @@ object ForwardPrices {
 				created = Some(currenttime)
 			    )
 			}
-		} toSet;
+		)
 		
 		bond.setPricingEngine(originalengine, factory.valuedate)
 		
@@ -115,14 +106,14 @@ object ForwardPrices {
 	storedprice ++= forwardprices
   }
 
-  def pricefx(paramset:String, fxpairs:Traversable[(String, String)] = null):Unit = {
+  def pricefx(paramset:String, fxpairs:Set[(String, String)] = null):Unit = {
 	val factory = QLDB.getDiscountCurveFactory(paramset).orNull
 	if (factory == null || factory.curves.size == 0) {
 	  println("Curve not found")
 	  return
 	}
 	  
-	val fxs = fxpairs.map(f => factory.getFX(f._1, f._2)).collect{case Some(s) => s}.toSet
+	val fxs:Set[FX] = fxpairs.map(f => factory.getFX(f._1, f._2)).flatMap(s => s)
 	
 	println("valuedate :\t" + factory.valuedate.shortDate + " paramset :\t" + paramset)
 	println("\n* Market *")
@@ -134,7 +125,8 @@ object ForwardPrices {
 		val cdr = Calendars(fx.currency2.code).get
 		val simulstart = factory.valuedate.serialNumber
 		val simulend = factory.valuedate.serialNumber + fx.maxdays.toInt
-		val simuldates = (simulstart to simulend) map (new qlDate(_)) filter(cdr.isBusinessDay(_))
+		val alldates:Iterable[qlDate] = for (d <- simulstart to simulend) yield (new qlDate(d))
+		val simuldates = alldates.filter(cdr.isBusinessDay(_)).toSet
 		
 		val pricelist = simuldates map { d => {
 			val fxvalue = try fx.forwardfx(d) catch { case e => Double.NaN }
@@ -149,7 +141,7 @@ object ForwardPrices {
 				created = Some(currenttime)
 			    )
 			}
-		} toSet;
+		}
 		
 		println("FX: " + fx.name +  " spot:" + fx.spot +
 		    " results:" + (if (pricelist != null) pricelist.size else "N/A") + " lastprice:" + (
