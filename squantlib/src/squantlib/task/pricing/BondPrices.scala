@@ -133,7 +133,6 @@ object BondPrices {
 	
 	if (dbbonds.isEmpty) loadbonds
 	val bondlist = bonds.map(b => (b.bondid, b)).toMap;
-//	val fixedratebonds:Map[String, FixedRateBond] = bonds.map(bond => bond match { case b:FixedRateBond => (b.bondid, b); case _ => null}).filter(b => b != null).toMap;
 	val fixedratebonds:Map[String, FixedRateBond] = bonds.collect { case b:FixedRateBond => (b.bondid, b)}.toMap;
 	val pricelist = bondprices.filter(p => !p.pricedirty.isNaN).map(p => (p.bondid, p)).toMap;
 	val bond_product:Map[String, String] = dbbonds.map(b => (b._1, b._2.productid)).toMap;
@@ -152,15 +151,15 @@ object BondPrices {
 	val nonissuelist = if (gps.keySet.contains("NOTISSUED")) gps("NOTISSUED").toMap else null
 	val tmap:TreeMap[String, String] = if (errorlist == null || errorlist.isEmpty) null else TreeMap(errorlist.toArray:_*)
 	
-	val resultsummary = bond_product.groupBy(p => p._2).map{ p => {
+	val resultsummary = bond_product.groupBy(_._2).map{ case (product, bondproduct) => {
 	  val vdlong = valuedate.longDate
-	  val bondids = bond_product.filter(b => b._2 == p._1).map(b => b._1)
-	  val valids = if (pricelist == null) 0 else bondids.filter(b => pricelist.contains(b)).size
-	  val errors = if (errorlist == null) 0 else bondids.filter(b => errorlist.keySet.contains(b)).size
-	  val expires = if (expirelist == null) 0 else bondids.filter(b => expirelist.keySet.contains(b)).size
-	  val notissueds = if (nonissuelist == null) 0 else bondids.filter(b => nonissuelist.keySet.contains(b)).size
-	  val notpriceds = if (notpriced == null) 0 else bondids.filter(b => notpriced.keySet.contains(b)).size
-	  (p._1, valids, errors, expires, notissueds, notpriceds)
+	  val bondids = bond_product.filter(_._2 == product).map(_._1)
+	  val valids = if (pricelist == null) 0 else bondids.filter(pricelist.contains).size
+	  val errors = if (errorlist == null) 0 else bondids.filter(errorlist.keySet.contains).size
+	  val expires = if (expirelist == null) 0 else bondids.filter(expirelist.keySet.contains).size
+	  val notissueds = if (nonissuelist == null) 0 else bondids.filter(nonissuelist.keySet.contains).size
+	  val notpriceds = if (notpriced == null) 0 else bondids.filter(notpriced.keySet.contains).size
+	  (product, valids, errors, expires, notissueds, notpriceds)
 	}}
 	
 	outputln("valuedate :\t" + valuedate.shortDate)
