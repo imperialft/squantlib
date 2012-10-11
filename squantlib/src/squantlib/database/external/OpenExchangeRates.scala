@@ -16,10 +16,20 @@ import org.codehaus.jackson.map.ObjectMapper
  * @author Masakatsu Wakayu (direct translation of Java codes by Demétrio Menezes Neto)
  */
 object OpenExchangeRates {
+  
+	val baseFX = "JPY"
 	val OER_URL = "http://openexchangerates.org/"
 	val LATEST = "latest.json"
 	val HISTORICAL:String = "historical/%04d-%02d-%02d.json"
-
+	val TIMESTAMP = "timestamp"
+	  
+	private def CalendarToUrl(date:Calendar):String = {
+		val day = date.get(Calendar.DAY_OF_MONTH)
+		val month = date.get(Calendar.MONTH) + 1
+		val year = date.get(Calendar.YEAR)
+		HISTORICAL.format(year, month, day)
+	}
+	
 	val mapper:ObjectMapper = new ObjectMapper
 
 	/**
@@ -31,24 +41,29 @@ object OpenExchangeRates {
 	 * @throws UnavailableExchangeRateException
 	 */ 
 	
-	def downloadExchangeRates(downloadPath:String):Map[String, BigDecimal] 
+	def downloadExchangeRates(downloadPath:String):Option[(JavaDate, Map[String, BigDecimal])]
 	= downloadExchangeRates(downloadPath, CurrencyList.get)
 	
-	def downloadExchangeRates(downloadPath:String, currencies:Set[String]):Map[String, BigDecimal] = {
-		try {
+	def downloadExchangeRates(downloadPath:String, currencies:Set[String]):Option[(JavaDate, Map[String, BigDecimal])] = {
+	  try {
 			val url:URL = new URL(OER_URL + downloadPath)
 			val conn:URLConnection = url.openConnection
 			val node:JsonNode = mapper.readTree(conn.getInputStream)
-			val rates:Set[Option[(String, BigDecimal)]] = currencies.map { ccy => {
+			val fxjpy = BigDecimal(node.findValue(baseFX).getDecimalValue)
+			
+			val javatime = new JavaDate(node.findValue(TIMESTAMP).getLongValue * 1000)
+			val rates = currencies.map { ccy => {
 				node.findValue(ccy) match {
 				  case null => None
-				  case c => Some(ccy, BigDecimal(c.getDecimalValue))
+				  case c if c.getDoubleValue.compareTo(0.0) <= 0.0000001 => None
+				  case c => Some(ccy, fxjpy / BigDecimal(c.getDecimalValue))
 				}
-			}}
-			rates.flatten.toMap
+			}}.flatten.toMap
+			
+			Some(javatime, rates)
 		}
 		catch {
-		  	case e:Exception => { e.printStackTrace; Map.empty }
+		  	case e:Exception => { None }
 		}
 	}
 
@@ -56,30 +71,36 @@ object OpenExchangeRates {
 	 * Get the latest exchange rates
 	 * 
 	 * @return Last updated exchange rates
-	 */
-	def getLatest:Map[String, BigDecimal] = downloadExchangeRates(LATEST)
+	 */ 
+	def getLatest:Option[(JavaDate, Map[String, BigDecimal])] = downloadExchangeRates(LATEST)
 	
-	def getHistorical(date:JavaDate):Map[String, BigDecimal] = {
+	def getLatest(currency:String):Option[(JavaDate, BigDecimal)] = 
+	  getLatest match {
+	   case Some(d) if d._2.contains(currency) => Some(d._1, d._2(currency))
+	   case _ => None
+	}
+	
+	def getHistorical(date:Calendar):Option[Map[String, BigDecimal]] = 
+	  downloadExchangeRates(CalendarToUrl(date)).collect{case (d, r) => r}
+	
+	def getHistorical(date:JavaDate):Option[Map[String, BigDecimal]] = getHistorical(DateToCalendar(date))
+
+	def getHistorical(currency:String, date:Calendar):Option[BigDecimal] = 
+	  getHistorical(date) match {
+		  case None => None
+		  case Some(r) => r.get(currency)
+	  }
+	
+	def getHistorical(currency:String, date:JavaDate):Option[BigDecimal] = 
+		getHistorical(currency, DateToCalendar(date))
+		
+	private def DateToCalendar(date:JavaDate):Calendar = {
 	  val cal = Calendar.getInstance
 	  cal.setTime(date)
-	  getHistorical(cal)
+	  cal
 	}
-
-	def getHistorical(date:Calendar):Map[String, BigDecimal] = {
-		val day = date.get(Calendar.DAY_OF_MONTH)
-		val month = date.get(Calendar.MONTH) + 1
-		val year = date.get(Calendar.YEAR)
-
-		val historical = HISTORICAL.format(year, month, day)
-		downloadExchangeRates(historical)
-
-	}
-
-	def getCurrencyValue(currency:String):Option[BigDecimal] = getLatest.get(currency)
-
-	def getHistoricalCurrencyValue(currency:String, date:Calendar):Option[BigDecimal] = 
-		getHistorical(date).get(currency)
-	
+	  
+		
 }
 
 
