@@ -36,7 +36,7 @@ class JGBFixedBond(
             creditSpreadID,
             initialFX) {
   
-	val coupons = DB.getCoupons(id)
+	val coupons = DB.getCouponsByBondID(id)
 	
 	override def accruedAmount():Double = accruedAmount(settlementDate)
 	override def accruedAmount(settlement:qlDate):Double = 

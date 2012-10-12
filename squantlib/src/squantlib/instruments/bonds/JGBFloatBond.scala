@@ -53,7 +53,7 @@ class JGBFloatBond(
 	        creditSpreadID,
 	        initialFX){
 	
-	val coupons = DB.getCoupons(id)
+	val coupons = DB.getCouponsByBondID(id)
 	val refindex = "CMT10"
 	
 	override def accruedAmount():Double = accruedAmount(settlementDate)

@@ -46,20 +46,49 @@ object BondPrices {
 	}
    
   def notPricedBonds:Set[String] = {
-	val (latestparamset, latestpricedate) = DB.getLatestPriceParam
-	val factory = QLDB.getDiscountCurveFactory(latestparamset).orNull
-	val priceablebonds = QLDB.getBonds(factory).filter(b => b.isPriceable)
-	val pricedbonds = DB.getPricedBonds
-	priceablebonds.filter(b => !pricedbonds.contains(b.bondid)).map(_.bondid)
+    DB.getLatestBondPriceParam match {
+      case None => Set.empty // Empty bond price
+      case Some((pset, pdate)) => {
+		val factory = QLDB.getDiscountCurveFactory(pset).orNull
+		val priceablebonds = QLDB.getBonds(factory).filter(b => b.isPriceable)
+		val pricedbonds = DB.getPricedBondIDs
+		priceablebonds.filter(b => !pricedbonds.contains(b.bondid)).map(_.bondid)
+      }
+    }
+    
   }
   
-  def notPricedParams:Set[(String, JavaDate)] = DB.getParamSetsAfter(DB.getLatestPriceParam._2)
+  def notPricedParams:Set[(String, JavaDate)] = DB.getLatestBondPriceParam match {
+    case None => DB.getParamSets
+    case Some(p) => DB.getParamSetsAfter(p._2)
+  }
+  
+  def notPricedParams(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
+    DB.getParamSets.filter(d => d._2.before(toDate) && d._2.after(fromDate))
   
   def updateNewDates:Unit = 
-    if (!notPricedParams.isEmpty) notPricedParams.foreach(p => price(p._1))
+    notPricedParams match {
+      case params if params.isEmpty => {}
+      case params => params.foreach(p => price(p._1))
+    }
+    
+  def updateNewDates(fromDate:JavaDate, toDate:JavaDate):Unit = 
+    notPricedParams(fromDate, toDate) match {
+      case params if params.isEmpty => {}
+      case params => params.foreach(p => price(p._1))
+    }
     
   def updateNewDates_par:Unit = 
-    if (!notPricedParams.isEmpty) notPricedParams.par.foreach(p => price(p._1))
+    notPricedParams match {
+      case params if params.isEmpty => {}
+      case params => params.par.foreach(p => price(p._1))
+    }
+  
+  def updateNewDates_par(fromDate:JavaDate, toDate:JavaDate):Unit = 
+    notPricedParams(fromDate, toDate) match {
+      case params if params.isEmpty => {}
+      case params => params.par.foreach(p => price(p._1))
+    }
   
   def updateNewBonds:Unit = {
     if (notPricedBonds.isEmpty) return
@@ -192,7 +221,7 @@ object BondPrices {
 	outputln("\n*** END OUTPUT " + paramset + "***\n")
 	
 	printf(outputstring)
-	storedprice ++= bondprices
+	storedprice ++= bondprices.filter(p => !p.pricedirty.isNaN)
 	addcount
   }
 

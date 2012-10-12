@@ -15,15 +15,15 @@ object TimeSeries {
 	def contains(s:String):Boolean = mapper.contains(s)
 	def keySet:Set[String] = mapper.keySet
   
-  	val cmtMap:Map[String, Map[JavaDate, Double]] = Map("CMT10" -> DB.getTimeSeries("Fixing", "JGBY", "10Y"))
+  	val cmtMap:Map[String, Map[JavaDate, Double]] = Map("CMT10" -> DB.getRateFXTimeSeries("Fixing", "JGBY", "10Y"))
   	
   	val currencySet = Currencies.keySet
   
 	val cashMaturities = Set("1M", "2M", "3M", "6M")
-	val cashMap = for (c <- currencySet; m <- cashMaturities) yield ((c + m) -> DB.getTimeSeries("Cash", c, m))
+	val cashMap = for (c <- currencySet; m <- cashMaturities) yield ((c + m) -> DB.getRateFXTimeSeries("Cash", c, m))
 	
     val swapMaturities = Set("1Y", "2Y", "3Y", "4Y", "5Y", "7Y", "10Y", "15Y", "20Y", "30Y")
-    val swapMap = for (c <- currencySet; m <- swapMaturities) yield ((c + m) -> DB.getTimeSeries("Swap", c, m))
+    val swapMap = for (c <- currencySet; m <- swapMaturities) yield ((c + m) -> DB.getRateFXTimeSeries("Swap", c, m))
     
     val fxMap = for (c1 <- currencySet; c2 <- currencySet) yield ((c1 + c2) -> DB.getFXTimeSeries(c1, c2))
 	    

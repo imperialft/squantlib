@@ -38,14 +38,21 @@ object Correlations {
   
   def cleardb:Unit = DB.empty(DB.correlations)
   
-  def lastDate:qlDate = if (DB.getLatestCorrelationDate == null) null else DB.getLatestCorrelationDate
+  def lastDate:Option[qlDate] = DB.getLatestCorrelationDate.collect{case d => new qlDate(d) }
   
-  def defaultValueDate:qlDate = DB.getLatestPriceParam._2
+  def defaultValueDate:qlDate = DB.getLatestBondPriceParam match {
+    case None => DB.getParamSets match {
+      case p if p.isEmpty => new qlDate
+      case p => p.maxBy(_._2)._2
+    }
+    case Some(s) => s._2
+  }
+  
   def defaultCurrencies:Set[String] = (DB.getFXlist & RateConventions.keySet) - "JPY"
   def defaultFXpairs:Set[(String, String)] = for(ccy1 <- defaultCurrencies; ccy2 <- defaultCurrencies if ccy1 >= ccy2) yield (ccy1, ccy2)
-  def defaultBonds:Set[String] = DB.getLatestPrices.map(d => d.bondid)
+  def defaultBonds:Set[String] = DB.getLatestBondPriceIDs
   
-  def updated:Boolean = ((lastDate != null) && (defaultValueDate le lastDate))
+  def updated:Boolean = ((lastDate.isDefined) && (defaultValueDate le lastDate.get))
   
   def pricefxfx(nbDays:Int):Unit = pricefxfx(nbDays, defaultValueDate)
   def pricefxfx(nbDays:Int, valueDate:qlDate):Unit = pricefxfx(defaultFXpairs, nbDays, defaultValueDate)

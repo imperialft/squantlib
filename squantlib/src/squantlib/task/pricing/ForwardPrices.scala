@@ -35,9 +35,13 @@ object ForwardPrices {
   
   def defaultCurrencies:Set[String] = DB.getFXlist & RateConventions.keySet
   def defaultFXpairs:Set[(String, String)] = defaultCurrencies.map(fx => (fx, "JPY"))
-  def defaultBonds:Set[String] = DB.getLatestPrices.map(_.bondid)
+  def defaultBonds:Set[String] = DB.getLatestBondPriceIDs
   
-  def nextParamSet:String = DB.getLatestPriceParam._1
+  def nextParamSet:String = DB.getLatestBondPriceParam match {
+    case None => null
+    case Some(p) => p._1
+  }
+  
   def currentParamSets:Set[String] = DB.getForwardPriceParams
   def updated:Boolean = currentParamSets contains nextParamSet 
   

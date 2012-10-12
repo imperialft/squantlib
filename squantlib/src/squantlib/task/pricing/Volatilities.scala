@@ -39,10 +39,15 @@ object Volatilities {
   }}
   
   def pricedBonds:Set[String] = DB.getVolatilityBondUnderlyings
-  def notPricedBonds:Set[String] = (DB.getLatestPrices.map(_.bondid) -- pricedBonds).map(_.toString)
+  
+  def notPricedBonds:Set[String] = (DB.getLatestBondPriceIDs -- pricedBonds).map(_.toString)
+  
   def notPricedDateRange:(JavaDate, JavaDate) = (
-      if (DB.getLatestVolatilityDate != null) DB.getLatestVolatilityDate else DB.getPricedParamSets.map(_._2).min, 
-      DB.getLatestPriceParam._2)
+      DB.getLatestVolatilityDate.getOrElse(DB.getPricedParamSets.map(_._2).min), 
+      DB.getLatestBondPriceParam match {
+        case Some(p) => p._2
+        case None => DB.getLatestParamSet._2
+      })
   
   def updateNewDates(nbDays:Set[Int], bondids:Set[String] = null, fxids:Set[String] = null, annualDays:Int = 260) = {
     val bonds:Set[String] = if (bondids == null) pricedBonds else bondids
@@ -59,7 +64,8 @@ object Volatilities {
     val bondfx = bondCurrency(bondids).toSet
     val pricesets = for (id <- bondfx; d <- nbDays) yield (id, d)
 	val sdate = if (startDate == null) new qlDate(1, 1, 2000) else startDate
-	val edate:qlDate = if (endDate == null) DB.getLatestPriceParam._2 else endDate
+	val edate:qlDate = if (endDate == null) DB.getLatestBondPriceParam match {case None => endDate; case Some(p) => p._2}
+					   else endDate
     
     pricesets.par.foreach { case ((bondid, ccy), d) => 
       price("PRICE:" + bondid, bondTimeSeries(bondid, ccy), d, sdate, edate, annualDays)

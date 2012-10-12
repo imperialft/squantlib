@@ -6,14 +6,14 @@ import com.mchange.v2.c3p0._
 import org.squeryl.dsl.{TypedExpression, TDate, TInt, TypedExpressionFactory}
 import org.squeryl.dsl.ast.FunctionNode
 import org.squeryl.adapters._
-import org.squeryl.{Session, SessionFactory, Schema}
+import org.squeryl.{Session, SessionFactory, Schema, Table}
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.{KeyedEntity, Table}
 import squantlib.database.schemadefinitions._
 import scala.collection.mutable.{MutableList, StringBuilder}
 import org.jquantlib.time.{Date => JQuantDate}
 import java.io.{File, FileWriter, BufferedWriter}
-import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID, GregorianCalendar}
+import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
 
@@ -67,226 +67,253 @@ object DB extends Schema {
   val coupons = table[Coupon]("Coupons")
   val forwardprices = table[ForwardPrice]("ForwardPrices")
   val impliedrates = table[ImpliedRate]("ImpliedRates")
+  
+  
+  private def getKeyedEntity[A<:KeyedEntity[String]](t:Table[A]):Set[A] = transaction {
+      from(t)(p => select(p)).toSet}
+  
+  private def getKeyedEntity[A<:KeyedEntity[String]](t:Table[A], ids:Traversable[String]):Set[A] = transaction {
+      from(t)(p => where(p.id in ids) select(p)).toSet }
+  
+  private def weekday(b: TypedExpression[java.util.Date,TDate])
+  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
+  
+  private implicit def dateToComparableDate(d:JavaDate):comparableDate = new comparableDate(d)
+  class comparableDate(val date:JavaDate) extends JavaDate {
+    def >(d:JavaDate):Boolean = date.after(d)
+    def <(d:JavaDate):Boolean = date.before(d)
+    def >=(d:JavaDate):Boolean = !date.before(d)
+    def <=(d:JavaDate):Boolean = !date.after(d)
+  }
+  
 
   /**
-   * Returns a List of Country objects identified by a List of ID.
-   * Usage: val countries = DB.getCountries(List("JPN", "KOR", "CHN"))
-   *
-   * @param ids A List of Country IDs.
-   * @return A List of Country objects.
+   * Returns a Set of Country objects identified by a List of ID.
+   * 
+   * @param ids A List of unique IDs.
+   * @return A Set of Country objects.
    */
-  def getCountries:Set[Country] = {
-    transaction {
-      from(countries)(country => select(country)).toSet
-    }
-  }
-  
-  def getCountries(ids:Traversable[String]):Set[Country] = {
-    transaction {
-      from(countries)(country =>
-        where(country.id in ids)
-        select(country)
-      ).toSet
-    }
-  }
+  def getCountries:Set[Country] = getKeyedEntity(countries)
+  def getCountries(ids:Traversable[String]):Set[Country] = getKeyedEntity(countries, ids)
 
-  def getCurrencies:Set[Currency] = {
-    transaction {
-      from(currencies)(currency => select(currency)).toSet
-    }
-  }
-  
-  def getCurrencies(ids:Traversable[String]):Set[Currency] = {
-    transaction {
-      from(currencies)(currency =>
-        where(currency.id in ids)
-        select(currency)
-      ).toSet
-    }
-  }
+  /**
+   * Returns a Set of Currencies objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Currency objects.
+   */
+  def getCurrencies:Set[Currency] = getKeyedEntity(currencies)
+  def getCurrencies(ids:Traversable[String]):Set[Currency] = getKeyedEntity(currencies, ids)
 
-  def getDistributers:Set[Distributor] = {
-    transaction {
-      from(distributors)(distributor => select(distributor)).toSet
-    }
-  }
-  
-  def getDistributers(ids:Traversable[String]):Set[Distributor] = {
-    transaction {
-      from(distributors)(distributor =>
-        where(distributor.id in ids)
-        select(distributor)
-      ).toSet
-    }
-  }
+  /**
+   * Returns a Set of Distributors objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Distributor objects.
+   */
+  def getDistributors:Set[Distributor] = getKeyedEntity(distributors)
+  def getDistributors(ids:Traversable[String]):Set[Distributor] = getKeyedEntity(distributors, ids)
 
-  def getIssuers:Set[Issuer] = {
-    transaction {
-      from(issuers)(issuer => select(issuer)).toSet
-    }
-  }
+  /**
+   * Returns a Set of Issuer objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Issuer objects.
+   */
+  def getIssuers:Set[Issuer] = getKeyedEntity(issuers)
+  def getIssuers(ids:Traversable[String]):Set[Issuer] = getKeyedEntity(issuers, ids)
+  
+  /**
+   * Returns a Set of Product objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Product objects.
+   */
+  def getProducts:Set[Product] = getKeyedEntity(products)
+  def getProducts(ids:Traversable[String]):Set[Product] = getKeyedEntity(products, ids)
+  
+  /**
+   * Returns a Set of Bond objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Bond objects.
+   */
+  def getBonds:Set[Bond] = getKeyedEntity(bonds)
+  def getBonds(ids:Traversable[String]):Set[Bond] = getKeyedEntity(bonds, ids)
+  
+  def getBonds(valuedate:JavaDate):Set[Bond] = transaction {
+      from(bonds)(bond => where(bond.maturity gt valuedate) select(bond)).toSet}
 
-  def getIssuers(ids:Traversable[String]):Set[Issuer] = {
-    transaction {
-      from(issuers)(issuer =>
-        where(issuer.id in ids)
-        select(issuer)
-      ).toSet
-    }
-  }
+  def getBondsByProducts(productids:Traversable[String]):Set[Bond] = transaction {
+      from(bonds)(b => where(b.productid in productids) select(b)).toSet}
   
-  def getProducts:Set[Product] = {
-    transaction {
-      from(products)(product => select(product)).toSet
-    }
-  }
-  
-  def getProducts(ids:Traversable[String]):Set[Product] = {
-    transaction {
-      from(products)(product =>
-        where(product.id in ids)
-        select(product)
-      ).toSet
-    }
-  }
-  
-  def getBonds:Set[Bond] = {
-    transaction {
-      from(bonds)(bond => select(bond)).toSet
-    }
-  }
-  
-  def getBonds(ids:Traversable[String]):Set[Bond] = {
-    transaction {
-      from(bonds)(bond =>
-        where(bond.id in ids)
-        select(bond)
-      ).toSet
-    }
-  }
-  
-  def getBonds(valuedate:JavaDate):Set[Bond] = {
-    transaction {
-      from(bonds)(bond =>
-        where(bond.maturity gt valuedate)
-        select(bond)
-      ).toSet
-    }
-  }
+  def getBondsByIssuers(issuerids:Traversable[String]):Set[Bond] = transaction {
+      from(bonds)(b => where(b.issuerid in issuerids) select(b)).toSet}
 
-  def getBondsByProducts(productids:Traversable[String]):Set[Bond] = 
+  def getCouponMissingBonds:Set[Bond] = 
     transaction {
-      from(bonds)(b =>
-        where(b.productid in productids)
-        select(b)
-      ).toSet
+      val couponbonds = from(coupons)(c => select(&(c.bondid))).distinct.toSet
+      if (couponbonds.isEmpty) getBonds
+      else  from (bonds)(b => 
+		    where (not(b.id in couponbonds))
+		    select(b)).distinct.toSet
     }
   
-  def getBondsByIssuers(issuerids:Traversable[String]):Set[Bond] = 
-    transaction {
-      from(bonds)(b =>
-        where(b.issuerid in issuerids)
-        select(b)
-      ).toSet
-    }
+  /**
+   * Returns a Set of BondPrice objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of BondPrice objects.
+   */
+  def getBondPrices:Set[BondPrice] = getKeyedEntity(bondprices)
+  def getBondPrices(ids:Traversable[String]):Set[BondPrice] = getKeyedEntity(bondprices, ids)
   
-  def getPriceByParamSet(paramset:String):Set[BondPrice] =
-    transaction {
+  def getBondPriceByParamSet(paramset:String):Set[BondPrice] = transaction {
       from(bondprices)(b =>
-        where(b.paramset === paramset)
-        select(b)
-      ).toSet
-    }
+        where(b.paramset === paramset) select(b)).toSet}
   
-  def getPriceByDate(paramdate:JavaDate):Set[BondPrice] =
-    transaction {
+  def getBondPriceByParamDate(paramdate:JavaDate):Set[BondPrice] = transaction {
       from(bondprices)(b =>
-        where(b.paramdate === paramdate)
-        select(b)
-      ).toSet
-    } 
+        where(b.paramdate === paramdate) select(b)).toSet} 
+
+  def getPricedParamSets:Set[(String, JavaDate)] = transaction {
+      from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).distinct.toSet}
   
-  def getPricedParamSets:Set[(String, JavaDate)] =
-    transaction {
-      from(bondprices)(b =>
-        select((&(b.paramset), &(b.paramdate)))
-      ).distinct.toSet
+  def getPricedParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
+    getPricedParamSets.filter{case (pset, pdate) => (pdate >= fromDate && pdate <= toDate)}
+  
+//  def getNonPricedParamSets:Set[(String, JavaDate)] = transaction {
+//      val pricedsets = from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).distinct.toSet
+//      val fullparamset = 
+//  }
+
+  def getLatestBondPrices:Option[(String, JavaDate, Set[BondPrice])] = transaction {
+      val params:Set[(String, JavaDate)] = from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).toSet
+      params match {
+        case p if p.isEmpty => None
+        case p => val (maxparam, maxdate) = params.maxBy(_._2)
+        		  val prices:Set[BondPrice] = from(bondprices)(b => where(b.paramset === maxparam) select(b)).toSet
+        		  Some(maxparam, maxdate, prices)
+        }
+      }
+  
+  def getLatestBondPriceIDs:Set[String] = transaction {
+      val params:Set[(String, JavaDate)] = from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).toSet
+      params match {
+        case p if p.isEmpty => Set.empty
+        case p => val (maxparam, maxdate) = params.maxBy(_._2)
+        		  from(bondprices)(b => where(b.paramset === maxparam) select(&(b.bondid))).toSet
+        }
+      }
+  
+  def getLatestBondPriceParam:Option[(String, JavaDate)] = getPricedParamSets match {
+    case s if s.isEmpty => None
+    case s => Some(s.maxBy(_._2))
+  }
+  
+  def getPricedBondIDs:Set[String] = transaction {
+      from(bondprices)(b => select(&(b.bondid))).distinct.toSet
     }
   
-  def getPricedParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] =
-    transaction {
-      from(bondprices)(b =>
-        where (b.paramdate between (fromDate, toDate))
-        select((&(b.paramset), &(b.paramdate)))
-      ).distinct.toSet
-    }
-  
-  def getPricedBonds:Set[String] =
-    transaction {
-      from(bondprices)(b =>
-        select(&(b.bondid))
-      ).distinct.toSet
-    }
-  
-  def getVolatilityDates:Set[JavaDate] =
-    transaction {
-      from(volatilities)(b =>
-        select(&(b.valuedate))
-      ).distinct.toSet
-    }
-  
-  def getCorrelationDates:Set[JavaDate] =
-    transaction {
-      from(correlations)(b =>
-        select(&(b.valuedate))
-      ).distinct.toSet
-    }
-  
-  def getForwardPriceParams:Set[String] =
-    transaction {
-      from(forwardprices)(p =>
-        select(&(p.paramset))
-      ).distinct.toSet
-    }
-  
-  def getImpliedRateParams:Set[String] =
-    transaction {
-      from(impliedrates)(p =>
-        select(&(p.paramset))
-      ).distinct.toSet
-    }
-  
-  def getVolUnderlyings:Set[String] =
-    transaction {
-      from(volatilities)(b =>
-        select(&(b.underlying))
-      ).distinct.toSet
-    }
-  
-  def getVolatilities(fromDate:JavaDate, toDate:JavaDate):Set[Volatility] = {
-    transaction {
+  /**
+   * Returns a Set of Volatility objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Volatility objects.
+   */
+  def getVolatilities:Set[Volatility] = getKeyedEntity(volatilities)
+  def getVolatilities(ids:Traversable[String]):Set[Volatility] = getKeyedEntity(volatilities, ids)
+
+  def getVolatilities(fromDate:JavaDate, toDate:JavaDate):Set[Volatility] = transaction {
       from(volatilities)(vol =>
-        where(vol.valuedate between (fromDate, toDate))
+        where(
+            (vol.valuedate gte fromDate) and
+            (vol.valuedate lte toDate))
         select(vol)
       ).toSet
     }
+  
+  def getVolatilityDates:Set[JavaDate] = transaction {
+      from(volatilities)(b => select(&(b.valuedate))).distinct.toSet
+    }
+
+   def getLatestVolatilityDate:Option[JavaDate] = getVolatilityDates match {
+    case d if d.isEmpty => None
+    case d => Some(d.maxBy(s => s))
   }
   
-  def getCoupons(bondid:String):List[Coupon] = getCoupons(Set(bondid))
-  
-  def getCoupons(bondids:Traversable[String]):List[Coupon] = 
-    transaction {
-      from(coupons)(c =>
-        where(c.bondid in bondids)
-        select(c)
-      ).toList
+ def getVolatilityUnderlyings:Set[String] = transaction {
+      from(volatilities)(b => select(&(b.underlying))).distinct.toSet
     }
   
-  def getUnfixedCoupons(d:JavaDate):List[Coupon] = 
-    transaction {
+  def getVolatilityBondUnderlyings:Set[String] = 
+    getVolatilityUnderlyings.withFilter(_.substring(0, 6) == "PRICE:").map(_.substring(6))
+    
+  def getVolatilityFXUnderlyings:Set[String] = 
+    getVolatilityUnderlyings.withFilter(_.substring(0, 3) == "FX:").map(_.substring(3))
+  
+  /**
+   * Returns a Set of Correlation objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Correlation objects.
+   */
+  def getCorrelations:Set[Correlation] = getKeyedEntity(correlations)
+  def getCorrelations(ids:Traversable[String]):Set[Correlation] = getKeyedEntity(correlations, ids)
+  
+  def getCorrelationDates:Set[JavaDate] = transaction {
+      from(correlations)(b => select(&(b.valuedate))).distinct.toSet
+    }
+  
+  def getLatestCorrelationDate:Option[JavaDate] = getCorrelationDates match {
+    case d if d.isEmpty => None
+    case d => Some(d.maxBy(s => s))
+  }
+  
+  /**
+   * Returns a Set of ForwardPrice objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of ForwardPrice objects.
+   */
+  def getForwardPrices:Set[ForwardPrice] = getKeyedEntity(forwardprices)
+  def getForwardPrices(ids:Traversable[String]):Set[ForwardPrice] = getKeyedEntity(forwardprices, ids)
+  
+  def getForwardPriceParams:Set[String] = transaction {
+      from(forwardprices)(p => select(&(p.paramset))).distinct.toSet
+    }
+  
+  /**
+   * Returns a Set of ImpliedRate objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of ImpliedRate objects.
+   */
+  def getImpliedRates:Set[ImpliedRate] = getKeyedEntity(impliedrates)
+  def getImpliedRates(ids:Traversable[String]):Set[ImpliedRate] = getKeyedEntity(impliedrates, ids)
+  
+  def getImpliedRateParams:Set[String] = transaction {
+      from(impliedrates)(p => select(&(p.paramset))).distinct.toSet
+    }
+  
+  
+  /**
+   * Returns a Set of Coupon objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Coupon objects.
+   */
+  def getCoupons:Set[Coupon] = getKeyedEntity(coupons)
+  def getCoupons(ids:Traversable[String]):Set[Coupon] = getKeyedEntity(coupons, ids)
+  
+  def getCouponsByBondID(bondid:String):List[Coupon] = getCouponsByBondID(Set(bondid))
+  def getCouponsByBondID(bondids:Traversable[String]):List[Coupon] = transaction {
+      from(coupons)(c => where(c.bondid in bondids) select(c)).toList
+    }
+  
+  def getUnfixedCoupons(d:JavaDate):List[Coupon] = transaction {
       from(coupons)(c =>
-        where(
-          (c.eventdate lte d) and
+        where((c.eventdate lte d) and 
           (c.rate isNotNull) and
           not (c.rate === "") and
           ((c.fixedrate.isNull) or (c.fixedamount.isNull))
@@ -295,24 +322,18 @@ object DB extends Schema {
       ).toList
     }
   
-  def getDefinedCoupons(d:JavaDate):List[Coupon] = 
-    transaction {
+  def getDefinedCoupons(d:JavaDate):List[Coupon] = transaction {
       from(coupons)(c =>
-        where(
-          (c.eventdate lte d) and
-          (c.rate isNotNull) and
-          not (c.rate === "")
-        )
+        where((c.eventdate lte d) and c.rate.isNotNull and not (c.rate === ""))
         select(c)
       ).toList
     }
   
-  def getPreviousCoupons(bondid:String, d:JavaDate):List[Coupon] = 
-    transaction {
+  def getPreviousCoupons(bondid:String, d:JavaDate):List[Coupon] = transaction {
       from(coupons)(c =>
         where(
             (c.bondid === bondid) and
-            (c.paymentdate lte d) and
+            (c.enddate lte d) and
             (c.paymenttype === "COUPON"))
         select(c)
       ).toList
@@ -324,20 +345,18 @@ object DB extends Schema {
     else cpns.toList.sortBy(_.paymentdate).takeRight(nb).toList
   }
   
-  def getCurrentCoupons(bondid:String, d:JavaDate):List[Coupon] = 
-    transaction {
+  def getCurrentCoupons(bondid:String, d:JavaDate):List[Coupon] = transaction {
       from(coupons)(c =>
         where(
             (c.bondid === bondid) and
-            (c.startdate lt d) and 
-            (c.enddate gte d) and
+            (c.startdate lte d) and 
+            (c.enddate gt d) and
             (c.paymenttype === "COUPON"))
         select(c)
       ).toList
     }
   
-  def getCurrentAndPreviousCoupons(bondid:String, d:JavaDate):(List[Coupon], List[Coupon]) = 
-    transaction {
+  def getCurrentAndPreviousCoupons(bondid:String, d:JavaDate):(List[Coupon], List[Coupon]) = transaction {
       val current = from(coupons)(c =>
         where(
             (c.bondid === bondid) and
@@ -350,7 +369,7 @@ object DB extends Schema {
       val previous = from(coupons)(c =>
         where(
             (c.bondid === bondid) and
-            (c.paymentdate lt d) and
+            (c.enddate lte d) and
             (c.paymenttype === "COUPON"))
         select(c)
       ).toList
@@ -363,110 +382,24 @@ object DB extends Schema {
     if (previous.size <= nb) (current, previous)
     else (current, previous.toList.sortBy(_.paymentdate).takeRight(nb))
   }
-    
-//  def getCoupons(d:JavaDate):Set[Coupon] = 
-//    transaction {
-//      from(coupons)(c =>
-//        where(c.eventdate lte d)
-//        select(c)
-//      ).toSet
-//    }
-  
-  def getCouponMissingBonds:Set[Bond] = 
-    transaction {
-      val couponbonds = from(coupons)(c => select(&(c.bondid))).distinct.toSet
-      if (couponbonds.isEmpty) getBonds
-      else  from (bonds)(b => 
-		    where (not(b.id in couponbonds))
-		    select(b)).distinct.toSet
-    }
-  
-  def getLatestPrices:Set[BondPrice] = getPriceByParamSet(getLatestPriceParam._1)
-  def getLatestPriceParam:(String, JavaDate) = getPricedParamSets.maxBy(_._2)
-  def getLatestVolatilityDate:JavaDate = if (getVolatilityDates.isEmpty) null else getVolatilityDates.max
-  def getLatestCorrelationDate:JavaDate = if (getCorrelationDates.isEmpty) null else getCorrelationDates.max
-  
-  def getVolatilityBondUnderlyings = getVolUnderlyings.withFilter(_.substring(0, 6) == "PRICE:").map(_.substring(6))
-  def getVolatilityFXUnderlyings = getVolUnderlyings.withFilter(_.substring(0, 3) == "FX:").map(_.substring(3))
   
   /**
    * Returns list of valid paramsets satisfying the given constraints.
    *
    * @param fromDate: A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate: A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
+   * @param toDate: A ending point of Date. Range does includes this date.
   **/
   def getParamSets:Set[(String, JavaDate)] = getRateFXParamSets & getCDSParamSets & getFXParamSets
   
   def getParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-    getRateFXParamSets(fromDate, toDate) & getCDSParamSets(fromDate, toDate) & getFXParamSets(fromDate, toDate)
+    getParamSets.filter{case (pset, pdate) => (pdate >= fromDate && pdate <= toDate)}
     
   def getParamSetsAfter(basedate:JavaDate):Set[(String, JavaDate)] = 
-    getParamSets.filter{case (pset, pdate) => pdate after basedate}
+    getParamSets.filter{case (pset, pdate) => pdate >= basedate}
   
   def getLatestParamSet:(String, JavaDate) = getParamSets.maxBy(_._2)
   
-  /**
-   * Returns paramsets for each database.
-   **/
   
-  
-  
-  def weekday(b: TypedExpression[java.util.Date,TDate])
-  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
-  
-  def getFXParamSets:Set[(String, JavaDate)] = 
-    transaction {
-        from(fxrates)(p => 
-          where (weekday(p.paramdate) < 5)
-          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-    }
-  
-  def getFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-    transaction {
-        from(fxrates)(p =>
-          where(p.paramdate between (fromDate, toDate) and weekday(p.paramdate) < 5)
-          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-    }
-  
-  def getRateFXParamSets:Set[(String, JavaDate)] = 
-    transaction {
-        from(ratefxparameters)(p => 
-          where (weekday(p.paramdate) < 5)
-          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-    }
-  
-  def getRateFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-    transaction {
-        from(ratefxparameters)(p =>
-          where(p.paramdate between (fromDate, toDate) and weekday(p.paramdate) < 5)
-          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-    }
-  
-  def getCDSParamSets:Set[(String, JavaDate)] = 
-    transaction {
-        from(cdsparameters)(p => 
-          where (weekday(p.paramdate) < 5)
-          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-    }
-
-  def getCDSParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-    transaction {
-        from(cdsparameters)(p => 
-          where(p.paramdate between (fromDate, toDate) and weekday(p.paramdate) < 5)
-          select(&(p.paramset), &(p.paramdate))).distinct.toSet
-    }
-  
-  def getFXParamDates(fromDate:JavaDate, toDate:JavaDate):Set[JavaDate] = 
-    transaction {
-        from(ratefxparameters)(p =>
-          where(p.paramdate between (fromDate, toDate) and 
-              p.instrument === "FX" and 
-              weekday(p.paramdate) < 5)
-          select(&(p.paramdate))).distinct.toSet
-    }
 
   /**
    * Checks whether the paramset is valid.
@@ -480,22 +413,17 @@ object DB extends Schema {
    * Returns a List of RateFXParameters that falls onto a range of Dates.
    *
    * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param toDate A ending point of Date. Range includes this date.
    * @param instrument An identifier of the instrument.
    * @param asset An identifier of the asset.
    * @param maturity An identifier of the maturity.
    * @return A List of matching RateFXParameters.
    */
-  def getRateFXParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = 
-    transaction {
+  def getRateFXParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = transaction {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramdate  gte fromDate) and
-          (ip.paramdate  lt  toDate) and
+          (ip.paramdate  lte  toDate) and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity and
@@ -505,8 +433,7 @@ object DB extends Schema {
       ).toSet
     }
   
-  def getRateFXParameters(paramset:String):Set[RateFXParameter] =
-  	transaction { 
+  def getRateFXParameters(paramset:String):Set[RateFXParameter] = transaction { 
   	  from(ratefxparameters)(c => 
   	    where(c.paramset === paramset and weekday(c.paramdate) < 5)
   	    select(c)
@@ -514,8 +441,7 @@ object DB extends Schema {
   	}
   
   
-  def getRateFXParameters(on:JavaDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = 
-    transaction {
+  def getRateFXParameters(on:JavaDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = transaction {
       from(ratefxparameters)(ip =>
         where(
           ip.paramdate  === on and
@@ -531,9 +457,7 @@ object DB extends Schema {
   def getRateFXParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = 
     getRateFXParameters(on.longDate, instrument, asset, maturity)
 
-    
-  def getRateFX(paramset:String, instrument:String, asset:String, maturity:String):Option[Double] = 
-    transaction {
+  def getRateFXParameter(paramset:String, instrument:String, asset:String, maturity:String):Option[Double] = transaction {
       from(ratefxparameters)(ip =>
         where(
           ip.paramset === paramset  and
@@ -544,151 +468,14 @@ object DB extends Schema {
         select(&(ip.value))
       ).firstOption
     }
-
-  /**
-   * Returns a List of CDSParameters that falls onto a range of Dates.
-   *
-   * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
-   * @param instrument An identifier of the instrument.
-   * @param maturity An identifier of the maturity.
-   * @param currencyid An identifier of the currency.
-   * @param issuerid An identifier of the issuer.
-   * @return A list of matching CDSParameters.
-   */
-  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String, instrument:String):Set[CDSParameter] = 
-    transaction {
-      from(cdsparameters)(cds =>
-        where(
-          (cds.paramdate  gte fromDate) and
-          (cds.paramdate  lt  toDate) and
-          weekday(cds.paramdate) < 5 and
-          cds.instrument === instrument and
-          cds.maturity   === maturity and
-          cds.issuerid   === issuerid and
-          cds.currencyid === currencyid
-        )
-        select(cds)
-      ).toSet
-    }
   
-  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String):Set[CDSParameter] = 
-    transaction {
-      from(cdsparameters)(cds =>
-        where(
-          (cds.paramdate  gte fromDate) and
-          (cds.paramdate  lt  toDate) and
-          weekday(cds.paramdate) < 5 and
-          cds.maturity   === maturity and
-          cds.issuerid   === issuerid and
-          cds.currencyid === currencyid
-        )
-        select(cds)
-      ).toSet
+  def getRateFXParamSets:Set[(String, JavaDate)] = transaction {
+    from(ratefxparameters)(p => 
+      where (weekday(p.paramdate) < 5)
+      select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
 
-  def getCDSParameters(on:JavaDate, maturity:String, issuerid:String, currencyid:String):Set[CDSParameter] = 
-    transaction {
-      from(cdsparameters)(cds =>
-        where(
-          cds.paramdate  === on and
-          cds.issuerid   === issuerid and
-          cds.currencyid === currencyid and
-          weekday(cds.paramdate) < 5
-        )
-        select(cds)
-      ).toSet
-    }
-
-  def getCDSParameters(paramset:String):Set[CDSParameter] = 
-    transaction {
-        from(cdsparameters)(p => 
-          where(p.paramset === paramset)
-          select(p)
-          ).toSet
-    }
-
-  
-  /**
-   * Returns historical values of RateFX parameter.
-   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
-   *
-   * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
-   * @param instrument An identifier of the instrument.
-   * @param asset An identifier of the asset.
-   * @param maturity An identifier of the maturity.
-   * @return time series of the parameter.
-   */
-  def getTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = 
-    transaction {
-      from(ratefxparameters)(ip =>
-        where(
-          (ip.paramdate gte fromDate) and
-          (ip.paramdate lte toDate) and
-          (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
-          ip.instrument === instrument and
-          ip.asset      === asset and
-          ip.maturity   === maturity
-        )
-        select((&(ip.paramdate), &(ip.value)))
-      ).toMap
-	 }
-  
-  def getTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String):Map[JavaDate, Double] = 
-    transaction {
-      from(ratefxparameters)(ip =>
-        where(
-          (ip.paramdate gte fromDate) and
-          (ip.paramdate lte toDate) and
-          (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
-          ip.instrument === instrument and
-          ip.asset      === asset
-        )
-        select((&(ip.paramdate), &(ip.value)))
-      ).toMap
-	 }
-
-  
-  def getTimeSeries(instrument:String, asset:String):Map[JavaDate, Double] = 
-    transaction {
-      from(ratefxparameters)(ip =>
-        where(
-          (ip.paramset like "%-000") and
-          ip.instrument === instrument and
-          weekday(ip.paramdate) < 5 and
-          ip.asset      === asset
-        )
-        select((&(ip.paramdate), &(ip.value)))
-      ).toMap
-	 }
-  
-  def getTimeSeries(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = 
-    transaction {
-      from(ratefxparameters)(ip =>
-        where(
-          (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
-          ip.instrument === instrument and
-          ip.asset      === asset and
-          ip.maturity   === maturity
-        )
-        select((&(ip.paramdate), &(ip.value)))
-      ).toMap
-	 }
-  
-  def getLatestParam(instrument:String, asset:String, maturity:String, valuedate:JavaDate):Option[(JavaDate, Double)] = 
-    transaction {
+  def getLatestRateFXParamSet(instrument:String, asset:String, maturity:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
@@ -702,8 +489,7 @@ object DB extends Schema {
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
     }
   
-  def getLatestParam(instrument:String, asset:String, valuedate:JavaDate):Option[(JavaDate, Double)] = 
-    transaction {
+  def getLatestRateFXParamSet(instrument:String, asset:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
@@ -716,8 +502,158 @@ object DB extends Schema {
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
 	 }
   
-  def getLatestFX(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = 
-    transaction {
+  /**
+   * Returns historical values of RateFX parameter.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   * @param toDate A ending point of Date. Range includes this date.
+   * @param instrument An identifier of the instrument.
+   * @param asset An identifier of the asset.
+   * @param maturity An identifier of the maturity.
+   * @return time series of the parameter.
+   */
+  def getRateFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramdate gte fromDate) and
+          (ip.paramdate lte toDate) and
+          (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity
+        )
+        select((&(ip.paramdate), &(ip.value)))
+      ).toMap
+	 }
+  
+  def getRateFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String):Map[JavaDate, Double] = transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramdate gte fromDate) and
+          (ip.paramdate lte toDate) and
+          (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
+          ip.instrument === instrument and
+          ip.asset      === asset
+        )
+        select((&(ip.paramdate), &(ip.value)))
+      ).toMap
+	 }
+
+  
+  def getRateFXTimeSeries(instrument:String, asset:String):Map[JavaDate, Double] = transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          weekday(ip.paramdate) < 5 and
+          ip.asset      === asset
+        )
+        select((&(ip.paramdate), &(ip.value)))
+      ).toMap
+	 }
+  
+  def getRateFXTimeSeries(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity
+        )
+        select((&(ip.paramdate), &(ip.value)))
+      ).toMap
+	 }
+  
+  /**
+   * Returns a List of CDSParameters that falls onto a range of Dates.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   * @param toDate A ending point of Date. Range includes this date.
+   * @param instrument An identifier of the instrument.
+   * @param maturity An identifier of the maturity.
+   * @param currencyid An identifier of the currency.
+   * @param issuerid An identifier of the issuer.
+   * @return A list of matching CDSParameters.
+   */
+  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String, instrument:String):Set[CDSParameter] = transaction {
+      from(cdsparameters)(cds =>
+        where(
+          (cds.paramdate  gte fromDate) and
+          (cds.paramdate  lte  toDate) and
+          weekday(cds.paramdate) < 5 and
+          cds.instrument === instrument and
+          cds.maturity   === maturity and
+          cds.issuerid   === issuerid and
+          cds.currencyid === currencyid
+        )
+        select(cds)
+      ).toSet
+    }
+  
+  def getCDSParameters(fromDate:JavaDate, toDate:JavaDate, maturity:String, issuerid:String, currencyid:String):Set[CDSParameter] = transaction {
+      from(cdsparameters)(cds =>
+        where(
+          (cds.paramdate  gte fromDate) and
+          (cds.paramdate  lte  toDate) and
+          weekday(cds.paramdate) < 5 and
+          cds.maturity   === maturity and
+          cds.issuerid   === issuerid and
+          cds.currencyid === currencyid
+        )
+        select(cds)
+      ).toSet
+    }
+
+  def getCDSParameters(on:JavaDate, maturity:String, issuerid:String, currencyid:String):Set[CDSParameter] = transaction {
+      from(cdsparameters)(cds =>
+        where(
+          cds.paramdate  === on and
+          cds.issuerid   === issuerid and
+          cds.currencyid === currencyid and
+          weekday(cds.paramdate) < 5
+        )
+        select(cds)
+      ).toSet
+    }
+
+  def getCDSParameters(paramset:String):Set[CDSParameter] = transaction {
+        from(cdsparameters)(p => where(p.paramset === paramset) select(p)).toSet
+    }
+
+  def getCDSParamSets:Set[(String, JavaDate)] = transaction {
+    from(cdsparameters)(p => 
+      where (weekday(p.paramdate) < 5)
+      select(&(p.paramset), &(p.paramdate))).distinct.toSet
+    }
+
+
+  /**
+   * Returns a List of FXParameters that falls onto a range of Dates.
+   *
+   * @param fromDate A starting point of Date. Range includes this date.
+   * @param toDate A ending point of Date. Range includes this date.
+   * @param currencyid An identifier of the currency.
+   * @return A list of matching FXParameters.
+   */
+  def getFXParamSets:Set[(String, JavaDate)] = transaction {
+    from(fxrates)(p => 
+      where (weekday(p.paramdate) < 5) select(&(p.paramset), &(p.paramdate))).distinct.toSet
+    }
+  
+//  def getFXParamDates(fromDate:JavaDate, toDate:JavaDate):Set[JavaDate] = transaction {
+//    from(ratefxparameters)(p =>
+//      where((p.paramdate gte fromDate) and 
+//          (p.paramdate lte toDate) and 
+//          p.instrument === "FX" and 
+//          weekday(p.paramdate) < 5)
+//      select(&(p.paramdate))).distinct.toSet
+//    }
+  
+  def getLatestFXParamSet(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
       from(fxrates)(ip =>
         where(
           (ip.paramset like "%-000") and
@@ -729,8 +665,7 @@ object DB extends Schema {
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
     }
   
-  def getLatestFX(ccy1:String, ccy2:String, valuedate:JavaDate):Option[(JavaDate, Double)] = 
-	transaction{
+  def getLatestFXParamSet(ccy1:String, ccy2:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction{
       from(fxrates, fxrates)((fx1, fx2) =>
         where(
           (fx1.paramset like "%-000") and
@@ -744,38 +679,23 @@ object DB extends Schema {
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
       }.map(d => (d._1, d._2/d._3))
   
-  def getFX(ccy:String, paramset:String):Option[Double] = 
-    transaction {
+  def getFXParameter(ccy:String, paramset:String):Option[Double] = transaction {
       from(fxrates)(ip =>
-        where(
-          ip.paramset === paramset  and
-          ip.currencyid === ccy
-        )
+        where(ip.paramset === paramset and ip.currencyid === ccy)
         select(&(ip.fxjpy))
       ).firstOption
     }
       
-  def getFX(ccy1:String, ccy2:String, paramset:String):Option[Double] = 
-	  transaction{
-	      from(fxrates, fxrates)((fx1, fx2) =>
-	        where(
-	          (fx1.paramset === paramset) and
-	          (fx2.paramset === paramset) and
-	          (fx1.currencyid === ccy1) and
-	          (fx2.currencyid === ccy2)
-	        )
-	        select((&(fx1.fxjpy), &(fx2.fxjpy)))).firstOption.map(d => d._1 / d._2)
-  		}
-  
-  
-  /**
-   * Returns list of all currencies in the FX database (against JPY).
-   */
-  def getFXlist:Set[String] = 
-    transaction {
-        from(fxrates)(fx => 
-          select(&(fx.currencyid))).distinct.toSet
-    }
+  def getFXParameter(ccy1:String, ccy2:String, paramset:String):Option[Double] = transaction{
+      from(fxrates, fxrates)((fx1, fx2) =>
+        where(
+          fx1.paramset === paramset and 
+          fx2.paramset === paramset and
+          fx1.currencyid === ccy1 and 
+          fx2.currencyid === ccy2
+        )
+        select((&(fx1.fxjpy), &(fx2.fxjpy)))).firstOption.map(d => d._1 / d._2)
+      }
   
   /**
    * Returns historical values of FX spot rate against JPY.
@@ -783,18 +703,16 @@ object DB extends Schema {
    *
    * @return fx1 Currency to be measured in JPY.
    */
-  def getFXTimeSeries(ccy:String):Map[JavaDate, Double] = 
-    transaction {
+  def getFXTimeSeries(ccy:String):Map[JavaDate, Double] = transaction {
       from(fxrates)(fx =>
         where(
           (fx.paramset like "%-000") and
           weekday(fx.paramdate) < 5 and
-          (fx.currencyid === ccy)
+          fx.currencyid === ccy
         )
         select((&(fx.paramdate), &(fx.fxjpy)))
       ).toMap
 	 }
-  
   
   /**
    * Returns historical values of FX spot rate.
@@ -809,9 +727,9 @@ object DB extends Schema {
 		        where(
 		          (fx1.paramset like "%-000") and
 		          weekday(fx1.paramdate) < 5 and
-		          (fx1.paramset === fx2.paramset) and
-		          (fx1.currencyid === currency1) and
-		          (fx2.currencyid === currency2)
+		          fx1.paramset === fx2.paramset and
+		          fx1.currencyid === currency1 and
+		          fx2.currencyid === currency2
 		        )
 		        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
 		        .map(d => (d._1, d._2/d._3))
@@ -831,7 +749,7 @@ object DB extends Schema {
 		        where(
 		        	weekday(p.paramdate) < 5 and
 		            (p.paramset like "%-000") and 
-		            (p.currencyid === c))
+		            p.currencyid === c)
 		        select((&(p.paramdate), &(p.fxjpy)))
 		      ).toMap
 		      )).toMap
@@ -843,11 +761,7 @@ object DB extends Schema {
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param toDate A ending point of Date. Range includes this date.
    * @return fx1 Currency to be measured in JPY.
    */
   def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, currency:String):Map[JavaDate, Double] =
@@ -855,10 +769,10 @@ object DB extends Schema {
       from(fxrates)(fx =>
         where(
           (fx.paramset like "%-000") and
-          (fx.currencyid === currency) and
+          fx.currencyid === currency and
           (fx.paramdate gte fromDate) and
-          weekday(fx.paramdate) < 5 and
-          (fx.paramdate lte toDate)
+          (fx.paramdate lte toDate) and
+          weekday(fx.paramdate) < 5
         )
         select((&(fx.paramdate), &(fx.fxjpy)))
       ).toMap
@@ -869,11 +783,7 @@ object DB extends Schema {
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param toDate A ending point of Date. Range includes this date.
    * @return fx1 Currency to be measured.
    * @return fx2 Measuring currency.
    * 			 For example, fx1 = "USD" & fx2 = "JPY" returns USD/JPY spot rate = around 80.00
@@ -884,42 +794,44 @@ object DB extends Schema {
 		      from(fxrates, fxrates)((fx1, fx2) =>
 		        where(
 		          (fx1.paramset like "%-000") and
-		          (fx1.paramset === fx2.paramset) and
+		          fx1.paramset === fx2.paramset and
 		          (fx1.paramdate gte fromDate) and
 		          (fx1.paramdate lte toDate) and
 		          weekday(fx1.paramdate) < 5 and
-		          (fx1.currencyid === currency1) and
-		          (fx2.currencyid === currency2)
+		          fx1.currencyid === currency1 and
+		          fx2.currencyid === currency2
 		        )
 		        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
 		        .map(d => (d._1, d._2/d._3))
 		      }.toMap
 
   /**
+   * Returns list of all currencies in the FX database (against JPY).
+   */
+  def getFXlist:Set[String] = transaction {
+    from(fxrates)(fx => select(&(fx.currencyid))).distinct.toSet
+    }
+		      
+  /**
    * Returns historical values of CDS.
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param toDate A ending point of Date. Range includes this date.
    * @return currencyid CDS quotation currency. eg. "USD"
    * @return issuerid Issuer id. eg. "ADB"
    * @return maturity CDS maturity. eg. "6M" or "5Y"
    */
-  def getCDSTimeSeries(fromDate:JavaDate, toDate:JavaDate, currencyid:String, issuerid:String, maturity:String):Map[JavaDate, Double] = 
-    transaction {
+  def getCDSTimeSeries(fromDate:JavaDate, toDate:JavaDate, currencyid:String, issuerid:String, maturity:String):Map[JavaDate, Double] = transaction {
       from(cdsparameters)(ip =>
         where(
           (ip.paramdate gte fromDate) and
           (ip.paramdate lte toDate) and
           (ip.paramset like "%-000") and
           weekday(ip.paramdate) < 5 and
-          ip.issuerid      === issuerid and
-          ip.currencyid      === currencyid and
-          ip.maturity   === maturity
+          ip.issuerid === issuerid and
+          ip.currencyid === currencyid and
+          ip.maturity === maturity
         )
         select((&(ip.paramdate), &(ip.spread)))
       ) toMap
@@ -930,15 +842,10 @@ object DB extends Schema {
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param toDate A ending point of Date. Range includes this date.
    * @return bondid Bond id. eg. "ADB-00001"
    */
-  def getPriceTimeSeries(bondid:String):Map[JavaDate, Double] = 
-    transaction {
+  def getPriceTimeSeries(bondid:String):Map[JavaDate, Double] = transaction {
       from(bondprices)(bp =>
         where(
           (bp.paramset like "%-000") and
@@ -955,15 +862,10 @@ object DB extends Schema {
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param toDate A ending point of Date. Range includes this date.
    * @return bondid Bond id. eg. "ADB-00001"
    */
-  def getPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):Map[JavaDate, Double] = 
-    transaction {
+  def getPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):Map[JavaDate, Double] = transaction {
       from(bondprices)(bp =>
         where(
           (bp.paramdate gte start) and
@@ -986,17 +888,12 @@ object DB extends Schema {
    * It only returns prices for dates which JPY price is defined.
    *
    * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param toDate A ending point of Date. Range includes this date.
    * @param bondid target bond id
    * @param defaultfx default fx value in case JPY price is not available for all currencies
    * @return bondid Bond id. eg. "ADB-00001"
    */
-  def getJPYPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):Map[JavaDate, Double] = 
-    transaction {
+  def getJPYPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):Map[JavaDate, Double] = transaction {
       from(bondprices)(bp =>
         where(
           (bp.paramdate gte start) and
@@ -1020,8 +917,7 @@ object DB extends Schema {
    * @param fx	
    * @return bondid Bond id. eg. "ADB-00001"
    */
-  def getJPYPriceTimeSeries(bondid:String, basefx:Double):Map[JavaDate, Double] = 
-    transaction {
+  def getJPYPriceTimeSeries(bondid:String, basefx:Double):Map[JavaDate, Double] = transaction {
       val quoteccy = from(bonds)(b => 
         where (b.id === bondid)
         select (&(b.currencyid))
@@ -1049,18 +945,13 @@ object DB extends Schema {
    * It returns prices for dates which price in original currency is defined.
    *
    * @param fromDate A starting point of Date. Range includes this date.
-   *                   For example, when you specify this to be Jan 1st, 2012, look-up condition includes Jan 1st, 2012.
-   *                   To be concise, the operator used for fromDate in where-clause is "greater than equal."
-   * @param toDate A ending point of Date. Range does not include this date.
-   *                 For example, when you specify this to be Jan, 2nd, 2012, look-up condition includes something like 2012-01-01 23:59:59.99999999 etc.
-   *                 To be concise, the operator used for toDate in where-clause is "less than."
+   * @param toDate A ending point of Date. Range includes this date.
    * @param bondid target bond id
    * @param defaultfx default fx value in case JPY price is not available for all currencies
    * @param fx	
    * @return bondid Bond id. eg. "ADB-00001"
    */
-  def getJPYPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String, basefx:Double):Map[JavaDate, Double] = 
-    transaction {
+  def getJPYPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String, basefx:Double):Map[JavaDate, Double] = transaction {
       val quoteccy = from(bonds)(b => 
         where (b.id === bondid)
         select (&(b.currencyid))

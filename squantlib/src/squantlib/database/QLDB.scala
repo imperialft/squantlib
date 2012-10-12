@@ -61,9 +61,11 @@ object QLDB {
 	}
 	
 	def getBonds:Set[QLBond] = bondsConstructor(DB.getBonds, null)
+	def getBonds(bonds:Set[dbBond]):Set[QLBond] = bondsConstructor(bonds, null)
 	def getBonds(id:Traversable[String]):Set[QLBond] = bondsConstructor(DB.getBonds(id), null)
 	def getBonds(factory:DiscountCurveFactory):Set[QLBond] = bondsConstructor(DB.getBonds, factory)
 	def getBonds(id:Traversable[String], factory:DiscountCurveFactory):Set[QLBond] = bondsConstructor(DB.getBonds(id), factory)
+	def getBonds(bonds:Set[dbBond], factory:DiscountCurveFactory):Set[QLBond] = bondsConstructor(bonds, factory)
 	
 	def getBonds(ids:Traversable[String], builder:dbBond => Option[QLBond], pricingengine:QLBond => PricingEngine, valuedate:qlDate):Set[QLBond] = {
 		val qlbonds:Set[QLBond] = DB.getBonds(ids).map(builder).flatMap(b => b)
@@ -82,8 +84,8 @@ object QLDB {
     * @param asset Underlying asset, usually a currency
     * @param maturity Maturity of the target rate, such as "5Y" or "6M"
     */
-	def getTimeSeries(fromDate:qlDate, toDate:qlDate, instrument:String, asset:String, maturity:String):TimeSeries[JavaDouble] = 
-	  DB.getTimeSeries(fromDate.longDate, toDate.longDate, instrument, asset, maturity).toTimeSeries
+	def getRateFXTimeSeries(fromDate:qlDate, toDate:qlDate, instrument:String, asset:String, maturity:String):TimeSeries[JavaDouble] = 
+	  DB.getRateFXTimeSeries(fromDate.longDate, toDate.longDate, instrument, asset, maturity).toTimeSeries
 	
    /**
     * Returns time series for FX parameters.
@@ -105,7 +107,7 @@ object QLDB {
     * @param maturity CDS maturity
     */
 	def getCDSTimeSeries(fromDate:qlDate, toDate:qlDate, currencyid:String, issuerid:String, maturity:String):TimeSeries[JavaDouble] = 
-	  DB.getTimeSeries(fromDate.longDate, toDate.longDate, currencyid, issuerid, maturity).toTimeSeries
+	  DB.getCDSTimeSeries(fromDate.longDate, toDate.longDate, currencyid, issuerid, maturity).toTimeSeries
 	  
 }
 
