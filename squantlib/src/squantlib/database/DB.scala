@@ -3,17 +3,17 @@ package squantlib.database
 import java.sql.{Timestamp, Time, DriverManager}
 import com.mysql.jdbc.Driver
 import com.mchange.v2.c3p0._
+import org.squeryl.dsl.{TypedExpression, TDate, TInt, TypedExpressionFactory}
+import org.squeryl.dsl.ast.FunctionNode
 import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory, Schema}
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.{KeyedEntity, Table}
 import squantlib.database.schemadefinitions._
 import scala.collection.mutable.{MutableList, StringBuilder}
-//import scala.collection.immutable.TreeMap
-//import scala.collection.SortedMap
 import org.jquantlib.time.{Date => JQuantDate}
 import java.io.{File, FileWriter, BufferedWriter}
-import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
+import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID, GregorianCalendar}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
 
@@ -411,51 +411,60 @@ object DB extends Schema {
   /**
    * Returns paramsets for each database.
    **/
+  
+  
+  
+  def weekday(b: TypedExpression[java.util.Date,TDate])
+  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
+  
   def getFXParamSets:Set[(String, JavaDate)] = 
     transaction {
         from(fxrates)(p => 
+          where (weekday(p.paramdate) < 5)
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
   def getFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
         from(fxrates)(p =>
-          where(p.paramdate between (fromDate, toDate))
+          where(p.paramdate between (fromDate, toDate) and weekday(p.paramdate) < 5)
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
   def getRateFXParamSets:Set[(String, JavaDate)] = 
     transaction {
         from(ratefxparameters)(p => 
+          where (weekday(p.paramdate) < 5)
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
   def getRateFXParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
         from(ratefxparameters)(p =>
-          where(p.paramdate between (fromDate, toDate))
+          where(p.paramdate between (fromDate, toDate) and weekday(p.paramdate) < 5)
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
   def getCDSParamSets:Set[(String, JavaDate)] = 
     transaction {
         from(cdsparameters)(p => 
+          where (weekday(p.paramdate) < 5)
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
 
   def getCDSParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     transaction {
         from(cdsparameters)(p => 
-          where(p.paramdate between (fromDate, toDate))
+          where(p.paramdate between (fromDate, toDate) and weekday(p.paramdate) < 5)
           select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
   def getFXParamDates(fromDate:JavaDate, toDate:JavaDate):Set[JavaDate] = 
     transaction {
         from(ratefxparameters)(p =>
-          where(
-              (p.paramdate between (fromDate, toDate)) and
-              (p.instrument === "FX"))
+          where(p.paramdate between (fromDate, toDate) and 
+              p.instrument === "FX" and 
+              weekday(p.paramdate) < 5)
           select(&(p.paramdate))).distinct.toSet
     }
 
@@ -489,7 +498,8 @@ object DB extends Schema {
           (ip.paramdate  lt  toDate) and
           ip.instrument === instrument and
           ip.asset      === asset and
-          ip.maturity   === maturity
+          ip.maturity   === maturity and
+          weekday(ip.paramdate) < 5
         )
         select(ip)
       ).toSet
@@ -498,7 +508,7 @@ object DB extends Schema {
   def getRateFXParameters(paramset:String):Set[RateFXParameter] =
   	transaction { 
   	  from(ratefxparameters)(c => 
-  	    where(c.paramset === paramset)
+  	    where(c.paramset === paramset and weekday(c.paramdate) < 5)
   	    select(c)
   	    ).toSet
   	}
@@ -509,6 +519,7 @@ object DB extends Schema {
       from(ratefxparameters)(ip =>
         where(
           ip.paramdate  === on and
+          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity
@@ -555,6 +566,7 @@ object DB extends Schema {
         where(
           (cds.paramdate  gte fromDate) and
           (cds.paramdate  lt  toDate) and
+          weekday(cds.paramdate) < 5 and
           cds.instrument === instrument and
           cds.maturity   === maturity and
           cds.issuerid   === issuerid and
@@ -570,6 +582,7 @@ object DB extends Schema {
         where(
           (cds.paramdate  gte fromDate) and
           (cds.paramdate  lt  toDate) and
+          weekday(cds.paramdate) < 5 and
           cds.maturity   === maturity and
           cds.issuerid   === issuerid and
           cds.currencyid === currencyid
@@ -584,7 +597,8 @@ object DB extends Schema {
         where(
           cds.paramdate  === on and
           cds.issuerid   === issuerid and
-          cds.currencyid === currencyid
+          cds.currencyid === currencyid and
+          weekday(cds.paramdate) < 5
         )
         select(cds)
       ).toSet
@@ -621,6 +635,7 @@ object DB extends Schema {
           (ip.paramdate gte fromDate) and
           (ip.paramdate lte toDate) and
           (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity
@@ -636,6 +651,7 @@ object DB extends Schema {
           (ip.paramdate gte fromDate) and
           (ip.paramdate lte toDate) and
           (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset
         )
@@ -650,6 +666,7 @@ object DB extends Schema {
         where(
           (ip.paramset like "%-000") and
           ip.instrument === instrument and
+          weekday(ip.paramdate) < 5 and
           ip.asset      === asset
         )
         select((&(ip.paramdate), &(ip.value)))
@@ -661,6 +678,7 @@ object DB extends Schema {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity
@@ -675,6 +693,7 @@ object DB extends Schema {
         where(
           (ip.paramset like "%-000") and
           ip.instrument === instrument and
+          weekday(ip.paramdate) < 5 and
           ip.asset      === asset and
           ip.maturity   === maturity and
           (ip.paramdate lte valuedate)
@@ -688,6 +707,7 @@ object DB extends Schema {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset and
           (ip.paramdate lte valuedate)
@@ -701,6 +721,7 @@ object DB extends Schema {
       from(fxrates)(ip =>
         where(
           (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
           (ip.paramdate lte valuedate) and
           ip.currencyid === ccy
         )
@@ -714,6 +735,7 @@ object DB extends Schema {
         where(
           (fx1.paramset like "%-000") and
           (fx1.paramdate lte valuedate) and
+          weekday(fx1.paramdate) < 5 and
           (fx1.paramset === fx2.paramset) and
           (fx1.currencyid === ccy1) and
           (fx2.currencyid === ccy2) 
@@ -766,6 +788,7 @@ object DB extends Schema {
       from(fxrates)(fx =>
         where(
           (fx.paramset like "%-000") and
+          weekday(fx.paramdate) < 5 and
           (fx.currencyid === ccy)
         )
         select((&(fx.paramdate), &(fx.fxjpy)))
@@ -785,6 +808,7 @@ object DB extends Schema {
 		      from(fxrates, fxrates)((fx1, fx2) =>
 		        where(
 		          (fx1.paramset like "%-000") and
+		          weekday(fx1.paramdate) < 5 and
 		          (fx1.paramset === fx2.paramset) and
 		          (fx1.currencyid === currency1) and
 		          (fx2.currencyid === currency2)
@@ -805,6 +829,7 @@ object DB extends Schema {
 	        (c, 
 		      from(fxrates)(p =>
 		        where(
+		        	weekday(p.paramdate) < 5 and
 		            (p.paramset like "%-000") and 
 		            (p.currencyid === c))
 		        select((&(p.paramdate), &(p.fxjpy)))
@@ -832,6 +857,7 @@ object DB extends Schema {
           (fx.paramset like "%-000") and
           (fx.currencyid === currency) and
           (fx.paramdate gte fromDate) and
+          weekday(fx.paramdate) < 5 and
           (fx.paramdate lte toDate)
         )
         select((&(fx.paramdate), &(fx.fxjpy)))
@@ -861,6 +887,7 @@ object DB extends Schema {
 		          (fx1.paramset === fx2.paramset) and
 		          (fx1.paramdate gte fromDate) and
 		          (fx1.paramdate lte toDate) and
+		          weekday(fx1.paramdate) < 5 and
 		          (fx1.currencyid === currency1) and
 		          (fx2.currencyid === currency2)
 		        )
@@ -889,6 +916,7 @@ object DB extends Schema {
           (ip.paramdate gte fromDate) and
           (ip.paramdate lte toDate) and
           (ip.paramset like "%-000") and
+          weekday(ip.paramdate) < 5 and
           ip.issuerid      === issuerid and
           ip.currencyid      === currencyid and
           ip.maturity   === maturity

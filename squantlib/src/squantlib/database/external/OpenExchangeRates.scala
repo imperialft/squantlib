@@ -99,8 +99,6 @@ object OpenExchangeRates {
 	  cal.setTime(date)
 	  cal
 	}
-	  
-		
 }
 
 
