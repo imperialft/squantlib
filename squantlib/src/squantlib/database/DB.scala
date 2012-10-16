@@ -208,11 +208,15 @@ object DB extends Schema {
   
   def getLatestBondPriceParam:Option[(String, JavaDate)] = getPricedParamSets match {
     case s if s.isEmpty => None
-    case s => Some(s.maxBy(_._2))
+    case s => Some(s.maxBy(_._2)) 
   }
   
   def getPricedBondIDs:Set[String] = transaction {
       from(bondprices)(b => select(&(b.bondid))).distinct.toSet
+    }
+  
+  def getPricedBondIDs(paramset:String):Set[String] = transaction {
+      from(bondprices)(b => where(b.paramset === paramset) select(&(b.bondid))).distinct.toSet
     }
   
   /**
@@ -395,7 +399,7 @@ object DB extends Schema {
     getParamSets.filter{case (pset, pdate) => (pdate >= fromDate && pdate <= toDate)}
     
   def getParamSetsAfter(basedate:JavaDate):Set[(String, JavaDate)] = 
-    getParamSets.filter{case (pset, pdate) => pdate >= basedate}
+    getParamSets.filter{case (pset, pdate) => pdate > basedate}
   
   def getLatestParamSet:(String, JavaDate) = getParamSets.maxBy(_._2)
   

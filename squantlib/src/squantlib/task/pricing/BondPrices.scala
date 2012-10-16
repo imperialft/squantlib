@@ -6,7 +6,8 @@ import squantlib.database.schemadefinitions.{ Bond => dbBond, _}
 import squantlib.database.objectconstructor._
 import squantlib.model.discountcurve._
 import squantlib.instruments.bonds.{JGBFloatBond, JGBFixedBond}
-import squantlib.setting.PricingConvention.priceFrom
+import squantlib.setting.PricingConvention.{bondPriceFrom, priceFrom}
+//import squantlib.setting.PricingConvention
 import org.jquantlib.time._
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.bonds.FixedRateBond
@@ -45,17 +46,22 @@ object BondPrices {
 		}
 	}
    
-  def notPricedBonds:Set[String] = {
+  def notPricedBonds():Set[String] = 
     DB.getLatestBondPriceParam match {
       case None => Set.empty // Empty bond price
-      case Some((pset, pdate)) => {
-		val factory = QLDB.getDiscountCurveFactory(pset).orNull
-		val priceablebonds = QLDB.getBonds(factory).filter(b => b.isPriceable)
-		val pricedbonds = DB.getPricedBondIDs
-		priceablebonds.filter(b => !pricedbonds.contains(b.bondid)).map(_.bondid)
-      }
-    }
-    
+      case Some((pset, pdate)) => notPricedBonds(pset) 
+  }
+  
+  def notPricedBonds(paramset:String):Set[String] = {
+	val factory:DiscountCurveFactory = QLDB.getDiscountCurveFactory(paramset).orNull
+	val priceablebonds = QLDB.getBonds(factory).filter(b => {
+	  bondPriceFrom(b) match {
+	  case None => b.isPriceable
+	  case Some(d) => b.isPriceable && factory.valuedate.ge(d)
+	}})
+	
+	val pricedbonds = DB.getPricedBondIDs(paramset = paramset)
+	priceablebonds.filter(b => !pricedbonds.contains(b.bondid)).map(_.bondid)
   }
   
   def notPricedParams:Set[(String, JavaDate)] = DB.getLatestBondPriceParam match {
@@ -64,33 +70,43 @@ object BondPrices {
   }
   
   def notPricedParams(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-    DB.getParamSets.filter(d => d._2.before(toDate) && d._2.after(fromDate))
-  
-  def updateNewDates:Unit = 
+    DB.getParamSets.filter(d => !d._2.after(toDate) && !d._2.before(fromDate))
+
+  def updateNewDates:Unit = updateNewDates(false)
+    
+  def updateNewDates(par:Boolean):Unit = 
     notPricedParams match {
       case params if params.isEmpty => {}
-      case params => params.foreach(p => price(p._1))
+      case params => if (par) params.par.foreach(p => quickprice(p._1))
+    		  		else params.foreach(p => quickprice(p._1))
     }
     
-  def updateNewDates(fromDate:JavaDate, toDate:JavaDate):Unit = 
-    notPricedParams(fromDate, toDate) match {
-      case params if params.isEmpty => {}
-      case params => params.foreach(p => price(p._1))
-    }
+  def updateNewDates(fromDate:JavaDate, toDate:JavaDate, par:Boolean = false):Unit = {
+    val params = notPricedParams(fromDate, toDate)
+    val bonds = notPricedBonds(params.minBy(_._2)._1) | notPricedBonds(params.maxBy(_._2)._1)
     
-  def updateNewDates_par:Unit = 
-    notPricedParams match {
-      case params if params.isEmpty => {}
-      case params => params.par.foreach(p => price(p._1))
-    }
-  
-  def updateNewDates_par(fromDate:JavaDate, toDate:JavaDate):Unit = 
     notPricedParams(fromDate, toDate) match {
       case params if params.isEmpty => {}
-      case params => params.par.foreach(p => price(p._1))
+      case params => if (par) params.par.foreach(p => quickprice(p._1, bonds))
+    		  		else params.foreach(p => quickprice(p._1, bonds))
     }
+  }
   
-  def updateNewBonds:Unit = {
+  def updateNewDates_noJGB(fromDate:JavaDate, toDate:JavaDate, par:Boolean = false):Unit = {
+    val params = notPricedParams(fromDate, toDate)
+    val startbonds = notPricedBonds(params.minBy(_._2)._1).filter(b => !b.contains("JGB"))
+    val endbonds = notPricedBonds(params.maxBy(_._2)._1).filter(b => !b.contains("JGB"))
+    val bonds = startbonds | endbonds
+    println("#bonds: start:" + startbonds.size + " end:" + endbonds.size + " compute:" + bonds.size + " bonds")
+    
+    notPricedParams(fromDate, toDate) match {
+      case params if params.isEmpty => {}
+      case params => if (par) params.par.foreach(p => quickprice(p._1, bonds))
+    		  		else params.foreach(p => quickprice(p._1, bonds))
+    }
+  }
+  
+  def updateNewBonds(par:Boolean = false):Unit = {
     if (notPricedBonds.isEmpty) return
     val bonds = DB.getBonds(notPricedBonds)
     val startdates = bonds.map(priceFrom).flatMap(s => s)
@@ -98,19 +114,36 @@ object BondPrices {
 	val dates = DB.getParamSetsAfter(startdates.min)
 	val notpriced = notPricedBonds
 	setcount(0)
-	if (!dates.isEmpty) dates.foreach(d => price(d._1, notpriced))
+	if (!dates.isEmpty) {
+		if (par) dates.par.foreach(d => quickprice(d._1, notpriced))
+		else dates.foreach(d => quickprice(d._1, notpriced))
+	}
   }
   
-  def updateNewBonds_par:Unit = {
-    if (notPricedBonds.isEmpty) return
-    val bonds = DB.getBonds(notPricedBonds)
-    val startdates = bonds.map(priceFrom).flatMap(s => s)
-    if (startdates.isEmpty) return
-	val dates = DB.getParamSetsAfter(startdates.min)
-	val notpriced = notPricedBonds
-	counter = 0
-	if (!dates.isEmpty) dates.foreach(d => price(d._1, notpriced))
+  def quickprice(paramset:String):Unit = quickprice(paramset, null)
+  
+  def quickprice(paramset:String, bondid:Set[String]):Unit = {
+	val factory = QLDB.getDiscountCurveFactory(paramset).orNull
+	if (factory == null || factory.curves.size == 0) {
+	  println("Factory not found - " + paramset) 
+	  return
+	}
+	
+	val bonds:Set[QLBond] = if (bondid == null) QLDB.getBonds(factory) 
+							else QLDB.getBonds(bondid, factory)
+	
+	val bondprices = bonds.map{ b => {
+	 b.bondprice(factory) match {
+	   case p if p.pricedirty.isNaN => null
+	   case p => {println(p); p}
+	   }
+	 }
+	}.filter(_ != null)
+	
+	storedprice ++= bondprices
+	addcount
   }
+  
   
   def price(paramsets:Set[String]):Unit = price(paramsets, null)
   
@@ -120,7 +153,6 @@ object BondPrices {
   } 
   
   def price(paramset:String):Unit = price(paramset, null.asInstanceOf[Set[String]])
-  
     
   def price(paramset:String, bondid:Set[String]):Unit = {
     var outputstring = ""
@@ -162,7 +194,7 @@ object BondPrices {
 	
 	if (dbbonds.isEmpty) loadbonds
 	val bondlist = bonds.map(b => (b.bondid, b)).toMap;
-	val fixedratebonds:Map[String, FixedRateBond] = bonds.collect { case b:FixedRateBond => (b.bondid, b)}.toMap;
+//	val fixedratebonds:Map[String, FixedRateBond] = bonds.collect { case b:FixedRateBond => (b.bondid, b)}.toMap;
 	val pricelist = bondprices.filter(p => !p.pricedirty.isNaN).map(p => (p.bondid, p)).toMap;
 	val bond_product:Map[String, String] = dbbonds.map(b => (b._1, b._2.productid)).toMap;
 	
@@ -238,7 +270,7 @@ object BondPrices {
 		}
 	}
   
-  def updateJGBR_par:Unit = {
+  def updateJGBR(par:Boolean = false):Unit = {
     println("searching not priced bonds")
 	val notpriced = notPricedBonds.filter(_.contains("JGBR"))
     if (notpriced.isEmpty) return
@@ -287,8 +319,9 @@ object BondPrices {
 	val t2 = System.nanoTime
     println("\n" + bondid + " - created " + bondprices.size + " prices - ")	
 	println("%.3f sec".format(((t2 - t1)/1000000000.0)))
-	push(bondprices)
-	addcount
+	storedprice ++= bondprices
+//	push(bondprices)
+//	addcount
   }
  
 }

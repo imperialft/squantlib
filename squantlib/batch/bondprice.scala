@@ -68,7 +68,7 @@ println("bondlist:\t list of all bonds")
 val bondlist = bonds.map(b => (b.bondid, b)).toMap;
 
 println("fixedratebonds:\t list of all fixed rate bonds")
-val fixedratebonds:Map[String, FixedRateBond] = bonds.map(bond => bond match { case b:FixedRateBond => (b.bondid, b); case _ => null}).filter(b => b != null).toMap;
+val fixedratebonds:Map[String, FixedRateBond] = bonds.collect { case b:FixedRateBond => (b.bondid, b)}).toMap;
 
 println("pricelist:\t list of valid bond price")
 val pricelist = bondprices.filter(p => !p.pricedirty.isNaN).map(p => (p.bondid, p)).toMap;

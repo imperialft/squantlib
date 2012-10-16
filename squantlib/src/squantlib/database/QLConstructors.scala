@@ -54,7 +54,7 @@ object QLConstructors {
 	  def bondprice(valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure):BondPrice 
 			= BondPrice(bond, valuedate, fx, paramset, termstructure)
 			
-	  def isPriceable = {
+	  def isPriceable:Boolean = {
 	    val estream = new java.io.PrintStream(new java.io.OutputStream{
 	    	override def write(b:Int) = {}})
 	    val err = System.err

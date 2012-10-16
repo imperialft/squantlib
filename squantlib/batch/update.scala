@@ -10,10 +10,15 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
  * Update Coupons
 */
 {
-	val bonds = DB.getCouponMissingBonds
-	val coupons = bonds.map(_.getCoupons).filter(_ != null).flatten
-	if (!coupons.isEmpty) DB.insertOrUpdate(coupons, false)
+//	val bonds = DB.getCouponMissingBonds
+//	val coupons = bonds.map(_.getCoupons).filter(_ != null).flatten
+//	if (!coupons.isEmpty) DB.insertOrUpdate(coupons, false)
+  Coupons.initialize
+  Coupons.update
+  Coupons.push
 }
+
+//System.setErr(new PrintStream(new FileOutputStream("log/javaexceptions.log"))); BondPrices.updateJGBR_par(100);
 
 /** 
  * Update Bond Price
@@ -24,18 +29,22 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 	val pricestream = new FileOutputStream("log/bondprice.log")
 	System.setErr(new PrintStream(new FileOutputStream("log/javaexceptions.log")))
     
-    if (BondPrices.notPricedParams.isEmpty) println("No new paramters")
+	val notpricedparam = BondPrices.notPricedParams
+    if (notpricedparam.isEmpty) println("No new paramters")
 	else {
 	  println("Found new parameters") 
-	  BondPrices.notPricedParams.foreach(println)
-	  Console.withOut(pricestream){ BondPrices.updateNewDates_par }
+	  notpricedparam.foreach(println)
+	  Console.withOut(pricestream){ BondPrices.updateNewDates(true) }
 	}
 	
-    if (BondPrices.notPricedBonds.isEmpty) println("No new bonds")
+    val notpricedbonds = BondPrices.notPricedBonds
+    if (notpricedbonds.isEmpty) println("No new bonds")
     else {
       println("Found new bonds")
-      BondPrices.notPricedBonds.foreach(println)
-      Console.withOut(pricestream){ BondPrices.updateNewBonds_par }
+      notpricedbonds.foreach(println)
+      Console.withOut(pricestream){ 
+        BondPrices.updateNewBonds(true)
+        }
     }
 	
 	System.setErr(System.err)
