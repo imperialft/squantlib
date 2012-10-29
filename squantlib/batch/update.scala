@@ -13,6 +13,7 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 //	val bonds = DB.getCouponMissingBonds
 //	val coupons = bonds.map(_.getCoupons).filter(_ != null).flatten
 //	if (!coupons.isEmpty) DB.insertOrUpdate(coupons, false)
+  println("Checking new Coupons")
   Coupons.initialize
   Coupons.update
   Coupons.push
@@ -25,7 +26,7 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 */
 
 {
-    println("Bond Price:")
+    println("\nBond Price:")
 	val pricestream = new FileOutputStream("log/bondprice.log")
 	System.setErr(new PrintStream(new FileOutputStream("log/javaexceptions.log")))
     
@@ -105,7 +106,7 @@ val enddate = new JavaGCalendar(2020, JavaCalendar.DECEMBER, 30).getTime
 	if (Correlations.updated) println("=> Correlation is up-to-date")
 	else{
 	  val correlstream = new java.io.FileOutputStream("log/correlation.log")
-	  println("=> Update - Replace price " + Correlations.lastDate + " by " + Correlations.defaultValueDate)
+	  println("=> Update - Replace price " + Correlations.lastDate.orNull + " by " + Correlations.defaultValueDate)
 	  DB.empty(DB.correlations)
 	  Console.withOut(correlstream){
 		Correlations.pricefxfx(nbDays)

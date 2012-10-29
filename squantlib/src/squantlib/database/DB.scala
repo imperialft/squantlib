@@ -853,7 +853,7 @@ object DB extends Schema {
       from(bondprices)(bp =>
         where(
           (bp.paramset like "%-000") and
-          bp.instrument === "BONDPRICE" and
+//          bp.instrument === "BONDPRICE" and
           bp.bondid      === bondid and
           bp.priceclean.isNotNull
         )
@@ -875,7 +875,7 @@ object DB extends Schema {
           (bp.paramdate gte start) and
           (bp.paramdate lte end) and
           (bp.paramset like "%-000") and
-          bp.instrument === "BONDPRICE" and
+//          bp.instrument === "BONDPRICE" and
           bp.bondid      === bondid and
           bp.priceclean.isNotNull
         )
@@ -903,7 +903,7 @@ object DB extends Schema {
           (bp.paramdate gte start) and
           (bp.paramdate lte end) and
           (bp.paramset like "%-000") and
-          bp.instrument === "BONDPRICE" and
+//          bp.instrument === "BONDPRICE" and
           bp.bondid      === bondid and
           bp.priceclean_jpy.isNotNull
         )
@@ -931,7 +931,7 @@ object DB extends Schema {
       else from(bondprices, fxrates)((bp, fx) =>
 	        where(
 	          bp.paramset like "%-000" and
-	          bp.instrument === "BONDPRICE" and
+//	          bp.instrument === "BONDPRICE" and
 	          bp.bondid      === bondid and
 	          bp.priceclean.isNotNull and
 	          fx.currencyid === quoteccy and
@@ -965,7 +965,7 @@ object DB extends Schema {
       else from(bondprices, fxrates)((bp, fx) =>
 	        where(
 	          bp.paramset like "%-000" and
-	          bp.instrument === "BONDPRICE" and
+//	          bp.instrument === "BONDPRICE" and
 	          (bp.paramdate gte start) and
 	          (bp.paramdate lte end) and
 	          bp.bondid      === bondid and

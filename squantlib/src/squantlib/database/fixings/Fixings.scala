@@ -19,7 +19,8 @@ object Fixings {
 	def contains(s:String):Boolean = mapper.contains(s)
 	def keySet:Set[String] = mapper.keySet
   
-  	val cmtMap:Map[String, JavaDate => Option[(JavaDate, Double)]] = Map("CMT10" -> ((d:JavaDate) => DB.getLatestRateFXParamSet("Fixing", "JGBY", "10Y", d)))
+  	val cmtMap:Map[String, JavaDate => Option[(JavaDate, Double)]] = 
+  	  Map("CMT10" -> ((d:JavaDate) => DB.getLatestRateFXParamSet("Fixing", "JGBY", "10Y", d)))
   	
   	val currencySet = Currencies.keySet
   

@@ -55,7 +55,12 @@ object Coupon {
 			  if (!varfixings.forall(_._2.isDefined)) (None, null)
 			  else {
 			    val fixedrate = Some(interpreter.price(varfixings.mapValues(_.get._2)))
-			    val cmt:String = (if (cpn.comment == null) "" else cpn.comment) + varfixings.map{case (k, v) => k + "=" + "%.4f".format(v.get)}.mkString(", ")
+			    val cmt:String = (if (cpn.comment == null) "" else cpn.comment) + 
+			    		varfixings.map{
+			    			case (k, Some((v1, v2))) => k + "=" + "%.4f".format(v2)
+			    			case (k, None) => ""
+			    			}.mkString(", ")
+			    println(cpn.bondid + " " + cpn.eventdate + " " + cpn.rate + " fixed:" + fixedrate.collect{case v => "%.4f".format(v)}.orNull + " " + cmt)
 				(fixedrate, cmt)
 			  }
 		  }

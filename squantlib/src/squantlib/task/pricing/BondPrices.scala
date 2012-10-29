@@ -272,7 +272,7 @@ object BondPrices {
   
   def updateJGBR(par:Boolean = false):Unit = {
     println("searching not priced bonds")
-	val notpriced = notPricedBonds.filter(_.contains("JGBR"))
+	val notpriced = notPricedBonds.filter(_.contains("JGB"))
     if (notpriced.isEmpty) return
     notpriced.foreach(println)
 	counter = 0
@@ -319,9 +319,9 @@ object BondPrices {
 	val t2 = System.nanoTime
     println("\n" + bondid + " - created " + bondprices.size + " prices - ")	
 	println("%.3f sec".format(((t2 - t1)/1000000000.0)))
-	storedprice ++= bondprices
-//	push(bondprices)
-//	addcount
+//	storedprice ++= bondprices
+	push(bondprices)
+	addcount
   }
  
 }
