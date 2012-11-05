@@ -38,7 +38,7 @@ object Coupons {
   def definedCoupons(d:JavaDate) = DB.getDefinedCoupons(d)
   
   def initialize = {
-    storedprice ++= couponMissingBonds.map(_.getCoupons).flatten
+    storedprice ++= couponMissingBonds.map(Coupon(_)).flatten
   }
   
   def update(forceUpdate:Boolean):Unit = {
