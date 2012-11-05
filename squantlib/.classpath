@@ -15,6 +15,6 @@
 	<classpathentry kind="lib" path="lib/squeryl_2.9.2-0.9.6-SNAPSHOT-20120713-hama.jar"/>
 	<classpathentry kind="lib" path="lib/mchange-commons-java-0.2.2.jar"/>
 	<classpathentry kind="lib" path="lib/c3p0-0.9.2-pre4.jar" sourcepath="C:/Users/Katsu/.m2/repository/com/mchange/c3p0/0.9.2-pre4/c3p0-0.9.2-pre4-sources.jar"/>
-	<classpathentry kind="lib" path="lib/jackson-all-1.9.10.jar"/>
+	<classpathentry kind="lib" path="jackson-all-1.9.10.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
