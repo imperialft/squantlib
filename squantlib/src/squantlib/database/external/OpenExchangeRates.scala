@@ -22,6 +22,7 @@ object OpenExchangeRates {
 	val LATEST = "latest.json"
 	val HISTORICAL:String = "historical/%04d-%02d-%02d.json"
 	val TIMESTAMP = "timestamp"
+	var appid:String = null
 	  
 	private def CalendarToUrl(date:Calendar):String = {
 		val day = date.get(Calendar.DAY_OF_MONTH)
@@ -46,8 +47,9 @@ object OpenExchangeRates {
 	
 	def downloadExchangeRates(downloadPath:String, currencies:Set[String]):Option[(JavaDate, Map[String, BigDecimal])] = {
 	  try {
-			val url:URL = new URL(OER_URL + downloadPath)
+			val url:URL = new URL(OER_URL + downloadPath + "?app_id=" + appid)
 			val conn:URLConnection = url.openConnection
+			
 			val node:JsonNode = mapper.readTree(conn.getInputStream)
 			val fxjpy = BigDecimal(node.findValue(baseFX).getDecimalValue)
 			

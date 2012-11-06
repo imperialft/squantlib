@@ -78,7 +78,7 @@ class FixedRateBondPricingTest {
 			   */
 		    val results = spreads.map{spd => new {
 		    	val spread = spd
-			    val zc = factory.getdiscountcurve((new JPYCurrency).code, spread)
+			    val zc = factory.getdiscountcurve((new JPYCurrency).code, spread).orNull
 			    val curve = factory.curves((new JPYCurrency).code)
 				val termstructure = new ZCImpliedYieldTermStructure(zc, calendar, settlement, valuedate)
 				val bondengine = new DiscountingBondEngine(termstructure)
