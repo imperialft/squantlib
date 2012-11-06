@@ -48,7 +48,7 @@ object MonteCarlo_BS{
       ratefor: Double, 
       sigma: Double, 
       NormSInv: Double => Double, 
-      Rand:()=> Double, 
+      rand: => Double, 
       Flow: Double => Double, 
       time: Double, 
       discount: Double, 
@@ -59,7 +59,7 @@ object MonteCarlo_BS{
     val stddev = new StandardDeviation
      
     val mcresult = (0 to paths - 1).map{i => {
-        val rnd = Rand()
+        val rnd = rand
         val ninv = NormSInv(rnd)
         val underlying = spot * scala.math.exp(rndrift + (sigt * ninv))
         Flow(underlying)
@@ -87,7 +87,7 @@ object MonteCarlo_BS{
       ratefor: Double => Double, 
       sigma: Double => Double, 
       normSInv: Double => Double, 
-      rand: () => Double, 
+      rand:  => Double, 
       eventDates: Array[Double], 
       payDates: Array[Double], 
       flows: Array[Double => Double], 
@@ -99,6 +99,7 @@ object MonteCarlo_BS{
 
     var prev:CalcPeriod = null
     var datebuffer = ListBuffer.empty[CalcPeriod]
+    
     (0 to inputdates.size - 1).foreach(i => {
       val eventdate = inputdates(i).eventdate
       val paydate = inputdates(i).paydate
@@ -124,7 +125,7 @@ object MonteCarlo_BS{
     (0 to nbdates - 1).foreach {dateindex => {
       val d = dates(dateindex)
       (0 to paths - 1).foreach { path => {
-			val rnd = rand()
+			val rnd = rand
 			val ninv = normSInv(rnd)
 			spotprice(path) = spotprice(path) * scala.math.exp(d.drift + (d.sigt * ninv))
 			mcresult(path)(dateindex) = d.flow(spotprice(path))
@@ -141,7 +142,7 @@ object MonteCarlo_BS{
       ratefor: Double => Double, 
       sigma: Double => Double, 
       normSInv: Double => Double, 
-      rand: () => Double, 
+      rand:  => Double, 
       eventDates: Array[Double], 
       payDates: Array[Double], 
       flows: Array[Double => Double], 
@@ -178,7 +179,7 @@ object MonteCarlo_BS{
     (0 to nbdates - 1).foreach {dateindex => {
       val d = dates(dateindex)
       (0 to paths - 1).foreach { path => {
-			val rnd = rand()
+			val rnd = rand
 			val ninv1 = normSInv(rnd)
 			spotprice(path*2) *= scala.math.exp(d.drift + (d.sigt * ninv1))
 			mcresult(path*2)(dateindex) = d.flow(spotprice(path*2))
@@ -192,7 +193,8 @@ object MonteCarlo_BS{
     
     new MCResult(dates, mcresult)
     
-  }  
+  }
+  
 	def NormSInv(u:Double):Double =
 	{
 		// This function generates a standard normal random 
@@ -236,10 +238,15 @@ object MonteCarlo_BS{
 class CalcPeriod(var eventdate:Double, var paydate:Double, var flow:Double => Double,  
     var sigma:Double, var ratedom:Double, var ratefor:Double, var zc:Double, val prev:CalcPeriod = null) {
   
-    val duration = if (prev == null) eventdate else eventdate - prev.eventdate
-	val fratedom = if (prev == null) ratedom else (ratedom * eventdate - prev.ratedom * prev.eventdate) / duration
-	val fratefor = if (prev == null) ratefor else (ratefor * eventdate - prev.ratefor * prev.eventdate) / duration
-	val fvol = if (prev == null) sigma else math.sqrt((eventdate * sigma * sigma - prev.eventdate * prev.sigma * prev.sigma) / duration)
+	val (duration, fratedom, fratefor, fvol) = prev match {
+	  case null => (eventdate, ratedom, ratefor, sigma)
+	  case p if p != null => { val d = eventdate - p.eventdate
+		    (d, 
+		    (ratedom * eventdate - p.ratedom * p.eventdate) / d, 
+		    (ratefor * eventdate - p.ratefor * p.eventdate) / d, 
+		    math.sqrt((eventdate * sigma * sigma - p.eventdate * p.sigma * p.sigma) / d))
+	}}
+	
 	val drift = (fratedom - fratefor - ((fvol * fvol) / 2)) * duration
 	val sigt = fvol * scala.math.sqrt(duration)
 	
