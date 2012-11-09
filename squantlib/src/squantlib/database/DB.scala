@@ -12,8 +12,8 @@ import org.squeryl.{KeyedEntity, Table}
 import squantlib.database.schemadefinitions._
 import scala.collection.mutable.{MutableList, StringBuilder}
 import org.jquantlib.time.{Date => JQuantDate}
-import java.io.{File, FileWriter, BufferedWriter}
-import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID}
+import java.io.{File, FileWriter, BufferedWriter, FileInputStream}
+import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID, Properties}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
 
@@ -21,6 +21,20 @@ object DB extends Schema {
 
   val dataSource = new ComboPooledDataSource
 
+  /**
+   * Sets up the DB connection for current thread from properties file
+   * 
+   * @param uri A connection string such as mysql://your.mysql.server:3128/database_name
+   * @param username A username to MySQL
+   * @param password Password for the user above
+   *
+   */
+  def setup(propertiesPath:String):Unit = {
+    val properties = new Properties
+    properties.load(new FileInputStream(propertiesPath))
+    setup(properties.get("uri").toString, properties.get("username").toString, properties.get("password").toString)
+  }
+  
   /**
    * Sets up the DB connection for current thread.
    * 
@@ -43,6 +57,7 @@ object DB extends Schema {
     })
   }
 
+  
   /** 
    * Attach schema definitions to the tables.
    *
