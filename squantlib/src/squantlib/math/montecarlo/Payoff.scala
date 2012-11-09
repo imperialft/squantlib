@@ -5,7 +5,8 @@ import scala.collection.mutable.{Map => mutableMap}
 
 class Payoff(val formula:String){
   
-	val (parsedFormula:Map[Set[String], Double], floor:Option[Double], cap:Option[Double]) = Payoff.split(formula)
+	val (parsedFormula:Map[Set[String], Double], 
+	     floor:Option[Double], cap:Option[Double]) = Payoff.split(formula)
 	
 	val variables:Set[String] = parsedFormula.keySet.flatten
 	 
@@ -28,6 +29,7 @@ class Payoff(val formula:String){
 	   (if (vs.isEmpty) "Const" else vs.reduce((x, y) => x + ", " + y)) + ", " + c
 	}.reduce((x, y) => x + "\n" + y)
 }
+
 
 object Payoff {
   

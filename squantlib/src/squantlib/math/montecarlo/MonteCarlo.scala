@@ -8,7 +8,7 @@ import org.jquantlib.time.{Date => qlDate}
 import scala.collection.SortedSet
 import scala.collection.mutable.ListBuffer
 
-object MonteCarlo_BS{
+object MonteCarlo_BS1F{
 
   /* Standard Black-Scholes calculation
    * @param spot 	current underlying price
@@ -48,7 +48,7 @@ object MonteCarlo_BS{
       ratefor: Double, 
       sigma: Double, 
       NormSInv: Double => Double, 
-      rand: => Double, 
+      rand: () => Double, 
       Flow: Double => Double, 
       time: Double, 
       discount: Double, 
@@ -58,14 +58,14 @@ object MonteCarlo_BS{
     val sigt = sigma * scala.math.sqrt(time)
     val stddev = new StandardDeviation
      
-    val mcresult = (0 to paths - 1).map{i => {
-        val rnd = rand
+    val MonteCarloResult = (0 to paths - 1).map{i => {
+        val rnd = rand()
         val ninv = NormSInv(rnd)
         val underlying = spot * scala.math.exp(rndrift + (sigt * ninv))
         Flow(underlying)
      }}
     
-    (mcresult.sum  / paths * discount, stddev.evaluate(mcresult.toArray) / math.sqrt(paths))
+    (MonteCarloResult.sum  / paths * discount, stddev.evaluate(MonteCarloResult.toArray) / math.sqrt(paths))
   }
   
   /* Simple montecarlo pricer for FX linked
@@ -87,23 +87,23 @@ object MonteCarlo_BS{
       ratefor: Double => Double, 
       sigma: Double => Double, 
       normSInv: Double => Double, 
-      rand:  => Double, 
+      rand: () => Double, 
       eventDates: Array[Double], 
       payDates: Array[Double], 
       flows: Array[Double => Double], 
       discount: Double => Double, 
-      paths: Int):MCResult = {
+      paths: Int):MonteCarloResult = {
     
     val inputdates = (0 to eventDates.size-1).map(i => 
       new {val eventdate = eventDates(i); val paydate = payDates(i); val flow = flows(i)}).sortBy(d => d.eventdate)
 
-    var prev:CalcPeriod = null
-    var datebuffer = ListBuffer.empty[CalcPeriod]
+    var prev:CalculationPeriod1F = null
+    var datebuffer = ListBuffer.empty[CalculationPeriod1F]
     
     (0 to inputdates.size - 1).foreach(i => {
       val eventdate = inputdates(i).eventdate
       val paydate = inputdates(i).paydate
-      val cp = new CalcPeriod(
+      val cp = new CalculationPeriod1F(
 	      eventdate = eventdate,
 	      paydate = paydate, 
 	      flow = inputdates(i).flow,
@@ -120,20 +120,20 @@ object MonteCarlo_BS{
     val dates = datebuffer.sortBy(_.eventdate).toArray
     val nbdates = dates.size
     val spotprice = Array.fill[Double](paths)(spot)
-    val mcresult = Array.fill[Array[Double]](paths)(new Array[Double](nbdates))
+    val MonteCarloResult = Array.fill[Array[Double]](paths)(new Array[Double](nbdates))
 
     (0 to nbdates - 1).foreach {dateindex => {
       val d = dates(dateindex)
       (0 to paths - 1).foreach { path => {
-			val rnd = rand
+			val rnd = rand()
 			val ninv = normSInv(rnd)
 			spotprice(path) = spotprice(path) * scala.math.exp(d.drift + (d.sigt * ninv))
-			mcresult(path)(dateindex) = d.flow(spotprice(path))
+			MonteCarloResult(path)(dateindex) = d.flow(spotprice(path))
         }
       }
     }}
     
-    new MCResult(dates, mcresult)
+    new MonteCarloResult(dates, MonteCarloResult)
     
   }
 
@@ -142,22 +142,22 @@ object MonteCarlo_BS{
       ratefor: Double => Double, 
       sigma: Double => Double, 
       normSInv: Double => Double, 
-      rand:  => Double, 
+      rand:  () => Double, 
       eventDates: Array[Double], 
       payDates: Array[Double], 
       flows: Array[Double => Double], 
       discount: Double => Double, 
-      paths: Int):MCResult = {
+      paths: Int):MonteCarloResult = {
     
     val inputdates = (0 to eventDates.size-1).map(i => 
       new {val eventdate = eventDates(i); val paydate = payDates(i); val flow = flows(i)}).sortBy(d => d.eventdate)
 
-    var prev:CalcPeriod = null
-    var datebuffer = ListBuffer.empty[CalcPeriod]
+    var prev:CalculationPeriod1F = null
+    var datebuffer = ListBuffer.empty[CalculationPeriod1F]
     (0 to inputdates.size - 1).foreach(i => {
       val eventdate = inputdates(i).eventdate
       val paydate = inputdates(i).paydate
-      val cp = new CalcPeriod(
+      val cp = new CalculationPeriod1F(
 	      eventdate = eventdate,
 	      paydate = paydate, 
 	      flow = inputdates(i).flow,
@@ -174,24 +174,24 @@ object MonteCarlo_BS{
     val dates = datebuffer.sortBy(_.eventdate).toArray
     val nbdates = dates.size
     val spotprice = Array.fill[Double](paths * 2)(spot)
-    val mcresult = Array.fill[Array[Double]](paths * 2)(new Array[Double](nbdates))
+    val MonteCarloResult = Array.fill[Array[Double]](paths * 2)(new Array[Double](nbdates))
 
     (0 to nbdates - 1).foreach {dateindex => {
       val d = dates(dateindex)
       (0 to paths - 1).foreach { path => {
-			val rnd = rand
+			val rnd = rand()
 			val ninv1 = normSInv(rnd)
 			spotprice(path*2) *= scala.math.exp(d.drift + (d.sigt * ninv1))
-			mcresult(path*2)(dateindex) = d.flow(spotprice(path*2))
+			MonteCarloResult(path*2)(dateindex) = d.flow(spotprice(path*2))
 			
 			val ninv2 = -ninv1
 			spotprice(path*2+1) *= scala.math.exp(d.drift + (d.sigt * ninv2))
-			mcresult(path*2+1)(dateindex) = d.flow(spotprice(path*2+1))
+			MonteCarloResult(path*2+1)(dateindex) = d.flow(spotprice(path*2+1))
         }
       }
     }}
     
-    new MCResult(dates, mcresult)
+    new MonteCarloResult(dates, MonteCarloResult)
     
   }
   
@@ -235,8 +235,8 @@ object MonteCarlo_BS{
    * @param prev 	Previous cashflow (please create a dummy with zeros if first cashflow)
    * @returns price
    */
-class CalcPeriod(var eventdate:Double, var paydate:Double, var flow:Double => Double,  
-    var sigma:Double, var ratedom:Double, var ratefor:Double, var zc:Double, val prev:CalcPeriod = null) {
+class CalculationPeriod1F(var eventdate:Double, var paydate:Double, var flow:Double => Double,  
+    var sigma:Double, var ratedom:Double, var ratefor:Double, var zc:Double, val prev:CalculationPeriod1F = null) {
   
 	val (duration, fratedom, fratefor, fvol) = prev match {
 	  case null => (eventdate, ratedom, ratefor, sigma)
@@ -265,11 +265,11 @@ class CalcPeriod(var eventdate:Double, var paydate:Double, var flow:Double => Do
    * @param pathprices price per calculation path
    * @param stdev	standard deviation of the path results
    */
-class MCResult(val dates:Array[CalcPeriod], val modeloutput:Array[Array[Double]]) {
+class MonteCarloResult(val dates:Array[CalculationPeriod1F], val modeloutput:Array[Array[Double]]) {
     val legs = dates.size
     val paths = modeloutput.size
     val result:Array[Array[Double]] = modeloutput.map(m => (0 to legs-1).map(p => m(p) * dates(p).zc).toArray)
-    val legprices:Array[(CalcPeriod, Double)] = (0 to legs-1).map(i => (dates(i), result.map(r => r(i)).sum / paths)).toArray
+    val legprices:Array[(CalculationPeriod1F, Double)] = (0 to legs-1).map(i => (dates(i), result.map(r => r(i)).sum / paths)).toArray
     val pathprices:Array[Double] = result.map(_.sum)
     val price:Double = legprices.map(_._2).sum
     
