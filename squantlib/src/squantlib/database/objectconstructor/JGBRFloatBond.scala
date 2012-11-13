@@ -6,7 +6,7 @@ import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
 import squantlib.instruments.bonds.JGBFloatBond
 import squantlib.pricingengines.bond.JGBRBondEngine
 import squantlib.cashflow.JGBRFloatingCouponPricer
-import squantlib.math.Payoff
+import squantlib.math.montecarlo.Payoff
 import scala.collection.JavaConversions._
 import squantlib.setting.initializer.BondYieldIndices
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}

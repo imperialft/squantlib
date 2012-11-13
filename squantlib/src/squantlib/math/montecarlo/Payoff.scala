@@ -1,4 +1,4 @@
-package squantlib.math
+package squantlib.math.montecarlo
 
 import squantlib.setting.initializer.Currencies
 import scala.collection.mutable.{Map => mutableMap}

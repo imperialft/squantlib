@@ -1,7 +1,7 @@
 package squantlib.database.objectconstructor
 
 import squantlib.database.fixings.Fixings
-import squantlib.math.Payoff
+import squantlib.math.montecarlo.Payoff
 import squantlib.setting.initializer.{Daycounters, DayAdjustments}
 import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon}
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration}

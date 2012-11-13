@@ -1070,7 +1070,7 @@ object DB extends Schema {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement(statement)
     val result = preparedStatement.executeUpdate
-    if (dataSource.getNumBusyConnections > 3) session.close
+    if (dataSource.getNumBusyConnections > 2) session.close
     result
   }
   
@@ -1082,7 +1082,7 @@ object DB extends Schema {
    * @param objects List of a Squeryl objects of a same Model, such as List[BondPrice]
    * @return A List of strings of prepared SQL statement.
    */
-  def buildCSVImportStatement(objects:Set[AnyRef], overwrite:Boolean, batchsize:Int = 100000):List[String] =  {
+  def buildCSVImportStatement(objects:Set[AnyRef], overwrite:Boolean, batchsize:Int = 50000):List[String] =  {
 	val tableNames          = tables.toList.map(t => t.posoMetaData.clasz.getSimpleName)
 	val clazz               = objects.head.getClass
     val className           = clazz.getSimpleName.toString()

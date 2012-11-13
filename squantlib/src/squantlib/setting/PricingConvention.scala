@@ -15,8 +15,8 @@ object PricingConvention {
 	 
 	def bondConstructor(dbbond:dbBond, factory:DiscountCurveFactory):Option[qlBond] = 
 	  dbbond match {
-	    case p if JGBRFixedBond.isCompatible(p) => JGBRFixedBond(p, factory.valuedate)
-		case p if JGBRFloatBond.isCompatible(p) => JGBRFloatBond(p, factory.valuedate)
+	    case p if JGBRFixedBond.isCompatible(p) => if (factory == null) None else JGBRFixedBond(p, factory.valuedate)
+		case p if JGBRFloatBond.isCompatible(p) => if (factory == null) None else JGBRFloatBond(p, factory.valuedate)
 		case p if FixedRateBond.isCompatible(p) => FixedRateBond(p, factory)
 		case _ => None
 		}
