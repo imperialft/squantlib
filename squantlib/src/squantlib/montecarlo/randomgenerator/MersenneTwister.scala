@@ -1,4 +1,4 @@
-package squantlib.math.random
+package squantlib.montecarlo.randomgenerator
 
 import org.apache.commons.math3.random.{MersenneTwister => MT}
 
@@ -8,7 +8,7 @@ import org.apache.commons.math3.random.{MersenneTwister => MT}
  *
  * @param seed A seed number for the sequence.
  */
-class MersenneTwister(seed:Long) extends Generator {
+class MersenneTwister(seed:Long) extends RandomGenerator {
   override def toString = "MersenneTwister[Double]"
   val generator = new MT(seed)
 }

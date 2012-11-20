@@ -1,9 +1,9 @@
-package squantlib.math.random
+package squantlib.montecarlo.randomgenerator
 
 import scala.annotation.tailrec
 import scala.collection.mutable.SynchronizedQueue
 
-@tailrec class CorputBase2(var N:Long) extends Generator {
+@tailrec class CorputBase2(var N:Long) extends RandomGenerator {
 //   Returns the equivalent first van der Corput sequence number
   val generator = this
 
@@ -23,7 +23,7 @@ import scala.collection.mutable.SynchronizedQueue
   
 }
 
-class CorputBase2_NR(var N:Long) extends Generator {
+class CorputBase2_NR(var N:Long) extends RandomGenerator {
 //   Returns the equivalent first van der Corput sequence number
   val generator = this
 
@@ -43,7 +43,7 @@ class CorputBase2_NR(var N:Long) extends Generator {
   }
 }
 
-@tailrec class CorputBaseb(val b:Long, var N:Long) extends Generator {
+@tailrec class CorputBaseb(val b:Long, var N:Long) extends RandomGenerator {
 //   Returns the equivalent first van der Corput sequence number
   val generator = this
 

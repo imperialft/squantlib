@@ -1,7 +1,7 @@
 package squantlib.database.objectconstructor
 
 import squantlib.database.fixings.Fixings
-import squantlib.math.montecarlo.Payoff
+import squantlib.montecarlo.payoff.LinearPayoff
 import squantlib.setting.initializer.{Daycounters, DayAdjustments}
 import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon}
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration}
@@ -16,18 +16,6 @@ object Coupon {
 	
 	def apply(bond:dbBond):List[dbCoupon] = build(bond)
 	def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
-	
-//	def ratetoarray(formula:String, size:Int):Array[(String, Option[Double], Boolean)] = {
-//		val arrayedschedule = formula.split(";").map(x => {
-//		  val fixvalue:Option[Double] = try Some(x.replace("%", "").trim.toDouble / 100.0)
-//				  catch {case _ => None}
-//		  val fixingvalue:Option[Double] = if (fixvalue.isDefined) fixvalue else None
-//		  (x, fixingvalue, fixvalue.isDefined)})
-//		    
-//		(0 to (size-1)).map(i => { 
-//		  val m = size - arrayedschedule.size; 
-//		  if(i < m) arrayedschedule(0) else arrayedschedule(i - m)}).toArray
-//	}
 	
 	def ratetoarray(formula:String, size:Int):Array[String] = {
 		val arrayedschedule = formula.split(";")
@@ -49,12 +37,12 @@ object Coupon {
 	  val (fixedrate, comment) = 
 	    if (fixcpn.isDefined) (fixcpn, null)
 		else {
-			  val interpreter = new Payoff(cpn.rate)
+			  val interpreter = new LinearPayoff(cpn.rate)
 			  val varfixings = interpreter.variables.map(v => (v -> Fixings(v, cpn.eventdate))).toMap
 			  
 			  if (!varfixings.forall(_._2.isDefined)) (None, null)
 			  else {
-			    val fixedrate = Some(interpreter.price(varfixings.mapValues(_.get._2)))
+			    val fixedrate = interpreter.price(varfixings.mapValues(_.get._2))
 			    val cmt:String = (if (cpn.comment == null) "" else cpn.comment) + 
 			    		varfixings.map{
 			    			case (k, Some((v1, v2))) => k + "=" + "%.4f".format(v2)

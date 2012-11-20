@@ -1,4 +1,4 @@
-package squantlib.math.random
+package squantlib.montecarlo.randomgenerator
 
 import java.lang.Math.{PI, tan, atan}
 

@@ -1,33 +1,15 @@
-package squantlib.math.montecarlo
+package squantlib.montecarlo.pathgenerator
 
 import org.apache.commons.math3.distribution.NormalDistribution
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation
-import squantlib.math.random._
+import squantlib.montecarlo.randomgenerator
 import scala.collection.SortedMap
 import org.jquantlib.time.{Date => qlDate}
 import scala.collection.SortedSet
 import scala.collection.mutable.ListBuffer
 
-object MonteCarlo_BS1F{
+object BlackSholes_1F{
 
-  /* Standard Black-Scholes calculation
-   * @param spot 	current underlying price
-   * @param ratedom	continuous risk-free rate of domestic pricing currency
-   * @param ratefor	continuous risk-free rate of foreign currency
-   * @param sigma	volatility of the underlying FX
-   * @param NormSInv Normal inverse cumulative distribution function
-   * @param time	time to maturity in years
-   * @param discount cash-flow discount factor ZC such that PV = amount x ZC. None if it's discounted by ratedom.
-   * @returns price
-   */
-  def blackScholes(spot:Double, ratedom:Double, ratefor:Double, sigma:Double, NormSInv:Double => Double, 
-      strike:Double, time:Double, discount:Double = Double.NaN):Double = {
-
-    val h1 = (math.log(spot / strike) + ((ratedom - ratefor) + sigma * sigma / 2) * time) / (sigma * math.sqrt(time))
-    val h2 = h1 - sigma * math.sqrt(time)
-    val price = (spot * math.exp(-ratefor * time) * NormSInv(h1) - strike * math.exp(-ratedom * time) * NormSInv(h2)) 
-    if (discount.isNaN) price else price * math.exp(ratedom * time) * discount
-  }
   
   /* Montecarlo price 1-factor, constant volatility, one payment cashflow.
    * @param spot 	current underlying price

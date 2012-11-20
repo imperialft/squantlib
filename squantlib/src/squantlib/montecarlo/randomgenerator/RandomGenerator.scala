@@ -1,10 +1,10 @@
-package squantlib.math.random
+package squantlib.montecarlo.randomgenerator
 
 /**
  * Abstract random number Generator class. Numbers are lazily generated to save memory.
  *
  */
-abstract class Generator extends Stream[Double] {
+trait RandomGenerator extends Stream[Double] {
   override def toString = "Generator[Double]"
 
   override def head() = sum_12_samples_then_minus_6

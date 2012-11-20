@@ -1,10 +1,8 @@
 package squantlib.database.external
 
 import java.math.{BigDecimal => JavaBigDecimal}
-import java.net.URL
-import java.net.URLConnection
-import java.util.Calendar
-import java.util.{Map => JavaMap, Date => JavaDate}
+import java.net.{URL, URLConnection}
+import java.util.{Calendar, Map => JavaMap, Date => JavaDate}
 import scala.collection.JavaConversions._
 
 import org.codehaus.jackson.JsonNode
