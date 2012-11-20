@@ -7,20 +7,18 @@ import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 
 /**
- * Interprets JSON formula specification for sum of linear formulas with discrete range.
+ * Interprets JSON formula specification for a linear formula with cap & floor.
  * JSON format:
- * - {type:"leps", variable:string, payoff:formula}, where
- *   formula = Array {minrange:double, maxrange:double, mult:double, add:double}
- *   payment for array(i) is 
- *     if minrange(i) <= X < maxrange(i) => mult(i) * variable + add(i)
- *     otherwise zero
+ * - {type:"1dlinear", description:XXX, variable:string, payoff:formula}, where
+ *   formula = {min:double, max:double, mult:double, add:double}
+ *   payment for array(i) is min <= mult * variable + add <= max
  */
-class LEPS1dPayoff(val formula:String) extends Payoff {
+class Linear1dPayoff(val formula:String) extends Payoff {
   
 	val mapper = new ObjectMapper
 	val node = mapper.readTree(formula)
 	val variable:String = node.get("variable").getTextValue
-	val LEPSformula = LEPS1dFormula(node.get("payoff"))
+	val Paymentformula = Linear1dFormula(node.get("payoff"))
   
 	val variables:Set[String] = Set(variable)
 	 
@@ -28,28 +26,26 @@ class LEPS1dPayoff(val formula:String) extends Payoff {
 	  if (fixings.contains(variable)) price(fixings(variable))
 	  else None
 	
-	override def price(fixing:Double):Option[Double] = Some(LEPSformula.price(fixing))
+	override def price(fixing:Double):Option[Double] = Some(Paymentformula.price(fixing))
 	
-	override def toString:String = LEPSformula.toString
+	override def toString:String = Paymentformula.toString
 	
 }
 
 
 /**
- * Interprets JSON formula for series of LEPS1dPayoffs.
+ * Interprets JSON formula for series of linear formulas with caps and floors.
  * JSON format:
- * - {type:"lepsseries", variable:string, payoff:Array[formula]}, where
- *   formula = Array[{minrange:double, maxrange:double, mult:double, add:double}]
- *   payment for array(i) is 
- *     if minrange(i) <= X < maxrange(i) => mult(i) * variable + add(i)
- *     otherwise zero
+ * - {type:"1dlinearseries", variable:string, payoff:Array[formula]}, where
+ *   formula = {min:double, max:double, mult:double, add:double}
+ *   payment for array(i) is min <= mult * variable + add <= max
  */
-class LEPS1dPayoffSeries(val formula:String) extends PayoffSeries {
+class Linear1dPayoffSeries(val formula:String) extends PayoffSeries {
   
 	val mapper = new ObjectMapper
 	val node = mapper.readTree(formula)
 	val variable:String = node.get("variable").getTextValue
-	val payoffs:List[LEPS1dFormula] = node.get("payoff").getElements.map(LEPS1dFormula).toList
+	val payoffs:List[Linear1dFormula] = node.get("payoff").getElements.map(Linear1dFormula).toList
 	val paycount = payoffs.size
   
 	val variables:Set[String] = Set(variable)
@@ -72,16 +68,9 @@ class LEPS1dPayoffSeries(val formula:String) extends PayoffSeries {
 }
 
 
-case class LEPS1dFormula (val node:JsonNode) {
+
+case class Linear1dFormula (val subnode:JsonNode) {
   
-	val formula:Array[LEPS1dComponent] = node.getElements.map(LEPS1dComponent).toArray
-	
-	def price(fixing:Double):Double = formula.map(_.price(fixing)).sum
-}
-
-
-case class LEPS1dComponent (val subnode:JsonNode) {
-	
 	private def getvalue(name:String):Option[Double] = 
 	  if (subnode has name) 
 	    subnode.get(name) match {
@@ -91,28 +80,22 @@ case class LEPS1dComponent (val subnode:JsonNode) {
 	    }
 	  else None
 	
-	val minRange:Option[Double] = getvalue("minrange")
-	val maxRange:Option[Double] = getvalue("maxrange")
+	val minValue:Option[Double] = getvalue("min")
+	val maxValue:Option[Double] = getvalue("max")
 	val coeff:Option[Double] = getvalue("mult")
 	val constant:Option[Double] = getvalue("add")
-	 
+
 	def price(fixing:Double):Double = {
-	  minRange match {
-	    case Some(f) if fixing < f => return 0.0
-	    case _ =>
-	  }
-	  
-	  maxRange match {
-	    case Some(c) if fixing >= c => return 0.0
-	    case _ =>
-	  }
-	   
-	  (coeff, constant) match {
+	  var p = (coeff, constant) match {
 	    case (None, None) => 0.0
 		case (None, Some(c)) => c
 		case (Some(x), None) => x * fixing
 		case (Some(x), Some(c)) => x * fixing + c
 	  }
+	  
+	  if (minValue.isDefined) p = p.max(minValue.get)
+	  if (maxValue.isDefined) p = p.min(maxValue.get)
+	  p
 	}
 	
 }

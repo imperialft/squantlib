@@ -1,5 +1,7 @@
 package squantlib.montecarlo.payoff
 
+import org.jquantlib.time.{Date => qlDate}
+
 trait Payoff{
   
 	val variables:Set[String]
@@ -17,6 +19,19 @@ trait Payoff{
 	  case 0 => price(Map("" -> 0.0))
 	  case s => None
 	}
+	
+}
+
+trait PayoffSeries{
+	
+	val variables:Set[String]
+	def factors:Int = variables.size
+	
+	def price(fixings:List[Double]) (implicit d:DummyImplicit):List[Option[Double]] 
+	
+	def price(fixings:List[Map[String, Double]]):List[Option[Double]]
+	
+	def price():List[Option[Double]]
 	
 }
 
