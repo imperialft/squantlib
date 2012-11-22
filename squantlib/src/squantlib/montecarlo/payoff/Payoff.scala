@@ -27,7 +27,7 @@ trait Payoff{
 
 object Payoff {
 	
-	def getPayoff(formula:String):Payoff = payoffType(formula) match {
+	def apply(formula:String):Payoff = payoffType(formula) match {
 	  case "fixed" => new FixedPayoff(formula)
 	  case "fixedseries" => new FixedPayoffSeries(formula)
 	  case "leps1d" => new LEPS1dPayoff(formula)
@@ -38,10 +38,17 @@ object Payoff {
 	}
 	
 	def payoffType(formula:String):String = 
-	  try { (new ObjectMapper).readTree(formula).get("type").getTextValue }
-	  catch { case _ => FixedPayoff.stringToDouble(formula) match {
-	    case Some(e) => "fixed"
-	    case None => null
-	  }}
+	  try { 
+	    (new ObjectMapper).readTree(formula) match {
+		    case node if node.isObject => node get("type") getTextValue
+		    case node if node.isArray => "fixedseries"
+		    case _ => null
+	    }}
+	
+	  catch { 
+	    case _ => FixedPayoff.stringToDouble(formula) match {
+		    case Some(e) => "fixed"
+		    case None => null
+	    }}
 	  
 }

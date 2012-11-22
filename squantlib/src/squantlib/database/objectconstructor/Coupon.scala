@@ -4,6 +4,7 @@ import squantlib.database.fixings.Fixings
 import squantlib.montecarlo.payoff.GeneralPayoff
 import squantlib.setting.initializer.{Daycounters, DayAdjustments}
 import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon}
+import squantlib.montecarlo.payoff.FixedPayoff
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration}
 import org.jquantlib.time.BusinessDayConvention.{ModifiedFollowing, Unadjusted}
 import org.jquantlib.daycounters.Thirty360
@@ -107,9 +108,7 @@ object Coupon {
 		val daycount = Daycounters.getOrElse(bond.daycount, new Thirty360)
 		val calendar = bond.calendar
 		
-		val redemption = try Some(bond.redemprice.replace("%", "").trim.toDouble / 100.0) 
-						catch { case _ => None }
-		
+		val redemption = FixedPayoff(bond.redemprice).price.head
 		
 		var cpnlist = (0 to (baseschedule.size - 2)).map ( i => {
 		  val cpnformula = ratearray(i)

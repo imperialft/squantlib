@@ -11,6 +11,7 @@ package squantlib.montecarlo
 
 object Pricing {
 	
+	def price() = {}
 }
 
 

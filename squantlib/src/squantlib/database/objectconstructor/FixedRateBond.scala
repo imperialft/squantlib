@@ -3,6 +3,7 @@ package squantlib.database.objectconstructor
 import squantlib.model.discountcurve.DiscountCurveFactory
 import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
+import squantlib.montecarlo.payoff.FixedPayoff
 import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond }
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention, Calendar}
 import org.jquantlib.daycounters.Actual365Fixed
@@ -27,14 +28,19 @@ object FixedRateBond {
 	  bonds.map(b => (b.id, getbond(b, factory))).collect{case (key, Some(b)) => (key, b)}.toMap
 	}
 	
-	def getbond(bond:dbBond, factory:DiscountCurveFactory):Option[qlFixedRateBond] = {
-	  val newbond = getbond(bond)
-	  if (newbond.isEmpty) None
-	  else {
-	    setDefaultPricingEngine(newbond.get, factory)
-	    newbond
-	  }
+	def getbond(bond:dbBond, factory:DiscountCurveFactory):Option[qlFixedRateBond] = getbond(bond) match {
+	  case Some(b) => {setDefaultPricingEngine(b, factory); Some(b)}
+	  case None => None
 	}
+	
+//	{
+//	  val newbond = getbond(bond)
+//	  if (newbond.isEmpty) None
+//	  else {
+//	    setDefaultPricingEngine(newbond.get, factory)
+//	    newbond
+//	  }
+//	}
 	
 	def getbond(bond:dbBond):Option[qlFixedRateBond] = {
 	  val isvalidbond = productlist.contains(bond.productid) && 
@@ -65,7 +71,12 @@ object FixedRateBond {
 			val coupons:Array[Double] = ratetoarray(bond.coupon, schedule.size - 1)
 			val accrualdaycounter = Daycounters.getOrElse(bond.daycount, defaultDayCounter)
 			val paymentconvention = DayAdjustments.getOrElse(bond.payment_adj, defaultAdjustment)
-			val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
+			
+			val redemption = FixedPayoff(bond.redemprice).price.head match {
+			  case Some(p) => p * 100.0
+			  case None => Double.NaN
+			}
+			
 			val initialfx = bond.initialfx
 			
 			val newbond = new qlFixedRateBond(settlementdays, 

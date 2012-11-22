@@ -14,7 +14,14 @@ case class FixedPayoffSeries(val formula:String) extends Payoff {
   
 	val mapper = new ObjectMapper
 	val node = mapper.readTree(formula)
-	val payoffs:List[Option[Double]] = node.get("payoff").getElements.map(getvalue).toList
+	
+	val payoffs:List[Option[Double]] = node match {
+	  case n if n.isObject => n.get("payoff").getElements.map(getvalue).toList
+	  case n if n.isArray => n.getElements.map(getvalue).toList
+	  case n if n.isNumber || n.isTextual => List(getvalue(n))
+	  case _ => List.empty
+	}
+	
 	val paycount = payoffs.size
   
 	val variables:Set[String] = Set.empty
@@ -31,7 +38,7 @@ case class FixedPayoffSeries(val formula:String) extends Payoff {
 	
 	override def price:List[Option[Double]] = payoffs
 	 
-	private def getvalue(node:JsonNode):Option[Double] = 
+	def getvalue(node:JsonNode):Option[Double] = 
 	  node match {
 	  	case n if n.isNumber => Some(n.getDoubleValue)
 	    case n if n.getTextValue.endsWith("%") => 

@@ -6,8 +6,8 @@ import org.codehaus.jackson.map.ObjectMapper
 
 /**
  * Interprets JSON formula specification for a fixed leg.
- * JSON format:
- * - {type:"fixed", description:XXX, payoff:double}
+ * JSON format: {type:"fixed", description:XXX, payoff:double}
+ * Natual format: 0.035 or "3.5%"
  */
 case class FixedPayoff(val formula:String) extends Payoff {
   
