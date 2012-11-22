@@ -8,11 +8,11 @@ import scala.collection.mutable.{Map => mutableMap}
  * Any symbols other than +, -, *, /, > and < are considered as an independent variable.
  * Brackets are not supported.
  */
-class LinearPayoff(val formula:String) extends Payoff {
+case class GeneralPayoff(val formula:String) extends Payoff {
   
 	val (parsedFormula:Map[Set[String], Double], 
 	     floor:Option[Double], 
-	     cap:Option[Double]) = LinearPayoff.split(formula)
+	     cap:Option[Double]) = GeneralPayoff.split(formula)
 	
 	val variables:Set[String] = parsedFormula.keySet.flatten
 	 
@@ -21,8 +21,14 @@ class LinearPayoff(val formula:String) extends Payoff {
 	
 	def constant:Double = parsedFormula.getOrElse(Set.empty, 0.0)
 	
-	def price(fixings:Map[String, Double]):Option[Double] = {
-	  if (!variables.forall(x => fixings.keySet.contains(x))) return None
+	override def price(fixings:List[Map[String, Double]]) = fixings.map(price)
+	
+	override def price(fixings:List[Double]) (implicit d:DummyImplicit) = 
+	  if (variables.size == 1) fixings.map(f => price(Map(variables.head -> f)))
+	  else List.empty
+	
+	override def price(fixings:Map[String, Double]):Option[Double] = {
+	  if (!variables.forall(x => fixings.contains(x))) return None
 	  
 	  var rate = parsedFormula.map{
       	case (vs, c) if (vs.isEmpty) => 1.0
@@ -35,14 +41,18 @@ class LinearPayoff(val formula:String) extends Payoff {
       Some(rate)
 	}
 	
+	override def price = List.empty
+	
 	override def toString:String = parsedFormula.map{
 	  case (vs, c) if (vs.isEmpty) => "Const"
 	  case (vs, c) => vs.reduce((x, y) => x + ", " + y) + ", " + c
 	}.reduce((x, y) => x + "\n" + y)
+	
+	override def legs = 1
 
 }
 
-object LinearPayoff {
+object GeneralPayoff {
   
   /**
    * Parse a linear formula string into sum of named variables

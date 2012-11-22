@@ -27,6 +27,12 @@ trait RandomGenerator extends Stream[Double] {
   protected val generator:{def nextDouble():Double}
 
   /**
+   * An abstract function to reset the sequence for pseudo-random generators
+   *
+   */
+  def reset
+  
+  /**
    * Generates next random number.
    *
    * @return A random number.

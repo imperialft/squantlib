@@ -8,7 +8,11 @@ import org.apache.commons.math3.random.{MersenneTwister => MT}
  *
  * @param seed A seed number for the sequence.
  */
-class MersenneTwister(seed:Long) extends RandomGenerator {
+class MersenneTwister(val seed:Long) extends RandomGenerator {
+  
   override def toString = "MersenneTwister[Double]"
+    
   val generator = new MT(seed)
+  
+  def reset = generator match { case m:MT => m.setSeed(seed)}
 }

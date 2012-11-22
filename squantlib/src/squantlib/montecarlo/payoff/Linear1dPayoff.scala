@@ -1,7 +1,5 @@
 package squantlib.montecarlo.payoff
 
-import squantlib.setting.initializer.Currencies
-import scala.collection.mutable.{Map => mutableMap}
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
@@ -9,64 +7,34 @@ import org.codehaus.jackson.map.ObjectMapper
 /**
  * Interprets JSON formula specification for a linear formula with cap & floor.
  * JSON format:
- * - {type:"1dlinear", description:XXX, variable:string, payoff:formula}, where
+ * - {type:"linear1d", description:XXX, variable:string, payoff:formula}, where
  *   formula = {min:double, max:double, mult:double, add:double}
  *   payment for array(i) is min <= mult * variable + add <= max
  */
-class Linear1dPayoff(val formula:String) extends Payoff {
+case class Linear1dPayoff(val formula:String) extends Payoff {
   
 	val mapper = new ObjectMapper
 	val node = mapper.readTree(formula)
 	val variable:String = node.get("variable").getTextValue
-	val Paymentformula = Linear1dFormula(node.get("payoff"))
+	val payoff = Linear1dFormula(node.get("payoff"))
   
 	val variables:Set[String] = Set(variable)
 	 
-	override def price(fixings:Map[String, Double]):Option[Double] = 
-	  if (fixings.contains(variable)) price(fixings(variable))
-	  else None
+	override def price(fixings:List[Map[String, Double]]) = 
+	  fixings.map(fixing => fixing match {
+		  case f if f.contains(variable) => Some(payoff.price(f(variable)))
+		  case _ => None
+	})
 	
-	override def price(fixing:Double):Option[Double] = Some(Paymentformula.price(fixing))
+	override def price(fixings:List[Double])(implicit d:DummyImplicit) = fixings.map(f => Some(payoff.price(f)))
 	
-	override def toString:String = Paymentformula.toString
+	override def price = List(None)
 	
+	override def toString:String = payoff.toString
+	
+	override def legs = 1
+
 }
-
-
-/**
- * Interprets JSON formula for series of linear formulas with caps and floors.
- * JSON format:
- * - {type:"1dlinearseries", variable:string, payoff:Array[formula]}, where
- *   formula = {min:double, max:double, mult:double, add:double}
- *   payment for array(i) is min <= mult * variable + add <= max
- */
-class Linear1dPayoffSeries(val formula:String) extends PayoffSeries {
-  
-	val mapper = new ObjectMapper
-	val node = mapper.readTree(formula)
-	val variable:String = node.get("variable").getTextValue
-	val payoffs:List[Linear1dFormula] = node.get("payoff").getElements.map(Linear1dFormula).toList
-	val paycount = payoffs.size
-  
-	val variables:Set[String] = Set(variable)
-	
-	override def price(fixings:List[Double])(implicit d:DummyImplicit):List[Option[Double]] = {
-	  assert(fixings.size == paycount)
-	  if (payoffs.isEmpty) List.empty
-	  else (for (i <- 0 to paycount - 1) yield (Some(payoffs(i).price(fixings(i))))).toList
-	}
-	
-	override def price(fixings:List[Map[String, Double]]):List[Option[Double]] = {
-	  assert(fixings.size == paycount && fixings.forall(_.contains(variable)))
-	  price(fixings.map(_(variable)))
-	}
-	
-	override def price:List[Option[Double]] = List.empty
-	 
-	override def toString:String = payoffs.toString
-	
-}
-
 
 
 case class Linear1dFormula (val subnode:JsonNode) {

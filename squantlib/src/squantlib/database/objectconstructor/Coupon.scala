@@ -1,7 +1,7 @@
 package squantlib.database.objectconstructor
 
 import squantlib.database.fixings.Fixings
-import squantlib.montecarlo.payoff.LinearPayoff
+import squantlib.montecarlo.payoff.GeneralPayoff
 import squantlib.setting.initializer.{Daycounters, DayAdjustments}
 import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon}
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration}
@@ -37,7 +37,7 @@ object Coupon {
 	  val (fixedrate, comment) = 
 	    if (fixcpn.isDefined) (fixcpn, null)
 		else {
-			  val interpreter = new LinearPayoff(cpn.rate)
+			  val interpreter = new GeneralPayoff(cpn.rate)
 			  val varfixings = interpreter.variables.map(v => (v -> Fixings(v, cpn.eventdate))).toMap
 			  
 			  if (!varfixings.forall(_._2.isDefined)) (None, null)

@@ -6,7 +6,7 @@ import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
 import squantlib.instruments.bonds.JGBFloatBond
 import squantlib.pricingengines.bond.JGBRBondEngine
 import squantlib.cashflow.JGBRFloatingCouponPricer
-import squantlib.montecarlo.payoff.LinearPayoff
+import squantlib.montecarlo.payoff.GeneralPayoff
 import scala.collection.JavaConversions._
 import squantlib.setting.initializer.BondYieldIndices
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}
@@ -74,7 +74,7 @@ object JGBRFloatBond {
 			val redemption = try{bond.redemprice.trim.toDouble} catch { case _ => Double.NaN}
 			val initialfx = bond.initialfx
 			
-			val coupons:Array[LinearPayoff] = ratetoarray(bond.coupon, schedule.size - 1)
+			val coupons:Array[GeneralPayoff] = ratetoarray(bond.coupon, schedule.size - 1)
 			
 			val cmtname = {
 				val v = coupons.map(_.variables).flatten.toSet
@@ -152,12 +152,12 @@ object JGBRFloatBond {
 	  }
 	}
 	
-	private def ratetoarray(formula:String, size:Int):Array[LinearPayoff] = {
+	private def ratetoarray(formula:String, size:Int):Array[GeneralPayoff] = {
 		val formulaarray = formula.split(";")
 		    
 		(0 to (size-1)).map(i => {
 		  val m = size - formulaarray.size
-		  new LinearPayoff(if(i < m) formulaarray(0) else formulaarray(i - m))
+		  new GeneralPayoff(if(i < m) formulaarray(0) else formulaarray(i - m))
 		  }).toArray
 	}
 	

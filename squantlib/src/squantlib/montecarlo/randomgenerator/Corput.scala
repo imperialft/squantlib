@@ -5,6 +5,7 @@ import scala.collection.mutable.SynchronizedQueue
 
 @tailrec class CorputBase2(var N:Long) extends RandomGenerator {
 //   Returns the equivalent first van der Corput sequence number
+  val initial = N
   val generator = this
 
   def nextDouble():Double = {
@@ -15,16 +16,18 @@ import scala.collection.mutable.SynchronizedQueue
   def nextDouble(n1:Long, c:Double, ib:Double):Double = 
     if (n1 <= 0) c
     else {
-//	    val n2:Long = (n1 / 2).toLong
 	    val n2:Long = n1 / 2
 		val i:Long = n1 - n2 * 2
 		nextDouble(n2, c + ib * i, ib / 2.0)
     }
   
+  def reset = N = initial
+  
 }
 
 class CorputBase2_NR(var N:Long) extends RandomGenerator {
 //   Returns the equivalent first van der Corput sequence number
+  val initial = N
   val generator = this
 
   def nextDouble():Double = {
@@ -41,11 +44,14 @@ class CorputBase2_NR(var N:Long) extends RandomGenerator {
 	N = N + 1
     c
   }
+  
+  def reset = N = initial
 }
 
 @tailrec class CorputBaseb(val b:Long, var N:Long) extends RandomGenerator {
 //   Returns the equivalent first van der Corput sequence number
   val generator = this
+  val initial = N
 
   def nextDouble():Double = {
       N = N + 1
@@ -59,6 +65,9 @@ class CorputBase2_NR(var N:Long) extends RandomGenerator {
 		nextDouble(n2, c + ib * i, ib / b)
     }
     else c
+    
+  def reset = N = initial
+
 }
 
 object CorputBase2 {
