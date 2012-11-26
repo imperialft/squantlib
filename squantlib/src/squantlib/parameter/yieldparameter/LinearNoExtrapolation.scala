@@ -21,7 +21,7 @@ class LinearNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double]) 
 	val inputvalues = SortedMap(values.toSeq:_*)
 	
     val linearfunction:PolynomialSplineFunction = {
-	    var inputpoints :SortedMap[Long, Double] = SortedMap.empty
+	    var inputpoints:SortedMap[Long, Double] = SortedMap.empty
 	    for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
 	    val keysarray = inputpoints.keySet.toArray
 	    val valarray = keysarray.map((i:Long) => inputpoints(i))

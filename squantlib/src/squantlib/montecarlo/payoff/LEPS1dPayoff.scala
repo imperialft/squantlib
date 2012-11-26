@@ -3,65 +3,80 @@ package squantlib.montecarlo.payoff
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
+import DisplayUtils._
+import JsonUtils._
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
  * JSON format:
- * - {type:"leps1d", variable:string, payoff:formula}, where
+ * - {type:"leps1d", variable:string, description:String, payoff:formula}, where
  *   formula = Array {minrange:double, maxrange:double, mult:double, add:double}
  *   payment for array(i) is 
  *     if minrange(i) <= X < maxrange(i) => mult(i) * variable + add(i)
  *     otherwise zero
  */
-case class LEPS1dPayoff(val formula:String) extends Payoff {
+case class LEPS1dPayoff(val variable:String, val payoff:List[LEPS1dComponent], val description:String = null) extends Payoff {
   
-	val mapper = new ObjectMapper
-	val node = mapper.readTree(formula)
-	val variable:String = node.get("variable").getTextValue
-	val LEPSformula = LEPS1dFormula(node.get("payoff"))
-  
-	val variables:Set[String] = Set(variable)
+	override val variables:Set[String] = Set(variable)
 	  
-	override def price(fixings:List[Map[String, Double]]) = 
-	  fixings.map(fixing => fixing match {
-		  case f if f contains variable => Some(LEPSformula.price(f(variable)))
-		  case _ => None
-	  })
-	
-	override def price(fixings:List[Double])(implicit d:DummyImplicit) = 
-	  fixings.map(f => Some(LEPSformula.price(f)))
-	
-	override def price = List(None)
-	
-	override def toString:String = LEPSformula.toString
-	
-	override def legs = 1
-}
-
-
-case class LEPS1dFormula (val node:JsonNode) {
-  
-	val formula:Array[LEPS1dComponent] = node.getElements.map(LEPS1dComponent).toArray
-	
-	def price(fixing:Double):Double = formula.map(_.price(fixing)).sum
-}
-
-
-case class LEPS1dComponent (val subnode:JsonNode) {
-	
-	private def getvalue(name:String):Option[Double] = 
-	  if (subnode has name) 
-	    subnode.get(name) match {
-	      case n if n.isNumber => Some(n.getDoubleValue)
-	      case n if n.getTextValue.endsWith("%") => try {Some(n.getTextValue.dropRight(1).toDouble / 100)} catch { case _ => Some(Double.NaN)}
-	      case _ => Some(Double.NaN)
-	    }
+	override def price(fixings:Map[String, Double]) = 
+	  if (fixings contains variable) price(fixings(variable))
 	  else None
 	
-	val minRange:Option[Double] = getvalue("minrange")
-	val maxRange:Option[Double] = getvalue("maxrange")
-	val coeff:Option[Double] = getvalue("mult")
-	val constant:Option[Double] = getvalue("add")
+	override def price(fixing:Double)(implicit d:DummyImplicit) = Some(payoff.map(_.price(fixing)).sum)
+	override def toString = description textOr payoff.map(_.toString(variable)).mkString(" ")
+	
+	override def price = None
+	
+}
+
+
+object LEPS1dPayoff {
+  
+	def apply(inputformula:String):LEPS1dPayoff = {
+	  val formula = inputformula.trim
+	  
+	  if (formula.startsWith("leps")) {
+	    val formulalist = FormulaParser.parseList(formula.substring(4))
+	    val variables = formulalist.map{case (f, _, _) => f.keySet}.flatten.flatten.toSet
+	    assert(variables.size <= 1)
+	    
+	    val variable = Set(variables.head)
+	    val components = formulalist.map{case (formula, minrange, maxrange) => {
+	      val coeff = formula.get(variable)
+	      val const = formula.get(Set.empty)
+	      LEPS1dComponent(coeff, const, minrange, maxrange)
+	    }}
+	    LEPS1dPayoff(variables.head, components)
+	  }
+	  
+	  else {
+	    val variable:String = formula.parseJsonString("variable")
+	    val description:String = formula.parseJsonString("description")
+	  
+	    val payoff:List[LEPS1dComponent] = formula.jsonnode match {
+	      case Some(node) => getLEPScomponents(node.get("payoff"))
+	      case None => List.empty
+	    }
+	    
+	    LEPS1dPayoff(variable, payoff, description)
+	  }
+	}
+
+	def apply(variable:String, payoff:JsonNode, description:String):LEPS1dPayoff = 
+	  LEPS1dPayoff(variable, getLEPScomponents(payoff), description)
+	  
+	def getLEPScomponents(node:JsonNode):List[LEPS1dComponent] = node match {
+	  case null => List.empty
+	  case n if n.isArray => n.getElements.map(LEPS1dComponent(_)).toList
+  	  case n if n.isObject => List(LEPS1dComponent(n))
+  	  case _ => List.empty
+	}
+
+}
+
+
+case class LEPS1dComponent (val coeff:Option[Double], val constant:Option[Double], val minRange:Option[Double], val maxRange:Option[Double]) {
 	 
 	def price(fixing:Double):Double = {
 	  minRange match {
@@ -82,6 +97,18 @@ case class LEPS1dComponent (val subnode:JsonNode) {
 	  }
 	}
 	
+	def toString(variable:String) = coeff.asDoubleOr("0") + " * " + variable + " + " + constant.asPercentOr("0") + " for [" + 
+							minRange.asDoubleOr("") + ", " + maxRange.asDoubleOr("") + "]"
+	
 }
 
-
+object LEPS1dComponent {
+	
+	def apply(subnode:JsonNode):LEPS1dComponent = {
+	  val coeff:Option[Double] = subnode.parseJsonDouble("mult")
+	  val constant:Option[Double] = subnode.parseJsonDouble("add")
+	  val minRange:Option[Double] = subnode.parseJsonDouble("minrange")
+	  val maxRange:Option[Double] = subnode.parseJsonDouble("maxrange")
+	  LEPS1dComponent(coeff, constant, minRange, maxRange)
+	}
+}

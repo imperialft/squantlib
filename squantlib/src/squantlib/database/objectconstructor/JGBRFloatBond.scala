@@ -157,7 +157,7 @@ object JGBRFloatBond {
 		    
 		(0 to (size-1)).map(i => {
 		  val m = size - formulaarray.size
-		  new GeneralPayoff(if(i < m) formulaarray(0) else formulaarray(i - m))
+		  GeneralPayoff(if(i < m) formulaarray(0) else formulaarray(i - m))
 		  }).toArray
 	}
 	

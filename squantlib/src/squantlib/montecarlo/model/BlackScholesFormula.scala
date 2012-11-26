@@ -1,4 +1,4 @@
-package squantlib.montecarlo.valuation
+package squantlib.montecarlo.model
 
 object BlackScholesFormula {
   

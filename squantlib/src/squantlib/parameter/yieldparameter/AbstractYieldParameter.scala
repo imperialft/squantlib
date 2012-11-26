@@ -16,13 +16,12 @@ trait AbstractYieldParameter{
     def highextrapolation(v : Long) : Double
     def interpolation(v : Long) : Double
   
-    def value(v : Long) : Double = {
+    def value(v : Long) : Double = 
       v match {
         case vv if vv <= mindays => lowextrapolation(vv)
         case vv if vv >= maxdays => highextrapolation(vv)
         case _ => interpolation(v)
-          }
-    }
+      }
 
 	
   /**

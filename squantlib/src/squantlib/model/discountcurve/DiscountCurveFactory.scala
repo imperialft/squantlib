@@ -19,7 +19,7 @@ import org.jquantlib.termstructures.YieldTermStructure
 class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = null, val paramset:String = null) {
 
 	var valuedate:qlDate = curves.head._2.valuedate
-	require(curves.forall(c => c._2.valuedate == valuedate))
+	require(curves.forall(_._2.valuedate == valuedate))
 	
 	val FX_basespread = 0.0
 	val FX_basecurrency = "USD"
@@ -43,10 +43,7 @@ class DiscountCurveFactory(val curves:Map[String, DiscountableCurve], val cdscur
 	/** 
 	 * Discounting Curves
 	 */
-	val discountingcurves:Map[String, RateCurve] = 
-//	  curves.map{ case (cur, curve) => (cur, curve match { case r:RateCurve => r; case _ => null})}}
-//							.filter{case(k, c) => c != null}
-	  curves.collect{ case (cur:String, curve:RateCurve) => (cur, curve)}
+	val discountingcurves:Map[String, RateCurve] = curves.collect{ case (cur:String, curve:RateCurve) => (cur, curve)}
 	  
 	/**
 	 * Stores already calculated discount curves.

@@ -38,7 +38,7 @@ object Coupon {
 	  val (fixedrate, comment) = 
 	    if (fixcpn.isDefined) (fixcpn, null)
 		else {
-			  val interpreter = new GeneralPayoff(cpn.rate)
+			  val interpreter = GeneralPayoff(cpn.rate)
 			  val varfixings = interpreter.variables.map(v => (v -> Fixings(v, cpn.eventdate))).toMap
 			  
 			  if (!varfixings.forall(_._2.isDefined)) (None, null)
@@ -108,7 +108,7 @@ object Coupon {
 		val daycount = Daycounters.getOrElse(bond.daycount, new Thirty360)
 		val calendar = bond.calendar
 		
-		val redemption = FixedPayoff(bond.redemprice).price.head
+		val redemption = FixedPayoff(bond.redemprice).price
 		
 		var cpnlist = (0 to (baseschedule.size - 2)).map ( i => {
 		  val cpnformula = ratearray(i)
