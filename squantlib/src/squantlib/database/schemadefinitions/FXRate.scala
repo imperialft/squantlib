@@ -21,5 +21,5 @@ class FXRate(@Column("ID")					var id:Int,
       fxjpy = -99999.0, 
       lastmodified = None)
 
-  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramdate, paramset, currencyid, fxjpy)
+  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramset, currencyid, fxjpy)
 }

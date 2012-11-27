@@ -41,7 +41,11 @@ object PayoffExamples {
 	    
 	 val fixseries = Payoffs("0.005; 0.6%; 0.7%; 0.008")
 	 
-	 val fixseries_json = Payoffs("""{"type" : "fixedseries", "variable" : "usdjpy", "payoff" : ["0.5%", 0.006, "0.7%"]}""")
+	 val fixseries_json = Payoffs("""
+	     {"type" : "fixedseries", 
+	     "variable" : "usdjpy", 
+	     "payoff" : ["0.5%", 0.006, "0.7%"]}
+	     """)
 	 
 	 val linear1dseries = Payoffs("12.5% * usdjpy/80.2 - 10% > 0.5% < 3%; 20% * usdjpy/80.2 - 10% > 0% <10%")
 	 

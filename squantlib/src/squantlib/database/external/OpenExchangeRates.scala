@@ -2,9 +2,9 @@ package squantlib.database.external
 
 import java.math.{BigDecimal => JavaBigDecimal}
 import java.net.{URL, URLConnection}
-import java.util.{Calendar, Map => JavaMap, Date => JavaDate}
+import java.util.{Calendar, Map => JavaMap, Date => JavaDate, GregorianCalendar}
 import scala.collection.JavaConversions._
-
+import squantlib.database.schemadefinitions.FXRate
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 
@@ -15,7 +15,7 @@ import org.codehaus.jackson.map.ObjectMapper
  */
 object OpenExchangeRates {
   
-	val baseFX = "JPY"
+	var baseFX = "JPY"
 	val OER_URL = "http://openexchangerates.org/"
 	val LATEST = "latest.json"
 	val HISTORICAL:String = "historical/%04d-%02d-%02d.json"
@@ -62,9 +62,7 @@ object OpenExchangeRates {
 			
 			Some(javatime, rates)
 		}
-		catch {
-		  	case e:Exception => { None }
-		}
+		catch { case _=> None  }
 	}
 
 	/**
@@ -93,6 +91,26 @@ object OpenExchangeRates {
 	
 	def getHistorical(currency:String, date:JavaDate):Option[BigDecimal] = 
 		getHistorical(currency, DateToCalendar(date))
+		
+	def buildDbObject(appid:String, year:Int, month:Int, day:Int):Set[FXRate] = {
+		OpenExchangeRates.appid = appid
+		val calendar = new GregorianCalendar(year, month-1, day)
+		val rates = OpenExchangeRates.getHistorical(calendar)
+		val date = calendar.getTime
+		def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)		
+		
+		rates match {
+		  case None => Set.empty
+		  case Some(r) => r.map{ case (ccy, rate) => 
+		    new FXRate(
+			    id = 0,
+			    paramdate = date,
+	            paramset = "%tY%<tm%<td".format(date) + "-000",
+	            currencyid = ccy,
+	            fxjpy = rate.toDouble,
+	            lastmodified = Some(date))}.toSet
+		}
+	}
 		
 	private def DateToCalendar(date:JavaDate):Calendar = {
 	  val cal = Calendar.getInstance
