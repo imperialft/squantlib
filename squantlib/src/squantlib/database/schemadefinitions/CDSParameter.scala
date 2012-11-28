@@ -3,7 +3,7 @@ package squantlib.database.schemadefinitions
 import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
-import squantlib.model.discountcurve.CDSCurve
+import squantlib.model.rates.CDSCurve
 
 class CDSParameter(@Column("ID")			var id: Int,
               @Column("PARAMSET")			var paramset: String,

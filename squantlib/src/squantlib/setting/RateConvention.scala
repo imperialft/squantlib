@@ -1,13 +1,13 @@
 package squantlib.setting
 
-import squantlib.parameter.yieldparameter.YieldParameter
+import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.{ ActualActual, Thirty360, Actual365Fixed, Actual360, DayCounter }
 import org.jquantlib.time.{TimeUnit, Frequency, Date => qlDate, Period=>qlPeriod}
 import scala.collection.SortedMap
-import squantlib.parameter.yieldparameter.{SplineNoExtrapolation, FlatVector, LinearNoExtrapolation }
-import squantlib.model.discountcurve.{ CashCurve, SwapCurve, BasisSwapCurve, TenorBasisSwapCurve, SwapPointCurve }
+import squantlib.model.yieldparameter.{SplineNoExtrapolation, FlatVector, LinearNoExtrapolation }
+import squantlib.model.rates.{ CashCurve, SwapCurve, BasisSwapCurve, TenorBasisSwapCurve, SwapPointCurve }
 import org.jquantlib.currencies.America.USDCurrency
 
 

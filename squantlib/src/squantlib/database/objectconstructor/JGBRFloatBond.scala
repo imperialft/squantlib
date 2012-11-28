@@ -3,10 +3,10 @@ package squantlib.database.objectconstructor
 import squantlib.database.fixings.Fixings
 import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
-import squantlib.instruments.bonds.JGBFloatBond
-import squantlib.pricingengines.bond.JGBRBondEngine
-import squantlib.cashflow.JGBRFloatingCouponPricer
-import squantlib.montecarlo.payoff.GeneralPayoff
+import squantlib.jquantlib.instruments.bonds.JGBFloatBond
+import squantlib.jquantlib.pricingengines.bond.JGBRBondEngine
+import squantlib.jquantlib.cashflow.JGBRFloatingCouponPricer
+import squantlib.payoff.GeneralPayoff
 import scala.collection.JavaConversions._
 import squantlib.setting.initializer.BondYieldIndices
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}

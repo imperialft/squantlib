@@ -1,6 +1,6 @@
 package squantlib.model.fx
 
-import squantlib.model.discountcurve.DiscountCurve
+import squantlib.model.rates.DiscountCurve
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}

@@ -1,9 +1,9 @@
 package squantlib.setting
 
 import squantlib.database.schemadefinitions.{Bond => dbBond}
-import squantlib.model.discountcurve.DiscountCurveFactory
+import squantlib.model.CurveFactory
 import squantlib.database.objectconstructor._
-import squantlib.instruments.bonds._
+import squantlib.jquantlib.instruments.bonds._
 import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.instruments.bonds.{FixedRateBond => qlFixedRateBond}
 import org.jquantlib.time.{Date => qlDate}
@@ -13,7 +13,7 @@ import java.util.{GregorianCalendar, Calendar}
 
 object PricingConvention {
 	 
-	def bondConstructor(dbbond:dbBond, factory:DiscountCurveFactory):Option[qlBond] = 
+	def bondConstructor(dbbond:dbBond, factory:CurveFactory):Option[qlBond] = 
 	  dbbond match {
 	    case p if JGBRFixedBond.isCompatible(p) => if (factory == null) None else JGBRFixedBond(p, factory.valuedate)
 		case p if JGBRFloatBond.isCompatible(p) => if (factory == null) None else JGBRFloatBond(p, factory.valuedate)
@@ -44,7 +44,7 @@ object PricingConvention {
 	  gc.getTime
 	}
 	
-	def setAdjustedPricingEngine(bond:qlBond, factory:DiscountCurveFactory, valuedate:qlDate):Unit = 
+	def setAdjustedPricingEngine(bond:qlBond, factory:CurveFactory, valuedate:qlDate):Unit = 
 		bond match {
 		  case b:JGBFixedBond => { // Use spot price for now
 								    //JGBRFixedBond.setAdjustedPricingEngine(b, d)

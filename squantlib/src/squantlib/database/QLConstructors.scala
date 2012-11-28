@@ -1,7 +1,8 @@
 package squantlib.database
 
 import squantlib.database.schemadefinitions.{ Bond => dbBond, CDSParameter, BondPrice, RateFXParameter}
-import squantlib.model.discountcurve.{RateCurve, FXCurve, DiscountableCurve, CDSCurve, DiscountCurveFactory, FXDiscountCurve, LiborDiscountCurve}
+import squantlib.model.rates._
+import squantlib.model.CurveFactory
 import squantlib.database.objectconstructor.BondPrice
 import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.termstructures.YieldTermStructure
@@ -49,8 +50,8 @@ object QLConstructors {
 	
 	implicit def Bond2RichBond(bond:qlBond) = new RichBond(bond)
 	class RichBond(val bond:qlBond){
-	  def bondprice(factory:DiscountCurveFactory) = BondPrice(bond, factory)
-	  def bondprice(valuedate:qlDate, factory:DiscountCurveFactory) = BondPrice(bond, factory)
+	  def bondprice(factory:CurveFactory) = BondPrice(bond, factory)
+	  def bondprice(valuedate:qlDate, factory:CurveFactory) = BondPrice(bond, factory)
 	  def bondprice(valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure):BondPrice 
 			= BondPrice(bond, valuedate, fx, paramset, termstructure)
 			

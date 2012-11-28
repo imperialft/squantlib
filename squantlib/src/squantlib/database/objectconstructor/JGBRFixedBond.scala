@@ -2,10 +2,10 @@ package squantlib.database.objectconstructor
 
 import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
-import squantlib.instruments.bonds.JGBFixedBond
+import squantlib.jquantlib.instruments.bonds.JGBFixedBond
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule, DateGeneration, BusinessDayConvention}
 import org.jquantlib.daycounters.Actual365Fixed
-import squantlib.pricingengines.bond.JGBRBondEngine
+import squantlib.jquantlib.pricingengines.bond.JGBRBondEngine
 
 object JGBRFixedBond {
   
