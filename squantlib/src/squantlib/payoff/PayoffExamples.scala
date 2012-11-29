@@ -1,6 +1,6 @@
 package squantlib.payoff
 
-import squantlib.montecarlo.payoff._
+import squantlib.payoff._
 
 object PayoffExamples {
   

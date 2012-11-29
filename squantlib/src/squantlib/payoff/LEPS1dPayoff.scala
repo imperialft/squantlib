@@ -3,8 +3,9 @@ package squantlib.payoff
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
-import DisplayUtils._
-import JsonUtils._
+import squantlib.util.DisplayUtils._
+import squantlib.util.JsonUtils._
+import squantlib.util.FormulaParser
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -54,7 +55,7 @@ object LEPS1dPayoff {
 	    val variable:String = formula.parseJsonString("variable")
 	    val description:String = formula.parseJsonString("description")
 	  
-	    val payoff:List[LEPS1dComponent] = formula.jsonnode match {
+	    val payoff:List[LEPS1dComponent] = formula.jsonNode match {
 	      case Some(node) => getLEPScomponents(node.get("payoff"))
 	      case None => List.empty
 	    }

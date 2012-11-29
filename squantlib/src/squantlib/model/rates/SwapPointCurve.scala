@@ -20,7 +20,7 @@ class SwapPointCurve (val points:YieldParameter, val multiplier:Double, val curr
   /** 
    * Returns multiplier-adjusted swap point for the given date.
    */
-  def value(d:Long) = points(d) / multiplier
+  def value(d:Double) = points(d) / multiplier
   
   /** 
    * Returns forward fx for the given date.

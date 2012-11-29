@@ -8,6 +8,7 @@ import org.jquantlib.daycounters.DayCounter
  * Encapsulate time series vector parameter with interpolation, extrapolation and other adjustments functions.
  */
 trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
+  
 	/**
 	 * Returns base date of this vector. 
 	 */
@@ -16,40 +17,54 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
 	 * Returns number of days between value date and first defined point.
 	 * This point is the low boundary between interpolation & extrapolation.
 	 */
-    val mindays : Long
+    val mindays : Double
+    
 	/**
 	 * Returns number of days between value date and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-    val maxdays : Long
+    val maxdays : Double
+    
 	/**
 	 * Returns date of final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-	def maxdate : qlDate = new qlDate(valuedate.serialNumber() + maxdays)
+	def maxdate : qlDate = new qlDate(valuedate.serialNumber() + maxdays.toLong)
+	
 	/**
 	 * Returns period between valueDate and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
 	def maxperiod = new qlPeriod(maxdays.toInt, TimeUnit.Days)
+	
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
 	 */
-    def value(days : Long) : Double
+    def value(days:Double) : Double
+    def apply(days:Double) = value(days)
+	
+	/**
+	 * Returns the value corresponding to the given date.
+	 * @param observation date as the number of calendar days after value date.
+	 */
+    def value(days:Long) : Double = value(days.toDouble)
     def apply(days:Long) = value(days)
+    
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as day count fraction and its day count method.
 	 */
-    def value(dayfrac : Double, dayCounter:DayCounter) : Double = value((dayfrac * 365 / dayCounter.annualDayCount).toLong)
+    def value(dayfrac : Double, dayCounter:DayCounter) : Double = value((dayfrac * 365.0 / dayCounter.annualDayCount))
     def apply(dayfrac : Double, dayCounter:DayCounter) = value(dayfrac, dayCounter)
+    
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date
 	 */
     def value(date : qlDate) : Double = value(date.serialNumber() - valuedate.serialNumber())
     def apply(date : qlDate) = value(date)
+    
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the period from value date.
@@ -63,10 +78,11 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
     def iterator:Iterator[Pair[qlDate, Double]] = {
       // FIXME: This could be inefficient.
       val list = MutableList[Pair[qlDate, Double]]()
-      for (i <- mindays to maxdays)
+      for (i <- mindays.toLong to maxdays.toLong)
         list += Pair(valuedate.add(i.toInt), value(i)) // .toInt, srsly?
       return list.iterator
     }
+	
   /**
    * Returns a String representation of this object.
    */

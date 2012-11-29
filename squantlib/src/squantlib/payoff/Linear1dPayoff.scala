@@ -1,11 +1,10 @@
 package squantlib.payoff
 
 import scala.collection.JavaConversions._
-import squantlib.payoff.DisplayUtils._
+import squantlib.util.DisplayUtils._
+import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
-
-import JsonUtils._
 
 /**
  * Interprets JSON formula specification for a linear formula with cap & floor.
@@ -35,7 +34,7 @@ object Linear1dPayoff {
 	def apply(formula:String):Linear1dPayoff = {
 	  val variable:String = formula.parseJsonString("variable")	
 	  
-	  val payoff:Linear1dFormula = formula.jsonnode("payoff") match {
+	  val payoff:Linear1dFormula = formula.jsonNode("payoff") match {
 		  case Some(n) => Linear1dFormula(n)
 		  case None => null
 		}

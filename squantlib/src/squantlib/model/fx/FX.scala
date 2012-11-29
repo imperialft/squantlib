@@ -1,5 +1,6 @@
 package squantlib.model.fx
 
+import squantlib.model.Underlying
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
@@ -11,123 +12,57 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
  * @constructor stores each information
  * @param float index, daycount & payment frequency for fixed leg
  */
-trait FX {
+trait FX extends Underlying {
   
-	val curve1:DiscountCurve
-	val currency1:Currency = curve1.currency
+	val curveDom:DiscountCurve
+	val curveFor:DiscountCurve 
 	
-	val curve2:DiscountCurve 
-	val currency2:Currency = curve2.currency
+	val currencyDom:Currency = curveDom.currency
+	val currencyFor:Currency = curveFor.currency
 	
-	require (curve1.valuedate eq curve2.valuedate)
-	val valuedate = curve1.valuedate
+	require (curveDom.valuedate eq curveFor.valuedate)
+	val valuedate = curveDom.valuedate
 	
-	val name = currency1.code + currency2.code
+	val name = currencyDom.code + currencyFor.code
 	
 	/**
 	 * Returns FX spot rate
 	 */
-	val spot:Double = curve2.fx / curve1.fx
+	var spot:Double = curveFor.fx / curveDom.fx
 	
 	/**
 	 * Returns the volatility corresponding to the given date & strike.
 	 * @param days observation date as the number of calendar days after value date.
 	 * @param strike fx strike
 	 */
-	def volatility(days:Long, strike:Double):Double
-	
-	/**
-	 * Returns the volatility corresponding to the given date & strike.
-	 * @param observation date as day count fraction and its day count method.
-	 * @param strike fx strike
-	 */
-	def volatility(dayfrac:Double, dayCounter:DayCounter, strike:Double):Double = volatility(toDays(dayfrac, dayCounter), strike)	
-	
-	/**
-	 * Returns the volatility corresponding to the given date & strike.
-	 * @param observation date
-	 * @param strike fx strike
-	 */
-	def volatility(date:qlDate, strike:Double):Double = volatility(toDays(date), strike)	
-	
-	/**
-	 * Returns the volatility corresponding to the given date & strike.
-	 * @param observation date
-	 * @param observation date as the period from value date.
-	 */
-	def volatility(period:qlPeriod, strike:Double):Double = volatility(toDays(period), strike)	
+	def volatility(days:Double, strike:Double):Double
 	  
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
 	 */
-    def forwardfx(days : Long) : Double = spot * curve1(days) / curve2(days)
-    def zc1(days:Long) = curve1(days)
-    def zc2(days:Long) = curve2(days)
+    override def forward(days : Double) : Double = spot * curveDom(days) / curveFor(days)
     
-	/**
-	 * Returns the value corresponding to the given date.
-	 * @param observation date as day count fraction and its day count method.
-	 */
-    def forwardfx(dayfrac : Double, dayCounter:DayCounter) : Double = forwardfx(toDays(dayfrac, dayCounter))
-    def zc1(dayfrac:Double, dayCounter:DayCounter) = curve1(toDays(dayfrac, dayCounter))
-    def zc2(dayfrac:Double, dayCounter:DayCounter) = curve2(toDays(dayfrac, dayCounter))
     
-	/**
-	 * Returns the value corresponding to the given date.
-	 * @param observation date
-	 */
-    def forwardfx(date : qlDate) : Double = forwardfx(toDays(date))
-    def zc1(date:qlDate) = curve1(toDays(date))
-    def zc2(date:qlDate) = curve2(toDays(date))
+    def zcDom(days:Double) = curveDom(days)
+    def zcDom(date:qlDate) = curveDom(date)
+    def zcDom(period:qlPeriod) = curveDom(period)
+    def zcDom(dayfrac:Double, dayCounter:DayCounter) = curveDom(dayfrac, dayCounter)
     
-	/**
-	 * Returns the value corresponding to the given date.
-	 * @param observation date as the period from value date.
-	 */
-    def forwardfx(period : qlPeriod) : Double = forwardfx(toDays(period))
-    def zc1(period : qlPeriod) = curve1(toDays(period))
-    def zc2(period : qlPeriod) = curve2(toDays(period))
+    def zcFor(days:Double) = curveFor(days)
+    def zcFor(date:qlDate) = curveFor(date)
+    def zcFor(period:qlPeriod) = curveFor(period)
+    def zcFor(dayfrac:Double, dayCounter:DayCounter) = curveFor(dayfrac, dayCounter)
     
-    def maxdays = Math.min(curve1.maxdays, curve2.maxdays)
-	
-	/**
-	 * Private date conversion functions
-	 */
-    private def toDays(dayfrac:Double, dayCounter:DayCounter) = (dayfrac * 365 / dayCounter.annualDayCount).toLong
-    private def toDays(date:qlDate) = date.serialNumber() - valuedate.serialNumber()
-    private def toDays(period:qlPeriod) = period.days(valuedate)
+    def rateDom(days:Double) = curveDom.impliedRate(days)
+    def rateDom(date:qlDate) = curveDom.impliedRate(date)
+    def rateDom(period:qlPeriod) = curveDom.impliedRate(period)
+    def rateDom(dayfrac:Double, dayCounter:DayCounter) = curveDom.impliedRate(dayfrac, dayCounter)
     
+    def rateFor(days:Double) = curveFor.impliedRate(days)
+    def rateFor(date:qlDate) = curveFor.impliedRate(date)
+    def rateFor(period:qlPeriod) = curveFor.impliedRate(period)
+    def rateFor(dayfrac:Double, dayCounter:DayCounter) = curveFor.impliedRate(dayfrac, dayCounter)
+    
+    val maxDays = curveDom.maxdays.min(curveFor.maxdays)
 } 
-
-object FX_novol {
-	def apply(curve1:DiscountCurve, curve2:DiscountCurve):Option[FX_novol] = Some(new FX_novol(curve1, curve2))
-}
-
-class FX_novol(val curve1:DiscountCurve, val curve2:DiscountCurve) extends FX {
-	def volatility(days:Long, strike:Double):Double = Double.NaN
-}
-
-object FX_flatvol {
-	def apply(curve1:DiscountCurve, curve2:DiscountCurve, vol:Double):Option[FX_flatvol] = Some(new FX_flatvol(curve1, curve2, vol))
-}
-
-class FX_flatvol(val curve1:DiscountCurve, val curve2:DiscountCurve, vol:Double) extends FX {
-	def volatility(days:Long, strike:Double):Double = vol
-}
-
-object FX_nosmile {
-	def apply(curve1:DiscountCurve, curve2:DiscountCurve, vol:Long => Double):Option[FX_nosmile] = Some(new FX_nosmile(curve1, curve2, vol))
-}
-
-class FX_nosmile(val curve1:DiscountCurve, val curve2:DiscountCurve, vol:Long => Double) extends FX {
-	def volatility(days:Long, strike:Double):Double = vol(days)
-}
-
-object FX_smiled {
-	def apply(curve1:DiscountCurve, curve2:DiscountCurve, vol:(Long, Double) => Double):Option[FX_smiled] = Some(new FX_smiled(curve1, curve2, vol))
-}
-
-class FX_smiled(val curve1:DiscountCurve, val curve2:DiscountCurve, vol:(Long, Double) => Double) extends FX {
-	def volatility(days:Long, strike:Double):Double = vol(days, strike)
-}

@@ -1,8 +1,7 @@
 package squantlib.payoff
 
-import DisplayUtils._
-import JsonUtils._
-
+import squantlib.util.DisplayUtils._
+import squantlib.util.JsonUtils._
 
 trait Payoff{
 	

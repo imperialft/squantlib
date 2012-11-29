@@ -24,22 +24,37 @@ class SplineEExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], e
 	val inputvalues = TreeMap(values.toSeq:_*)
 	
 	val firstvalue = inputvalues.first._2
+	
 	val impliedrate = if(inputvalues.last._2 < Double.MinPositiveValue) Double.NaN else -1.0 * new Log().value(inputvalues.last._2 / firstvalue) / inputvalues.lastKey.days(valuedate).toDouble
+	
 	val extrapolator = new Exp()
 	
-	val mindays = inputvalues.firstKey.days(valuedate)
-	val maxdays = inputvalues.lastKey.days(valuedate)
+	val mindays = inputvalues.firstKey.days(valuedate).toDouble
+	val maxdays = inputvalues.lastKey.days(valuedate).toDouble
 
-	def lowextrapolation(v : Long) = inputvalues.first._2
-    def highextrapolation(v : Long) = if (impliedrate.isNaN) Double.MinPositiveValue else firstvalue * extrapolator.value(-1.0 * impliedrate * v.toDouble)
-    def interpolation(v : Long) = splinefunction.value(v.toDouble)
+	def lowextrapolation(v : Double) = inputvalues.first._2
+    def highextrapolation(v : Double) = if (impliedrate.isNaN) Double.MinPositiveValue else firstvalue * extrapolator.value(-1.0 * impliedrate * v.toDouble)
+    def interpolation(v : Double) = splinefunction.value(v)
 
     val splinefunction = {
-		var inputpoints :TreeMap[Long, Double] = TreeMap.empty
-		for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
-	    for (i <- 1 to extrapoints; d = inputvalues.lastKey.days(valuedate) + (30L * i.toLong)) { inputpoints ++= Map(d -> highextrapolation(d)) }
-		val keysarray = inputpoints.keySet.toArray
-		val valarray = keysarray.map((i:Long) => inputpoints(i))
-		new SplineInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)
-    }
+	    var inputpoints:SortedMap[Double, Double] = SortedMap.empty
+	    
+	    for (d <- inputvalues.keySet) 
+	      { inputpoints ++= Map(d.days(valuedate).toDouble -> inputvalues(d)) }
+
+	    for (i <- 1 to extrapoints) 
+	      { inputpoints ++= Map((inputvalues.lastKey.days(valuedate).toDouble + (30.0 * i.toDouble)) -> inputvalues.last._2) }
+	    
+	    val keysarray = inputpoints.keySet.toArray
+	    val valarray = keysarray.map((i:Double) => inputpoints(i))
+	    new SplineInterpolator().interpolate(keysarray, valarray)
+    }    
+//    val splinefunction = {
+//		var inputpoints :TreeMap[Long, Double] = TreeMap.empty
+//		for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
+//	    for (i <- 1 to extrapoints; d = inputvalues.lastKey.days(valuedate) + (30L * i.toLong)) { inputpoints ++= Map(d -> highextrapolation(d)) }
+//		val keysarray = inputpoints.keySet.toArray
+//		val valarray = keysarray.map((i:Long) => inputpoints(i))
+//		new SplineInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)
+//    }
 }

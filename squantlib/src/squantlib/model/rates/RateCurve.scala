@@ -39,7 +39,7 @@ trait RateCurve extends DiscountableCurve{
 
 trait AbstractCurve extends YieldParameter{
   val rate : YieldParameter
-  def value(d:Long) = rate(d)
+  def value(d:Double) = rate(d)
   var valuedate = rate.valuedate
   val mindays = rate.mindays
   val maxdays = rate.maxdays

@@ -1,0 +1,88 @@
+package squantlib.util
+
+import squantlib.setting.initializer.Currencies
+import scala.collection.mutable.{Map => mutableMap}
+import squantlib.util.DisplayUtils._
+
+
+object FormulaParser {
+
+  	def parseList(cashflow:String):List[(Map[Set[String], Double], Option[Double], Option[Double])] = 
+	  cashflow.split(",").map(parse).toList
+  	
+  /** 
+   * Parse a linear formula string into sum of named variables
+   * returns tuple containing
+   * 1) Cashflow as map(variable names -> leverage)
+   * 2) Floor (ie. minimum amount)
+   * 3) Cap (ie. maximum amount)
+   */
+    def parse(cashflow:String):(Map[Set[String], Double], Option[Double], Option[Double]) = {
+	  if (cashflow.isEmpty) return (Map.empty, None, None)
+      
+      var coeff:mutableMap[Set[String], Double] = mutableMap.empty
+      var cap:Option[Double] = None
+      var floor:Option[Double] = None
+      
+      var rateformula = (if(cashflow.trim.head == '-') "0" else "") + replacestr(cashflow, 
+          Map(" " -> "", "\r" -> "", "\n" -> "", "-" -> "+-1*", ">" -> "+>", "<" -> "+<"))
+
+      rateformula.split('+').withFilter(!_.isEmpty).foreach{ 
+          case s if (s.head == '<') => {
+	        cap = s.tail.parseDouble.collect {
+	            case v => cap match {
+	              case None => v
+	              case Some(c) => c.min(v)
+	      }}}
+          
+          case s if (s.head == '>') => {
+            floor = s.tail.parseDouble.collect {
+              case v => floor match {
+	          	case None => v
+	          	case Some(f) => f.max(v)
+	      }}}
+          
+          case s => {
+            val splitmult = s.replace("/", "*/").split('*').filter(!_.isEmpty)
+		    var c = 1.00
+		    var varnames = Set.empty[String]
+		    
+		    splitmult.foreach{ 
+		        case t if (t.head == '/') => {
+		          val valuepart = t.tail
+		          valuepart.parseDouble match {
+		            case Some(v) => { c /= v }
+		            case None => {
+		              if (isFX(valuepart)) varnames += flipFX(valuepart) 
+		              else varnames += t
+		        }}}
+		        
+		        case t => {
+		          t.parseDouble match {
+		            case Some(v) => c = c * v
+		            case None => varnames += t
+		        }}
+		      }
+		        
+		      if (coeff.contains(varnames)) coeff(varnames) += c
+		      else coeff.update(varnames, c)
+	        }
+	     }
+
+      (Map(coeff.toSeq:_*), floor, cap)
+    }
+    
+	
+	def isFX(s:String):Boolean = 
+	  (s != null && s.size == 6 && Currencies.contains(s.substring(0, 3)) && Currencies.contains(s.substring(3, 6)))
+	  
+	def flipFX(s:String):String = if (isFX(s)) s.substring(3, 6) + s.substring(0, 3) else null
+
+	def replacestr(s:String, replacef:Map[String, String]):String = {
+	  var resultstring = s
+	  replacef.keySet.foreach{r => {
+	    resultstring = resultstring.replace(r, replacef(r))
+	  }}
+	  resultstring
+	}
+}

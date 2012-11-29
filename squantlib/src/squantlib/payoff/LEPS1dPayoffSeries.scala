@@ -4,8 +4,8 @@ import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 
-import JsonUtils._
-import DisplayUtils._
+import squantlib.util.DisplayUtils._
+import squantlib.util.JsonUtils._
 
 /**
  * Interprets JSON formula for series of LEPS1dPayoffs.
@@ -22,7 +22,7 @@ object LEPS1dPayoffSeries {
 	def apply(formula:String):List[LEPS1dPayoff] = {
 	  val variable:String = formula.parseJsonString("variable")
 	  
-	  formula.jsonnode("legs") match {
+	  formula.jsonNode("legs") match {
 	    
 	    case None => List.empty
 	    

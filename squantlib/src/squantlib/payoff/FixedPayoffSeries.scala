@@ -1,8 +1,8 @@
 package squantlib.payoff
 
 import scala.collection.JavaConversions._
-import DisplayUtils._
-import JsonUtils._
+import squantlib.util.DisplayUtils._
+import squantlib.util.JsonUtils._
 
 /**
  * Interprets JSON formula for series of linear formulas with caps and floors.
@@ -11,7 +11,7 @@ import JsonUtils._
  */
 object FixedPayoffSeries {
   
-	def apply(formula:String):List[FixedPayoff] = formula.jsonnode match {
+	def apply(formula:String):List[FixedPayoff] = formula.jsonNode match {
 	    case Some(n) if n.isObject => n.get("payoff").getElements.map(e => FixedPayoff(e.parseJsonDouble)).toList
 		case Some(n) if n.isArray => n.getElements.map(e => FixedPayoff(e.parseJsonDouble)).toList
 		case Some(n) if n.isNumber => List(FixedPayoff(n.parseJsonDouble))

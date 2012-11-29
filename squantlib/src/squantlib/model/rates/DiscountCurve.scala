@@ -39,20 +39,21 @@ class DiscountCurve(val currency:Currency, val zc : YieldParameter, val discount
 	 * Returns number of days between value date and first defined point.
 	 * This point is the low boundary between interpolation & extrapolation.
 	 */
-    val mindays : Long = zc.mindays
+    val mindays : Double = zc.mindays
 	/** 
 	 * Returns number of days between value date and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-    val maxdays : Long = zc.maxdays
+    val maxdays : Double = zc.maxdays
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
 	 */
-    def value(days : Long) : Double = zc(days)
+    def value(days : Double) : Double = zc(days)
     
-    def impliedRate(days:Long):Double = -Math.log(value(days)) / (days / 365.25)
-    def impliedRate(dayfrac:Double, dayCounter:DayCounter):Double = impliedRate((dayfrac * 365.25 / dayCounter.annualDayCount).toLong)
+    def impliedRate(days:Double):Double = -Math.log(value(days)) / (days / 365.25)
+    def impliedRate(days:Long):Double = -Math.log(value(days.toDouble)) / (days / 365.25)
+    def impliedRate(dayfrac:Double, dayCounter:DayCounter):Double = impliedRate((dayfrac * 365.25 / dayCounter.annualDayCount))
     def impliedRate(date:qlDate):Double = impliedRate(date.serialNumber - valuedate.serialNumber)
     def impliedRate(period:qlPeriod):Double = impliedRate(period.days(valuedate))
     

@@ -4,8 +4,8 @@ import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 
-import DisplayUtils._
-import JsonUtils._
+import squantlib.util.DisplayUtils._
+import squantlib.util.JsonUtils._
 
 /**
  * Interprets JSON formula specification for a fixed leg.

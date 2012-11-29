@@ -13,12 +13,12 @@ class FlatVector(var valuedate : JDate, inputvalues:Map[JPeriod, Double]) extend
 	val constantvalue = inputvalues.first._2
 	val firstvalue = inputvalues.first._2
 	
-	val mindays = inputvalues.first._1.days(valuedate)
+	val mindays = inputvalues.first._1.days(valuedate).toDouble
 	val maxdays = mindays
 
-	def lowextrapolation(v : Long) = constantvalue
-    def highextrapolation(v : Long) = constantvalue
-    def interpolation(v : Long) = constantvalue
+	def lowextrapolation(v : Double) = constantvalue
+    def highextrapolation(v : Double) = constantvalue
+    def interpolation(v : Double) = constantvalue
     
     def this(valuedate:JDate, inputvalue:Double) = this(valuedate, Map(new JPeriod(1, TimeUnit.Months) -> inputvalue))
 }

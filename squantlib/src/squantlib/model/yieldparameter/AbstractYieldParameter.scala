@@ -9,14 +9,14 @@ import squantlib.chart.LineChart
  */
 trait AbstractYieldParameter{
 	var valuedate : qlDate
-	val mindays : Long
-	val maxdays : Long
+	val mindays : Double
+	val maxdays : Double
 
-	def lowextrapolation(v : Long) : Double
-    def highextrapolation(v : Long) : Double
-    def interpolation(v : Long) : Double
+	def lowextrapolation(v : Double) : Double
+    def highextrapolation(v : Double) : Double
+    def interpolation(v : Double) : Double
   
-    def value(v : Long) : Double = 
+    def value(v : Double) : Double = 
       v match {
         case vv if vv <= mindays => lowextrapolation(vv)
         case vv if vv >= maxdays => highextrapolation(vv)

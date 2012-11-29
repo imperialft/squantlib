@@ -21,18 +21,21 @@ class LinearNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double]) 
 	val inputvalues = SortedMap(values.toSeq:_*)
 	
     val linearfunction:PolynomialSplineFunction = {
-	    var inputpoints:SortedMap[Long, Double] = SortedMap.empty
-	    for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
+	    var inputpoints:SortedMap[Double, Double] = SortedMap.empty
+	    
+	    for (d <- inputvalues.keySet) 
+	    { inputpoints ++= Map(d.days(valuedate).toDouble -> inputvalues(d)) }
+	    
 	    val keysarray = inputpoints.keySet.toArray
-	    val valarray = keysarray.map((i:Long) => inputpoints(i))
-	    new LinearInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)    
+	    val valarray = keysarray.map((i:Double) => inputpoints(i))
+	    new LinearInterpolator().interpolate(keysarray, valarray)    
 	}
 	
-	val mindays = inputvalues.firstKey.days(valuedate)
-	val maxdays = inputvalues.lastKey.days(valuedate)
+	val mindays = inputvalues.firstKey.days(valuedate).toDouble
+	val maxdays = inputvalues.lastKey.days(valuedate).toDouble
 
-	def lowextrapolation(v : Long) = inputvalues.first._2
-    def highextrapolation(v : Long) = inputvalues.last._2
-    def interpolation(v : Long) = linearfunction.value(v.toDouble)
+	def lowextrapolation(v : Double) = inputvalues.first._2
+    def highextrapolation(v : Double) = inputvalues.last._2
+    def interpolation(v : Double) = linearfunction.value(v)
 }
  

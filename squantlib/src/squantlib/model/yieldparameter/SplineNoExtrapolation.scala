@@ -26,19 +26,24 @@ class SplineNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], 
 	val inputvalues = SortedMap(values.toSeq:_*)
 	
     val splinefunction = {
-	    var inputpoints :SortedMap[Long, Double] = SortedMap.empty
-	    for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
-	    for (i <- 1 to extrapoints) { inputpoints ++= Map((inputvalues.lastKey.days(valuedate) + (30L * i.toLong)) -> inputvalues.last._2) }
+	    var inputpoints:SortedMap[Double, Double] = SortedMap.empty
+	    
+	    for (d <- inputvalues.keySet) 
+	      { inputpoints ++= Map(d.days(valuedate).toDouble -> inputvalues(d)) }
+
+	    for (i <- 1 to extrapoints) 
+	      { inputpoints ++= Map((inputvalues.lastKey.days(valuedate).toDouble + (30.0 * i.toDouble)).toDouble -> inputvalues.last._2) }
+	    
 	    val keysarray = inputpoints.keySet.toArray
-	    val valarray = keysarray.map((i:Long) => inputpoints(i))
-	    new SplineInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)
+	    val valarray = keysarray.map((i:Double) => inputpoints(i))
+	    new SplineInterpolator().interpolate(keysarray, valarray)
     }
     
-	val mindays = inputvalues.firstKey.days(valuedate)
-	val maxdays = inputvalues.lastKey.days(valuedate)
+	val mindays = inputvalues.firstKey.days(valuedate).toDouble
+	val maxdays = inputvalues.lastKey.days(valuedate).toDouble
 
 
-	def lowextrapolation(v : Long) = inputvalues.first._2
-    def highextrapolation(v : Long) = inputvalues.last._2
-    def interpolation(v : Long) = splinefunction.value(v.toDouble)
+	def lowextrapolation(v : Double) = inputvalues.first._2
+    def highextrapolation(v : Double) = inputvalues.last._2
+    def interpolation(v : Double) = splinefunction.value(v)
 }

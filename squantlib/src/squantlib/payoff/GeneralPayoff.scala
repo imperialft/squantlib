@@ -1,7 +1,8 @@
 package squantlib.payoff
 
-import DisplayUtils._
-import JsonUtils._
+import squantlib.util.DisplayUtils._
+import squantlib.util.JsonUtils._
+import squantlib.util.FormulaParser
 
 /**
  * Interprets general formula as the sum of weighted variables + constant, with cap and floor.

@@ -4,7 +4,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.JavaConversions
 import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
-import squantlib.model.fx.{FX, FX_novol, FX_flatvol, FX_nosmile, FX_smiled}
+import squantlib.model.fx.{FX, FXzeroVol, FXconstantVol, FXnoSmile, FXsmiled}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
 import org.jquantlib.instruments.Bond
@@ -22,8 +22,8 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	var valuedate:qlDate = curves.head._2.valuedate
 	require(curves.forall(_._2.valuedate == valuedate))
 	
-	val FX_baseSpread = 0.0
-	val FX_baseCurrency = "USD"
+	val FXbaseSpread = 0.0
+	val FXbaseCurrency = "USD"
 	
 	/** 
 	 * USD
@@ -33,13 +33,15 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	/** 
 	 * Currencies
 	 */
-	val currencies:Iterable[Currency] = curves.collect { case (k, v) => v.currency }
-	val curveList:Set[String] = curves.keySet
+	val currencies:Set[Currency] = curves.collect { case (k, v) => v.currency }.toSet
+	val curveList = curves.keySet
+	def contains(ccy:String) = curves.contains(ccy)
 
 	/** 
 	 * Issuers
 	 */
 	val cdsNames:Set[String] = if (cdscurves == null) null else cdscurves.keySet
+	def containsCDS(issuer:String) = cdscurves.contains(issuer)
 	
 	/** 
 	 * Discounting Curves
@@ -60,6 +62,13 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	  try {curves(ccy2).fx / curves(ccy1).fx } catch { case _ => Double.NaN}
 
 	/**
+	 * Returns discount curve with "base" spread & currency.
+	 * @param currency code, spread
+	 */
+	def getBaseDiscountCurve(ccy:String):Option[DiscountCurve] = 
+	  getDiscountCurve(ccy, FXbaseCurrency, FXbaseSpread)
+	  
+	/**
 	 * Returns discount curve. Discount currency is flat and same currency with given spread.
 	 * @param currency code, spread
 	 */
@@ -78,7 +87,7 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	 * @param currency code, cds id
 	 */
 	def getDiscountCurve(ccy:String, cdsid:String) : Option[DiscountCurve] = 
-	  if (cdsNames.isEmpty || cdsNames.contains(cdsid)) getDiscountCurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid)
+	  if (cdscurves.isEmpty || cdscurves.contains(cdsid)) getDiscountCurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid)
 	  else None
 
 	/**
@@ -92,7 +101,8 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	 * Returns discount curve from full given parameter.
 	 */
 	private def getDiscountCurve(ccy:String, discountccy:String, spread:YieldParameter, cdsid:String) : Option[DiscountCurve] = 
-	  if (contains(ccy, cdsid)) Some(repository(cdsid)(ccy))
+	  if (!curves.contains(ccy)) {println("curve " + ccy + " not found"); None}
+	  else if (contains(ccy, cdsid)) Some(repository(cdsid)(ccy))
 	  else {
 	    val newcurve = ccy match {
 		    case `discountccy` => { curves(ccy).getZC(spread) }
@@ -123,32 +133,50 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	 * Returns zero volatility FX object representing the FX exchange rate between given currencies.
 	 * @param currency code
 	 */
-	def getFX(ccy1:String, ccy2:String) : Option[FX] = 
-	  FX_novol(getDiscountCurve(ccy1, FX_baseCurrency, FX_baseSpread).orNull, getDiscountCurve(ccy2, FX_baseCurrency, FX_baseSpread).orNull)
+	def getFX(ccy1:String, ccy2:String) : Option[FX] = {
+	    val curve1 = getBaseDiscountCurve(ccy1)
+	    val curve2 = getBaseDiscountCurve(ccy2)
+	    if ((curve1 isDefined) && (curve2 isDefined)) FXzeroVol(curve1.get, curve2.get) else None
+	  }
+	
+	def getFX(fxpair:String):Option[FX] = {
+	  if (fxpair == null || fxpair.size != 6) None
+	  else getFX(fxpair.substring(0, 3), fxpair.substring(3, 3))
+	}
 	
 	/**
 	 * Returns flat volatility FX object representing the FX exchange rate between given currencies.
 	 * @param currency code
 	 * @param volatility (flat over timeline & strike)
 	 */
-	def getFX(ccy1:String, ccy2:String, vol:Double) : Option[FX] = 
-	  FX_flatvol(getDiscountCurve(ccy1, FX_baseCurrency, FX_baseSpread).orNull, getDiscountCurve(ccy2, FX_baseCurrency, FX_baseSpread).orNull, vol)
+	def getFX(ccy1:String, ccy2:String, vol:Double) : Option[FX] = {
+	    val curve1 = getBaseDiscountCurve(ccy1)
+	    val curve2 = getBaseDiscountCurve(ccy2)
+	    if ((curve1 isDefined) && (curve2 isDefined)) FXconstantVol(curve1.get, curve2.get, vol) else None
+	}
 	
 	/**
 	 * Returns non-smiled volatility FX object representing the FX exchange rate between given currencies.
 	 * @param currency code
 	 * @param volatility as function of time t
 	 */
-	def getFX(ccy1:String, ccy2:String, vol:Long => Double) : Option[FX] = 
-	  FX_nosmile(getDiscountCurve(ccy1, FX_baseCurrency, FX_baseSpread).orNull, getDiscountCurve(ccy2, FX_baseCurrency, FX_baseSpread).orNull, vol)
+	def getFX(ccy1:String, ccy2:String, vol:Double => Double) : Option[FX] = {
+	    val curve1 = getBaseDiscountCurve(ccy1)
+	    val curve2 = getBaseDiscountCurve(ccy2)
+	    if ((curve1 isDefined) && (curve2 isDefined)) FXnoSmile(curve1.get, curve2.get, vol) else None
+	}
 
 	/**
 	 * Returns smiled volatility FX object representing the FX exchange rate between given currencies.
 	 * @param currency code
 	 * @param volatility as function of time t and strike k
 	 */
-	def getFX(ccy1:String, ccy2:String, vol:(Long, Double) => Double) : Option[FX] = 
-	  FX_smiled(getDiscountCurve(ccy1, FX_baseCurrency, FX_baseSpread).orNull, getDiscountCurve(ccy2, FX_baseCurrency, FX_baseSpread).orNull, vol)
+	def getFX(ccy1:String, ccy2:String, vol:(Double, Double) => Double) : Option[FX] = {
+	    val curve1 = getBaseDiscountCurve(ccy1)
+	    val curve2 = getBaseDiscountCurve(ccy2)
+	    if ((curve1 isDefined) && (curve2 isDefined)) FXsmiled(curve1.get, curve2.get, vol) else None
+	}
+	
 	
 	def getYieldTermStructure(bond:Bond):Option[YieldTermStructure] = 
 	  	try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toZCImpliedYieldTermStructure) } 
