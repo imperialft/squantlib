@@ -2,12 +2,13 @@ package squantlib.model.rates
 
 import scala.collection.SortedMap
 import scala.collection.immutable.{TreeMap, SortedSet}
-import squantlib.model.yieldparameter.{YieldParameter, SplineEExtrapolation}
-import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit}
+import squantlib.model.yieldparameter.{YieldParameter, SplineEExtrapolation, FlatVector}
+import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.Thirty360
 import squantlib.database.schemadefinitions.RateFXParameter
 import squantlib.setting.RateConvention
 import squantlib.setting.initializer.RateConventions
+
 
 class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCurve{
 
@@ -34,17 +35,17 @@ class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCur
 		  /**
 		   * day count initialization
 		   */
-		  val maxmaturity = JPeriod.months(swappoint.points.maxperiod, valuedate).toInt
+		  val maxmaturity = qlPeriod.months(swappoint.points.maxperiod, valuedate).toInt
 		  val zcfreq = 3
 		  val zcmonths:Seq[Int] = (for (m <- 0 to maxmaturity if m % zcfreq == 0) yield m).sorted
-		  val zcperiods = TreeMap(zcmonths.map(m => (m, new JPeriod(m, TimeUnit.Months))) : _*) 
+		  val zcperiods = TreeMap(zcmonths.map(m => (m, new qlPeriod(m, TimeUnit.Months))) : _*) 
 		  val swapptperiods = zcperiods.filter(p => p._1 > 0)
 	    
 		  /** 
 		   * initialize empty containers (sorted tree)
 		   */ 
-		  var ZC : TreeMap[JPeriod, Double] = TreeMap.empty
-		  var ZCspread : TreeMap[JPeriod, Double] = TreeMap.empty
+		  var ZC : TreeMap[qlPeriod, Double] = TreeMap.empty
+		  var ZCspread : TreeMap[qlPeriod, Double] = TreeMap.empty
 	
 		  /**
 		   * spot zero coupon = 1.00
@@ -80,7 +81,6 @@ class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCur
 }
 
 object FXDiscountCurve {
-  import squantlib.model.yieldparameter.FlatVector
   
 	val swappointKey = "SwapPt"
 	val fxKey = "FX"
@@ -93,15 +93,22 @@ object FXDiscountCurve {
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
   	def getcurves(params:Traversable[RateFXParameter]):Iterable[FXDiscountCurve] = {
-	  val conventions:Map[String, RateConvention] = RateConventions.mapper.filter{case (k, v) => v.useFXdiscount}
-  	  val dateassetgroup = params.groupBy(p => p.asset).filter{case(k, v) => conventions.keySet.contains(k)}
-  	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
-  	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swappointKey) && v.keySet.contains(fxKey))}
+	  val conventions:Map[String, RateConvention] = 
+	    RateConventions.mapper.filter{case (k, v) => v.useFXdiscount}
+	  
+  	  val dateassetgroup = 
+  	    params.groupBy(p => p.asset).filter{case(k, v) => conventions.contains(k)}
+  	  
+  	  val instrumentgroup = 
+  	    dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
+  	  
+  	  val nonemptyinstruments = 
+  	    instrumentgroup.filter{ case (k, v) => (v.contains(swappointKey) && v.contains(fxKey))}
   	  
   	  nonemptyinstruments.map{ case (k, v) => 
   		  val conv = conventions(k)
-  		  val valuedate = new JDate(v(swappointKey).head.paramdate)
-  		  def toSortedMap(k:String) = SortedMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
+  		  val valuedate = new qlDate(v(swappointKey).head.paramdate)
+  		  def toSortedMap(k:String) = SortedMap(v(k).toSeq.map(p => (new qlPeriod(p.maturity), p.value)) :_*)
   		  val swapptcurve = conv.swappoint_constructor(valuedate, toSortedMap(swappointKey))
   		  new FXDiscountCurve(swapptcurve, v(fxKey).head.value)
   	  	}

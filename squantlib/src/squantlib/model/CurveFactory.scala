@@ -119,14 +119,14 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
     	}
 	    
 	    if (cdsid != null) {
-		    if (!repository.keySet.contains(cdsid)) repository += (cdsid -> scala.collection.mutable.Map(ccy -> newcurve))
+		    if (!repository.contains(cdsid)) repository += (cdsid -> scala.collection.mutable.Map(ccy -> newcurve))
 		    else repository(cdsid) += (ccy -> newcurve)}
 	    
 	    Some(newcurve)
 	  }
 	
 	private def ratecurve(c:String):RateCurve = 
-	  if (discountingCurves.keySet.contains(c)) discountingCurves(c) 
+	  if (discountingCurves.contains(c)) discountingCurves(c) 
 	  else throw new ClassCastException
 	
 	/**
@@ -220,7 +220,7 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 		val eol = sys.props("line.separator")
 		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
 		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
-		"Curves:" + eol + sortedcurves.map(c => c._2.describe + (if (discountingCurves.keySet.contains(c._1)) "(*)" else "") + eol).mkString("") + 
+		"Curves:" + eol + sortedcurves.map(c => c._2.describe + (if (discountingCurves.contains(c._1)) "(*)" else "") + eol).mkString("") + 
 		"(*) Discounting curves" + eol + eol +
 		"Credit Spreads:" + eol + sortedcdscurves.map(c => c._1 + "\t" + c._2.rate.valuedate.shortDate + "\t" + c._2.rate.maxdate.shortDate + eol).mkString("")
 	}

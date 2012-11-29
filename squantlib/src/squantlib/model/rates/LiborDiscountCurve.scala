@@ -1,8 +1,8 @@
 package squantlib.model.rates
 
 import scala.collection.immutable.{TreeMap, SortedSet}
-import squantlib.model.yieldparameter.{YieldParameter, SplineEExtrapolation, SplineNoExtrapolation, LinearNoExtrapolation}
-import org.jquantlib.time.{ Date => JDate, Period => JPeriod, TimeUnit}
+import squantlib.model.yieldparameter.{FlatVector, YieldParameter, SplineEExtrapolation, SplineNoExtrapolation, LinearNoExtrapolation}
+import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.database.schemadefinitions.RateFXParameter
 import squantlib.setting.RateConvention
@@ -39,12 +39,17 @@ extends RateCurve{
 	  /**
 	   * day count initialization, for swap fixed leg convention. (not to be used for cash rate)
 	   */
-	  val maxmaturity = JPeriod.months(swap.rate.maxperiod, valuedate).toInt
+	  val maxmaturity = qlPeriod.months(swap.rate.maxperiod, valuedate).toInt
+	  
 	  val zcmonths:Seq[Int] = (for (m <- (List(0, 3, 6, 9) ++ (12 to maxmaturity by fixperiod))) yield m).sorted
-	  val zcperiods = TreeMap(zcmonths.map(m => (m, new JPeriod(m, TimeUnit.Months))) : _*) 
+	  
+	  val zcperiods = TreeMap(zcmonths.map(m => (m, new qlPeriod(m, TimeUnit.Months))) : _*) 
+	  
 	  val maturities = TreeMap(zcmonths.map(m => (m, valuedate.add(zcperiods(m)))) : _*) 
+	  
 	  val fixdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
 			  		.map(m => (m, swap.fixdaycount.yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
+			  		
 	  val floatdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
 	  				.map(m => (m, swap.floatindex.dayCounter().yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
 	  				
@@ -59,7 +64,8 @@ extends RateCurve{
 	   * 3m/6m basis swap calibration is valid in case float leg is semi annual (ccy basis always quarterly)
 	   */
 	  val bs3m6madjust = if (tenorbasis == null && floattenor > 3) null 
-	  					 else zcperiods.map{case (m, p) => (m, m match { 
+	  					 else zcperiods.map{
+	  					   case (m, p) => (m, m match { 
 	  					    case n if n < swapstart && n < 6 => 0.0
 						    case n if n < swapstart && n >= 6 => if (tenorbasis == null) 0.0 else tenorbasis(p)
 						    case n if n >= swapstart && floattenor <= 3 => 0.0
@@ -81,8 +87,8 @@ extends RateCurve{
 		  /**
 		   * initialize empty containers (sorted tree)
 		   */
-		  var ZC : TreeMap[JPeriod, Double] = TreeMap.empty
-		  var ZCspread : TreeMap[JPeriod, Double] = TreeMap.empty
+		  var ZC : TreeMap[qlPeriod, Double] = TreeMap.empty
+		  var ZCspread : TreeMap[qlPeriod, Double] = TreeMap.empty
 		
 		  /**
 		   * spot zero coupon = 1.00
@@ -111,7 +117,8 @@ extends RateCurve{
 		    val realrate = swap(p) + (ZCspread(p) - bs3m6madjust(m)) * floatfraction / fixfraction
 		    val zcXm = (1 - realrate * duration) / (1 + realrate * fixdaycounts(m)) 
 		    ZC ++= Map(p -> zcXm)
-		    duration += zcXm * fixdaycounts(m)}
+		    duration += zcXm * fixdaycounts(m)
+		  }
 		  
 		  
 		  /**
@@ -133,8 +140,8 @@ extends RateCurve{
 		  /** 
 		   * initialize empty containers (sorted tree)
 		   */ 
-		  var ZC : TreeMap[JPeriod, Double] = TreeMap.empty
-		  var ZCspread : TreeMap[JPeriod, Double] = TreeMap.empty
+		  var ZC : TreeMap[qlPeriod, Double] = TreeMap.empty
+		  var ZCspread : TreeMap[qlPeriod, Double] = TreeMap.empty
 	
 		  /**
 		   * annual daycount fraction for discount curve
@@ -217,7 +224,6 @@ extends RateCurve{
 
 
 object LiborDiscountCurve {
-  import squantlib.model.yieldparameter.FlatVector
   
 	val cashKey = "Cash"
 	val swapKey = "Swap"
@@ -225,7 +231,7 @@ object LiborDiscountCurve {
 	val basis36Key = "BS3M6M"
 	val fxKey = "FX"
 	val pivotccy = "USD"
-	  
+
 	/**
 	 * Constructs LiborDiscountCurve from InputParameter per each combination of currency & paramset.
 	 * Invalid input parameter sets are ignored.
@@ -233,22 +239,35 @@ object LiborDiscountCurve {
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
   	def getcurves(params:Traversable[RateFXParameter]):Iterable[LiborDiscountCurve] = {
-	  val conventions:Map[String, RateConvention] = RateConventions.mapper.filter{case (k, v) => v.useratediscount }
-  	  val dateassetgroup = params.groupBy(p => p.asset).filter{case(k, v) => conventions.keySet.contains(k)}
-  	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
-  	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swapKey))}
+    
+	  val conventions:Map[String, RateConvention] = 
+	    RateConventions.mapper.filter{case (k, v) => v.useratediscount }
+	  
+  	  val dateassetgroup = 
+  	    params.groupBy(p => p.asset).filter{case(k, v) => conventions.contains(k)}
+  	  
+  	  val instrumentgroup = 
+  	    dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
+  	  
+  	  val nonemptyinstruments = 
+  	    instrumentgroup.filter{ case (k, v) => (v.contains(swapKey))}
   	  
   	  nonemptyinstruments.map{ case (k, v) => 
   		  val conv = conventions(k)
-  		  val valuedate = new JDate(v(swapKey).head.paramdate)
-  		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
-  		  val swapcurve = conv.swap_constructor(valuedate, toTreeMap(swapKey))
-  		  val cashcurve = if (v.keySet.contains(cashKey)) conv.cash_constructor(valuedate, toTreeMap(cashKey))
-  		  				  else conv.cash_constructor(new FlatVector(valuedate, swapcurve.rate.value(0)))
-  		  val basiscurve = if (v.keySet.contains(basisKey)) conv.basis_constructor(valuedate, toTreeMap(basisKey)) else null
-  		  val basis36curve = if (v.keySet.contains(basis36Key)) conv.basis36_constructor(valuedate, toTreeMap(basis36Key)) else null
+  		  val valuedate = new qlDate(v(swapKey).head.paramdate)
   		  
-  		  if (v.keySet.contains(fxKey)) new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).head.value)
+  		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new qlPeriod(p.maturity), p.value)) :_*)
+  		  
+  		  val swapcurve = conv.swap_constructor(valuedate, toTreeMap(swapKey))
+  		  
+  		  val cashcurve = if (v.contains(cashKey)) conv.cash_constructor(valuedate, toTreeMap(cashKey))
+  		  				  else conv.cash_constructor(new FlatVector(valuedate, swapcurve.rate.value(0)))
+  		  				  
+  		  val basiscurve = if (v.contains(basisKey)) conv.basis_constructor(valuedate, toTreeMap(basisKey)) else null
+  		  
+  		  val basis36curve = if (v.contains(basis36Key)) conv.basis36_constructor(valuedate, toTreeMap(basis36Key)) else null
+  		  
+  		  if (v.contains(fxKey)) new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).head.value)
   		  else new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve)
   	  	}
   	}
