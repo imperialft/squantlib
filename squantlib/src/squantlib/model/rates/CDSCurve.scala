@@ -28,11 +28,11 @@ object CDSCurve{
   	  val cdsgroups = params.groupBy(p => (p.issuerid, p.currencyid))
   	   
   	  cdsgroups.withFilter{case ((_, ccy), _) => Currencies.contains(ccy) }
-  	  	.map{ case ((issuer, ccy), v) => {
+  	  	.map{ case ((issuer, ccy), v) => 
   		  val valuedate = new JDate(v.head.paramdate)
   		  val cdscurve = curveconstructor(valuedate, TreeMap(v.toSeq.map(p => (new JPeriod(p.maturity), p.spread / 10000.0)) :_*))
   		  ((issuer, ccy), new CDSCurve(cdscurve, Currencies(ccy).get, issuer))
-  	  	}}
+  	  	}
   	}
   
 	/**

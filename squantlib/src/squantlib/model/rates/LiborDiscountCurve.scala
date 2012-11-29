@@ -195,7 +195,7 @@ extends RateCurve{
 			ZC ++= Map(p -> zcXm)
 			fixduration += zcXm * fixdaycounts(m)
 			floatduration += zcXm * floatdaycounts(m)
-			}	
+			}
 		  
 		  /**
 		   * Construct new discount curve object.
@@ -238,7 +238,7 @@ object LiborDiscountCurve {
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
   	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swapKey))}
   	  
-  	  nonemptyinstruments.map{ case (k, v) => {
+  	  nonemptyinstruments.map{ case (k, v) => 
   		  val conv = conventions(k)
   		  val valuedate = new JDate(v(swapKey).head.paramdate)
   		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
@@ -250,7 +250,7 @@ object LiborDiscountCurve {
   		  
   		  if (v.keySet.contains(fxKey)) new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).head.value)
   		  else new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve)
-  	  	}}
+  	  	}
   	}
   
   	def apply(params:Traversable[RateFXParameter]):Iterable[LiborDiscountCurve] = getcurves(params)

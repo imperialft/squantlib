@@ -60,7 +60,7 @@ object QLConstructors {
 	    	override def write(b:Int) = {}})
 	    val err = System.err
 	    System.setErr(estream)
-	    val result = try { val p = bond.dirtyPrice; !p.isNaN } catch { case e:Exception => false }
+	    val result = try { val p = bond.dirtyPrice; !p.isNaN } catch { case _ => false }
 	    System.setErr(err)
 	    result
 	  }

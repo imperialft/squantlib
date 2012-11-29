@@ -29,7 +29,8 @@ object BondPrice {
 	    
 		var expired = bond.maturityDate le bond.valuedate
 		var msg:String = if (expired) "expired (" + bond.maturityDate.shortDate + "<=" + valuedate.shortDate + ")" else null
-		val price = if (expired) Double.NaN else try bond.dirtyPrice catch { case e => {msg = e.getMessage; Double.NaN} }
+		val price = if (expired) Double.NaN 
+					else try bond.dirtyPrice catch { case e => msg = e.getMessage; Double.NaN}
 		
 		val pricefrom = bondPriceFrom(bond)
 		val toofarfromissue = if (pricefrom.isEmpty || (pricefrom.get gt valuedate)) { 

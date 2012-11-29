@@ -180,11 +180,11 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	
 	def getYieldTermStructure(bond:Bond):Option[YieldTermStructure] = 
 	  	try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toZCImpliedYieldTermStructure) } 
-		catch { case e:Exception => None}
+		catch { case _ => None}
 										   
 	def getYieldTermStructure(bond:Bond, calendar:Calendar):Option[YieldTermStructure] = 
 		try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toZCImpliedYieldTermStructure(calendar))} 
-		catch { case e:Exception => None}
+		catch { case _ => None}
 	
 	def getCustomYieldTermStructure(bond:Bond, calendar:Calendar, newvaluedate:qlDate):Option[YieldTermStructure] = 
 		try { 
@@ -192,22 +192,22 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 		  newcurve.valuedate = newvaluedate
 		  Some(newcurve.toZCImpliedYieldTermStructure(calendar))
 		  } 
-		catch { case e:Exception => None}
+		catch { case _ => None}
 	
 	def getDiscountBondEngine(bond:Bond):Option[DiscountingBondEngine] = 
 	  	try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toDiscountBondEngine) } 
-		catch { case e:Exception => None}
+		catch { case _ => None}
 		
 	def getDiscountBondEngine(bond:Bond, calendar:Calendar):Option[DiscountingBondEngine] = 
 		try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toDiscountBondEngine(calendar)) } 
-		catch { case e:Exception => None}
+		catch { case _ => None}
 	
 	def getCustomDiscountBondEngine(bond:Bond, calendar:Calendar, newvaluedate:qlDate):Option[DiscountingBondEngine] = 
 		try { 
 		  val newcurve = getDiscountCurve(bond.currency.code, bond.creditSpreadID).get
 		  newcurve.valuedate = newvaluedate
 		  Some(newcurve.toDiscountBondEngine(calendar)) } 
-		catch { case e:Exception => None}
+		catch { case _ => None}
 	
 	/**
 	 * Checks whether the given curve is already calculated and stored in the repository.

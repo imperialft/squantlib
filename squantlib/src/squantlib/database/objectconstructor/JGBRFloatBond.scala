@@ -143,7 +143,7 @@ object JGBRFloatBond {
 
 	def getAdjustedPricingEngine(bond:JGBFloatBond, newvaluedate:qlDate):Option[JGBRBondEngine] = 
 		try { Some(new JGBRBondEngine(newvaluedate)) } 
-		catch { case e:Exception => None}
+		catch { case _ => None}
 	
 	def setAdjustedPricingEngine(bond:JGBFloatBond, newvaluedate:qlDate):Unit = {
 	  getAdjustedPricingEngine(bond, newvaluedate) match {

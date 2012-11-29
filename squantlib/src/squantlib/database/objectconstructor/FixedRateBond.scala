@@ -33,15 +33,6 @@ object FixedRateBond {
 	  case None => None
 	}
 	
-//	{
-//	  val newbond = getbond(bond)
-//	  if (newbond.isEmpty) None
-//	  else {
-//	    setDefaultPricingEngine(newbond.get, factory)
-//	    newbond
-//	  }
-//	}
-	
 	def getbond(bond:dbBond):Option[qlFixedRateBond] = {
 	  val isvalidbond = productlist.contains(bond.productid) && 
 			  		!bond.coupon.isEmpty && 
@@ -106,7 +97,7 @@ object FixedRateBond {
 		  val newcurve = factory.getDiscountCurve(bond.currency.code, bond.creditSpreadID).get
 		  newcurve.valuedate = newvaluedate
 		  Some(newcurve.toDiscountBondEngine(bond.calendar)) } 
-		catch { case e:Exception => None}
+		catch { case _ => None}
 	
 	def setAdjustedPricingEngine(bond:qlFixedRateBond, factory:CurveFactory, newvaluedate:qlDate):Unit = {
 	  getAdjustedPricingEngine(bond, factory, newvaluedate) match {

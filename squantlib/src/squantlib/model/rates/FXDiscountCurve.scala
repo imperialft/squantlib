@@ -98,7 +98,7 @@ object FXDiscountCurve {
   	  val instrumentgroup = dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
   	  val nonemptyinstruments = instrumentgroup.filter{ case (k, v) => (v.keySet.contains(swappointKey) && v.keySet.contains(fxKey))}
   	  
-  	  nonemptyinstruments.map{ case (k, v) => {
+  	  nonemptyinstruments.map{ case (k, v) => 
   		  val conv = conventions(k)
   		  val valuedate = new JDate(v(swappointKey).head.paramdate)
   		  def toSortedMap(k:String) = SortedMap(v(k).toSeq.map(p => (new JPeriod(p.maturity), p.value)) :_*)
@@ -106,7 +106,7 @@ object FXDiscountCurve {
   		  new FXDiscountCurve(swapptcurve, v(fxKey).head.value)
   	  	}
   	  }
-  	}
+  	
   
   	def apply(params:Traversable[RateFXParameter]):Iterable[FXDiscountCurve] = getcurves(params)
 
