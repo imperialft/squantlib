@@ -1,9 +1,10 @@
 package squantlib.pricing
 
 import squantlib.model.CurveFactory
-import squantlib.payoff.Payoffs
-import squantlib.pricing.model.BlackScholesFormula
+import squantlib.payoff.{Payoffs, Schedule}
+import squantlib.pricing.model._
 import squantlib.model.fx.FX
+import squantlib.model.Bond
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 
@@ -16,27 +17,50 @@ import org.codehaus.jackson.JsonNode
  * 6) Discount
  */
 
-class FXMontecarlo(val market:CurveFactory, val fx:FX, val payoffs:Payoffs, val issuer:String, val setting:JsonNode) {
+class FXMontecarlo1f( val market:CurveFactory, 
+					  val model:Montecarlo1f, 
+					  val payoffs:Payoffs, 
+					  val schedule:Schedule,
+					  val issuer:String, 
+					  val setting:JsonNode) {
+  
+	val eventDates = schedule.eventDates
 	
-//	def price(path:Int):Option[Double] = {
-//	  
-//	}
+  
+	def price(paths:Int):Double = {
+	  0.0
+	  
+	}
 		
 }
 
-object FXMontecarlo {
+object FXMontecarlo1f {
   
-//	def apply(market:CurveFactory, payoffs:Payoffs, issuer:String, setting:String):Option[FXMontecarlo] = {
-//	  if (payoffs.variables.size != 1) { println("payoff not compatible with FX1d model"); return None}
-//	  
-//	  val fx = market.getFX(payoffs.variables.head)
-//	  val params = setting.jsonNode
-//	  val rateDom = (d:Double) => fx.rateDom(d.toDouble * 365.25)
-//	  
-//	  val model = (fx, params) match {
-//	    case (Some(f), Some(p)) if p.get("model") == "FXBlackScholes1F" => 
-//	  }
-//	}
+	def apply(market:CurveFactory, bond:Bond, issuer:String, setting:String):Option[FXMontecarlo1f] = {
 	  
+	  if (!bond.isValidCoupon) { println("bond schedule is invalid"); return None}
+	  
+	  val payoffs = bond.coupon
+	  val schedule = bond.schedule
+	  
+	  if (payoffs.variables.size != 1) { println("payoff not compatible with FX1d model"); return None}
+	  
+	  val fx = market.getFX(payoffs.variables.head)
+	  val fxsetting = setting.jsonNode
+	  
+	  val mcmodel:Option[Montecarlo1f] = fx match {
+	    case None => None
+	    case Some(f) => setting.parseJsonString("model") match {
+	      	case "FXBlackScholes1F"  => FXBlackScholes1f(f)
+	        case "FXzeroVol" => FXzeroVol1f(f)
+	        case _ => None
+	    }
+	  }
+	  
+	  (fxsetting, mcmodel, schedule) match {
+	    case (Some(s), Some(m), Some(sc)) => Some(new FXMontecarlo1f(market, m, payoffs, sc, issuer, s))
+	    case _ => None
+	  }
+	}
 }
 

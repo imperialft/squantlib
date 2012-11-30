@@ -9,7 +9,8 @@ import squantlib.model.rates.DiscountCurve
 
 class FXzeroVol(val curveDom:DiscountCurve, val curveFor:DiscountCurve) extends FX {
   
-	def volatility(days:Double, strike:Double):Double = Double.NaN
+	override def volatility(days:Double):Double = Double.NaN
+	override def volatility(days:Double, strike:Double):Double = Double.NaN
 	
 }
 

@@ -244,10 +244,10 @@ object LiborDiscountCurve {
 	    RateConventions.mapper.filter{case (k, v) => v.useratediscount }
 	  
   	  val dateassetgroup = 
-  	    params.groupBy(p => p.asset).filter{case(k, v) => conventions.contains(k)}
+  	    params.groupBy(_.asset).filter{case(k, v) => conventions.contains(k)}
   	  
   	  val instrumentgroup = 
-  	    dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
+  	    dateassetgroup.map{ case (k, v) => (k, v.groupBy(_.instrument))} 
   	  
   	  val nonemptyinstruments = 
   	    instrumentgroup.filter{ case (k, v) => (v.contains(swapKey))}

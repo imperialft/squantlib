@@ -13,6 +13,8 @@ trait Payoff{
 	
 	def price:Option[Double]
 	
+	def toString:String
+	
 }
 
 object Payoff {

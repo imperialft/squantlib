@@ -36,7 +36,12 @@ trait FX extends Underlying {
 	 * @param days observation date as the number of calendar days after value date.
 	 * @param strike fx strike
 	 */
+	def volatility(days:Double):Double
 	def volatility(days:Double, strike:Double):Double
+	
+	def volatilityY(years:Double):Double = volatility(years * 365.25)
+	def volatilityY(years:Double, strike:Double):Double = volatility(years * 365.25, strike)
+	
 	  
 	/**
 	 * Returns the value corresponding to the given date.
@@ -49,21 +54,25 @@ trait FX extends Underlying {
     def zcDom(date:qlDate) = curveDom(date)
     def zcDom(period:qlPeriod) = curveDom(period)
     def zcDom(dayfrac:Double, dayCounter:DayCounter) = curveDom(dayfrac, dayCounter)
+    def zcDomY(years:Double) = curveDom(years * 365.25)
     
     def zcFor(days:Double) = curveFor(days)
     def zcFor(date:qlDate) = curveFor(date)
     def zcFor(period:qlPeriod) = curveFor(period)
     def zcFor(dayfrac:Double, dayCounter:DayCounter) = curveFor(dayfrac, dayCounter)
+    def zcForY(years:Double) = curveFor(years * 365.25)
     
     def rateDom(days:Double) = curveDom.impliedRate(days)
     def rateDom(date:qlDate) = curveDom.impliedRate(date)
     def rateDom(period:qlPeriod) = curveDom.impliedRate(period)
     def rateDom(dayfrac:Double, dayCounter:DayCounter) = curveDom.impliedRate(dayfrac, dayCounter)
+    def rateDomY(years:Double) = curveDom.impliedRate(years * 365.25)
     
     def rateFor(days:Double) = curveFor.impliedRate(days)
     def rateFor(date:qlDate) = curveFor.impliedRate(date)
     def rateFor(period:qlPeriod) = curveFor.impliedRate(period)
     def rateFor(dayfrac:Double, dayCounter:DayCounter) = curveFor.impliedRate(dayfrac, dayCounter)
+    def rateForY(years:Double) = curveFor.impliedRate(years * 365.25)
     
     val maxDays = curveDom.maxdays.min(curveFor.maxdays)
 } 

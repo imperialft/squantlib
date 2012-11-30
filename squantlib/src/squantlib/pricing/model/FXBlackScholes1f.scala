@@ -2,6 +2,7 @@ package squantlib.pricing.model
 
 import squantlib.pricing.randomgenerator.{RandomGenerator, MersenneTwister}
 import squantlib.math.statistical.NormSInv
+import squantlib.model.fx.FX
 
 
 /* Simple Black-Scholes montecarlo pricer for FX
@@ -12,27 +13,29 @@ import squantlib.math.statistical.NormSInv
  * @param sigma(t)	volatility of the underlying FX
  */
 
-case class FXBlackScholes1f(var spot:Double, var ratedomF: Double => Double, var rateforF: Double => Double, var sigmaF: Double => Double) {
+case class FXBlackScholes1f(var spot:Double, var ratedomF: Double => Double, var rateforF: Double => Double, var sigmaF: Double => Double) extends Montecarlo1f{
   
   var normSInv: Double => Double = (x:Double) => NormSInv(x)
   
-  var randomGenerator:RandomGenerator = new MersenneTwister(1)
+  override var randomGenerator:RandomGenerator = new MersenneTwister(1)
   
-  def reset = randomGenerator = new MersenneTwister(1)
+  override def reset = randomGenerator = new MersenneTwister(1)
 
   /* Generates FX paths.
    * @param eventdates	FX observation dates as number of years
    * @param paths 	Number of Montecarlo paths to be generated
    * @returns Montecarlo paths
    * 
-   * CAUTION: Order of event dates are automatically sorted by the function.
-   * ie. Order of output paths might not correspond to order of input eventDates if it's not sorted.
+   * CAUTION: Order of event dates are automatically sorted and duplicates removed by the function.
+   * Check with first tuple argument for the order of dates.
   */
   
-  def generatePaths(eventDates:List[Double], paths:Int):List[List[Double]] = {
+  override def generatePaths(eventDates:List[Double], paths:Int) = {
     require(!eventDates.isEmpty)
     
-    val dates = eventDates.sorted
+    reset 
+    
+    val dates = eventDates.distinct.sorted
     val steps = dates.size
     val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
     				
@@ -47,7 +50,7 @@ case class FXBlackScholes1f(var spot:Double, var ratedomF: Double => Double, var
 	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fvol(i) * fvol(i)) / 2)) * stepsize(i)
 	val sigt = for (i <- 0 to steps-1) yield fvol(i) * scala.math.sqrt(stepsize(i))
 	
-    for (path <- (0 to paths-1).toList) yield {
+    val genpaths = for (path <- (0 to paths-1).toList) yield {
       var spotprice = spot
       for (d <- (0 to steps-1).toList) yield {
         val rnd = randomGenerator.sample
@@ -56,11 +59,16 @@ case class FXBlackScholes1f(var spot:Double, var ratedomF: Double => Double, var
 		spotprice
       }
     }
-  }  
+    
+    (dates, genpaths)
+  }
 
 }
 
-
+object FXBlackScholes1f {
+  
+	def apply(fx:FX):Option[FXBlackScholes1f] = Some(new FXBlackScholes1f(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY))
+}
 
 //package squantlib.montecarlo.pathgenerator
 //
