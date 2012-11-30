@@ -30,4 +30,6 @@ class RateFXParameter(@Column("ID")			var id: String,
       created = None)
 
   override def toString():String = format("%-15s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
+  
+  def toMaturityValuePair = Map(maturity -> value)
 }

@@ -1,10 +1,12 @@
 package squantlib.database
 
 import squantlib.model.CurveFactory
+import squantlib.model.rates._
 import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXParameter}
 import squantlib.database.objectconstructor._
 import squantlib.database.QLConstructors._
 import squantlib.math.timeseries.SeriesAnalysis._
+import squantlib.model.fx.FXparameter
 import squantlib.setting.PricingConvention
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.{Bond => QLBond}
@@ -22,27 +24,20 @@ object QLDB {
     * Returns discount curve factory.
     */
 	def getCurveFactory(paramset:String):Option[CurveFactory] = {
-	  val ratefxparameters:Set[RateFXParameter] = DB.getRateFXParameters(paramset)
-	  val discountcurves = ratefxparameters.toDiscountCurves 
-	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
+	  
+	  val ratefxparams = DB.getRateFXParameters(paramset)
+	  val discountcurves = LiborDiscountCurve(ratefxparams) ++ FXDiscountCurve(ratefxparams)
+	  val cdscurves = CDSCurve(DB.getCDSParameters(paramset))
+	  val fxparams = FXparameter(ratefxparams)
 	  
 	  if (discountcurves.size == 0 || cdscurves.size == 0) None
 	  else Some(new CurveFactory(
 		    discountcurves.map(c => (c.currency.code, c)).toMap, 
 		    cdscurves.map(c => (c.issuerid, c)).toMap, 
+		    fxparams,
 		    paramset))
 	}
 	
-	def getCurveFactoryFromInputParameter(paramset:String):CurveFactory = {
-	  val ratefxparameters:Set[RateFXParameter] = DB.getRateFXParameters(paramset)
-	  val discountcurves = ratefxparameters.toDiscountCurves 
-	  val cdscurves = DB.getCDSParameters(paramset).toCDSCurves
-	  
-	  new CurveFactory(
-	    discountcurves.map(c => (c.currency.code, c)).toMap, 
-	    cdscurves.map(c => (c.issuerid, c)).toMap, 
-	    paramset)
-	}
 	
    /**
     * Returns jquantlib Bond object. 
@@ -50,21 +45,20 @@ object QLDB {
     * @param id Identifications of the target bonds
     * @param factory Optional. Providing discount curve factory would automatically set discounting bond engine as default pricing engine (where applicable)
     */
-	def getBond(id:String):Option[QLBond] = {
-	  val bonds = getBonds(Set(id))
-	  if (bonds.isEmpty) None else Some(bonds.head)
-	}
+	def getBond(id:String):Option[QLBond] = getBonds(Set(id)).headOption
 	
-	def getBond(id:String, factory:CurveFactory):Option[QLBond] = {
-	  val bonds = getBonds(Set(id), factory)
-	  if (bonds.isEmpty) None else Some(bonds.head)
-	}
+	def getBond(id:String, factory:CurveFactory):Option[QLBond] = getBonds(Set(id), factory).headOption
 	
 	def getBonds:Set[QLBond] = bondsConstructor(DB.getBonds, null)
+	
 	def getBonds(bonds:Set[dbBond]):Set[QLBond] = bondsConstructor(bonds, null)
+	
 	def getBonds(id:Traversable[String]):Set[QLBond] = bondsConstructor(DB.getBonds(id), null)
+	
 	def getBonds(factory:CurveFactory):Set[QLBond] = bondsConstructor(DB.getBonds, factory)
+	
 	def getBonds(id:Traversable[String], factory:CurveFactory):Set[QLBond] = bondsConstructor(DB.getBonds(id), factory)
+	
 	def getBonds(bonds:Set[dbBond], factory:CurveFactory):Set[QLBond] = bondsConstructor(bonds, factory)
 	
 	def getBonds(ids:Traversable[String], builder:dbBond => Option[QLBond], pricingengine:QLBond => PricingEngine, valuedate:qlDate):Set[QLBond] = {

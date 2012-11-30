@@ -59,5 +59,6 @@ object CDSCurve{
 			case _ => new LinearNoExtrapolation(valuedate, values)
 			}
   	 
-  	def apply(param:CDSParameter):CDSCurve = getcurve(param)
+//  	def apply(param:CDSParameter):CDSCurve = getcurve(param)
+  	def apply(params:Traversable[CDSParameter]):Iterable[CDSCurve] = getcurves(params)
 }

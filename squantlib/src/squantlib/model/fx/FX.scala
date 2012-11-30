@@ -2,6 +2,7 @@ package squantlib.model.fx
 
 import squantlib.model.Underlying
 import squantlib.model.rates.DiscountCurve
+import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
@@ -23,12 +24,12 @@ trait FX extends Underlying {
 	require (curveDom.valuedate eq curveFor.valuedate)
 	val valuedate = curveDom.valuedate
 	
-	val name = currencyDom.code + currencyFor.code
+	val name = currencyFor.code + currencyDom.code
 	
 	/**
 	 * Returns FX spot rate
 	 */
-	var spot:Double = curveFor.fx / curveDom.fx
+	var spot:Double = curveDom.fx / curveFor.fx
 	
 	/**
 	 * Returns the volatility corresponding to the given date & strike.
@@ -41,7 +42,7 @@ trait FX extends Underlying {
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.
 	 */
-    override def forward(days : Double) : Double = spot * curveDom(days) / curveFor(days)
+    override def forward(days : Double) : Double = spot * curveFor(days) / curveDom(days)
     
     
     def zcDom(days:Double) = curveDom(days)

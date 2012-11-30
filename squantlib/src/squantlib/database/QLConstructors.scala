@@ -20,19 +20,6 @@ object QLConstructors {
 	implicit def JavaDate2QlDate(d:JavaDate) = new qlDate(d)
 	implicit def QlDate2JavaDate(d:qlDate) = d.longDate
 
-	implicit def RateFXParameter2ParamSet(params:Traversable[RateFXParameter]) = new RateFXParameterSet(params)
- 	class RateFXParameterSet(val parameters:Traversable[RateFXParameter]){
-	  def toLiborDiscountCurves:Iterable[RateCurve] = LiborDiscountCurve(parameters)
-	  def toFXDiscountCurves:Iterable[FXCurve] = FXDiscountCurve(parameters)
-	  def toDiscountCurves:Iterable[DiscountableCurve] = toLiborDiscountCurves ++ toFXDiscountCurves
-	} 
-
-	
-	implicit def CDSParameter2ParamSet(params:Traversable[CDSParameter]) = new CDSParameterSet(params)
-	class CDSParameterSet(val cdsparameters:Traversable[CDSParameter]){
-	  def toCDSCurves:Iterable[CDSCurve] = CDSCurve.getcurves(cdsparameters)
-	}
-
 	implicit def Map2Ts(m:scala.collection.Map[qlDate, Double]) = new ConvertableMap(m)
 	class ConvertableMap(m:scala.collection.Map[qlDate, Double]) {
 	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (q._1, new JavaDouble(q._2))))

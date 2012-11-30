@@ -3,10 +3,10 @@ package squantlib.setting.rateconventions
 import squantlib.setting.RateConvention
 import org.jquantlib.time.{Period, Frequency, TimeUnit}
 import org.jquantlib.daycounters._
+import org.jquantlib.indexes.ibor.BBSW
+import org.jquantlib.currencies.Oceania.AUDCurrency
 
 class AudRateConvention extends RateConvention{
-  import org.jquantlib.indexes.ibor.BBSW
-  import org.jquantlib.currencies.Oceania.AUDCurrency
   
   	val currency = new AUDCurrency
   

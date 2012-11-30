@@ -4,7 +4,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.JavaConversions
 import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
-import squantlib.model.fx.{FX, FXzeroVol, FXconstantVol, FXnoSmile, FXsmiled}
+import squantlib.model.fx._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
 import org.jquantlib.instruments.Bond
@@ -17,7 +17,7 @@ import org.jquantlib.termstructures.YieldTermStructure
  * 
  * @param Map CurrencyId => DiscountCurve
  */
-class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = null, val paramset:String = null) {
+class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = null, val fxparams:Map[String, FXparameter], val paramset:String = null) {
 
 	var valuedate:qlDate = curves.head._2.valuedate
 	require(curves.forall(_._2.valuedate == valuedate))
@@ -133,10 +133,14 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	 * Returns zero volatility FX object representing the FX exchange rate between given currencies.
 	 * @param currency code
 	 */
-	def getFX(ccy1:String, ccy2:String) : Option[FX] = {
-	    val curve1 = getBaseDiscountCurve(ccy1)
-	    val curve2 = getBaseDiscountCurve(ccy2)
-	    if ((curve1 isDefined) && (curve2 isDefined)) FXzeroVol(curve1.get, curve2.get) else None
+	def getFX(ccyFor:String, ccyDom:String) : Option[FX] = {
+	    val curveDom = getBaseDiscountCurve(ccyDom)
+	    val curveFor = getBaseDiscountCurve(ccyFor)
+	    if ((curveDom isDefined) && (curveFor isDefined)) {
+	      if (fxparams.contains(ccyFor + ccyDom)) fxparams(ccyFor + ccyDom).getModel(curveDom.get, curveFor.get)
+	      else Some(FXzeroVol(curveDom.get, curveFor.get))
+	    }
+	    else None
 	  }
 	
 	def getFX(fxpair:String):Option[FX] = {
@@ -149,10 +153,10 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	 * @param currency code
 	 * @param volatility (flat over timeline & strike)
 	 */
-	def getFX(ccy1:String, ccy2:String, vol:Double) : Option[FX] = {
-	    val curve1 = getBaseDiscountCurve(ccy1)
-	    val curve2 = getBaseDiscountCurve(ccy2)
-	    if ((curve1 isDefined) && (curve2 isDefined)) FXconstantVol(curve1.get, curve2.get, vol) else None
+	def getFX(ccyFor:String, ccyDom:String, vol:Double) : Option[FX] = {
+	    val curveDom = getBaseDiscountCurve(ccyDom)
+	    val curveFor = getBaseDiscountCurve(ccyFor)
+	    if ((curveDom isDefined) && (curveFor isDefined)) FXflatVol(curveDom.get, curveFor.get, vol) else None
 	}
 	
 	/**
@@ -160,10 +164,10 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	 * @param currency code
 	 * @param volatility as function of time t
 	 */
-	def getFX(ccy1:String, ccy2:String, vol:Double => Double) : Option[FX] = {
-	    val curve1 = getBaseDiscountCurve(ccy1)
-	    val curve2 = getBaseDiscountCurve(ccy2)
-	    if ((curve1 isDefined) && (curve2 isDefined)) FXnoSmile(curve1.get, curve2.get, vol) else None
+	def getFX(ccyFor:String, ccyDom:String, vol:Double => Double) : Option[FX] = {
+	    val curveDom = getBaseDiscountCurve(ccyDom)
+	    val curveFor = getBaseDiscountCurve(ccyFor)
+	    if ((curveDom isDefined) && (curveFor isDefined)) FXnoSmile(curveDom.get, curveFor.get, vol) else None
 	}
 
 	/**
@@ -171,10 +175,10 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	 * @param currency code
 	 * @param volatility as function of time t and strike k
 	 */
-	def getFX(ccy1:String, ccy2:String, vol:(Double, Double) => Double) : Option[FX] = {
-	    val curve1 = getBaseDiscountCurve(ccy1)
-	    val curve2 = getBaseDiscountCurve(ccy2)
-	    if ((curve1 isDefined) && (curve2 isDefined)) FXsmiled(curve1.get, curve2.get, vol) else None
+	def getFX(ccyFor:String, ccyDom:String, vol:(Double, Double) => Double) : Option[FX] = {
+	    val curveDom = getBaseDiscountCurve(ccyDom)
+	    val curveFor = getBaseDiscountCurve(ccyFor)
+	    if ((curveDom isDefined) && (curveFor isDefined)) FXsmiled(curveDom.get, curveFor.get, vol) else None
 	}
 	
 	
