@@ -22,12 +22,12 @@ case class LEPS1dPayoff(val variable:String, val payoff:List[LEPS1dComponent], v
 	  
 	override def price(fixings:Map[String, Double]) = 
 	  if (fixings contains variable) price(fixings(variable))
-	  else None
+	  else Double.NaN
 	
-	override def price(fixing:Double)(implicit d:DummyImplicit) = Some(payoff.map(_.price(fixing)).sum)
+	override def price(fixing:Double)(implicit d:DummyImplicit) = payoff.map(_.price(fixing)).sum
 	override def toString = description textOr payoff.map(_.toString(variable)).mkString(" ")
 	
-	override def price = None
+	override def price = Double.NaN
 	
 }
 

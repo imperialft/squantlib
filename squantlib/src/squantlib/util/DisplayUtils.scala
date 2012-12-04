@@ -6,13 +6,13 @@ object DisplayUtils {
   
 	implicit def doubleToExtendedDouble(d:Double) = ExtendedDouble(d)
 	case class ExtendedDouble(d:Double) {
-	  def asPercent:String = "%.4f".format(d * 100) + "%"
+	  def asPercent:String = "%.4f".format(d * 100.0) + "%"
 	}
 	
 	implicit def doubleToExtendedDoubleOpt(d:Option[Double]) = ExtendedDoubleOpt(d)
 	case class ExtendedDoubleOpt(d:Option[Double]) {
 	  def asPercentOr(alternative:String, prefix:String, suffix:String):String = d match {
-	    case Some(r) => prefix + "%.4f".format(r * 100) + "%" + suffix
+	    case Some(r) => prefix + "%.4f".format(r * 100.0) + "%" + suffix
 	    case None => alternative
 	  }
 	  def asPercentOr(alternative:String):String = asPercentOr(alternative, "", "")

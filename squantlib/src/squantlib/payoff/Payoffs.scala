@@ -7,7 +7,7 @@ import scala.annotation.tailrec
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 
-case class Payoffs(val payoffs:List[Payoff]) {
+case class Payoffs(val payoffs:List[Payoff]) extends LinearSeq[Payoff]{
  
 	val variables = {
 	  @tailrec def variablesRec(paylist:List[Payoff], acc:Set[String]):Set[String] = {
@@ -17,14 +17,12 @@ case class Payoffs(val payoffs:List[Payoff]) {
 	  variablesRec(payoffs, Set.empty)
 	}
 	
-	def size:Int = payoffs.size
-	
 	val factors:Int = variables.size
 	
-	def price(fixings:List[Map[String, Double]]):List[Option[Double]] = {
+	def price(fixings:List[Map[String, Double]]):List[Double] = {
 	  assert(fixings.size == this.size)
 	  
-	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Option[Double]]):List[Option[Double]] = {
+	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Double]):List[Double] = {
 	    if (paylist.isEmpty) acc
 	    else priceRec(paylist.tail, fixlist.tail, acc :+ paylist.head.price(fixlist.head))
 	  }
@@ -32,10 +30,10 @@ case class Payoffs(val payoffs:List[Payoff]) {
 	  priceRec(payoffs, fixings, List.empty)
 	}
 	
-	def price(fixings:List[Double]) (implicit d:DummyImplicit):List[Option[Double]] = {
+	def price(fixings:List[Double]) (implicit d:DummyImplicit):List[Double] = {
 	  assert(fixings.size == this.size && factors <= 1)
 	  
-	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Double], acc:List[Option[Double]]):List[Option[Double]] = {
+	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Double], acc:List[Double]):List[Double] = {
 	    if (paylist.isEmpty) acc
 	    else priceRec(paylist.tail, fixlist.tail, acc :+ paylist.head.price(fixlist.head))
 	  }
@@ -43,25 +41,65 @@ case class Payoffs(val payoffs:List[Payoff]) {
 	  priceRec(payoffs, fixings, List.empty)
 	}
 	  
-	def price:List[Option[Double]] = {
+	def price:List[Double] = {
 	  assert(factors == 0)
 	  payoffs.map(_.price)
 	}
 	
+	/* Replaces already-fixed payoffs to fixed leg
+	 */
+	
+	def applyFixing(fixings:List[Map[String, Double]]):Payoffs = {
+	  assert(fixings.size == this.size)
+	  
+	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Payoff]):List[Payoff] = {
+	    if (paylist.isEmpty) acc
+	    else fixingRec(paylist.tail, fixlist.tail, 
+	        acc :+ (fixlist.head match {
+	          case f if f.isEmpty => paylist.head
+	          case f => FixedPayoff(paylist.head.price(f))
+	        }))
+	  }
+	  
+	  Payoffs(fixingRec(payoffs, fixings, List.empty))
+	}
+	
+	def applyFixing(fixings:List[Option[Double]]) (implicit d:DummyImplicit):Payoffs = {
+	  assert(fixings.size == this.size && factors <= 1)
+	  
+	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Option[Double]], acc:List[Payoff]):List[Payoff] = {
+	    if (paylist.isEmpty) acc
+	    else fixingRec(paylist.tail, fixlist.tail, 
+	        acc :+ (fixlist.head match {
+	          case None => paylist.head
+	          case Some(f) => FixedPayoff(paylist.head.price(f))
+	        }))
+	  }
+	  
+	  Payoffs(fixingRec(payoffs, fixings, List.empty))
+	}
 	
 	def ++(another:Payoffs) = new Payoffs(payoffs ++ another.payoffs)
 	def :+(payoff:Payoff) = new Payoffs(payoffs :+ payoff)
-	def head = payoffs.head
-	def tail = new Payoffs(payoffs.tail)
 	
 	override def toString = payoffs.map(_.toString).mkString("\n")
+	
+    def apply(i:Int):Payoff = payoffs(i)
+	override def isEmpty:Boolean = payoffs.isEmpty
+	override def head:Payoff = payoffs.head
+	override def tail = payoffs.tail
+	override def length = payoffs.length
+	override def iterator:Iterator[Payoff] = payoffs.iterator
+	
+	def reorder(order:List[Int]) = new Payoffs((0 to payoffs.size-1).toList.map(i => payoffs(order(i))))
 	
 }
 
 
 object Payoffs {
   
-	def apply(formula:String):Payoffs =	{
+	def apply(formula:String, legs:Int = 0):Payoffs =	{
+	  
 	  val payofflist:List[Payoff] = formula.split(";").toList.map{f => 
 	    payoffType(f) match {
 	      case "fixed" => List(FixedPayoff(f))
@@ -73,8 +111,11 @@ object Payoffs {
 		  case _ => List(GeneralPayoff(f).remodelize)
 		}
 	   }.flatten
-	   println("initialize " + payofflist.size + " payoffs")
-	   new Payoffs(payofflist)
+	   
+	   val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(payofflist.head) ++ payofflist else payofflist
+
+	   println("initialize " + fullpayoff.size + " payoffs (" + payofflist.size + " input legs)")
+	   new Payoffs(fullpayoff)
 	}
 	
 	def payoffType(formula:String):String = formula.trim match {

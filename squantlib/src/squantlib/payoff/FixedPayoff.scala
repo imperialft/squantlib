@@ -12,28 +12,26 @@ import squantlib.util.JsonUtils._
  * JSON format: {type:"fixed", description:XXX, payoff:double}
  * Natual format: 0.035 or "3.5%"
  */
-case class FixedPayoff(val payoff:Option[Double], val description:String = null) extends Payoff {
-  
+case class FixedPayoff(val payoff:Double, val description:String = null) extends Payoff {
+	
 	val variables:Set[String] = Set.empty
 	 
 	override def price(fixings:Map[String, Double]) = payoff
 	override def price(fixing:Double)(implicit d:DummyImplicit) = payoff
 	override def price = payoff
 	
-	override def toString = description textOr (payoff match {
-	  case Some(v) => v.asPercent + " fixed"
-	  case None => "not defined"
-	})
+	override def toString = description textOr (payoff.asPercent + " fixed")
 	
 }
 
 
 object FixedPayoff {
   
-	def apply(formula:String):FixedPayoff = 
-	  if (formula.parseDouble.isDefined) FixedPayoff(formula.parseDouble)
-	  else FixedPayoff(formula.parseJsonDouble("payoff"), formula.parseJsonString("description"))
+	def apply(formula:String):FixedPayoff = formula.parseDouble match {
+	  case Some(v) => new FixedPayoff(v)
+	  case None => new FixedPayoff(formula.parseJsonDouble("payoff").getOrElse(Double.NaN), formula.parseJsonString("description"))
+	}
 	
-	def apply(payoff:Double):FixedPayoff = FixedPayoff(Some(payoff))
+	def apply(payoff:Double):FixedPayoff = new FixedPayoff(payoff)
 
 }

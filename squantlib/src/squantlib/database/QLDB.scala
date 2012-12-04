@@ -40,7 +40,10 @@ object QLDB {
 	}
 	
 	
-	def getsBond(id:String):Option[sBond] = DB.getBonds(Set(id)).headOption.collect{case b => new sBond(b)}
+	def getsBond(id:String):Option[sBond] = DB.getBonds(Set(id)).headOption match {
+	  case None => None
+	  case Some(bond) => sBond(bond)
+	}
 	
    /**
     * Returns jquantlib Bond object. 

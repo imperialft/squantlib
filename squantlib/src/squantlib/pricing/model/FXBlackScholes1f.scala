@@ -35,17 +35,17 @@ case class FXBlackScholes1f(var spot:Double, var ratedomF: Double => Double, var
     
     reset 
     
-    val dates = eventDates.distinct.sorted
+    val dates = eventDates.sorted
     val steps = dates.size
     val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
-    				
+
     val ratedom = dates.map(ratedomF)
     val ratefor = dates.map(rateforF)
     val sigma = dates.map(sigmaF)
     
-    val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield ((ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
-    val fratefor = ratefor.head :: (for (i <- (1 to steps-1).toList) yield ((ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
-    val fvol = sigma.head :: (for (i <- (1 to steps-1).toList) yield math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i)))
+    val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield (if (stepsize(i) == 0.0) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
+    val fratefor = ratefor.head :: (for (i <- (1 to steps-1).toList) yield (if (stepsize(i) == 0.0) 0.0 else (ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
+    val fvol = sigma.head :: (for (i <- (1 to steps-1).toList) yield (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
     
 	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fvol(i) * fvol(i)) / 2)) * stepsize(i)
 	val sigt = for (i <- 0 to steps-1) yield fvol(i) * scala.math.sqrt(stepsize(i))
@@ -53,10 +53,13 @@ case class FXBlackScholes1f(var spot:Double, var ratedomF: Double => Double, var
     val genpaths = for (path <- (0 to paths-1).toList) yield {
       var spotprice = spot
       for (d <- (0 to steps-1).toList) yield {
-        val rnd = randomGenerator.sample
-		val ninv1 = normSInv(rnd)
-		spotprice *= scala.math.exp(drift(d) + (sigt(d) * ninv1))
-		spotprice
+        if (stepsize(d) == 0.0) spotprice
+        else {
+          val rnd = randomGenerator.sample
+          val ninv1 = normSInv(rnd)
+          spotprice *= scala.math.exp(drift(d) + (sigt(d) * ninv1))
+          spotprice
+          }
       }
     }
     

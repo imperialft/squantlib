@@ -7,11 +7,11 @@ trait Payoff{
 	
 	val variables:Set[String]
 	
-	def price(fixings:Map[String, Double]):Option[Double]
+	def price(fixings:Map[String, Double]):Double
 	
-	def price(fixing:Double) (implicit d:DummyImplicit):Option[Double] 
+	def price(fixing:Double) (implicit d:DummyImplicit):Double 
 	
-	def price:Option[Double]
+	def price:Double
 	
 	def toString:String
 	

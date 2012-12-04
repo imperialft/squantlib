@@ -7,6 +7,9 @@ import squantlib.model.fx.FX
 import squantlib.model.Bond
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
+import squantlib.model.rates.DiscountCurve
+import org.jquantlib.time.{Date => qlDate}
+import squantlib.database.fixings.Fixings
 
 /* Pricing procedure:
  * 1) Get product information (and pricing settings if any)
@@ -20,47 +23,61 @@ import org.codehaus.jackson.JsonNode
 class FXMontecarlo1f( val market:CurveFactory, 
 					  val model:Montecarlo1f, 
 					  val payoffs:Payoffs, 
-					  val schedule:Schedule,
-					  val issuer:String, 
-					  val setting:JsonNode) {
+					  val eventYears:List[Double],
+					  val coefficients:List[Double], 
+					  val settings:JsonNode) {
   
-	val eventDates = schedule.eventDates
-	
+	assert (payoffs.size == eventYears.size, "assertion failed : payoffsize=" + payoffs.size + " vs eventYears.size=" + eventYears.size)
+	assert (payoffs.size == coefficients.size, "assertion failed : payoffsize=" + payoffs.size + " vs coefficients.size=" + coefficients.size)
+	assert (payoffs.variables.size == 1, "assertion failed : variables=" + payoffs.variables.size)
+
   
 	def price(paths:Int):Double = {
-	  0.0
+	  val (mcdates, mcpaths) = model.generatePaths(eventYears, paths)
+	  if (!mcdates.sameElements(eventYears)) { println("invalid mc dates"); Double.NaN}
 	  
+	  val pricearray = mcpaths.map(payoffs.price).transpose.map(_.sum)
+	  (pricearray, coefficients).zipped.map(_ * _).sum
 	}
 		
 }
 
 object FXMontecarlo1f {
   
-	def apply(market:CurveFactory, bond:Bond, issuer:String, setting:String):Option[FXMontecarlo1f] = {
+	def apply(market:CurveFactory, bond:Bond):Option[FXMontecarlo1f] = {
+	
+	  val (schedule, bondPayoffs) = bond.livePayoffSchedule(market.valuedate)
+	
+	  if (bondPayoffs.variables.size != 1) { println(bond.id + " : payoff not compatible with FX1d model"); return None}
 	  
-	  if (!bond.isValidCoupon) { println("bond schedule is invalid"); return None}
+	  val variable = bondPayoffs.variables.head
+	  val eventDates = schedule.eventDates
 	  
-	  val payoffs = bond.coupon
-	  val schedule = bond.schedule
+	  val fixings:List[Option[Double]] = eventDates.map(d => if (d le market.valuedate) Fixings(variable, d).collect{case f => f._2} else None)
+	  val payoffs = bondPayoffs.applyFixing(fixings)
 	  
-	  if (payoffs.variables.size != 1) { println("payoff not compatible with FX1d model"); return None}
+	  val fx = market.getFX(variable).orNull
+	  if (fx == null) {println("invalid fx underlying - " + payoffs.variables.head); return None}
 	  
-	  val fx = market.getFX(payoffs.variables.head)
-	  val fxsetting = setting.jsonNode
+	  val settings = bond.settings.orNull
+	  if (settings == null) {println(bond.id + " : bond price setting required"); return None}
 	  
-	  val mcmodel:Option[Montecarlo1f] = fx match {
-	    case None => None
-	    case Some(f) => setting.parseJsonString("model") match {
-	      	case "FXBlackScholes1F"  => FXBlackScholes1f(f)
-	        case "FXzeroVol" => FXzeroVol1f(f)
-	        case _ => None
-	    }
-	  }
+	  val modelname = bond.settings.get.parseJsonString("model")
+	  if (modelname == null) {println(bond.id + " : model name not defined"); return None}
 	  
-	  (fxsetting, mcmodel, schedule) match {
-	    case (Some(s), Some(m), Some(sc)) => Some(new FXMontecarlo1f(market, m, payoffs, sc, issuer, s))
+	  val mcmodel:Montecarlo1f = (modelname match {
+	    case "FXBlackScholes1f" => FXBlackScholes1f(fx)
+	    case "FXzeroVol" => FXzeroVol1f(fx)
 	    case _ => None
-	  }
+	  }).orNull
+	  if (mcmodel == null) {println(bond.id + " : model name not found or model calibration error"); return None}
+	  
+	  val coefficients = bond.coefficients(market).orNull
+	  if (coefficients == null) {println(bond.id + " : discount curve or daycounter not defined"); return None}
+	  
+	  val eventYears = bond.eventYears
+	  
+	  Some(new FXMontecarlo1f(market, mcmodel, payoffs, eventYears, coefficients, settings))
 	}
 }
 

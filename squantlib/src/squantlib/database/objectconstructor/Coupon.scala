@@ -35,12 +35,12 @@ object Coupon {
 	  val fixcpn = parseFixCoupon(cpn.rate)
 	  
 	  val (fixedrate, comment) = 
-	    if (fixcpn.isDefined) (fixcpn, null)
+	    if (fixcpn.isDefined) (fixcpn.get, null)
 		else {
 			  val interpreter = GeneralPayoff(cpn.rate)
 			  val varfixings = interpreter.variables.map(v => (v -> Fixings(v, cpn.eventdate))).toMap
 			  
-			  if (!varfixings.forall(_._2.isDefined)) (None, null)
+			  if (!varfixings.forall(_._2.isDefined)) (Double.NaN, null)
 			  else {
 			    val fixedrate = interpreter.price(varfixings.mapValues(_.get._2))
 			    val cmt:String = (if (cpn.comment == null) "" else cpn.comment) + 
@@ -48,15 +48,15 @@ object Coupon {
 			    			case (k, Some((v1, v2))) => k + "=" + "%.4f".format(v2)
 			    			case (k, None) => ""
 			    			}.mkString(", ")
-			    println(cpn.bondid + " " + cpn.eventdate + " " + cpn.rate + " fixed:" + fixedrate.collect{case v => "%.4f".format(v)}.orNull + " " + cmt)
+			    println(cpn.bondid + " " + cpn.eventdate + " " + cpn.rate + " fixed:" + "%.4f".format(fixedrate) + " " + cmt)
 				(fixedrate, cmt)
 			  }
 		  }
 	  
-	  if (fixedrate.isEmpty) return cpn
+	  if (fixedrate.isNaN) return cpn
 	  
 	  val daycount = Daycounters.getOrElse(cpn.daycount, new Thirty360)
-	  val fixedamount = Some(fixedrate.get * daycount.yearFraction(cpn.startdate, cpn.enddate))
+	  val fixedamount = Some(fixedrate * daycount.yearFraction(cpn.startdate, cpn.enddate))
 	  
 	  new dbCoupon(
 		      id = cpn.id,
@@ -67,7 +67,7 @@ object Coupon {
 		      startdate = cpn.startdate,
 		      enddate = cpn.enddate,
 		      paymentdate = cpn.paymentdate,
-		      fixedrate = fixedrate,
+		      fixedrate = Some(fixedrate),
 		      fixedamount = fixedamount,
 		      comment = comment,
 		      daycount = cpn.daycount,
@@ -158,8 +158,8 @@ object Coupon {
 	      startdate = bond.issuedate,
 	      enddate = bond.maturity,
 	      paymentdate = bond.calendar.adjust(bond.maturity),
-	      fixedrate = redemption,
-	      fixedamount = redemption,
+	      fixedrate = Some(redemption),
+	      fixedamount = Some(redemption),
 	      comment = null,
 	      daycount = "ABSOLUTE",
 	      paymenttype = "REDEMPTION",

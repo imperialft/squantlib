@@ -18,12 +18,12 @@ case class Linear1dPayoff(val variable:String, val payoff:Linear1dFormula) exten
 	val variables:Set[String] = if (variable == null) Set.empty else Set(variable)
 	 
 	override def price(fixings:Map[String, Double]) = 
-	  if (fixings contains variable) Some(payoff.price(fixings(variable)))
-	  else None
+	  if (fixings contains variable) payoff.price(fixings(variable))
+	  else Double.NaN
 	
-	override def price(fixing:Double)(implicit d:DummyImplicit) = Some(payoff.price(fixing))
+	override def price(fixing:Double)(implicit d:DummyImplicit) = payoff.price(fixing)
 	
-	override def price = None
+	override def price = Double.NaN
 	
 	override def toString:String = payoff.toString(variable)
 	

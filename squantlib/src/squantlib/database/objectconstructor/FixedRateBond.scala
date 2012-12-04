@@ -63,10 +63,7 @@ object FixedRateBond {
 			val accrualdaycounter = Daycounters.getOrElse(bond.daycount, defaultDayCounter)
 			val paymentconvention = DayAdjustments.getOrElse(bond.payment_adj, defaultAdjustment)
 			
-			val redemption = FixedPayoff(bond.redemprice).price match {
-			  case Some(p) => p * 100.0
-			  case None => Double.NaN
-			}
+			val redemption = FixedPayoff(bond.redemprice).price * 100.0
 			
 			val initialfx = bond.initialfx
 			

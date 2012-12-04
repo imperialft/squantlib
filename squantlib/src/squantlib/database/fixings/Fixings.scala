@@ -15,6 +15,8 @@ object Fixings {
 		else None
 	}
 	
+	def apply(id:String, vd:qlDate):Option[(JavaDate, Double)] = apply(id, vd.longDate)
+	
 	def getOrElse(id:String, vd:JavaDate, defaultvalue:(JavaDate, Double)):(JavaDate, Double) = apply(id, vd).getOrElse(defaultvalue)
 	def contains(s:String):Boolean = mapper.contains(s)
 	def keySet:Set[String] = mapper.keySet

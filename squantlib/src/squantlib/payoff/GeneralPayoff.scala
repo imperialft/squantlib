@@ -20,10 +20,10 @@ case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[
 	
 	override def price(fixing:Double) (implicit d:DummyImplicit) = 
 	  if (variables.size == 1) price(Map(variables.head -> fixing))
-	  else None
+	  else Double.NaN
 	
-	override def price(fixings:Map[String, Double]):Option[Double] = {
-	  if (!variables.forall(x => fixings.contains(x))) return None
+	override def price(fixings:Map[String, Double]):Double = {
+	  if (!variables.forall(x => fixings.contains(x))) return Double.NaN
 	  
 	  var rate = formula.map{
       	case (vs, c) if vs.isEmpty => c
@@ -32,12 +32,12 @@ case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[
       if (floor.isDefined) rate = rate.max(floor.get)
       if (cap.isDefined) rate = rate.min(cap.get)
 	
-      Some(rate)
+      rate
 	}
 	 
 	override def price = 
-	  if (variables.isEmpty) Some(constant)
-	  else None
+	  if (variables.isEmpty) constant
+	  else Double.NaN
 	
 	override def toString:String = formula.map{
 	  case (vs, c) if (vs.isEmpty) => "(const) " + c

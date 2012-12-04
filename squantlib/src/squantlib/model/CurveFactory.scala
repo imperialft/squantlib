@@ -65,22 +65,25 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	 * Returns discount curve with "base" spread & currency.
 	 * @param currency code, spread
 	 */
-	def getBaseDiscountCurve(ccy:String):Option[DiscountCurve] = 
-	  getDiscountCurve(ccy, FXbaseCurrency, FXbaseSpread)
+	def getBaseDiscountCurve(ccy:String):Option[DiscountCurve] = getDiscountCurve(ccy, FXbaseCurrency, FXbaseSpread)
+	
+	def getBaseDiscountCurve(ccy:Currency):Option[DiscountCurve] = getBaseDiscountCurve(ccy.code)
 	  
 	/**
 	 * Returns discount curve. Discount currency is flat and same currency with given spread.
 	 * @param currency code, spread
 	 */
-	def getDiscountCurve(ccy:String, spread:Double):Option[DiscountCurve] = 
-	  getDiscountCurve(ccy, ccy, spread)
+	def getDiscountCurve(ccy:String, spread:Double):Option[DiscountCurve] = getDiscountCurve(ccy, ccy, spread)
+	
+	def getDiscountCurve(ccy:Currency, spread:Double):Option[DiscountCurve] = getDiscountCurve(ccy.code, spread)
 	
 	/**
 	 * Returns discount curve, flat spread, using specific currency.
 	 * @param currency code, discounting currency name, spread
 	 */
-	def getDiscountCurve(ccy:String, discountccy:String, spread:Double) : Option[DiscountCurve] = 
-	  getDiscountCurve(ccy, discountccy, new FlatVector(valuedate, spread), null)
+	def getDiscountCurve(ccy:String, discountccy:String, spread:Double) : Option[DiscountCurve] = getDiscountCurve(ccy, discountccy, new FlatVector(valuedate, spread), null)
+	  
+	def getDiscountCurve(ccy:Currency, discountccy:String, spread:Double) : Option[DiscountCurve] = getDiscountCurve(ccy.code, discountccy, spread)
 
 	/**
 	 * Returns discount curve using spread of given cds curve.
@@ -89,14 +92,17 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	def getDiscountCurve(ccy:String, cdsid:String) : Option[DiscountCurve] = 
 	  if (cdscurves.isEmpty || cdscurves.contains(cdsid)) getDiscountCurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid)
 	  else None
+	  
+	def getDiscountCurve(ccy:Currency, cdsid:String) : Option[DiscountCurve] = getDiscountCurve(ccy.code, cdsid)
 
 	/**
 	 * Returns discount curve from given CDS curve.
 	 * @param currency code, CDS curve
 	 */
-	def getDiscountCurve(ccy:String, spread:CDSCurve) : Option[DiscountCurve] = 
-	  getDiscountCurve(ccy, spread.currency.code, spread.rate, null)
+	def getDiscountCurve(ccy:String, spread:CDSCurve) : Option[DiscountCurve] = getDiscountCurve(ccy, spread.currency.code, spread.rate, null)
 	
+	def getDiscountCurve(ccy:Currency, spread:CDSCurve) : Option[DiscountCurve] = getDiscountCurve(ccy.code, spread)
+	  
 	/**
 	 * Returns discount curve from full given parameter.
 	 */
@@ -145,7 +151,7 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	
 	def getFX(fxpair:String):Option[FX] = {
 	  if (fxpair == null || fxpair.size != 6) None
-	  else getFX(fxpair.substring(0, 3), fxpair.substring(3, 3))
+	  else getFX(fxpair.substring(0, 3), fxpair.substring(3, 6))
 	}
 	
 	/**
@@ -201,7 +207,7 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 	def getDiscountBondEngine(bond:qlBond):Option[DiscountingBondEngine] = 
 	  	try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toDiscountBondEngine) } 
 		catch { case _ => None}
-		
+		 
 	def getDiscountBondEngine(bond:qlBond, calendar:Calendar):Option[DiscountingBondEngine] = 
 		try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toDiscountBondEngine(calendar)) } 
 		catch { case _ => None}
