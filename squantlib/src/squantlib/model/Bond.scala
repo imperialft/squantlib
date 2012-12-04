@@ -49,7 +49,6 @@ class Bond(
 	    	(Schedule(livelegs._1), Payoffs(livelegs._2))
 		}
 		
-		
 		val (eventDates, startDates, endDates, paymentDates) = 
 		  (schedule.eventDates, schedule.startDates, schedule.endDates, schedule.paymentDates)
 		
@@ -63,10 +62,11 @@ class Bond(
 		
 		val daycounts:List[Double] = schedule.map(_.daycount).toList
 		
-		def coefficients(market:CurveFactory):Option[List[Double]] = discountFactors(market) match {
-		  case Some(l) => Some((for (i <- 0 to daycounts.size - 1) yield (l(i) * daycounts(i))).toList)
-		  case None => None
+		def coefficients(market:CurveFactory):List[Double] = discountCurve(market) match {
+		  case Some(curve) => schedule.coefficients(curve)
+		  case None => List.empty
 		}
+		
 		
 		override def toString:String = "ID: " + id + "\n" + 
 		  "Schedule:\n" + payoffSchedule.map{case (s, po) => s.toString + " " + po.toString}.mkString("\n")

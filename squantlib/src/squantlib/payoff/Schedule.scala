@@ -7,6 +7,8 @@ import scala.collection.mutable.MutableList
 import org.jquantlib.time.DateGeneration.Rule._
 import scala.collection.immutable.LinearSeq
 import org.jquantlib.daycounters.Absolute
+import squantlib.model.rates.DiscountCurve
+import org.jquantlib.daycounters.Actual365Fixed
 
 class Schedule(inputdates:List[CalcPeriod]) extends LinearSeq[CalcPeriod] {
  
@@ -24,23 +26,38 @@ class Schedule(inputdates:List[CalcPeriod]) extends LinearSeq[CalcPeriod] {
     val effectiveDate = dates.minBy(_.startDate).startDate
     val terminationDate = dates.maxBy(_.endDate).endDate
     
+    var defaultDaycounter = new Actual365Fixed
+    
     def startDate(i:Int):Date = dates(i).startDate
     val startDates:List[Date] = dates.map(_.startDate)
-    val startYears:List[Double] = dates.map(d => d.daycounter.yearFraction(effectiveDate, d.startDate))
+    def startYears(baseDate:Date):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.startDate))
+    def startYears:List[Double] = startYears(effectiveDate)
     
     def endDate(i:Int):Date = dates(i).endDate
     val endDates:List[Date] = dates.map(_.endDate)
-    val endYears:List[Double] = dates.map(d => d.daycounter.yearFraction(effectiveDate, d.endDate))
+    def endYears(baseDate:Date):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.endDate))
+    def endYears:List[Double] = endYears(effectiveDate)
     
     def eventDate(i:Int):Date = dates(i).eventDate
     val eventDates:List[Date] = dates.map(_.eventDate)
-    val eventYears:List[Double] = dates.map(d => d.daycounter.yearFraction(effectiveDate, d.eventDate))
+    def eventYears(baseDate:Date):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.eventDate))
+    def eventYears:List[Double] = eventYears(effectiveDate)
     
     def paymentDate(i:Int):Date = dates(i).paymentDate
     val paymentDates:List[Date] = dates.map(_.paymentDate)
-    val paymentYears:List[Double] = dates.map(d => d.daycounter.yearFraction(effectiveDate, d.paymentDate))
+    def paymentYears(baseDate:Date):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.paymentDate))
+    def paymentYears:List[Double] = paymentYears(effectiveDate)
 
-    def currentPeriods(ref:Date) = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
+    def currentPeriods(ref:Date):List[CalcPeriod] = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
+    
+    def dayCount(i:Int):Double = dates(i).daycount
+    val dayCounts:List[Double] = dates.map(_.daycount)
+    
+    def zeroCoupon(i:Int, curve:DiscountCurve):Double = curve(dates(i).paymentDate)
+    def zeroCoupons(curve:DiscountCurve):List[Double] = dates.map(d => curve(d.paymentDate))
+    
+    def coefficient(i:Int, curve:DiscountCurve):Double = dayCount(i) * zeroCoupon(i, curve)
+    def coefficients(curve:DiscountCurve):List[Double] = (dayCounts, zeroCoupons(curve)).zipped.map(_ * _)
     
     override def toString = "eventdate startdate enddate paymentdate\n" + dates.mkString("\n")
     
