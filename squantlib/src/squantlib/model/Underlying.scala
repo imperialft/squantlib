@@ -15,24 +15,32 @@ trait Underlying {
 	var spot:Double  // TO BE DEFINED IN SUBCLASS
 	
 	/**
+	 * Returns the atm volatility corresponding to the given date.
+	 * @param days observation date as the number of calendar days after value date.
+	 */
+	def volatility(days:Double):Double // TO BE DEFINED IN SUBCLASS
+	
+	/**
 	 * Returns the volatility corresponding to the given date & strike.
 	 * @param days observation date as the number of calendar days after value date.
-	 * @param strike fx strike
+	 * @param strike 
 	 */
 	def volatility(days:Double, strike:Double):Double // TO BE DEFINED IN SUBCLASS
 	
 	/**
 	 * Returns the volatility corresponding to the given date & strike.
 	 * @param observation date as day count fraction and its day count method.
-	 * @param strike fx strike
+	 * @param strike
 	 */
+	def volatility(dayfrac:Double, dayCounter:DayCounter):Double = volatility(toDays(dayfrac, dayCounter))	
 	def volatility(dayfrac:Double, dayCounter:DayCounter, strike:Double):Double = volatility(toDays(dayfrac, dayCounter), strike)	
 	
 	/**
 	 * Returns the volatility corresponding to the given date & strike.
 	 * @param observation date
-	 * @param strike fx strike
+	 * @param strike
 	 */
+	def volatility(date:qlDate):Double = volatility(toDays(date))	
 	def volatility(date:qlDate, strike:Double):Double = volatility(toDays(date), strike)	
 	
 	/**
@@ -40,6 +48,7 @@ trait Underlying {
 	 * @param observation date
 	 * @param observation date as the period from value date.
 	 */
+	def volatility(period:qlPeriod):Double = volatility(toDays(period))	
 	def volatility(period:qlPeriod, strike:Double):Double = volatility(toDays(period), strike)	
 	  
 	/**

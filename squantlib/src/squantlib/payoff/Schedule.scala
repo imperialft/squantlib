@@ -10,9 +10,13 @@ import org.jquantlib.daycounters.Absolute
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.daycounters.Actual365Fixed
 
-class Schedule(inputdates:List[CalcPeriod]) extends LinearSeq[CalcPeriod] {
+class Schedule(val dates:List[CalcPeriod]) extends LinearSeq[CalcPeriod] {
  
-	val (dates, legorder) = inputdates.zipWithIndex.sortBy(_._1.eventDate).unzip
+	def sort:Schedule = if (isEmpty) this else Schedule(dates.sortBy(_.eventDate))
+
+	def sortWith[A](obj:LinearSeq[A]):(Schedule, LinearSeq[A]) = (dates zip obj).sortBy(_._1.eventDate).unzip match {
+	  case (datelist, objlist) => (Schedule(datelist), objlist)
+	}
 	
     def apply(i:Int):CalcPeriod = dates(i)
 	override def isEmpty:Boolean = dates.isEmpty
@@ -50,14 +54,16 @@ class Schedule(inputdates:List[CalcPeriod]) extends LinearSeq[CalcPeriod] {
 
     def currentPeriods(ref:Date):List[CalcPeriod] = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
     
-    def dayCount(i:Int):Double = dates(i).daycount
-    val dayCounts:List[Double] = dates.map(_.daycount)
+    def dayCount(i:Int):Double = dates(i).dayCount
+    val dayCounts:List[Double] = dates.map(_.dayCount)
     
-    def zeroCoupon(i:Int, curve:DiscountCurve):Double = curve(dates(i).paymentDate)
-    def zeroCoupons(curve:DiscountCurve):List[Double] = dates.map(d => curve(d.paymentDate))
+    def zeroCoupon(i:Int, curve:DiscountCurve):Double = dates(i).zeroCoupon(curve)
+    def zeroCoupons(curve:DiscountCurve):List[Double] = dates.map(_.zeroCoupon(curve))
     
     def coefficient(i:Int, curve:DiscountCurve):Double = dayCount(i) * zeroCoupon(i, curve)
     def coefficients(curve:DiscountCurve):List[Double] = (dayCounts, zeroCoupons(curve)).zipped.map(_ * _)
+    
+    override def toList:List[CalcPeriod] = dates
     
     override def toString = "eventdate startdate enddate paymentdate\n" + dates.mkString("\n")
     
@@ -65,6 +71,8 @@ class Schedule(inputdates:List[CalcPeriod]) extends LinearSeq[CalcPeriod] {
 
 object Schedule{
 	
+	def empty:Schedule = new Schedule(List.empty)
+  
 	def apply(inputDates:List[CalcPeriod]) = new Schedule(inputDates)
 	
 	def apply(
@@ -154,16 +162,23 @@ object Schedule{
 }
 
 
-class CalcPeriod(val eventDate:Date, val startDate:Date, val endDate:Date,val paymentDate:Date, val daycounter:DayCounter) {
-	def daycount:Double = daycounter.yearFraction(startDate, endDate)
+case class CalcPeriod(val eventDate:Date, val startDate:Date, val endDate:Date,val paymentDate:Date, val daycounter:DayCounter) {
+  
+	def dayCount:Double = daycounter.yearFraction(startDate, endDate)
+	
+    def isCurrentPeriod(ref:Date):Boolean = (ref ge startDate) && (ref lt endDate)
+    
+    def accrued(ref:Date):Double = if (isCurrentPeriod(ref)) daycounter.yearFraction(startDate, ref) else 0.0
+    
+    def zeroCoupon(curve:DiscountCurve):Double = curve(paymentDate)
+    
+    def coefficient(curve:DiscountCurve):Double = dayCount * zeroCoupon(curve)
+  
 	override def toString = eventDate.shortDate.toString + " " + startDate.shortDate.toString + " " + endDate.shortDate.toString + " " + paymentDate.shortDate.toString + " " + daycounter.toString
 }
 
 object CalcPeriod {
   
-	def apply(eventDate:Date, startDate:Date, endDate:Date, paymentDate:Date, daycount:DayCounter):CalcPeriod = 
-	  new CalcPeriod(eventDate, startDate, endDate, paymentDate, daycount)
-	
 	def apply(startDate:Date, endDate:Date, notice:Int, inarrears:Boolean, daycount:DayCounter, calendar:Calendar, paymentConvention:BusinessDayConvention):CalcPeriod = {
 	  val eventDate = if (inarrears) calendar.advance(endDate, -notice, TimeUnit.Days)
 			  		else calendar.advance(startDate, -notice, TimeUnit.Days)

@@ -10,15 +10,15 @@ import squantlib.setting.PricingConvention.bondPriceFrom
 import org.jquantlib.termstructures.{YieldTermStructure, Compounding}
 import org.jquantlib.cashflow.CashFlows
 import java.util.{Date => javaDate}
-import squantlib.model.CurveFactory
+import squantlib.model.Market
 
 
 object BondPrice {
 	 
-	def apply(bond:QLBond, factory:CurveFactory):dbBondPrice = build(bond, factory)
+	def apply(bond:QLBond, factory:Market):dbBondPrice = build(bond, factory)
   	def apply(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):dbBondPrice = build(bond, valuedate, fx, paramset, termstructure:YieldTermStructure)
 	
-	def build(bond:QLBond, factory:CurveFactory):dbBondPrice = 
+	def build(bond:QLBond, factory:Market):dbBondPrice = 
 	  build(bond, factory.valuedate, factory.fx(bond.currency.code, "JPY"), factory.paramset, factory.getYieldTermStructure(bond).orNull)
 	  
   	def build(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):dbBondPrice = {

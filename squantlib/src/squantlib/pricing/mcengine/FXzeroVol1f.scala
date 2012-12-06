@@ -1,4 +1,4 @@
-package squantlib.pricing.model
+package squantlib.pricing.mcengine
 
 import squantlib.pricing.randomgenerator.RandomGenerator
 import squantlib.model.fx.FX

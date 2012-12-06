@@ -54,11 +54,7 @@ case class Payoffs(val payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  
 	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Payoff]):List[Payoff] = {
 	    if (paylist.isEmpty) acc
-	    else fixingRec(paylist.tail, fixlist.tail, 
-	        acc :+ (fixlist.head match {
-	          case f if f.isEmpty => paylist.head
-	          case f => FixedPayoff(paylist.head.price(f))
-	        }))
+	    else fixingRec(paylist.tail, fixlist.tail, acc :+ paylist.head.applyFixing(fixlist.head))
 	  }
 	  
 	  Payoffs(fixingRec(payoffs, fixings, List.empty))
@@ -69,11 +65,7 @@ case class Payoffs(val payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  
 	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Option[Double]], acc:List[Payoff]):List[Payoff] = {
 	    if (paylist.isEmpty) acc
-	    else fixingRec(paylist.tail, fixlist.tail, 
-	        acc :+ (fixlist.head match {
-	          case None => paylist.head
-	          case Some(f) => FixedPayoff(paylist.head.price(f))
-	        }))
+	    else fixingRec(paylist.tail, fixlist.tail, acc :+ paylist.head.applyFixing(fixlist.head))
 	  }
 	  
 	  Payoffs(fixingRec(payoffs, fixings, List.empty))
@@ -91,13 +83,17 @@ case class Payoffs(val payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	override def length = payoffs.length
 	override def iterator:Iterator[Payoff] = payoffs.iterator
 	
+	override def toList:List[Payoff] = payoffs
+	
 	def reorder(order:List[Int]) = new Payoffs((0 to payoffs.size-1).toList.map(i => payoffs(order(i))))
 	
 }
 
 
 object Payoffs {
-  
+	
+	def empty:Payoffs = new Payoffs(List.empty)
+	
 	def apply(formula:String, legs:Int = 0):Payoffs =	{
 	  
 	  val payofflist:List[Payoff] = formula.split(";").toList.map{f => 

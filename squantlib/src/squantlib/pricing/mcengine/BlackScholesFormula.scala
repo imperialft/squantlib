@@ -1,4 +1,4 @@
-package squantlib.pricing.model
+package squantlib.pricing.mcengine
 
 object BlackScholesFormula {
   

@@ -5,6 +5,7 @@ import scala.collection.JavaConversions
 import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
 import squantlib.model.fx._
+import squantlib.database.schemadefinitions.{CDSParameter, RateFXParameter}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
 import org.jquantlib.instruments.{Bond => qlBond}
@@ -12,12 +13,12 @@ import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.termstructures.YieldTermStructure
 
 /** 
- * Stores rate curve information and initialize discount curves as requested.
+ * Stores market information and initialize discount curves as requested.
  * Require all discount curves to have same value date.
  * 
  * @param Map CurrencyId => DiscountCurve
  */
-class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = null, val fxparams:Map[String, FXparameter], val paramset:String = null) {
+class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = null, val fxparams:Map[String, FXparameter], val paramset:String = null) {
 
 	var valuedate:qlDate = curves.head._2.valuedate
 	require(curves.forall(_._2.valuedate == valuedate))
@@ -219,7 +220,7 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 		  Some(newcurve.toDiscountBondEngine(calendar)) } 
 		catch { case _ => None}
 	
-	/**
+	/** 
 	 * Checks whether the given curve is already calculated and stored in the repository.
 	 */
 	def contains(ccy:String, cdsid:String) = {
@@ -235,9 +236,40 @@ class CurveFactory(val curves:Map[String, DiscountableCurve], val cdscurves:Map[
 		"Credit Spreads:" + eol + sortedcdscurves.map(c => c._1 + "\t" + c._2.rate.valuedate.shortDate + "\t" + c._2.rate.maxdate.shortDate + eol).mkString("")
 	}
 	
-    override def toString():String = "DiscountCurveFactory{" + curves.map(c => c._2).mkString(", ") + "}"
+	def show:Unit = {
+		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
+		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
+		println("Curves:")
+		sortedcurves.foreach{case (n, c) => println(c.describe + (if (discountingCurves.contains(n)) "(*)" else ""))}
+		println("(*) Discounting curves")
+		println(" ")
+		println("Credit Spreads:")
+		sortedcdscurves.foreach{case (n, c) => println(n + "\t" + c.rate.valuedate.shortDate + "\t" + c.rate.maxdate.shortDate)}
+	}
+	
+    override def toString():String = "Market{" + curves.map(c => c._2).mkString(", ") + "}"
 	
 //    def this(curves:Map[String, DiscountableCurve]) = this(curves, null, null)
 //    def this(curves:Map[String, DiscountableCurve], cdscurves:Map[String, CDSCurve]) = this(curves, cdscurves, null)
 }
 
+
+object Market {
+  
+	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = getMarket(ratefxparams, cdsparams)
+  
+	def getMarket(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = {
+	  val discountcurves = LiborDiscountCurve(ratefxparams) ++ FXDiscountCurve(ratefxparams)
+	  val cdscurves = CDSCurve(cdsparams)
+	  val fxparams = FXparameter(ratefxparams)
+	  val paramset = ratefxparams.head.paramset
+	  
+	  if (discountcurves.size == 0 || cdscurves.size == 0) None
+	  else Some(new Market(
+		    discountcurves.map(c => (c.currency.code, c)).toMap, 
+		    cdscurves.map(c => (c.issuerid, c)).toMap, 
+		    fxparams,
+		    paramset))
+	}
+  
+}

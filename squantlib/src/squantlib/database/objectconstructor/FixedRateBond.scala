@@ -1,6 +1,6 @@
 package squantlib.database.objectconstructor
 
-import squantlib.model.CurveFactory
+import squantlib.model.Market
 import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.setting.initializer.{Currencies, DayAdjustments, Daycounters}
 import squantlib.payoff.FixedPayoff
@@ -12,7 +12,7 @@ import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 object FixedRateBond {
   
 	def apply(bond:dbBond) = getbond(bond)
-	def apply(bond:dbBond, factory:CurveFactory) = getbond(bond, factory)
+	def apply(bond:dbBond, factory:Market) = getbond(bond, factory)
   
 	val productlist = Set("SB", "STEPUP", "DISC")
 	def isCompatible(bond:dbBond) = productlist contains bond.productid.toUpperCase
@@ -24,11 +24,11 @@ object FixedRateBond {
 	  bonds.map(b => (b.id, getbond(b))).collect{case (key, Some(b)) => (key, b)}.toMap
 	}
 	
-	def getbonds(bonds:Set[dbBond], factory:CurveFactory):Map[String, qlFixedRateBond] = {
+	def getbonds(bonds:Set[dbBond], factory:Market):Map[String, qlFixedRateBond] = {
 	  bonds.map(b => (b.id, getbond(b, factory))).collect{case (key, Some(b)) => (key, b)}.toMap
 	}
 	
-	def getbond(bond:dbBond, factory:CurveFactory):Option[qlFixedRateBond] = getbond(bond) match {
+	def getbond(bond:dbBond, factory:Market):Option[qlFixedRateBond] = getbond(bond) match {
 	  case Some(b) => {setDefaultPricingEngine(b, factory); Some(b)}
 	  case None => None
 	}
@@ -84,19 +84,19 @@ object FixedRateBond {
 	  	}
 	}
 
-	def setDefaultPricingEngine(bond:qlFixedRateBond, factory:CurveFactory) ={
+	def setDefaultPricingEngine(bond:qlFixedRateBond, factory:Market) ={
 	  if (bond != null && factory != null) 
 	    bond.setPricingEngine(factory.getDiscountBondEngine(bond).orNull, factory.valuedate)
 	}
 	
-	def getAdjustedPricingEngine(bond:qlFixedRateBond, factory:CurveFactory, newvaluedate:qlDate):Option[DiscountingBondEngine] = 
+	def getAdjustedPricingEngine(bond:qlFixedRateBond, factory:Market, newvaluedate:qlDate):Option[DiscountingBondEngine] = 
 		try { 
 		  val newcurve = factory.getDiscountCurve(bond.currency.code, bond.creditSpreadID).get
 		  newcurve.valuedate = newvaluedate
 		  Some(newcurve.toDiscountBondEngine(bond.calendar)) } 
 		catch { case _ => None}
 	
-	def setAdjustedPricingEngine(bond:qlFixedRateBond, factory:CurveFactory, newvaluedate:qlDate):Unit = {
+	def setAdjustedPricingEngine(bond:qlFixedRateBond, factory:Market, newvaluedate:qlDate):Unit = {
 	  getAdjustedPricingEngine(bond, factory, newvaluedate) match {
 	    case Some(engine) => bond.setPricingEngine(engine, newvaluedate)
 	    case None => {}

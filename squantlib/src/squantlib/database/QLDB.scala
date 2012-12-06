@@ -1,8 +1,8 @@
 package squantlib.database
 
-import squantlib.model.CurveFactory
+import squantlib.model.Market
 import squantlib.model.rates._
-import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXParameter}
+import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXParameter, CDSParameter}
 import squantlib.database.objectconstructor._
 import squantlib.database.QLConstructors._
 import squantlib.math.timeseries.SeriesAnalysis._
@@ -24,21 +24,7 @@ object QLDB {
    /**
     * Returns discount curve factory.
     */
-	def getCurveFactory(paramset:String):Option[CurveFactory] = {
-	  
-	  val ratefxparams = DB.getRateFXParameters(paramset)
-	  val discountcurves = LiborDiscountCurve(ratefxparams) ++ FXDiscountCurve(ratefxparams)
-	  val cdscurves = CDSCurve(DB.getCDSParameters(paramset))
-	  val fxparams = FXparameter(ratefxparams)
-	  
-	  if (discountcurves.size == 0 || cdscurves.size == 0) None
-	  else Some(new CurveFactory(
-		    discountcurves.map(c => (c.currency.code, c)).toMap, 
-		    cdscurves.map(c => (c.issuerid, c)).toMap, 
-		    fxparams,
-		    paramset))
-	}
-	
+	def getMarket(paramset:String):Option[Market] = Market(DB.getRateFXParameters(paramset), DB.getCDSParameters(paramset))
 	
 	def getsBond(id:String):Option[sBond] = DB.getBonds(Set(id)).headOption match {
 	  case None => None
@@ -53,7 +39,7 @@ object QLDB {
     */
 	def getBond(id:String):Option[qlBond] = getBonds(Set(id)).headOption
 	
-	def getBond(id:String, factory:CurveFactory):Option[qlBond] = getBonds(Set(id), factory).headOption
+	def getBond(id:String, factory:Market):Option[qlBond] = getBonds(Set(id), factory).headOption
 	
 	def getBonds:Set[qlBond] = bondsConstructor(DB.getBonds, null)
 	
@@ -61,11 +47,11 @@ object QLDB {
 	
 	def getBonds(id:Traversable[String]):Set[qlBond] = bondsConstructor(DB.getBonds(id), null)
 	
-	def getBonds(factory:CurveFactory):Set[qlBond] = bondsConstructor(DB.getBonds, factory)
+	def getBonds(factory:Market):Set[qlBond] = bondsConstructor(DB.getBonds, factory)
 	
-	def getBonds(id:Traversable[String], factory:CurveFactory):Set[qlBond] = bondsConstructor(DB.getBonds(id), factory)
+	def getBonds(id:Traversable[String], factory:Market):Set[qlBond] = bondsConstructor(DB.getBonds(id), factory)
 	
-	def getBonds(bonds:Set[dbBond], factory:CurveFactory):Set[qlBond] = bondsConstructor(bonds, factory)
+	def getBonds(bonds:Set[dbBond], factory:Market):Set[qlBond] = bondsConstructor(bonds, factory)
 	
 	def getBonds(ids:Traversable[String], builder:dbBond => Option[qlBond], pricingengine:qlBond => PricingEngine, valuedate:qlDate):Set[qlBond] = {
 		val qlbonds:Set[qlBond] = DB.getBonds(ids).map(builder).flatMap(b => b)
@@ -73,7 +59,7 @@ object QLDB {
 		qlbonds
 	}
 	
-	def bondsConstructor(dbbonds:Set[dbBond], factory:CurveFactory):Set[qlBond] = 
+	def bondsConstructor(dbbonds:Set[dbBond], factory:Market):Set[qlBond] = 
 	  dbbonds.map(b => PricingConvention.bondConstructor(b, factory)).flatMap(b => b)
 	
    /**
