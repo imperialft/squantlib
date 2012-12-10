@@ -18,7 +18,7 @@ import org.jquantlib.termstructures.YieldTermStructure
  * 
  * @param Map CurrencyId => DiscountCurve
  */
-class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = null, val fxparams:Map[String, FXparameter], val paramset:String = null) {
+class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = Map.empty, val fxparams:Map[String, FXparameter] = Map.empty, val paramset:String = null, val fixings:Map[String, Double]  = Map.empty) {
 
 	var valuedate:qlDate = curves.head._2.valuedate
 	require(curves.forall(_._2.valuedate == valuedate))
@@ -41,7 +41,7 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	/** 
 	 * Issuers
 	 */
-	val cdsNames:Set[String] = if (cdscurves == null) null else cdscurves.keySet
+	val cdsNames:Set[String] = cdscurves.keySet
 	def containsCDS(issuer:String) = cdscurves.contains(issuer)
 	
 	/** 
@@ -59,8 +59,8 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	 * Returns FX spot ccy1 / ccy2
 	 * @param currency code, 
 	 */
-	def fx(ccy1:String, ccy2:String):Double = 
-	  try {curves(ccy2).fx / curves(ccy1).fx } catch { case _ => Double.NaN}
+	def fx(ccy1:String, ccy2:String):Option[Double] = 
+	  try {Some(curves(ccy2).fx / curves(ccy1).fx) } catch { case _ => None}
 
 	/**
 	 * Returns discount curve with "base" spread & currency.
@@ -188,7 +188,57 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	    if ((curveDom isDefined) && (curveFor isDefined)) FXsmiled(curveDom.get, curveFor.get, vol) else None
 	}
 	
+	/**
+	 * Returns rate curve for the given currency.
+	 * @param currency code
+	 * @returns curve if given currency is initialized as rate curve
+	 */
+	def getRateCurve(ccy:String):Option[RateCurve] = 
+	  curves.get(ccy).flatMap(_ match { case c:RateCurve => Some(c); case _ => None})
 	
+	def getCash(ccy:String, maturity:qlPeriod):Option[Double] = 
+	  getRateCurve(ccy).flatMap(c => try {Some(c.cash(maturity))} catch { case _ => None })
+	
+	def getSwap(ccy:String, maturity:qlPeriod):Option[Double] = 
+	  getRateCurve(ccy).flatMap(c => try {Some(c.swap(maturity))} catch { case _ => None })
+	
+	def getBasis(ccy:String, maturity:qlPeriod):Option[Double] = 
+	  getRateCurve(ccy).flatMap(c => try {Some(c.basis(maturity))} catch { case _ => None })
+	
+	def get3M6M(ccy:String, maturity:qlPeriod):Option[Double] = 
+	  getRateCurve(ccy).flatMap(c => try {Some(c.tenorbasis(maturity))} catch { case _ => None })
+	  
+	/**
+	 * Returns FX curve for the given currency.
+	 * @param currency code
+	 * @returns curve if given currency is initialized as FX curve
+	 */
+	def getFXCurve(ccy:String):Option[FXCurve] = 
+	  curves.get(ccy).flatMap(_ match { case c:FXCurve => Some(c); case _ => None})
+	  
+	def getSwapPoint(ccy:String, maturity:qlPeriod):Option[Double] = 
+	  getFXCurve(ccy).flatMap(c => try {Some(c.swappoint(maturity))} catch { case _ => None })
+	
+	def getFixings(params:Set[String]):Map[String, Double] = params.map(p => (p, getFixing(p))).collect{case (n, Some(p)) => (n, p)}.toMap
+	
+	def getFixing(param:String):Option[Double] = param.trim match {
+	  case p if fixings contains p => Some(fixings(p))
+	  case p if p.size <= 3 => None
+	  case p => (p take 3, p substring 3) match {
+	    case (ccy, _) if !isCcy(ccy) => None
+	    case (ccy1, ccy2) if isCcy(ccy2) => fx(ccy1, ccy2)
+	    case (ccy, mat) if !isNumber(mat dropRight 1) => None
+	    case (ccy, mat) if cashPeriods contains (mat takeRight 1) => getCash(ccy, new qlPeriod(mat))
+	    case (ccy, mat) if swapPeriods contains (mat takeRight 1) => getSwap(ccy, new qlPeriod(mat))
+	    case _ => None
+	  }
+	}
+	
+	private def isCcy(v:String):Boolean = curves.contains(v)
+	private val cashPeriods = Set("M", "W", "D")
+	private val swapPeriods = Set("Y")
+	private def isNumber(v:String):Boolean = try {v.toInt; true} catch {case _ => false}
+	  
 	def getYieldTermStructure(bond:qlBond):Option[YieldTermStructure] = 
 	  	try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toZCImpliedYieldTermStructure) } 
 		catch { case _ => None}
@@ -249,8 +299,6 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	
     override def toString():String = "Market{" + curves.map(c => c._2).mkString(", ") + "}"
 	
-//    def this(curves:Map[String, DiscountableCurve]) = this(curves, null, null)
-//    def this(curves:Map[String, DiscountableCurve], cdscurves:Map[String, CDSCurve]) = this(curves, cdscurves, null)
 }
 
 
@@ -263,13 +311,16 @@ object Market {
 	  val cdscurves = CDSCurve(cdsparams)
 	  val fxparams = FXparameter(ratefxparams)
 	  val paramset = ratefxparams.head.paramset
+	  val fixingset:Map[String, Double] = ratefxparams.withFilter(_.instrument == "Fixing")
+	  	.map(p => (p.asset + (if (p.maturity != null) p.maturity else "").trim, p.value)).toMap
 	  
 	  if (discountcurves.size == 0 || cdscurves.size == 0) None
 	  else Some(new Market(
 		    discountcurves.map(c => (c.currency.code, c)).toMap, 
 		    cdscurves.map(c => (c.issuerid, c)).toMap, 
 		    fxparams,
-		    paramset))
+		    paramset,
+		    fixingset))
 	}
   
 }

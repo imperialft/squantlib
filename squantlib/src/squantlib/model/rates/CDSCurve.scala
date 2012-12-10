@@ -24,7 +24,7 @@ object CDSCurve{
 	 * @param set of CDSParameter
 	 * @returns map from (issuerid, Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getallcurves(params:Traversable[CDSParameter]):Map[(String, String), CDSCurve] = {
+  	def getallcurves(params:Set[CDSParameter]):Map[(String, String), CDSCurve] = {
   	  val cdsgroups = params.groupBy(p => (p.issuerid, p.currencyid))
   	   
   	  cdsgroups.withFilter{case ((_, ccy), _) => Currencies.contains(ccy) }
@@ -46,7 +46,7 @@ object CDSCurve{
 	 * @param set of CDSParameter
 	 * @returns map from issuerid to LiborDiscountCurve
 	 */
-  	def getcurves(params:Traversable[CDSParameter]):Iterable[CDSCurve] = {
+  	def getcurves(params:Set[CDSParameter]):Iterable[CDSCurve] = {
   	  val curves = getallcurves(params).groupBy(c => c._1._1)
   	  curves.map(c => c._2.getOrElse((c._1, defaultccy), c._2.head._2))
   	}
@@ -60,5 +60,5 @@ object CDSCurve{
 			}
   	 
 //  	def apply(param:CDSParameter):CDSCurve = getcurve(param)
-  	def apply(params:Traversable[CDSParameter]):Iterable[CDSCurve] = getcurves(params)
+  	def apply(params:Set[CDSParameter]):Iterable[CDSCurve] = getcurves(params)
 }

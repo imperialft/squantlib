@@ -19,7 +19,7 @@ object BondPrice {
   	def apply(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):dbBondPrice = build(bond, valuedate, fx, paramset, termstructure:YieldTermStructure)
 	
 	def build(bond:QLBond, factory:Market):dbBondPrice = 
-	  build(bond, factory.valuedate, factory.fx(bond.currency.code, "JPY"), factory.paramset, factory.getYieldTermStructure(bond).orNull)
+	  build(bond, factory.valuedate, factory.fx(bond.currency.code, "JPY").getOrElse(Double.NaN), factory.paramset, factory.getYieldTermStructure(bond).orNull)
 	  
   	def build(bond:QLBond, valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure = null):dbBondPrice = {
 		if (bond == null) return null

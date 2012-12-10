@@ -17,25 +17,30 @@ trait PricingModel {
 
 	def payoffs:Payoffs = Payoffs(payoff)
 
-	def price:List[Double]
+	protected def price:List[Double]
 	
 	def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 	
-	def priceWithDiscount(curve:DiscountCurve):Double = {
+	var message:Queue[String] = Queue.empty
+
+	def priceLegs:List[Double] = {
 	  val result = price
-	  val coeff = schedule.coefficients(curve)
 	  
-	  val pricelegs = (schedule.toList, result, coeff).zipped
+	  val pricelegs = (schedule.toList, result).zipped
 	  def rnd(v:Double):Double = math.round(v * 1000000.0) / 1000000.0
 	  
 	  message += currenttime.toString
 	  message += "Paths: " + mcPaths
-	  message += "EventDate, PayDate, Amount, Coefficient, Price"
-	  pricelegs.map{case (d, p, c) => message += d.eventDate.shortDate + " " + d.paymentDate.shortDate + " " + rnd(p) + " " + rnd(c) + " " + rnd(p * c)}
+	  message += "EventDate, PayDate, Amount"
+	  pricelegs.map{case (d, p) => message += d.eventDate.shortDate + " " + d.paymentDate.shortDate + " " + rnd(p)}
 	  
-	  (result zip coeff).map{case (p, c) => p * c}.sum
+	  result
 	}
 	
-	var message:Queue[String] = Queue.empty
+	def discountedPriceLegs(curve:DiscountCurve):List[Double] = 
+	  (priceLegs zip schedule.coefficients(curve)).map{case (p, c) => p * c}
+	
+	def discountedPrice(curve:DiscountCurve):Double = discountedPriceLegs(curve).reduceLeft {_ + _}
+	
 	
 }

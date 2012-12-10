@@ -4,6 +4,7 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.database.fixings.Fixings
 import org.jquantlib.time.{Date => qlDate}
+import squantlib.model.Market
 
 trait Payoff{
 	
@@ -35,6 +36,8 @@ trait Payoff{
 	  case Some(f) if variables.size == 1 => FixedPayoff(f)
 	  case _ => this
 	}
+	
+	def spotCoupon(mkt:Market):Double = price(mkt.getFixings(variables)) 
 }
 
 object Payoff {

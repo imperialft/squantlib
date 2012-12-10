@@ -83,14 +83,9 @@ object OpenExchangeRates {
 	
 	def getHistorical(date:JavaDate):Option[Map[String, BigDecimal]] = getHistorical(DateToCalendar(date))
 
-	def getHistorical(currency:String, date:Calendar):Option[BigDecimal] = 
-	  getHistorical(date) match {
-		  case None => None
-		  case Some(r) => r.get(currency)
-	  }
+	def getHistorical(currency:String, date:Calendar):Option[BigDecimal] = getHistorical(date).flatMap(r => r.get(currency))
 	
-	def getHistorical(currency:String, date:JavaDate):Option[BigDecimal] = 
-		getHistorical(currency, DateToCalendar(date))
+	def getHistorical(currency:String, date:JavaDate):Option[BigDecimal] = getHistorical(currency, DateToCalendar(date))
 		
 	def buildDbObject(appid:String, year:Int, month:Int, day:Int):Set[FXRate] = {
 		OpenExchangeRates.appid = appid

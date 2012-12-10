@@ -238,7 +238,7 @@ object LiborDiscountCurve {
 	 * @param set of InputParameter
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getcurves(params:Traversable[RateFXParameter]):Iterable[LiborDiscountCurve] = {
+  	def getcurves(params:Set[RateFXParameter]):Iterable[LiborDiscountCurve] = {
     
 	  val conventions:Map[String, RateConvention] = 
 	    RateConventions.mapper.filter{case (k, v) => v.useratediscount }
@@ -272,7 +272,7 @@ object LiborDiscountCurve {
   	  	}
   	}
   
-  	def apply(params:Traversable[RateFXParameter]):Iterable[LiborDiscountCurve] = getcurves(params)
+  	def apply(params:Set[RateFXParameter]):Iterable[LiborDiscountCurve] = getcurves(params)
   
 } 
 

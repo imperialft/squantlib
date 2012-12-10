@@ -170,6 +170,11 @@ case class CalcPeriod(val eventDate:Date, val startDate:Date, val endDate:Date,v
     
     def accrued(ref:Date):Double = if (isCurrentPeriod(ref)) daycounter.yearFraction(startDate, ref) else 0.0
     
+    def dayCountAfter(ref:Date):Double = 
+      if (startDate ge ref) dayCount
+      else if (isCurrentPeriod(ref)) daycounter.yearFraction(ref, endDate) 
+      else 0.0
+    
     def zeroCoupon(curve:DiscountCurve):Double = curve(paymentDate)
     
     def coefficient(curve:DiscountCurve):Double = dayCount * zeroCoupon(curve)
