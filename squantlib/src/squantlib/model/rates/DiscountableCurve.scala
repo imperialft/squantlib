@@ -15,6 +15,9 @@ trait DiscountableCurve {
   val fx : Double
   val valuedate : JDate
   
+  def shiftRate(shift:(Double, Double) => Double):DiscountableCurve
+  def multFX(shift:Double):DiscountableCurve
+  
   /** 
    * Builds zero coupon curve using the curve itself as discount currency.
    * @param refinance spread on float rate

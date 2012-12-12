@@ -1,5 +1,6 @@
 package squantlib.setting
 
+import squantlib.setting.rateconventions._
 import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.currencies.Currency
@@ -29,24 +30,6 @@ trait RateConvention {
 	 */
   	def iborindex(p:qlPeriod):IborIndex
 
-  	/**
-	 * Defines continuous cash curve constructor.
-	 */
-	def cash_curve(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):YieldParameter
-		= (values.keySet.size) match {
-			case 1 => new FlatVector(valuedate, values)
-			case 2 => new LinearNoExtrapolation(valuedate, values)
-			case _ => new SplineNoExtrapolation(valuedate, values, 2) } 
-	
-  	/**
-	 * Returns cash curve using specified conventions and curve construction method.
-	 */
-	def cash_constructor(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):CashCurve 
-		= new CashCurve(cash_curve(valuedate, values), iborindex(new qlPeriod(6, TimeUnit.Months)))
-  
-	def cash_constructor(curve:YieldParameter):CashCurve 
-		= new CashCurve(curve, iborindex(new qlPeriod(6, TimeUnit.Months)))
-	
 	/**
 	 * Swap floating rate reference.
 	 */
@@ -62,48 +45,12 @@ trait RateConvention {
 	 */
 	val swap_fixperiod:Frequency
 	
-  	/**
-	 * Defines continuous swap curve constructor.
-	 */
-	def swap_curve(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):YieldParameter
-		= (values.keySet.size) match {
-			case 1 => new FlatVector(valuedate, values)
-			case 2 => new LinearNoExtrapolation(valuedate, values)
-			case _ => new SplineNoExtrapolation(valuedate, values, 2)} 
-	
-  	/**
-	 * Returns swap curve using specified conventions and curve construction method.
-	 */
-	def swap_constructor(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):SwapCurve 
-		= new SwapCurve(swap_curve(valuedate, values), swap_floatindex, swap_fixdaycount, swap_fixperiod)
-
-	def swap_constructor(curve:YieldParameter):SwapCurve 
-		= new SwapCurve(curve, swap_floatindex, swap_fixdaycount, swap_fixperiod)
   
 	/**
 	 * Floating leg reference for cross currency swap against 3m USD LIBOR.
 	 */
 	val basis_floatindex:IborIndex = iborindex(new qlPeriod(3, TimeUnit.Months))
 
-  	/**
-	 * Defines continuous basis swap curve constructor.
-	 */
-	def basis_curve(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):YieldParameter
-		= (values.keySet.size) match {
-			case 1 => new FlatVector(valuedate, values)
-			case 2 => new LinearNoExtrapolation(valuedate, values)
-			case _ => new SplineNoExtrapolation(valuedate, values, 2)
-  		} 
-	
-  	/**
-	 * Returns basis swap curve using specified conventions and curve construction method.
-	 */
-	def basis_constructor(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):BasisSwapCurve 
-		= new BasisSwapCurve(basis_curve(valuedate, values), basis_floatindex)
-
-	def basis_constructor(curve:YieldParameter):BasisSwapCurve 
-		= new BasisSwapCurve(curve, basis_floatindex)
-  
 	/**
 	 * Reference rates for tenor basis swap.
 	 * Currently only 3 months vs 6 months is supported.
@@ -111,24 +58,6 @@ trait RateConvention {
 	val basis36_shortindex:IborIndex = iborindex(new qlPeriod(3, TimeUnit.Months))
 	val basis36_longindex:IborIndex = iborindex(new qlPeriod(6, TimeUnit.Months))
 	
-  	/**
-	 * Defines continuous tenor basis swap curve constructor.
-	 */
-	def basis36_curve(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):YieldParameter	
-		= (values.keySet.size) match {
-			case 1 => new FlatVector(valuedate, values)
-			case 2 => new LinearNoExtrapolation(valuedate, values)
-			case _ => new SplineNoExtrapolation(valuedate, values, 2)
-  		} 
-	
-  	/**
-	 * Returns tenor basis swap curve using specified conventions and curve construction method.
-	 */
-	def basis36_constructor(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):TenorBasisSwapCurve 
-		= new TenorBasisSwapCurve(basis_curve(valuedate, values), basis36_shortindex, basis36_longindex)
-	
-	def basis36_constructor(curve:YieldParameter):TenorBasisSwapCurve 
-		= new TenorBasisSwapCurve(curve, basis36_shortindex, basis36_longindex)
   
 	/**
 	 * True if swap point discounting is applicable
@@ -163,6 +92,39 @@ trait RateConvention {
   
 	def swappoint_constructor(curve:YieldParameter):SwapPointCurve 
 		= new SwapPointCurve(curve, swappoint_multiplier, currency, swappoint_pivot)
+}
+
+
+object RateConvention {
+
+  	def apply(id:String):Option[RateConvention] = mapper.get(id)
+  	
+  	def toMap:Map[String, RateConvention] = mapper
+  
+  	def contains(id:String):Boolean = mapper.contains(id)
+  	
+	val mapper = Map(
+			("AUD" -> new AudRateConvention),
+			("BRL" -> new BrlRateConvention),
+			("CAD" -> new CadRateConvention), 
+			("CNY" -> new CnyRateConvention),
+			("EUR" -> new EurRateConvention),
+			("GBP" -> new GbpRateConvention),
+			("HUF" -> new HufRateConvention),
+			("IDR" -> new IdrRateConvention),
+			("INR" -> new InrRateConvention),
+			("JPY" -> new JpyRateConvention),
+			("KRW" -> new KrwRateConvention),
+			("MXN" -> new MxnRateConvention),
+			("NZD" -> new NzdRateConvention),
+			("PLN" -> new PlnRateConvention),
+			("RON" -> new RonRateConvention),
+			("RUB" -> new RubRateConvention),
+			("SEK" -> new SekRateConvention),
+			("TRY" -> new TryRateConvention),
+			("USD" -> new UsdRateConvention),
+			("ZAR" -> new ZarRateConvention))
+			
 }
 
 

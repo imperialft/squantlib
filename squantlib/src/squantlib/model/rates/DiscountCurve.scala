@@ -7,6 +7,7 @@ import org.jquantlib.instruments
 import org.jquantlib.daycounters.{DayCounter, Thirty360}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Calendar, Date => qlDate, Period => qlPeriod}
+import java.lang.UnsupportedOperationException
 
 /**
  * Encapsulates cashflow discounting curve and discount spread on 3m float rate.
@@ -57,6 +58,7 @@ class DiscountCurve(val currency:Currency, val zc : YieldParameter, val discount
     def impliedRate(date:qlDate):Double = impliedRate(date.serialNumber - valuedate.serialNumber)
     def impliedRate(period:qlPeriod):Double = impliedRate(period.days(valuedate))
     
+    def shifted(shift:(Double, Double) => Double):DiscountCurve = throw new UnsupportedOperationException("shift on discount curve prohibited - please shift corresponding interest rate instead")
     
     override def describe = "Currency:\t" + currency.code + sys.props("line.separator") + 
   				 "Spread:\t" + (if (discountspread == null) "N/A" else discountspread.describe) + 

@@ -27,30 +27,26 @@ class Schedule(val dates:List[CalcPeriod]) extends LinearSeq[CalcPeriod] {
 
     def get(i:Int):CalcPeriod = dates(i)
     
-    val effectiveDate = dates.minBy(_.startDate).startDate
-    val terminationDate = dates.maxBy(_.endDate).endDate
+    val effectiveDate:Option[Date] = if (isEmpty) None else Some(dates.minBy(_.startDate).startDate)
+    val terminationDate:Option[Date] = if (isEmpty) None else Some(dates.maxBy(_.endDate).endDate)
     
     var defaultDaycounter = new Actual365Fixed
     
     def startDate(i:Int):Date = dates(i).startDate
     val startDates:List[Date] = dates.map(_.startDate)
     def startYears(baseDate:Date):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.startDate))
-    def startYears:List[Double] = startYears(effectiveDate)
     
     def endDate(i:Int):Date = dates(i).endDate
     val endDates:List[Date] = dates.map(_.endDate)
     def endYears(baseDate:Date):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.endDate))
-    def endYears:List[Double] = endYears(effectiveDate)
     
     def eventDate(i:Int):Date = dates(i).eventDate
     val eventDates:List[Date] = dates.map(_.eventDate)
     def eventYears(baseDate:Date):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.eventDate))
-    def eventYears:List[Double] = eventYears(effectiveDate)
     
     def paymentDate(i:Int):Date = dates(i).paymentDate
     val paymentDates:List[Date] = dates.map(_.paymentDate)
     def paymentYears(baseDate:Date):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.paymentDate))
-    def paymentYears:List[Double] = paymentYears(effectiveDate)
 
     def currentPeriods(ref:Date):List[CalcPeriod] = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
     

@@ -72,6 +72,12 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
     def value(period : qlPeriod) : Double = value(period.days(valuedate))
     def apply(date:qlPeriod) = value(date)
     
+	/**
+	 * Returns yield parameter with curve shifted by given formula
+	 * @param function mapping (Days, CurrentRate) to NewRate
+	 */
+    def shifted(f:(Double, Double) => Double):YieldParameter
+    
   /**
    * Returns an Iterator that provides data during mindays..maxdays incremented by 1 day
    */

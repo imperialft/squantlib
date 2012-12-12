@@ -15,6 +15,8 @@ import squantlib.model.yieldparameter.{FlatVector, LinearNoExtrapolation}
  */
 class CDSCurve(val rate:YieldParameter, val currency:Currency, val issuerid:String) extends AbstractCurve{
   def this(r:YieldParameter, c:String, id:String) = this(r, Currencies.getOrElse(c, null), id)
+  
+  override def shifted(v:(Double, Double) => Double):CDSCurve = new CDSCurve(rate.shifted(v), currency, issuerid)
 }
 
 object CDSCurve{
@@ -59,6 +61,5 @@ object CDSCurve{
 			case _ => new LinearNoExtrapolation(valuedate, values)
 			}
   	 
-//  	def apply(param:CDSParameter):CDSCurve = getcurve(param)
   	def apply(params:Set[CDSParameter]):Iterable[CDSCurve] = getcurves(params)
 }

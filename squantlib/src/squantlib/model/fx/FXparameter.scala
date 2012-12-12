@@ -8,13 +8,14 @@ import org.jquantlib.time.{Period => qlPeriod}
  * Encapsulates FX volatility parameterization.
  */
 
-class FXparameter {
-  
-	var vol:Map[qlPeriod, Double] = Map.empty
-	var rr25:Map[qlPeriod, Double] = Map.empty
-	var rr10:Map[qlPeriod, Double] = Map.empty
-	var bf25:Map[qlPeriod, Double] = Map.empty
-	var bf10:Map[qlPeriod, Double] = Map.empty
+class FXparameter (
+    var vol:Map[qlPeriod, Double] = Map.empty, 
+    var rr25:Map[qlPeriod, Double] = Map.empty,
+	var rr10:Map[qlPeriod, Double] = Map.empty,
+	var bf25:Map[qlPeriod, Double] = Map.empty,
+	var bf10:Map[qlPeriod, Double] = Map.empty) {
+	
+	def addFXVol(v: Double):FXparameter = new FXparameter(vol.mapValues(_ + v), rr25, rr10, bf25, bf10)
 	
 	def getModel(curveDom:DiscountCurve, curveFor:DiscountCurve):Option[FX] = 
 	  if (vol.size > 0 && rr25.size > 0 && rr10.size > 0 && bf25.size > 0 && bf10.size > 0) FXnoSmile(curveDom, curveFor, this)
@@ -22,6 +23,7 @@ class FXparameter {
 	  else None
 	
 	def isEmpty = vol.isEmpty
+	
 }
 
 object FXparameter {

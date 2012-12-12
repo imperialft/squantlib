@@ -20,6 +20,8 @@ class FlatVector(var valuedate : JDate, inputvalues:Map[JPeriod, Double]) extend
     def highextrapolation(v : Double) = constantvalue
     def interpolation(v : Double) = constantvalue
     
+    def shifted(shift:(Double, Double) => Double):FlatVector = new FlatVector(valuedate, inputvalues.map{case (k, v) => (k, shift(k.days(valuedate).toDouble, v))}.toMap)
+    
     def this(valuedate:JDate, inputvalue:Double) = this(valuedate, Map(new JPeriod(1, TimeUnit.Months) -> inputvalue))
 }
 

@@ -91,7 +91,7 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	 * @param currency code, cds id
 	 */
 	def getDiscountCurve(ccy:String, cdsid:String) : Option[DiscountCurve] = 
-	  if (cdscurves.isEmpty || cdscurves.contains(cdsid)) getDiscountCurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid)
+	  if (cdscurves.contains(cdsid)) getDiscountCurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid)
 	  else None
 	  
 	def getDiscountCurve(ccy:Currency, cdsid:String) : Option[DiscountCurve] = getDiscountCurve(ccy.code, cdsid)
@@ -233,6 +233,58 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	    case _ => None
 	  }
 	}
+	
+	/**
+	 * Returns market after shifting rate curve(s).
+	 * Shift for swap-point defined curves are approximate.
+	 * @param currency code
+	 * @param map with shift on each curve (additive)
+	 */
+	def rateShifted(currency:String, shiftAmount:Double):Market = rateShifted(Map(currency -> shiftAmount))
+	def rateShifted(rateShift:Map[String, Double]):Market = {
+	  val basecurve = getBaseDiscountCurve(FXbaseCurrency).get
+	  val equivshift:Map[String, (Double, Double) => Double] = rateShift.filter{case (k, v) => curves contains k}
+	  			.map { case (k, v) =>
+	  			  curves(k) match {
+	  			    case curve:RateCurve => (k, (d:Double, r:Double) => r + v)
+	  			    case curve:FXCurve => 
+	  			      val fx = curve.fx
+	  			      val zcf = (t:Double) => basecurve(t)
+	  			      val mult = curve.swappoint.multiplier
+	  			      val rvector = (d:Double) => getBaseDiscountCurve(k).get.impliedRate(d)
+	  			      (k, (d:Double, r:Double) => r + v * mult * d / 365.0 * fx * zcf(d) * math.exp{rvector(d) * d/365.0})
+	  			  }}
+	  
+	  new Market(curves.map{case (c, v) => if (equivshift contains c) (c, v.shiftRate(equivshift(c))) else (c, v)}.toMap, cdscurves, fxparams, paramset, fixings)
+	}
+	
+	/**
+	 * Returns market after multiplying fx spot.
+	 * @param currency code
+	 * @param map with shift on each curve (multiplicative)
+	 */
+	def fxShifted(currency:String, shiftAmount:Double):Market = fxShifted(Map(currency -> shiftAmount))
+	def fxShifted(fxShift:Map[String, Double]):Market = 
+	  new Market(curves.map{case (c, v) => if (fxShift contains c) (c, v.multFX(fxShift(c))) else (c, v)}.toMap, cdscurves, fxparams, paramset, fixings)
+
+	
+	/**
+	 * Returns market after shifting fx volatility.
+	 * @param currency code
+	 * @param map with shift on each curve (additive)
+	 */
+	def fxVolShifted(fxpair:String, shiftAmount:Double):Market = fxVolShifted(Map(fxpair -> shiftAmount))
+	def fxVolShifted(fxShift:Map[String, Double]):Market = 
+	  new Market(curves, cdscurves, fxparams.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}.toMap, paramset, fixings)
+	
+	
+//	
+//	{
+//	  val equivshift:Map[String, Double] = fxShift.filter{case (k, v) => fxparams contains k}
+//	  			.map { case (k, v) => (k, r + v)}
+//	  
+//	  new Market(curves, cdscurves, fxparams.map{case (c, v) => if (equivshift contains c) (c, v.shiftVolFX(equivshift(c))) else (c, v)}.toMap, paramset, fixings)
+//	}
 	
 	private def isCcy(v:String):Boolean = curves.contains(v)
 	private val cashPeriods = Set("M", "W", "D")

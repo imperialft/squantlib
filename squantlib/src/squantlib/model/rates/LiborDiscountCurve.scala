@@ -6,7 +6,6 @@ import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.database.schemadefinitions.RateFXParameter
 import squantlib.setting.RateConvention
-import squantlib.setting.initializer.RateConventions
 
  
   /**
@@ -215,6 +214,9 @@ extends RateCurve{
 		  new DiscountCurve(currency, ZCvector, ZCspdvector, cash.floatindex.dayCounter, fx)
 	    
 	  }
+	  
+	  override def shiftRate(shift: (Double, Double) => Double):LiborDiscountCurve = new LiborDiscountCurve(cash.shifted(shift), swap.shifted(shift), basis, tenorbasis, fx)
+	  override def multFX(v: Double):LiborDiscountCurve = new LiborDiscountCurve(cash, swap, basis, tenorbasis, fx * v)
   
 	  def this(cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve) = this(cash, swap, basis, tenorbasis, 0.0)
 
@@ -238,38 +240,37 @@ object LiborDiscountCurve {
 	 * @param set of InputParameter
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[RateFXParameter]):Iterable[LiborDiscountCurve] = {
+  	def getcurves(params:Set[RateFXParameter]):Set[LiborDiscountCurve] = {
     
-	  val conventions:Map[String, RateConvention] = 
-	    RateConventions.mapper.filter{case (k, v) => v.useratediscount }
+	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useratediscount }.keySet
 	  
-  	  val dateassetgroup = 
-  	    params.groupBy(_.asset).filter{case(k, v) => conventions.contains(k)}
-  	  
-  	  val instrumentgroup = 
-  	    dateassetgroup.map{ case (k, v) => (k, v.groupBy(_.instrument))} 
-  	  
-  	  val nonemptyinstruments = 
-  	    instrumentgroup.filter{ case (k, v) => (v.contains(swapKey))}
+	  val valuedate = new qlDate(params.head.paramdate)
+	  
+  	  val nonemptyinstruments:Map[String, Map[String, Map[qlPeriod, Double]]] = 
+ 	    params
+ 	    .groupBy(_.asset)
+ 	    .filter{case(asset, _) => currencies contains asset}
+   	    .map{ case (asset, p) => (asset, p.groupBy(_.instrument))} 
+  	    .filter{ case (_, instruments) => instruments contains swapKey}
+  	    .mapValues(_.mapValues(_.map(r => {
+  	      if (r.maturity == null || r.maturity.trim.isEmpty) (null, r.value)
+  	      else (new qlPeriod(r.maturity.trim), r.value)
+  	    }).toMap))
   	  
   	  nonemptyinstruments.map{ case (k, v) => 
-  		  val conv = conventions(k)
-  		  val valuedate = new qlDate(v(swapKey).head.paramdate)
-  		  
-  		  def toTreeMap(k:String) = TreeMap(v(k).toSeq.map(p => (new qlPeriod(p.maturity), p.value)) :_*)
-  		  
-  		  val swapcurve = conv.swap_constructor(valuedate, toTreeMap(swapKey))
-  		  
-  		  val cashcurve = if (v.contains(cashKey)) conv.cash_constructor(valuedate, toTreeMap(cashKey))
-  		  				  else conv.cash_constructor(new FlatVector(valuedate, swapcurve.rate.value(0)))
+  		  val swapcurve = SwapCurve(valuedate, k, v(swapKey)).orNull
+  		   
+  		  val cashcurve:CashCurve = if (v contains cashKey) CashCurve(valuedate, k, v(cashKey)).orNull
+  		  				  else CashCurve(valuedate, k, swapcurve.rate.value(0)).orNull
   		  				  
-  		  val basiscurve = if (v.contains(basisKey)) conv.basis_constructor(valuedate, toTreeMap(basisKey)) else null
+  		  val basiscurve = if (v contains basisKey) BasisSwapCurve(valuedate, k, v(basisKey)).orNull else null
   		  
-  		  val basis36curve = if (v.contains(basis36Key)) conv.basis36_constructor(valuedate, toTreeMap(basis36Key)) else null
+  		  val basis36curve = if (v contains basis36Key) TenorBasisSwapCurve(valuedate, k, v(basis36Key)).orNull else null
   		  
-  		  if (v.contains(fxKey)) new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).head.value)
+  		  if (v contains fxKey) new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).head._2)
   		  else new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve)
-  	  	}
+  		  
+  	  	}.toSet
   	}
   
   	def apply(params:Set[RateFXParameter]):Iterable[LiborDiscountCurve] = getcurves(params)

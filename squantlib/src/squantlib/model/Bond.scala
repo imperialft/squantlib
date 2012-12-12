@@ -4,7 +4,7 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, _}
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
-import squantlib.database.schemadefinitions.{Bond => dbBond}
+import squantlib.database.schemadefinitions.{Bond => dbBond, BondPrice}
 import squantlib.payoff.{Payoffs, Schedule, Payoff, CalcPeriod}
 import squantlib.model.rates.DiscountCurve
 import squantlib.setting.initializer.{DayAdjustments, Currencies, Daycounters}
@@ -13,6 +13,7 @@ import squantlib.database.fixings.Fixings
 import squantlib.pricing.model.{PricingModel, NoModel}
 import squantlib.math.solver.NewtonRaphson
 import org.codehaus.jackson.JsonNode
+import scala.collection.mutable.{Set => mutableSet}
 
 /**
  * Bond class with enclosed risk analysis functions.
@@ -43,17 +44,19 @@ class Bond(
 		val redemption:Payoff,	
 		val settings:Option[JsonNode]) {
   
-  
+
 	/* 
 	 * Specify default pricing model
 	 */
-	private var _model:Option[PricingModel] = None
+	protected var _model:Option[PricingModel] = None
 	def model:Option[PricingModel] = _model
 		
-	def initializeModel = 
+	def initializeModel = {
 	  _model = if (modelSetter == null || market.isEmpty) None else modelSetter(market.get, this)
+	  cpncache.clear
+	}
 	
-	private var _modelSetter:(Market, Bond) => Option[PricingModel] = null
+	protected var _modelSetter:(Market, Bond) => Option[PricingModel] = null
 	
 	def modelSetter = _modelSetter
 	def modelSetter_= (newModel:(Market, Bond) => Option[PricingModel]) = {
@@ -61,7 +64,7 @@ class Bond(
 		initializeModel
 	}
 	
-	private var _market:Option[Market] = None
+	protected var _market:Option[Market] = None
 	
 	/* 
 	 * Specify default market parameters
@@ -70,6 +73,12 @@ class Bond(
 	def market_= (newMarket:Market) = {
 	  _market = Some(newMarket)
 		initializeModel
+	}
+	
+	def reset(newMarket:Market, setter:(Market, Bond) => Option[PricingModel]) = {
+	  _market = Some(newMarket)
+	  _modelSetter = setter
+	  initializeModel
 	}
 	
 	def valueDate:Option[qlDate] = market.collect{case mkt => mkt.valuedate}
@@ -103,7 +112,7 @@ class Bond(
 	 * 	@returns element 1: Schedule containing legs with payment date after market value date or specified value date.
 	 * 			element 2: Payoffs containing legs with payment dates after market value date or specified value date.
 	 */
-	def livePayoffs:(Schedule, Payoffs) = valueDate.collect {case d => livePayoffs(d)}.orNull
+	def livePayoffs:(Schedule, Payoffs) = valueDate.collect {case d => livePayoffs(d)}.getOrElse((Schedule.empty, Payoffs.empty))
 	
 	def livePayoffs(vd:qlDate):(Schedule, Payoffs) = {
 		val payoffSchedule = payoffLegs.filter{case (cp, p) => (cp.paymentDate gt vd)}
@@ -126,7 +135,7 @@ class Bond(
 	 * 	@returns element 1: Schedule containing legs with payment date after market or specified value date
 	 * 			element 2: Payoffs containing legs with payment dates after market or specified value date
 	 */
-	def livePayoffLegs:List[(CalcPeriod, Payoff)] = market.collect { case m => livePayoffs match { case (s, p) => (s.toList zip p.toList)} }.orNull
+	def livePayoffLegs:List[(CalcPeriod, Payoff)] = livePayoffs match { case (s, p) => (s.toList zip p.toList)}
 	
 	def livePayoffLegs(vd:qlDate):List[(CalcPeriod, Payoff)] = livePayoffs(vd) match { case (s, p) => (s.toList zip p.toList)}
 	
@@ -134,103 +143,95 @@ class Bond(
 	 * Returns discount curve.
 	 * 	@returns discount curve created from either pre-set or specified market
 	 */
-	def discountCurve:Option[DiscountCurve] = market.flatMap(m => discountCurve(m))
+	def discountCurve:Option[DiscountCurve] = market.flatMap(m => m.getDiscountCurve(currency, issuer))
 	
-	def discountCurve(mkt:Market):Option[DiscountCurve] = mkt.getDiscountCurve(currency, issuer)
-
 	/*	
 	 * Returns discount curve.
 	 * 	@returns discount curve created from either pre-set or specified market
 	 */
-	def discountFactors:Option[List[(qlDate, Double)]] = market.flatMap(m => discountFactors(m))
+	def discountFactors:Option[List[(qlDate, Double)]] = (discountCurve, valueDate) match {
+	  case (Some(curve), Some(vd)) => Some(schedule.paymentDates.withFilter(_ gt vd).map(d => (d, curve(d))))
+	  case _ => None
+	}
+
+	/*
+	 * Temporal cache to store spot and forward coupons.
+	 */
+	private val cpncache = new scala.collection.mutable.WeakHashMap[String, List[(CalcPeriod, Double)]]
 	
-	def discountFactors(mkt:Market):Option[List[(qlDate, Double)]] = discountCurve(mkt)
-		.collect{case curve => schedule.paymentDates.withFilter(_ gt mkt.valuedate).map(d => (d, curve(d)))}
 	
 	/*	
 	 * Returns coupons fixed with current spot market (not forward!). 
 	 */
-	def spotFixedRates(mkt:Market):List[(CalcPeriod, Double)] = livePayoffLegs.map{case (d, p) => (d, p.spotCoupon(mkt))}
-	
-	def spotFixedRates:List[(CalcPeriod, Double)] = if (market isDefined) spotFixedRates(market.get) else livePayoffLegs.map{case (d, p) => (d, Double.NaN)}
+	def spotFixedRates:List[(CalcPeriod, Double)] = cpncache.getOrElseUpdate("SpotFixedRates", 
+	    livePayoffLegs.map{case (d, p) => 
+	  (d, market match { case Some(mkt) => p.spotCoupon(mkt) case None => Double.NaN})})
 	
 	/*	
 	 * Returns forward value of each coupon (not discounted)
 	 */
-	def forwardLegs:Option[List[(CalcPeriod, Double)]] = valueDate.flatMap { case d => 
-	    val (dates, payoff) = livePayoffs(d)
-	    val pricemodel = if (payoff.variables.size == 0) Some(NoModel(payoff, dates)) else model
-	    pricemodel match {
-	      case None => println(id + " : model calibration error"); None
-	      case Some(mdl) => Some((dates zip mdl.priceLegs).toList)
-	    } 
-	}
-	
-	def forwardLegs(mkt:Market):Option[List[(CalcPeriod, Double)]] = {
-	    val (dates, payoff) = livePayoffs(mkt.valuedate)
-	    val pricemodel = if (payoff.variables.size == 0) Some(NoModel(payoff, dates)) else modelSetter(mkt, this)
-	    pricemodel match {
-	      case None => println(id + " : model calibration error"); None
-	      case Some(m) => Some((dates zip m.priceLegs).toList)
-	    } 
-	}
+	def forwardLegs:Option[List[(CalcPeriod, Double)]] = 
+	  if (cpncache contains "ForwardLegs") Some(cpncache("ForwardLegs"))
+	  else {
+	    val result = valueDate.flatMap { case d => 
+	      val (dates, payoff) = livePayoffs(d)
+	      val pricemodel = if (payoff.variables.size == 0) Some(NoModel(payoff, dates)) else model
+	      pricemodel match {
+	      	case None => println(id + " : model calibration error"); None
+	      	case Some(mdl) => Some((dates zip mdl.priceLegs).toList)
+	    }}
+	    if (result.isEmpty || result.get.isEmpty) None
+	    else {
+	      cpncache("ForwardLegs") = result.get
+	      result
+	    }
+	  }
+	    
 	
 	/*	
 	 * Returns price legs of the bond. (including accrued interest)
 	 */
 	def priceLegs:Option[List[Double]] = (discountCurve, forwardLegs) match {
-	  case (Some(curve), Some(fwd)) => Some(fwd.map{ case (d, p) => d.coefficient(curve) * p})
-	  case _ => None
-	}
-	
-	def priceLegs(mkt:Market):Option[List[Double]] = (discountCurve(mkt), forwardLegs(mkt)) match {
-	  case (Some(curve), Some(fwd)) => Some(fwd.map{ case (d, p) => d.coefficient(curve) * p})
+	  case (Some(curve), Some(fwd)) if !fwd.isEmpty => Some(fwd.map{ case (d, p) => d.coefficient(curve) * p})
 	  case _ => None
 	}
 	
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
 	 */
-	def dirtyPrice:Option[Double] = priceLegs.collect{case legs => legs.reduceLeft{_ + _}}
-	
-	def dirtyPrice(mkt:Market):Option[Double] = priceLegs(mkt).collect{case legs => legs.reduceLeft{_ + _}}
+	def dirtyPrice:Option[Double] = priceLegs.collect{case legs => legs.sum}
 	
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)
 	 */
 	def cleanPrice:Option[Double] = (dirtyPrice, accruedAmount) match { case (Some(d), Some(a)) => Some(d - a) case _ => None}
 	
-	def cleanPrice(mkt:Market):Option[Double] = (dirtyPrice(mkt), accruedAmount(mkt)) match { case (Some(d), Some(a)) => Some(d - a) case _ => None}
-	
 	/*	
 	 * Returns accrued coupon.
 	 */
-	def accruedAmount(mkt:Market):Option[Double] = Some(payoffLegs.withFilter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && d.daycounter != new Absolute)}
-	  								.map{case (d, p) => (d.accrued(mkt.valuedate)) * p.spotCoupon(mkt) }.reduceLeft{_ + _})
+	def accruedAmount:Option[Double] = market.flatMap(mkt => 
+	  payoffLegs.filter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && d.daycounter != new Absolute)} match {
+	    case pos if pos.isEmpty => None
+	    case pos => Some(pos.map{case (d, p) => (d.accrued(mkt.valuedate)) * p.spotCoupon(mkt) }.sum)
+	  })
 
-	def accruedAmount:Option[Double] = market.flatMap(m => accruedAmount(m))
-	
 	/*	
 	 * Returns current coupon rate.
 	 */
-	def currentRate(mkt:Market):Option[Double] = Some(payoffLegs.withFilter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && d.daycounter != new Absolute)}
-	  								.map{case (d, p) => p.spotCoupon(mkt) }.reduceLeft{_ + _})
+	def currentRate:Option[Double] = market collect { case mkt => payoffLegs.withFilter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && d.daycounter != new Absolute)}
+	  								.map{case (d, p) => p.spotCoupon(mkt) }.sum}
 
-	def currentRate:Option[Double] = market.flatMap(m => currentRate(m))
-	
 	/*	
 	 * Returns accrued coupon.
 	 */
-	def nextPayment(mkt:Market):Option[(qlDate, Double)] = Some(payoffLegs.filter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && d.daycounter != new Absolute)}
-									.minBy{case (d, p) => d.paymentDate}
-									match {case (d, p) => (d.paymentDate, d.dayCount * p.spotCoupon(mkt))})
-
-	def nextPayment:Option[(qlDate, Double)] = market.flatMap(m => nextPayment(m))
+	def nextPayment:Option[(qlDate, Double)] = market.collect{case mkt => 
+	  payoffLegs.filter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && d.daycounter != new Absolute)}
+	  .minBy{case (d, p) => d.paymentDate} match {case (d, p) => (d.paymentDate, d.dayCount * p.spotCoupon(mkt))}}
 	
 	/*	
 	 * Returns spot FX rate against JPY
 	 */
-	def fxjpy:Option[Double] = market match {case Some(mkt) => mkt.fx(currency.code, "JPY") case _ => None}
+	def fxjpy:Option[Double] = market.flatMap (mkt => mkt.fx(currency.code, "JPY"))
 	
 	/*	
 	 * Returns JPY dirty price defined as price x FX/FX0, where FX0 = FX as of issue date.
@@ -271,7 +272,7 @@ class Bond(
 	      case Compounding.Compounded | Compounding.SimpleThenCompounded => {val fr = freq.toInteger.toDouble; 1.0 / math.pow(1.0 + y / fr, fr * d)}
 	      case Compounding.Continuous => math.exp(-y * d)
 	      } 
-	      paylegs.map{case (d, v) => v * zc(d)}.reduceLeft{_ + _}
+	      paylegs.map{case (d, v) => v * zc(d)}.sum
 	    }
 	    
 	    val priceformula = (y:Double) => (priceFromYield(y) - target)
@@ -291,7 +292,7 @@ class Bond(
     def bondYield(dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = {
       if (comp == Compounding.None) 
       	market.flatMap {case mkt => 
-      	  val fullcashflow:Double = livePayoffLegs.map{case (d, p) => p.spotCoupon(mkt) * d.dayCount case _=> 0.0}.reduceLeft{_ + _}
+      	  val fullcashflow:Double = livePayoffLegs.map{case (d, p) => p.spotCoupon(mkt) * d.dayCount case _=> 0.0}.sum
       	  (cleanPrice, accruedAmount) match { 
       	    case (Some(p), Some(a)) => Some((fullcashflow - p - a) / (dc.yearFraction(mkt.valuedate, maturity) * p))
       	    case _ => None
@@ -305,6 +306,7 @@ class Bond(
 	def yieldContinuous:Option[Double] = bondYield(Compounding.Continuous)
 	def yieldSemiannual:Option[Double] = bondYield(Compounding.Compounded, Frequency.Semiannual)
 	def yieldAnnual:Option[Double] = bondYield(Compounding.Compounded, Frequency.Annual)
+	def yieldSimple:Option[Double] = bondYield(Compounding.None, Frequency.Annual)
 	
 	/*	Returns yield at which bond price becomes 100% (if any)
 	 * @param comp Compounding rate, as one of the following
@@ -315,7 +317,12 @@ class Bond(
 	 */
 	def parMtMYield:Option[Double] = getYield(1.0, daycount, Compounding.Continuous, null, 0.00001, 20)
 	
-	/*	Returns present value of adding 1 basis point of coupon for the remainder of the bond.
+	/*	Returns FX at which JPY dirty bond price becomes 100% (if any)
+	 */
+	def parMtMfx:Option[Double] = dirtyPrice.collect{case p => db.initialfx / p }
+	
+	/*	
+	 * Returns present value of adding 1 basis point of coupon for the remainder of the bond.
 	 */
 	def bpvalue:Option[Double] = (valueDate, discountCurve) match {
 	  case (Some(vd), Some(curve)) => Some(livePayoffs._1.map{
@@ -325,7 +332,8 @@ class Bond(
 	  case _ => None
 	}
 	
-	/*	Internal Rate of Return, defined to be the same as annually compounded yield.
+	/*	
+	 * Internal Rate of Return, defined to be the same as annually compounded yield.
 	 */
     def irr:Option[Double] = irr(daycount, 0.00001, 20)
 	
@@ -367,9 +375,101 @@ class Bond(
 	/*	
 	 * Returns modified duration defined as rate delta
 	 */
-	def effectiveDuration:Option[Double] = None // TO BE COMPUTED AS RATE DELTA
+	def effectiveDuration:Option[Double] = rateDelta(-0.0001).collect{case d => d * 10000} // TO BE COMPUTED AS RATE DELTA
 	
-    /*
+	/*	
+	 * List of underlying currencies
+	 */
+	def currencyList:Set[String] = {
+	  var result = scala.collection.mutable.Set.empty[String]
+	  livePayoffs._2.variables.foreach {
+	    case c if c.size == 6 => if (Currencies contains (c take 3)) result += (c take 3)
+			  				  if (Currencies contains (c takeRight 3)) result += (c takeRight 3)
+	    case c if c.size >= 3 => if (Currencies contains (c take 3)) result += (c take 3)
+	    case _ => {}
+	  }
+	  (result + currency.code).toSet
+	}
+	
+	/*	
+	 * Returns rate delta
+	 */
+	def rateDelta(shift:Double):Option[Double] = rateDelta(currency.code, shift)
+	
+	def rateDelta(ccy:String, shift:Double):Option[Double] = rateDelta((b:Bond) => b.dirtyPrice, Map(ccy -> shift))
+	  
+	def rateDelta(target:Bond => Option[Double], shift:Map[String, Double]):Option[Double] = market.flatMap { case mkt =>
+	  val initmkt = mkt
+	  val shiftedmkt:Market = mkt.rateShifted(shift)
+	  this.market = shiftedmkt
+	  val newprice = target(this)
+	  this.market = initmkt
+	  val initprice = target(this)
+	  (initprice, newprice) match { case (Some(i), Some(n)) => Some(n - i) case _ => None }
+	}
+	
+	/*	
+	 * Returns rate delta for all involved currencies.
+	 */
+	def rateDeltas(shift:Double):Map[String, Double] = currencyList.map(f => (f, rateDelta(f, shift))).collect{case (a, Some(b)) => (a, b)}.toMap
+	
+	/*	
+	 * Returns FX delta on JPY bond price.
+	 */
+	def fxDeltaJpy(mult:Double):Map[String, Double] = (currencyList - "JPY").map(f => 
+	  (f + "JPY", fxDelta((b:Bond) => b.dirtyPriceJpy, Map(f -> 1/mult)))).collect{case (a, Some(b)) => (a, b)}.toMap
+	
+	/*	
+	 * Returns delta of 1 yen change in FX on JPY price.
+	 */
+	def fxDeltaOneJpy:Map[String, Double] = market match {
+	  case None => Map.empty
+	  case Some(mkt) => (currencyList - "JPY").map(f => mkt.fx(f, "JPY") match {
+	      case Some(fx) => (f + "JPY", fxDelta((b:Bond) => b.dirtyPriceJpy, Map(f -> fx/(fx+1))))
+	      case None => (f + "JPY", None)
+	    }).collect{case (a, Some(b)) => (a, b)}.toMap}
+	    
+	/*	
+	 * Returns FX delta for all involved currencies.
+	 */
+	def fxDeltas(mult:Double):Map[String, Double] = (currencyList - currency.code).map(ccy => ("USD" + ccy, fxDelta((b:Bond) => b.dirtyPrice, Map(ccy -> mult)))).collect{case (a, Some(b)) => (a, b)}.toMap
+	
+	def fxDelta(ccy:String, mult:Double):Option[Double] = fxDelta((b:Bond) => b.dirtyPrice, Map(ccy -> mult))
+	  
+	def fxDelta(target:Bond => Option[Double], mult:Map[String, Double]):Option[Double] = market.flatMap { case mkt =>
+	  val initmkt = mkt
+	  val shiftedmkt:Market = mkt.fxShifted(mult)
+	  this.market = shiftedmkt
+	  val newprice = target(this)
+	  this.market = initmkt
+	  val initprice = target(this)
+	  (initprice, newprice) match { case (Some(i), Some(n)) => Some(n - i) case _ => None }
+	}
+	
+	/*	
+	 * List of FX underlyings
+	 */
+	def fxList:Set[String] = livePayoffs._2.variables.filter(
+	  c => ((c.size == 6) && (Currencies contains (c take 3)) && (Currencies contains (c takeRight 3))))
+
+	/*	
+	 * Returns rate vega
+	 */
+	def fxVegas(addvol:Double):Map[String, Double] = fxList.map(fx => (fx, fxVega(fx, addvol))).collect{case (a, Some(b)) => (a, b)}.toMap
+	
+	def fxVega(ccypair:String, addvol:Double):Option[Double] = fxVega((b:Bond) => b.dirtyPrice, Map(ccypair -> addvol))
+	  
+	def fxVega(target:Bond => Option[Double], addvol:Map[String, Double]):Option[Double] = market.flatMap { case mkt =>
+	  val initmkt = mkt
+	  val shiftedmkt:Market = mkt.fxVolShifted(addvol)
+	  this.market = shiftedmkt
+	  val newprice = target(this)
+	  this.market = initmkt
+	  val initprice = target(this)
+	  (initprice, newprice) match { case (Some(i), Some(n)) => Some(n - i) case _ => None }
+	}
+	
+	/*
      * Cash-flow convexity
      * The convexity of a string of cash flows is defined as {@latex[ C = \frac{1}{P} \frac{\partial^2 P}{\partial y^2} } where
      * {@latex$ P } is the present value of the cash flows according to the given IRR {@latex$ y }.
@@ -401,10 +501,59 @@ class Bond(
     /*
      * Remaining life in number of years
      */
-	
 	def remainingLife:Option[Double] = valueDate.collect{ case d => (new Actual365Fixed).yearFraction(d, maturity)}
 	
 	
+    /*
+     * Output to BondPrice object
+     */
+	import org.codehaus.jackson.node.{JsonNodeFactory, ObjectNode, ArrayNode}
+	import org.codehaus.jackson.map.ObjectMapper
+	
+	def mapToJsonString(params:Map[String, Double]):String = (new ObjectMapper).writeValueAsString(params)
+	
+	def toBondPrice:Option[BondPrice] = (market, cleanPrice) match {
+	  case (Some(mkt), Some(p)) => Some(new BondPrice(
+			  		id = id + ":" + mkt.paramset + ":" + currency.code,
+					bondid = id,
+					currencyid = currency.code,
+					comment = null,
+					paramset = mkt.paramset,
+					paramdate = mkt.valuedate.longDate,
+					fxjpy = fxjpy.getOrElse(0),
+					pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN),
+					priceclean = cleanPrice.collect{case p => p * 100},
+					accrued = accruedAmount.collect{case p => p * 100},
+					pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100},
+					priceclean_jpy = cleanPriceJpy.collect{case p => p * 100},
+					accrued_jpy = accruedAmountJpy.collect{case p => p * 100},
+					yield_continuous = yieldContinuous,
+					yield_annual = yieldAnnual,
+					yield_semiannual = yieldSemiannual,
+					yield_simple = yieldSimple,
+					bpvalue = bpvalue.collect{case p => p * 100},
+					irr = irr,
+					currentrate = currentRate,
+					nextamount = nextPayment.collect{case (d, p) => p * 100},
+					nextdate = nextPayment.collect{case (d, p) => d.longDate},
+					dur_simple = effectiveDuration,
+					dur_modified = modifiedDuration,
+					dur_macauley = macaulayDuration,
+					yieldvaluebp = yieldValueBasisPoint,
+					convexity = convexity,
+					remaininglife = remainingLife,
+					parMtMYield = parMtMYield,
+					parMtMfx = parMtMfx,
+					rateDelta = mapToJsonString(rateDeltas(0.001)),
+					rateVega = null,
+					fxDelta = mapToJsonString(fxDeltas(1.01)),
+					fxDeltaJpy = mapToJsonString(fxDeltaOneJpy),
+					fxVega = mapToJsonString(fxVegas(0.01)),
+					created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
+					lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))))
+	  
+	  case _ => None
+	}
 	
 	override def toString:String = "ID: " + id + "\n"
 	
@@ -423,6 +572,44 @@ class Bond(
 		  payoffLegs.foreach{case (s, po) => println(s + " " + po)}
 	    }
 	  }
+	
+	def showAll:Unit = {
+	  def disp(name:String, f: => Any) = println(name + "\t" + (f match {
+	    case s:Option[Any] => s.getOrElse("None")
+	    case s => s.toString}))
+	  disp("currency", currency.code)
+	  disp("paramset", market.collect{case m => m.paramset})
+	  disp("paramdate", market.collect{case m => m.valuedate.longDate})
+	  disp("fx jpy spot", fxjpy)
+	  disp("dirty price", dirtyPrice)
+	  disp("clean price", cleanPrice)
+	  disp("accrued cpn", accruedAmount)
+	  disp("dirty JPY", dirtyPriceJpy)
+	  disp("clean JPY", cleanPriceJpy)
+	  disp("accruedJpy", accruedAmountJpy)
+	  disp("yieldCont", yieldContinuous)
+	  disp("yieldAnnual", yieldAnnual)
+	  disp("yieldSemi", yieldSemiannual)
+	  disp("yieldSimple", yieldSimple)
+	  disp("bpValue  ", bpvalue)
+	  disp("irr\t", irr)
+	  disp("currentRate", currentRate)
+	  disp("next amount", nextPayment)
+	  disp("effectiveDuration", effectiveDuration)
+	  disp("modified duration", modifiedDuration)
+	  disp("macaulay duration", macaulayDuration)
+	  disp("yieldValuebp", yieldValueBasisPoint)
+	  disp("convexity", convexity)
+	  disp("remainLife", remainingLife)
+	  disp("parMtMYield", parMtMYield)
+	  disp("parMtMfx", parMtMfx)
+	  disp("rate delta 1%", mapToJsonString(rateDeltas(0.001)))
+	  disp("fx delta 1%", mapToJsonString(fxDeltas(1.01)))
+	  disp("fx delta 1yen", mapToJsonString(fxDeltaOneJpy))
+	  disp("fx vega 1%", mapToJsonString(fxVegas(0.01)))
+	  disp("initialfx", initialFX)
+	  
+	}
 	
 	/*	Returns message returned by pricing model.
 	 */
@@ -497,6 +684,7 @@ object Bond {
 		val coupon:Payoffs = if (db.coupon == null || db.coupon.isEmpty) null
 			else Payoffs(db.coupon, schedule.size - 1)
 			
+		if (db.redemprice.isEmpty) {return None}
 		val redemption:Payoff = Payoff(db.redemprice)
 		
 		if (coupon == null) {println(id + " : coupon not defined"); return None}

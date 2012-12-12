@@ -37,5 +37,9 @@ class LinearNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double]) 
 	def lowextrapolation(v : Double) = inputvalues.first._2
     def highextrapolation(v : Double) = inputvalues.last._2
     def interpolation(v : Double) = linearfunction.value(v)
+    
+    def shifted(shift:(Double, Double) => Double):LinearNoExtrapolation = 
+      new LinearNoExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k.days(valuedate).toDouble, v))}.toMap)
+	
 }
  

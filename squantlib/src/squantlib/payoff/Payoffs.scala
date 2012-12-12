@@ -9,7 +9,7 @@ import squantlib.util.JsonUtils._
 
 case class Payoffs(val payoffs:List[Payoff]) extends LinearSeq[Payoff]{
  
-	val variables = {
+	val variables:Set[String] = {
 	  @tailrec def variablesRec(paylist:List[Payoff], acc:Set[String]):Set[String] = {
 		if (paylist.isEmpty) acc
 		else variablesRec(paylist.tail, paylist.head.variables ++ acc)
@@ -110,7 +110,6 @@ object Payoffs {
 	   
 	   val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(payofflist.head) ++ payofflist else payofflist
 
-	   println("initialize " + fullpayoff.size + " payoffs (" + payofflist.size + " input legs)")
 	   new Payoffs(fullpayoff)
 	}
 	

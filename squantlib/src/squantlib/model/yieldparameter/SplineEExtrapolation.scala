@@ -49,12 +49,8 @@ class SplineEExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], e
 	    val valarray = keysarray.map((i:Double) => inputpoints(i))
 	    new SplineInterpolator().interpolate(keysarray, valarray)
     }    
-//    val splinefunction = {
-//		var inputpoints :TreeMap[Long, Double] = TreeMap.empty
-//		for (d <- inputvalues.keySet) { inputpoints ++= Map(d.days(valuedate) -> inputvalues(d)) }
-//	    for (i <- 1 to extrapoints; d = inputvalues.lastKey.days(valuedate) + (30L * i.toLong)) { inputpoints ++= Map(d -> highextrapolation(d)) }
-//		val keysarray = inputpoints.keySet.toArray
-//		val valarray = keysarray.map((i:Long) => inputpoints(i))
-//		new SplineInterpolator().interpolate(keysarray.map((i:Long)=>i.toDouble), valarray)
-//    }
+
+    def shifted(shift:(Double, Double) => Double):SplineEExtrapolation = 
+      new SplineEExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k.days(valuedate).toDouble, v))}.toMap, extrapoints)
+    
 }

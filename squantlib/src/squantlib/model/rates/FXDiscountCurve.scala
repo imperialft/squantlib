@@ -7,7 +7,7 @@ import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.Thirty360
 import squantlib.database.schemadefinitions.RateFXParameter
 import squantlib.setting.RateConvention
-import squantlib.setting.initializer.RateConventions
+//import squantlib.setting.initializer.RateConventions
 
 
 class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCurve{
@@ -77,6 +77,9 @@ class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCur
 		  new DiscountCurve(currency, ZCvector, fx)
 	    
 	  }
+	  
+	  def shiftRate(shift:(Double, Double) => Double):FXDiscountCurve = new FXDiscountCurve(swappoint.shifted(shift), fx)
+	  def multFX(mult:Double):FXDiscountCurve= new FXDiscountCurve(swappoint, fx * mult)
   
 }
 
@@ -93,8 +96,7 @@ object FXDiscountCurve {
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
   	def getcurves(params:Set[RateFXParameter]):Iterable[FXDiscountCurve] = {
-	  val conventions:Map[String, RateConvention] = 
-	    RateConventions.mapper.filter{case (k, v) => v.useFXdiscount}
+	  val conventions:Map[String, RateConvention] = RateConvention.toMap.filter{case (k, v) => v.useFXdiscount}
 	  
   	  val dateassetgroup = 
   	    params.groupBy(p => p.asset).filter{case(k, v) => conventions.contains(k)}

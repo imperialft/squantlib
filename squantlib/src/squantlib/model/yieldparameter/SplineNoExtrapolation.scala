@@ -42,8 +42,11 @@ class SplineNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], 
 	val mindays = inputvalues.firstKey.days(valuedate).toDouble
 	val maxdays = inputvalues.lastKey.days(valuedate).toDouble
 
-
 	def lowextrapolation(v : Double) = inputvalues.first._2
     def highextrapolation(v : Double) = inputvalues.last._2
     def interpolation(v : Double) = splinefunction.value(v)
+    
+    def shifted(shift:(Double, Double) => Double):SplineNoExtrapolation = 
+      new SplineNoExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k.days(valuedate).toDouble, v))}.toMap, extrapoints)
+	
 }

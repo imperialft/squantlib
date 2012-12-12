@@ -34,6 +34,11 @@ class SwapPointCurve (val points:YieldParameter, val multiplier:Double, val curr
   val maxdays = points.maxdays
   
   def this(p:YieldParameter, m:Double, c:Currency) = this(p, m, c, SwapPointCurve.pivotcurrency)
+  
+  def dSPdR(d:Double, fx:Double, zcf:Double, currentRate:Double):Double = d / 365.0 * fx * zcf * math.exp{currentRate * d / 365.0}
+  
+  def shifted(shift:(Double, Double) => Double):SwapPointCurve = new SwapPointCurve(points.shifted(shift), multiplier, currency, pivotcurrency)
+  
 }
 
 object SwapPointCurve {
