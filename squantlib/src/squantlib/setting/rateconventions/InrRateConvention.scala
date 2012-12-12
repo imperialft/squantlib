@@ -9,12 +9,16 @@ class InrRateConvention extends RateConvention{
   
   	val currency = new INRCurrency
 
-  	val useratediscount = false
+  	val useRateDiscount = false
 	def iborindex(p:Period) = null
-	val swap_floatindex = null
-	val swap_fixdaycount = null
-	val swap_fixperiod = null
+	val swapFloatIndex = null
+	val swapFixDaycount = null
+	val swapFixPeriod = null
 
 	val useFXdiscount = true
-	val swappoint_multiplier = 100.0
+	val swapPointMultiplier = 100.0
+
+	override val useNDSdiscount = false
+	override val ndsFixDaycount = new Actual365Fixed
+
 }

@@ -10,7 +10,7 @@ import squantlib.setting.RateConvention
 //import squantlib.setting.initializer.RateConventions
 
 
-class FXDiscountCurve(val swappoint:SwapPointCurve, val fx:Double) extends FXCurve{
+case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
 
 	  val currency = swappoint.currency
 	  val pivotcurrency = swappoint.pivotcurrency
@@ -87,7 +87,6 @@ object FXDiscountCurve {
   
 	val swappointKey = "SwapPt"
 	val fxKey = "FX"
-	val pivotccy = "USD"
 	  
 	/**
 	 * Constructs LiborDiscountCurve from InputParameter per each combination of currency & paramset.
@@ -95,29 +94,50 @@ object FXDiscountCurve {
 	 * @param set of InputParameter
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[RateFXParameter]):Iterable[FXDiscountCurve] = {
-	  val conventions:Map[String, RateConvention] = RateConvention.toMap.filter{case (k, v) => v.useFXdiscount}
+//  	def getcurves(params:Set[RateFXParameter]):Iterable[FXDiscountCurve] = {
+//	  val conventions:Map[String, RateConvention] = RateConvention.toMap.filter{case (k, v) => v.useFXdiscount}
+//	  
+//  	  val dateassetgroup = 
+//  	    params.groupBy(p => p.asset).filter{case(k, v) => conventions.contains(k)}
+//  	  
+//  	  val instrumentgroup = 
+//  	    dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
+//  	  
+//  	  val nonemptyinstruments = 
+//  	    instrumentgroup.filter{ case (k, v) => (v.contains(swappointKey) && v.contains(fxKey))}
+//  	  
+//  	  nonemptyinstruments.map{ case (k, v) => 
+//  		  val conv = conventions(k)
+//  		  val valuedate = new qlDate(v(swappointKey).head.paramdate)
+//  		  def toSortedMap(k:String) = SortedMap(v(k).toSeq.map(p => (new qlPeriod(p.maturity), p.value)) :_*)
+//  		  val swapptcurve = conv.swappoint_constructor(valuedate, toSortedMap(swappointKey))
+//  		  new FXDiscountCurve(swapptcurve, v(fxKey).head.value)
+//  	  	}
+//  	  }
+//  	
+  	def getcurves(params:Set[RateFXParameter]):Set[FXDiscountCurve] = {
+    
+	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useFXdiscount }.keySet
+	  val valuedate = new qlDate(params.head.paramdate)
 	  
-  	  val dateassetgroup = 
-  	    params.groupBy(p => p.asset).filter{case(k, v) => conventions.contains(k)}
+  	  val nonemptyinstruments:Map[String, Map[String, Map[qlPeriod, Double]]] = 
+ 	    params
+ 	    .groupBy(_.asset)
+ 	    .filter{case(asset, _) => currencies contains asset}
+   	    .map{ case (asset, p) => (asset, p.groupBy(_.instrument))} 
+  	    .filter{ case (_, instruments) => (instruments contains swappointKey) && (instruments contains fxKey)}
+  	    .mapValues(_.mapValues(_.map(r => {
+  	      if (r.maturity == null || r.maturity.trim.isEmpty) (null, r.value)
+  	      else (new qlPeriod(r.maturity.trim), r.value)
+  	    }).toMap))
   	  
-  	  val instrumentgroup = 
-  	    dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
-  	  
-  	  val nonemptyinstruments = 
-  	    instrumentgroup.filter{ case (k, v) => (v.contains(swappointKey) && v.contains(fxKey))}
-  	  
-  	  nonemptyinstruments.map{ case (k, v) => 
-  		  val conv = conventions(k)
-  		  val valuedate = new qlDate(v(swappointKey).head.paramdate)
-  		  def toSortedMap(k:String) = SortedMap(v(k).toSeq.map(p => (new qlPeriod(p.maturity), p.value)) :_*)
-  		  val swapptcurve = conv.swappoint_constructor(valuedate, toSortedMap(swappointKey))
-  		  new FXDiscountCurve(swapptcurve, v(fxKey).head.value)
-  	  	}
-  	  }
-  	
+  	  nonemptyinstruments.map{ case (ccy, values) => 
+  		  val swapptcurve = SwapPointCurve(valuedate, ccy, values(swappointKey)).orNull
+  		  FXDiscountCurve(swapptcurve, values(fxKey).head._2)
+  	  	}.toSet
+  	}
   
-  	def apply(params:Set[RateFXParameter]):Iterable[FXDiscountCurve] = getcurves(params)
+  	def apply(params:Set[RateFXParameter]):Set[FXDiscountCurve] = getcurves(params)
 
 } 
 

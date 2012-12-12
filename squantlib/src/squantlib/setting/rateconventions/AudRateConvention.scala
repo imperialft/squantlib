@@ -10,13 +10,13 @@ class AudRateConvention extends RateConvention{
   
   	val currency = new AUDCurrency
   
-	val useratediscount = true
+	val useRateDiscount = true
 	def iborindex(p:Period) = new BBSW(p)
-	val swap_floatindex = new BBSW(new Period(3, TimeUnit.Months))
-	val swap_fixdaycount = new Actual365Fixed
-	val swap_fixperiod = Frequency.Semiannual
+	val swapFloatIndex = new BBSW(new Period(3, TimeUnit.Months))
+	val swapFixDaycount = new Actual365Fixed
+	val swapFixPeriod = Frequency.Semiannual
 
 	val useFXdiscount = false
-	val swappoint_multiplier = 10000.0
+	val swapPointMultiplier = 10000.0
 }
 

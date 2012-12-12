@@ -41,10 +41,10 @@ object BasisSwapCurve {
 		} 
 	
   def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[BasisSwapCurve]
-	= RateConvention(currency) collect {case conv => BasisSwapCurve(basis_curve(valuedate, values), conv.basis_floatindex)}
+	= apply(basis_curve(valuedate, values), currency)
 
   def apply(curve:YieldParameter, currency:String):Option[BasisSwapCurve]
-    = RateConvention(currency) collect {case conv => BasisSwapCurve(curve, conv.basis_floatindex)}
+    = RateConvention(currency) collect {case conv => BasisSwapCurve(curve, conv.basisFloatIndex)}
   
 }
 

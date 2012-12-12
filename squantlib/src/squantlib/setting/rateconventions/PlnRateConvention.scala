@@ -10,14 +10,14 @@ class PlnRateConvention extends RateConvention{
   
   	val currency = new PLNCurrency
   
-	val useratediscount = false
+	val useRateDiscount = false
 	def iborindex(p:Period) = new Wibor(p)
-	val swap_floatindex = new Wibor(new Period(6, TimeUnit.Months))
-	val swap_fixdaycount = new Thirty360
-	val swap_fixperiod = Frequency.Annual
+	val swapFloatIndex = new Wibor(new Period(6, TimeUnit.Months))
+	val swapFixDaycount = new Thirty360
+	val swapFixPeriod = Frequency.Annual
 
 	val useFXdiscount = true
-	val swappoint_multiplier = 10000.0
+	val swapPointMultiplier = 10000.0
 }
 
 

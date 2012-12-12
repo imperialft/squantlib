@@ -10,14 +10,14 @@ class UsdRateConvention extends RateConvention{
   
   	val currency = new USDCurrency
   	
-	val useratediscount = true
+	val useRateDiscount = true
 	def iborindex(p:Period) = new USDLibor(p)
-	val swap_floatindex = new USDLibor(new Period(3, TimeUnit.Months))
-	val swap_fixdaycount = new Actual360
-	val swap_fixperiod = Frequency.Annual
+	val swapFloatIndex = new USDLibor(new Period(3, TimeUnit.Months))
+	val swapFixDaycount = new Actual360
+	val swapFixPeriod = Frequency.Annual
 	
 	val useFXdiscount = false
-	val swappoint_multiplier = -99999.0
+	val swapPointMultiplier = -99999.0
 }
 
 

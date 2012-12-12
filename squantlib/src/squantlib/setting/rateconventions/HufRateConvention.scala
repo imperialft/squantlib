@@ -10,13 +10,16 @@ class HufRateConvention extends RateConvention{
   
   	val currency = new HUFCurrency
   
-	val useratediscount = false
+	val useRateDiscount = false
 	def iborindex(p:Period) = new HUFLibor(p)
-	val swap_floatindex = new HUFLibor(new Period(6, TimeUnit.Months))
-	val swap_fixdaycount = new Actual365Fixed
-	val swap_fixperiod = Frequency.Annual
+	val swapFloatIndex = new HUFLibor(new Period(6, TimeUnit.Months))
+	val swapFixDaycount = new Actual365Fixed
+	val swapFixPeriod = Frequency.Annual
 
 	val useFXdiscount = true
-	val swappoint_multiplier = 100.0
+	val swapPointMultiplier = 100.0
+
+	override val useNDSdiscount = false
+	
 }
 

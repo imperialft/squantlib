@@ -10,14 +10,14 @@ class EurRateConvention extends RateConvention{
   
   	val currency = new EURCurrency
   
-	val useratediscount = true
+	val useRateDiscount = true
 	def iborindex(p:Period) = new Euribor(p)
-	val swap_floatindex = new Euribor(new Period(6, TimeUnit.Months))
-	val swap_fixdaycount = new Thirty360
-	val swap_fixperiod = Frequency.Annual
+	val swapFloatIndex = new Euribor(new Period(6, TimeUnit.Months))
+	val swapFixDaycount = new Thirty360
+	val swapFixPeriod = Frequency.Annual
 
 	val useFXdiscount = false
-	val swappoint_multiplier = 10000.0
+	val swapPointMultiplier = 10000.0
 }
 
 

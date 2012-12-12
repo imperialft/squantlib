@@ -31,10 +31,10 @@ object SwapCurve {
    * Returns swap curve using specified conventions and curve construction method.
    */
   def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[SwapCurve]
-	= RateConvention(currency) collect { case conv => SwapCurve(swap_curve(valuedate, values), conv.swap_floatindex, conv.swap_fixdaycount, conv.swap_fixperiod)}
+	= apply(swap_curve(valuedate, values), currency)
 	
   def apply(curve:YieldParameter, currency:String):Option[SwapCurve]
-	= RateConvention(currency) collect { case conv => SwapCurve(curve, conv.swap_floatindex, conv.swap_fixdaycount, conv.swap_fixperiod)}
+	= RateConvention(currency) collect { case conv => SwapCurve(curve, conv.swapFloatIndex, conv.swapFixDaycount, conv.swapFixPeriod)}
 
 }
 

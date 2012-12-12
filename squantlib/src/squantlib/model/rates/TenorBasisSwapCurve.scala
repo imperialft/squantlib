@@ -34,9 +34,9 @@ object TenorBasisSwapCurve{
   		} 
 	
 	def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[TenorBasisSwapCurve]
-		= RateConvention(currency) collect { case conv => TenorBasisSwapCurve(defaultCurve(valuedate, values), conv.basis36_shortindex, conv.basis36_longindex)}
+		= apply(defaultCurve(valuedate, values), currency)
 	
 	def apply(curve:YieldParameter, currency:String):Option[TenorBasisSwapCurve]
-		= RateConvention(currency) collect { case conv => TenorBasisSwapCurve(curve, conv.basis36_shortindex, conv.basis36_longindex) }
+		= RateConvention(currency) collect { case conv => TenorBasisSwapCurve(curve, conv.basis36ShortIndex, conv.basis36LongIndex) }
 }
 

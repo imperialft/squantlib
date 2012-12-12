@@ -1,13 +1,13 @@
 package squantlib.model.rates
 
-import squantlib.model.yieldparameter.YieldParameter
+import squantlib.model.yieldparameter._
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.time.{TimeUnit, Date => JDate, Period => JPeriod, Frequency }
-
+import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
+import squantlib.setting.RateConvention
 
 /**
  * NDS rate curve
@@ -15,8 +15,28 @@ import org.jquantlib.time.{TimeUnit, Date => JDate, Period => JPeriod, Frequency
  * @constructor stores each information
  * @param float index, daycount & payment frequency for fixed leg
  */
-case class NDSCurve (rate:YieldParameter, currency:Currency, floatindex:IborIndex, fixdaycount:DayCounter, fixperiod:Frequency) extends AbstractCurve{
-  require (floatindex.tenor().units() == TimeUnit.Months && List(3, 6).contains(floatindex.tenor().length()))
+case class NDSCurve (rate:YieldParameter, currency:Currency, fixdaycount:DayCounter, fixperiod:Frequency, floatindex:IborIndex) extends AbstractCurve {
+  require (floatindex.tenor.units == TimeUnit.Months && List(3, 6).contains(floatindex.tenor.length))
   val floatCurrency = floatindex.currency
-  def shifted(shift:(Double, Double) => Double):SwapCurve = new SwapCurve(rate.shifted(shift), floatindex, fixdaycount, fixperiod)
+  def shifted(shift:(Double, Double) => Double):NDSCurve = NDSCurve(rate.shifted(shift), currency, fixdaycount, fixperiod, floatindex)
+}
+
+
+object NDSCurve {
+  
+	def buildCurve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter
+		= (values.keySet.size) match {
+			case 1 => new FlatVector(valuedate, values)
+			case 2 => new LinearNoExtrapolation(valuedate, values)
+			case _ => new SplineNoExtrapolation(valuedate, values, 2) } 
+	
+	def apply(valuedate:qlDate, currency:String, value:Double):Option[NDSCurve] 
+		= apply(valuedate, currency, Map(new qlPeriod("1Y") -> value))
+	
+	def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[NDSCurve] 
+		= apply(buildCurve(valuedate, values), currency)
+  
+	def apply(curve:YieldParameter, currency:String):Option[NDSCurve]
+		= RateConvention(currency) collect {case conv => NDSCurve(curve, conv.currency, conv.ndsFixDaycount, conv.ndsFixPeriod, conv.ndsFloatIndex)}
+  
 }

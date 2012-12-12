@@ -22,7 +22,7 @@ extends AbstractYieldTermStructure(referencedate)  {
 	
 	val valuedate = discount.valuedate
 	
-	override def dayCounter = discount.daycount
+//	override def dayCounter = discount.daycount
 	
 	override def calendar = cdr
 	

@@ -3,6 +3,7 @@ package squantlib.setting
 import squantlib.setting.rateconventions._
 import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.indexes.IborIndex
+import org.jquantlib.indexes.ibor.USDLibor
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.{ ActualActual, Thirty360, Actual365Fixed, Actual360, DayCounter }
 import org.jquantlib.time.{TimeUnit, Frequency, Date => qlDate, Period=>qlPeriod}
@@ -23,7 +24,7 @@ trait RateConvention {
 	 * True if rate discounting is applicable. 
 	 * No priority against other discounting methods is specified in this class.
 	 */
-	val useratediscount:Boolean
+	val useRateDiscount:Boolean
 	
 	/**
 	 * Returns default short-term cash rate for the given period.
@@ -33,30 +34,30 @@ trait RateConvention {
 	/**
 	 * Swap floating rate reference.
 	 */
-	val swap_floatindex:IborIndex
+	val swapFloatIndex:IborIndex
 	
 	/**
 	 * Swap fixed leg day count fraction.
 	 */
-	val swap_fixdaycount:DayCounter
+	val swapFixDaycount:DayCounter
 	
 	/**
 	 * Swap fixed leg payment frequency.
 	 */
-	val swap_fixperiod:Frequency
+	val swapFixPeriod:Frequency
 	
   
 	/**
 	 * Floating leg reference for cross currency swap against 3m USD LIBOR.
 	 */
-	val basis_floatindex:IborIndex = iborindex(new qlPeriod(3, TimeUnit.Months))
+	val basisFloatIndex:IborIndex = iborindex(new qlPeriod(3, TimeUnit.Months))
 
 	/**
 	 * Reference rates for tenor basis swap.
 	 * Currently only 3 months vs 6 months is supported.
 	 */
-	val basis36_shortindex:IborIndex = iborindex(new qlPeriod(3, TimeUnit.Months))
-	val basis36_longindex:IborIndex = iborindex(new qlPeriod(6, TimeUnit.Months))
+	val basis36ShortIndex:IborIndex = iborindex(new qlPeriod(3, TimeUnit.Months))
+	val basis36LongIndex:IborIndex = iborindex(new qlPeriod(6, TimeUnit.Months))
 	
   
 	/**
@@ -67,31 +68,34 @@ trait RateConvention {
 	/**
 	 * Number of swap points per 1 unit of FX. Forward fx = spot fx + swap point / swapptmultiplier
 	 */
-	val swappoint_multiplier:Double
+	val swapPointMultiplier:Double
 	
 	/**
 	 * Pivot currency
 	 */
-	val swappoint_pivot:Currency = new USDCurrency
+	val swapPointPivotCcy:Currency = new USDCurrency
 	
-  	/**
-	 * Defines continuous swap point curve constructor.
+	
+	/**
+	 * True if NDS discounting is applicable
 	 */
-	def swappoint_curve(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):YieldParameter	
-		= (values.keySet.size) match {
-			case 1 => new FlatVector(valuedate, values)
-			case 2 => new LinearNoExtrapolation(valuedate, values)
-			case _ => new SplineNoExtrapolation(valuedate, values, 2)
-  		} 
-  
-  	/**
-	 * Returns tenor basis swap curve using specified conventions and curve construction method.
+	val useNDSdiscount:Boolean = false
+	
+	/**
+	 * CDS fixed leg daycount, paid in local currency
 	 */
-	def swappoint_constructor(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):SwapPointCurve 
-		= new SwapPointCurve(swappoint_curve(valuedate, values), swappoint_multiplier, currency, swappoint_pivot)
-  
-	def swappoint_constructor(curve:YieldParameter):SwapPointCurve 
-		= new SwapPointCurve(curve, swappoint_multiplier, currency, swappoint_pivot)
+	val ndsFixDaycount:DayCounter = null
+	
+	/**
+	 * CDS fixed leg payment frequency, paid in local currency
+	 */
+	val ndsFixPeriod:Frequency = Frequency.Semiannual
+	
+	/**
+	 * CDS float leg payment index, paid in pivot currency (usually USD)
+	 */
+	val ndsFloatIndex:IborIndex = new USDLibor(new qlPeriod("6M"))
+	
 }
 
 

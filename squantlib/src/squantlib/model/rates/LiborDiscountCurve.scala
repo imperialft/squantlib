@@ -15,7 +15,7 @@ import squantlib.setting.RateConvention
    * - no 3m-Xm basis for X < 6 (implied by ZC interpolation 3m & 6m)
    * - no 6m-Xm basis for X > 6 (implied by ZC interpolation 6m & 12m)
    */
-class LiborDiscountCurve (val cash:CashCurve, val swap:SwapCurve, val basis:BasisSwapCurve, val tenorbasis:TenorBasisSwapCurve, val fx : Double) 
+case class LiborDiscountCurve (cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, fx : Double) 
 extends RateCurve{
   require (
 		(cash == null || (cash.valuedate == swap.valuedate && cash.currency == swap.currency && cash.floatindex.dayCounter == swap.floatindex.dayCounter))
@@ -127,7 +127,7 @@ extends RateCurve{
 		  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
 		  
-		  new DiscountCurve(currency, ZCvector, ZCspdvector, cash.floatindex.dayCounter, fx)
+		  new DiscountCurve(currency, ZCvector, ZCspdvector, fx)
 	  }
 
 	  /** 
@@ -211,7 +211,7 @@ extends RateCurve{
 		  val ZCvector = new SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = new SplineNoExtrapolation(valuedate, ZCspread, 2)
 		  
-		  new DiscountCurve(currency, ZCvector, ZCspdvector, cash.floatindex.dayCounter, fx)
+		  new DiscountCurve(currency, ZCvector, ZCspdvector, fx)
 	    
 	  }
 	  
@@ -232,7 +232,6 @@ object LiborDiscountCurve {
 	val basisKey = "BasisSwap"
 	val basis36Key = "BS3M6M"
 	val fxKey = "FX"
-	val pivotccy = "USD"
 
 	/**
 	 * Constructs LiborDiscountCurve from InputParameter per each combination of currency & paramset.
@@ -242,8 +241,7 @@ object LiborDiscountCurve {
 	 */
   	def getcurves(params:Set[RateFXParameter]):Set[LiborDiscountCurve] = {
     
-	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useratediscount }.keySet
-	  
+	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useRateDiscount }.keySet
 	  val valuedate = new qlDate(params.head.paramdate)
 	  
   	  val nonemptyinstruments:Map[String, Map[String, Map[qlPeriod, Double]]] = 
@@ -251,29 +249,30 @@ object LiborDiscountCurve {
  	    .groupBy(_.asset)
  	    .filter{case(asset, _) => currencies contains asset}
    	    .map{ case (asset, p) => (asset, p.groupBy(_.instrument))} 
-  	    .filter{ case (_, instruments) => instruments contains swapKey}
+  	    .filter{ case (_, instruments) => (instruments contains swapKey) && (instruments contains fxKey)}
   	    .mapValues(_.mapValues(_.map(r => {
   	      if (r.maturity == null || r.maturity.trim.isEmpty) (null, r.value)
   	      else (new qlPeriod(r.maturity.trim), r.value)
   	    }).toMap))
   	  
-  	  nonemptyinstruments.map{ case (k, v) => 
-  		  val swapcurve = SwapCurve(valuedate, k, v(swapKey)).orNull
+  	  nonemptyinstruments.map{ case (ccy, values) => 
+  		  val swapcurve = SwapCurve(valuedate, ccy, values(swapKey)).orNull
   		   
-  		  val cashcurve:CashCurve = if (v contains cashKey) CashCurve(valuedate, k, v(cashKey)).orNull
-  		  				  else CashCurve(valuedate, k, swapcurve.rate.value(0)).orNull
+  		  val cashcurve:CashCurve = if (values contains cashKey) CashCurve(valuedate, ccy, values(cashKey)).orNull
+  		  				  else CashCurve(valuedate, ccy, swapcurve.rate.value(0)).orNull
   		  				  
-  		  val basiscurve = if (v contains basisKey) BasisSwapCurve(valuedate, k, v(basisKey)).orNull else null
+  		  val basiscurve = if (values contains basisKey) BasisSwapCurve(valuedate, ccy, values(basisKey)).orNull else null
   		  
-  		  val basis36curve = if (v contains basis36Key) TenorBasisSwapCurve(valuedate, k, v(basis36Key)).orNull else null
+  		  val basis36curve = if (values contains basis36Key) TenorBasisSwapCurve(valuedate, ccy, values(basis36Key)).orNull else null
   		  
-  		  if (v contains fxKey) new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, v(fxKey).head._2)
-  		  else new LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve)
+  		  val fxvalue = values(fxKey).head._2
+  		  
+  		  LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, fxvalue)
   		  
   	  	}.toSet
   	}
   
-  	def apply(params:Set[RateFXParameter]):Iterable[LiborDiscountCurve] = getcurves(params)
+  	def apply(params:Set[RateFXParameter]):Set[LiborDiscountCurve] = getcurves(params)
   
 } 
 

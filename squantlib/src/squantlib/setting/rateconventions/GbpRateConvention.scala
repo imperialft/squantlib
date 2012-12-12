@@ -10,14 +10,14 @@ class GbpRateConvention extends RateConvention{
   
   	val currency = new GBPCurrency
   
-	val useratediscount = true
+	val useRateDiscount = true
 	def iborindex(p:Period) = new GBPLibor(p)
-	val swap_floatindex = new GBPLibor(new Period(6, TimeUnit.Months))
-	val swap_fixdaycount = new Actual365Fixed
-	val swap_fixperiod = Frequency.Semiannual
+	val swapFloatIndex = new GBPLibor(new Period(6, TimeUnit.Months))
+	val swapFixDaycount = new Actual365Fixed
+	val swapFixPeriod = Frequency.Semiannual
 
 	val useFXdiscount = false
-	val swappoint_multiplier = 10000.0
+	val swapPointMultiplier = 10000.0
 }
 
 

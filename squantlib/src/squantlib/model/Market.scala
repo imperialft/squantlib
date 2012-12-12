@@ -329,27 +329,27 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 		repository.contains(cdsid) && repository(cdsid).contains(ccy)
 	 }
 	
-	def describe = {
-		val eol = sys.props("line.separator")
-		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
-		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
-		"Curves:" + eol + sortedcurves.map(c => c._2.describe + (if (discountingCurves.contains(c._1)) "(*)" else "") + eol).mkString("") + 
-		"(*) Discounting curves" + eol + eol +
-		"Credit Spreads:" + eol + sortedcdscurves.map(c => c._1 + "\t" + c._2.rate.valuedate.shortDate + "\t" + c._2.rate.maxdate.shortDate + eol).mkString("")
-	}
 	
 	def show:Unit = {
 		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
 		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
 		println("Curves:")
-		sortedcurves.foreach{case (n, c) => println(c.describe + (if (discountingCurves.contains(n)) "(*)" else ""))}
+		sortedcurves.foreach{case (n, c) => println(c.toString + (if (discountingCurves.contains(n)) "(*)" else ""))}
 		println("(*) Discounting curves")
 		println(" ")
 		println("Credit Spreads:")
 		sortedcdscurves.foreach{case (n, c) => println(n + "\t" + c.rate.valuedate.shortDate + "\t" + c.rate.maxdate.shortDate)}
 	}
 	
-    override def toString():String = "Market{" + curves.map(c => c._2).mkString(", ") + "}"
+//    override def toString():String = "Market{" + curves.map(c => c._2).mkString(", ") + "}"
+	def describe = {
+		val eol = sys.props("line.separator")
+		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
+		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
+		"Curves:" + eol + sortedcurves.map(c => c._2.valuedate + (if (discountingCurves.contains(c._1)) "(*)" else "") + eol).mkString("") + 
+		"(*) Discounting curves" + eol + eol +
+		"Credit Spreads:" + eol + sortedcdscurves.map(c => c._1 + "\t" + c._2.rate.valuedate.shortDate + "\t" + c._2.rate.maxdate.shortDate + eol).mkString("")
+	}
 	
 }
 
@@ -359,7 +359,15 @@ object Market {
 	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = getMarket(ratefxparams, cdsparams)
   
 	def getMarket(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = {
-	  val discountcurves = LiborDiscountCurve(ratefxparams) ++ FXDiscountCurve(ratefxparams)
+	  val liborCurves:Set[LiborDiscountCurve] = LiborDiscountCurve(ratefxparams)
+	  val fxCurves:Set[FXDiscountCurve] = FXDiscountCurve(ratefxparams)
+	  val ndsCurves:Set[NDSDiscountCurve] = liborCurves.find(_.currency.code == "USD") match {
+	    case None => Set.empty
+	    case Some(curve) => {println("initialize nds curves"); NDSDiscountCurve(ratefxparams, curve.getZC(new FlatVector(curve.valuedate, 0.0)), curve.tenorbasis)}
+	  }
+	  println("num nds curves :" + ndsCurves.size)
+	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
+	  
 	  val cdscurves = CDSCurve(cdsparams)
 	  val fxparams = FXparameter(ratefxparams)
 	  val paramset = ratefxparams.head.paramset

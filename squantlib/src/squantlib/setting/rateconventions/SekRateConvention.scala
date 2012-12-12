@@ -10,12 +10,12 @@ class SekRateConvention extends RateConvention{
   
   	val currency = new SEKCurrency
   
-	val useratediscount = true
+	val useRateDiscount = true
 	def iborindex(p:Period) = new STIBOR(p)
-	val swap_floatindex = new STIBOR(new Period(3, TimeUnit.Months))
-	val swap_fixdaycount = new Thirty360
-	val swap_fixperiod = Frequency.Annual
+	val swapFloatIndex = new STIBOR(new Period(3, TimeUnit.Months))
+	val swapFixDaycount = new Thirty360
+	val swapFixPeriod = Frequency.Annual
 
 	val useFXdiscount = true
-	val swappoint_multiplier = 10000.0
+	val swapPointMultiplier = 10000.0
 }
