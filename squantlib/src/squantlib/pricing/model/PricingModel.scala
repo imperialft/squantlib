@@ -6,41 +6,42 @@ import scala.collection.mutable.Queue
 import squantlib.model.{Market, Bond}
 
 trait PricingModel {
+  
+  val isPricedByLegs = true
 	
-	var mcPaths:Int
+  val periods:List[CalcPeriod]
 	
-	val periods:List[CalcPeriod]
+  val payoff:List[Payoff]
+		
+  def schedule:Schedule = Schedule(periods)	
 	
-	val payoff:List[Payoff]
-	
-	def schedule:Schedule = Schedule(periods)	
+  def payoffs:Payoffs = Payoffs(payoff)
 
-	def payoffs:Payoffs = Payoffs(payoff)
+  protected def price:List[Double]
 
-	protected def price:List[Double]
-	
-	def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
-	
-	var message:Queue[String] = Queue.empty
+  def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
 
-	def priceLegs:List[Double] = {
-	  val result = price
+  var message:Queue[String] = Queue.empty
+
+  def priceLegs:List[Double] = {
+    val result = price
 	  
-	  val pricelegs = (schedule.toList, result).zipped
-	  def rnd(v:Double):Double = math.round(v * 1000000.0) / 1000000.0
+	val pricelegs = (schedule.toList, result).zipped
+	def rnd(v:Double):Double = math.round(v * 1000000.0) / 1000000.0
+	message += currenttime.toString
+	message += "EventDate, PayDate, Amount"
+	pricelegs.map{case (d, p) => message += d.eventDate.shortDate.toString + " " + d.paymentDate.shortDate.toString + " " + rnd(p)}
 	  
-	  message += currenttime.toString
-	  message += "Paths: " + mcPaths
-	  message += "EventDate, PayDate, Amount"
-	  pricelegs.map{case (d, p) => message += d.eventDate.shortDate + " " + d.paymentDate.shortDate + " " + rnd(p)}
-	  
-	  result
-	}
+	result
+  }
+
+  def discountedPriceLegs(curve:Option[DiscountCurve]):List[Double] = curve match {
+	case Some(c) => (priceLegs zip schedule.coefficients(c)).map{case (p, c) => p * c}
+	case None => List.empty
+  }
 	
-	def discountedPriceLegs(curve:DiscountCurve):List[Double] = 
-	  (priceLegs zip schedule.coefficients(curve)).map{case (p, c) => p * c}
-	
-	def discountedPrice(curve:DiscountCurve):Double = discountedPriceLegs(curve).reduceLeft {_ + _}
-	
+  def discountedPrice(curve:Option[DiscountCurve]):Option[Double] = Some(discountedPriceLegs(curve).sum)
 	
 }
+
+

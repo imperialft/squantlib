@@ -223,6 +223,7 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	
 	def getFixing(param:String):Option[Double] = param.trim match {
 	  case p if fixings contains p => Some(fixings(p))
+	  case "CMT10" => fixings.get("JGBY10Y")
 	  case p if p.size <= 3 => None
 	  case p => (p take 3, p substring 3) match {
 	    case (ccy, _) if !isCcy(ccy) => None
@@ -247,6 +248,7 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	  			.map { case (k, v) =>
 	  			  curves(k) match {
 	  			    case curve:RateCurve => (k, (d:Double, r:Double) => r + v)
+	  			    case curve:NDSDiscountCurve => (k, (d:Double, r:Double) => r + v)
 	  			    case curve:FXCurve => 
 	  			      val fx = curve.fx
 	  			      val zcf = (t:Double) => basecurve(t)
@@ -363,9 +365,8 @@ object Market {
 	  val fxCurves:Set[FXDiscountCurve] = FXDiscountCurve(ratefxparams)
 	  val ndsCurves:Set[NDSDiscountCurve] = liborCurves.find(_.currency.code == "USD") match {
 	    case None => Set.empty
-	    case Some(curve) => {println("initialize nds curves"); NDSDiscountCurve(ratefxparams, curve.getZC(new FlatVector(curve.valuedate, 0.0)), curve.tenorbasis)}
+	    case Some(curve) => NDSDiscountCurve(ratefxparams, curve.getZC(new FlatVector(curve.valuedate, 0.0)), curve.tenorbasis)
 	  }
-	  println("num nds curves :" + ndsCurves.size)
 	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
 	  
 	  val cdscurves = CDSCurve(cdsparams)

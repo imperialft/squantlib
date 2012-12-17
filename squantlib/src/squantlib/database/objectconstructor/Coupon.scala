@@ -38,7 +38,7 @@ object Coupon {
 	    if (fixcpn.isDefined) (fixcpn.get, null)
 		else {
 			  val interpreter = GeneralPayoff(cpn.rate)
-			  val varfixings = interpreter.variables.map(v => (v -> Fixings(v, cpn.eventdate))).toMap
+			  val varfixings = interpreter.variables.map(v => (v -> Fixings.byDate(v, cpn.eventdate))).toMap
 			  
 			  if (!varfixings.forall(_._2.isDefined)) (Double.NaN, null)
 			  else {

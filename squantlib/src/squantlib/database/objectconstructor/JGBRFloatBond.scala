@@ -130,7 +130,7 @@ object JGBRFloatBond {
 	  
 	    bond.setPricingEngine(new JGBRBondEngine(valuedate), valuedate)
 	    
-		val lastfixing = Fixings(bond.refindex, valuedate.longDate) match {
+		val lastfixing = Fixings.byDate(bond.refindex, valuedate) match {
 		  case Some((d, r)) => r
 		  case _ => Double.NaN
 		}

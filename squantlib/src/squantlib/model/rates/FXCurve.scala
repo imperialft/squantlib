@@ -26,7 +26,5 @@ trait FXCurve extends DiscountableCurve{
   }
   
   def describe = (currency.code + " : " + fx + " : " + valuedate.shortDate + " - " + swappoint.points.maxdate.shortDate + (if (swappoint != null) " swappt" else ""))
-  
-  override def toString():String = swappoint.currency.code + ":fxcurve"
 }
 

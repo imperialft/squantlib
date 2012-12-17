@@ -20,7 +20,7 @@ case class FixedPayoff(val payoff:Double, val description:String = null) extends
 	override def price(fixing:Double)(implicit d:DummyImplicit) = payoff
 	override def price = payoff
 	
-	override def toString = description textOr (payoff.asPercent + " fixed")
+	override def toString = (if (description == null) "" else description + " ") +  (payoff.asPercent + " fixed")
 	
 }
 

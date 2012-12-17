@@ -93,7 +93,8 @@ object Schedule{
 		
 	    val nullCalendar = new NullCalendar
 	    
-	    def calcperiod(startdate:Date, enddate:Date):CalcPeriod = CalcPeriod(startdate, enddate, noticeDay, fixingInArrears, daycount, calendar, if (enddate == terminationDate) terminationDateConvention else paymentConvention)
+	    def calcperiod(startdate:Date, enddate:Date):CalcPeriod = 
+	      CalcPeriod(startdate, enddate, noticeDay, fixingInArrears, daycount, calendar, if (enddate == terminationDate) terminationDateConvention else paymentConvention)
 	    
 	    val redemptionLegs:List[CalcPeriod] = 
 	      if(addRedemption) List(CalcPeriod(effectiveDate, terminationDate, maturityNotice, true, new Absolute, calendar, terminationDateConvention))
@@ -158,7 +159,7 @@ object Schedule{
 }
 
 
-case class CalcPeriod(val eventDate:Date, val startDate:Date, val endDate:Date,val paymentDate:Date, val daycounter:DayCounter) {
+case class CalcPeriod(eventDate:Date, startDate:Date, endDate:Date, paymentDate:Date, daycounter:DayCounter) {
   
 	def dayCount:Double = daycounter.yearFraction(startDate, endDate)
 	
@@ -174,6 +175,11 @@ case class CalcPeriod(val eventDate:Date, val startDate:Date, val endDate:Date,v
     def zeroCoupon(curve:DiscountCurve):Double = curve(paymentDate)
     
     def coefficient(curve:DiscountCurve):Double = dayCount * zeroCoupon(curve)
+    
+    def isAbsolute:Boolean = daycounter match {
+        case d:Absolute => true
+        case _ => false
+      }
   
 	override def toString = eventDate.shortDate.toString + " " + startDate.shortDate.toString + " " + endDate.shortDate.toString + " " + paymentDate.shortDate.toString + " " + daycounter.toString
 }

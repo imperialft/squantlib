@@ -9,7 +9,7 @@ import squantlib.util.FormulaParser
  * Any symbols other than +, -, *, /, > and < are considered as an independent variable.
  * Brackets are not supported.
  */
-case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[Double], val cap:Option[Double]) extends Payoff {
+case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[Double], val cap:Option[Double], val description:String = null) extends Payoff {
 	
 	override val variables:Set[String] = formula.keySet.flatten
 	 

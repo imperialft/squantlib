@@ -15,6 +15,7 @@ import org.jquantlib.pricingengines.PricingEngine
 import org.jquantlib.termstructures.YieldTermStructure
 import java.lang.{Double => JavaDouble}
 import squantlib.model.{Bond => sBond}
+import squantlib.setting.DefaultBondSetting
 
 /**
 * Functions to directly access database to retrieve Jquantlib or Squantlib objects.
@@ -26,9 +27,22 @@ object QLDB {
     */
 	def getMarket(paramset:String):Option[Market] = Market(DB.getRateFXParameters(paramset), DB.getCDSParameters(paramset))
 	
-	def getsBond(id:String):Option[sBond] = DB.getBonds(Set(id)).headOption match {
-	  case None => None
-	  case Some(bond) => sBond(bond)
+	def getBond(id:String):Option[sBond] = DB.getBonds(Set(id)).headOption.flatMap {bond => 
+	  val b = sBond(bond)
+	  if (b.isDefined) DefaultBondSetting(b.get)
+	  b
+	}
+	
+	def getBonds(ids:Set[String]):Set[sBond] = DB.getBonds(ids).map(sBond(_)).collect{
+	  case Some(bond) => 
+	    DefaultBondSetting(bond)
+	    bond
+	}
+	
+	def getBonds:Set[sBond] = DB.getBonds.map(sBond(_)).collect{
+	  case Some(bond) => 
+	    DefaultBondSetting(bond)
+	    bond
 	}
 	
    /**
@@ -37,23 +51,23 @@ object QLDB {
     * @param id Identifications of the target bonds
     * @param factory Optional. Providing discount curve factory would automatically set discounting bond engine as default pricing engine (where applicable)
     */
-	def getBond(id:String):Option[qlBond] = getBonds(Set(id)).headOption
+	def getQlBond(id:String):Option[qlBond] = getQlBonds(Set(id)).headOption
 	
-	def getBond(id:String, factory:Market):Option[qlBond] = getBonds(Set(id), factory).headOption
+	def getQlBond(id:String, factory:Market):Option[qlBond] = getQlBonds(Set(id), factory).headOption
 	
-	def getBonds:Set[qlBond] = bondsConstructor(DB.getBonds, null)
+	def getQlBonds:Set[qlBond] = bondsConstructor(DB.getBonds, null)
 	
-	def getBonds(bonds:Set[dbBond]):Set[qlBond] = bondsConstructor(bonds, null)
+	def getQlBonds(bonds:Set[dbBond]):Set[qlBond] = bondsConstructor(bonds, null)
 	
-	def getBonds(id:Traversable[String]):Set[qlBond] = bondsConstructor(DB.getBonds(id), null)
+	def getQlBonds(id:Traversable[String]):Set[qlBond] = bondsConstructor(DB.getBonds(id), null)
 	
-	def getBonds(factory:Market):Set[qlBond] = bondsConstructor(DB.getBonds, factory)
+	def getQlBonds(factory:Market):Set[qlBond] = bondsConstructor(DB.getBonds, factory)
 	
-	def getBonds(id:Traversable[String], factory:Market):Set[qlBond] = bondsConstructor(DB.getBonds(id), factory)
+	def getQlBonds(id:Traversable[String], factory:Market):Set[qlBond] = bondsConstructor(DB.getBonds(id), factory)
 	
-	def getBonds(bonds:Set[dbBond], factory:Market):Set[qlBond] = bondsConstructor(bonds, factory)
+	def getQlBonds(bonds:Set[dbBond], factory:Market):Set[qlBond] = bondsConstructor(bonds, factory)
 	
-	def getBonds(ids:Traversable[String], builder:dbBond => Option[qlBond], pricingengine:qlBond => PricingEngine, valuedate:qlDate):Set[qlBond] = {
+	def getQlBonds(ids:Traversable[String], builder:dbBond => Option[qlBond], pricingengine:qlBond => PricingEngine, valuedate:qlDate):Set[qlBond] = {
 		val qlbonds:Set[qlBond] = DB.getBonds(ids).map(builder).flatMap(b => b)
 		qlbonds.foreach(b => b.setPricingEngine(pricingengine(b), valuedate))
 		qlbonds

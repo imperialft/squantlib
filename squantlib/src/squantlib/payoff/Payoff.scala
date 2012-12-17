@@ -21,23 +21,28 @@ trait Payoff{
 	def applyFixing(eventDate:qlDate):Payoff = 
 	  if (variables.size == 0) this
 	  else {
-	    val fixings = variables.map(v => Fixings(v, eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x).toMap
+	    val fixings = variables.map(v => Fixings.byDate(v, eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x).toMap
 	    applyFixing(fixings)
 	  }
 	
 	def applyFixing(fixings:Map[String, Double]):Payoff = fixings match {
 	  case f if (f.isEmpty || variables.size == 0) => this
-	  case f if variables.forall(fixings.contains) => FixedPayoff(price(fixings))
+	  case f if variables.forall(fixings.contains) => {
+	    val comment = "{" + fixings.map{case (variable, v) => "\"" + variable + "\":" + v}.mkString(", ") + "}"
+	    FixedPayoff(price(fixings), comment)
+	  }
 	  case _ => this
 	}
 	
 	def applyFixing(fixing:Option[Double]):Payoff = fixing match {
 	  case None => this
-	  case Some(f) if variables.size == 1 => FixedPayoff(f)
+	  case Some(f) if variables.size == 1 => FixedPayoff(f, "{ \"ref\":" + fixing + "}")
 	  case _ => this
 	}
 	
 	def spotCoupon(mkt:Market):Double = price(mkt.getFixings(variables)) 
+	
+	val description:String
 }
 
 object Payoff {

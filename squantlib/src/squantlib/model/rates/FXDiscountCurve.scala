@@ -94,27 +94,6 @@ object FXDiscountCurve {
 	 * @param set of InputParameter
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
-//  	def getcurves(params:Set[RateFXParameter]):Iterable[FXDiscountCurve] = {
-//	  val conventions:Map[String, RateConvention] = RateConvention.toMap.filter{case (k, v) => v.useFXdiscount}
-//	  
-//  	  val dateassetgroup = 
-//  	    params.groupBy(p => p.asset).filter{case(k, v) => conventions.contains(k)}
-//  	  
-//  	  val instrumentgroup = 
-//  	    dateassetgroup.map{ case (k, v) => (k, v.groupBy(p => p.instrument))} 
-//  	  
-//  	  val nonemptyinstruments = 
-//  	    instrumentgroup.filter{ case (k, v) => (v.contains(swappointKey) && v.contains(fxKey))}
-//  	  
-//  	  nonemptyinstruments.map{ case (k, v) => 
-//  		  val conv = conventions(k)
-//  		  val valuedate = new qlDate(v(swappointKey).head.paramdate)
-//  		  def toSortedMap(k:String) = SortedMap(v(k).toSeq.map(p => (new qlPeriod(p.maturity), p.value)) :_*)
-//  		  val swapptcurve = conv.swappoint_constructor(valuedate, toSortedMap(swappointKey))
-//  		  new FXDiscountCurve(swapptcurve, v(fxKey).head.value)
-//  	  	}
-//  	  }
-//  	
   	def getcurves(params:Set[RateFXParameter]):Set[FXDiscountCurve] = {
     
 	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useFXdiscount }.keySet

@@ -157,13 +157,6 @@ extends DiscountableCurve {
 					 	else bsccy(m) + refinspread(m) * rduration / fduration
 			ZCspread ++= Map(p -> zcspd)
 		  	val realrate = nds(p) + zcspd * floatfraction / fixfraction
-//		  	println("pivottenorPV:" + pivotTenorPV(p))
-//		  	println("fixdaycounts:")
-//		  	fixdaycounts.foreach(d => println(d._1.toString + " : " + d._2.toString))
-//		  	println("ndsrange:")
-//		  	ndsrange.foreach(d => println(d._1.toString + " : " + d._2.toString))
-		  	println("pivotTenorPV:" + p + " => " + pivotTenorPV(p))
-		  	
 		  	val zcXm = (1 + pivotTenorPV(p) - realrate * fixduration) / (1 + realrate * fixdaycounts(m))
 			ZC ++= Map(p -> zcXm)
 			fixduration += zcXm * fixdaycounts(m)
@@ -219,7 +212,6 @@ object NDSDiscountCurve {
   	    
   	  
   	  nonemptyinstruments.map{ case (ccy, values) => 
-  	      println("add nds " + ccy)
   		  val ndscurve = NDSCurve(valuedate, ccy, values(ndsKey)).orNull
   		  val fxvalue = values(fxKey).head._2
   		  NDSDiscountCurve(ndscurve, pivotDiscount, pivotTenorBS, fxvalue)

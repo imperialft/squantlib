@@ -90,8 +90,8 @@ object DB extends Schema {
   private def getKeyedEntity[A<:KeyedEntity[String]](t:Table[A], ids:Traversable[String]):Set[A] = transaction {
       from(t)(p => where(p.id in ids) select(p)).toSet }
   
-  private def weekday(b: TypedExpression[java.util.Date,TDate])
-  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
+//  private def weekday(b: TypedExpression[java.util.Date,TDate])
+//  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
   
   private implicit def dateToComparableDate(d:JavaDate):comparableDate = new comparableDate(d)
   class comparableDate(val date:JavaDate) extends JavaDate {
@@ -173,6 +173,8 @@ object DB extends Schema {
 		    where (not(b.id in couponbonds))
 		    select(b)).distinct.toSet
     }
+  
+  def getBondIds:Set[String] = transaction {from (bonds) (b => select (&(b.id))).toSet}
   
   /**
    * Returns a Set of BondPrice objects identified by a Set of ID.
@@ -445,8 +447,7 @@ object DB extends Schema {
           (ip.paramdate  lte  toDate) and
           ip.instrument === instrument and
           ip.asset      === asset and
-          ip.maturity   === maturity and
-          weekday(ip.paramdate) < 5
+          ip.maturity   === maturity
         )
         select(ip)
       ).toSet
@@ -454,7 +455,7 @@ object DB extends Schema {
   
   def getRateFXParameters(paramset:String):Set[RateFXParameter] = transaction { 
   	  from(ratefxparameters)(c => 
-  	    where(c.paramset === paramset and weekday(c.paramdate) < 5)
+  	    where(c.paramset === paramset)
   	    select(c)
   	    ).toSet
   	}
@@ -464,7 +465,6 @@ object DB extends Schema {
       from(ratefxparameters)(ip =>
         where(
           ip.paramdate  === on and
-          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity
@@ -489,17 +489,25 @@ object DB extends Schema {
     }
   
   def getRateFXParamSets:Set[(String, JavaDate)] = transaction {
-    from(ratefxparameters)(p => 
-      where (weekday(p.paramdate) < 5)
-      select(&(p.paramset), &(p.paramdate))).distinct.toSet
+    from(ratefxparameters)(p => select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
-
-  def getLatestRateFXParamSet(instrument:String, asset:String, maturity:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
+  
+  def getRateFXParams(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = transaction {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
           ip.instrument === instrument and
-          weekday(ip.paramdate) < 5 and
+          ip.asset      === asset and
+          ip.maturity   === maturity
+        )
+        select((&(ip.paramdate), &(ip.value)))).toMap
+    }
+
+  def getLatestRateFXParams(instrument:String, asset:String, maturity:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity and
           (ip.paramdate lte valuedate)
@@ -508,11 +516,10 @@ object DB extends Schema {
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
     }
   
-  def getLatestRateFXParamSet(instrument:String, asset:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
+  def getLatestRateFXParams(instrument:String, asset:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset and
           (ip.paramdate lte valuedate)
@@ -538,7 +545,6 @@ object DB extends Schema {
           (ip.paramdate gte fromDate) and
           (ip.paramdate lte toDate) and
           (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity
@@ -553,7 +559,6 @@ object DB extends Schema {
           (ip.paramdate gte fromDate) and
           (ip.paramdate lte toDate) and
           (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset
         )
@@ -567,7 +572,6 @@ object DB extends Schema {
         where(
           (ip.paramset like "%-000") and
           ip.instrument === instrument and
-          weekday(ip.paramdate) < 5 and
           ip.asset      === asset
         )
         select((&(ip.paramdate), &(ip.value)))
@@ -578,7 +582,6 @@ object DB extends Schema {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity
@@ -603,7 +606,6 @@ object DB extends Schema {
         where(
           (cds.paramdate  gte fromDate) and
           (cds.paramdate  lte  toDate) and
-          weekday(cds.paramdate) < 5 and
           cds.instrument === instrument and
           cds.maturity   === maturity and
           cds.issuerid   === issuerid and
@@ -618,7 +620,6 @@ object DB extends Schema {
         where(
           (cds.paramdate  gte fromDate) and
           (cds.paramdate  lte  toDate) and
-          weekday(cds.paramdate) < 5 and
           cds.maturity   === maturity and
           cds.issuerid   === issuerid and
           cds.currencyid === currencyid
@@ -632,8 +633,7 @@ object DB extends Schema {
         where(
           cds.paramdate  === on and
           cds.issuerid   === issuerid and
-          cds.currencyid === currencyid and
-          weekday(cds.paramdate) < 5
+          cds.currencyid === currencyid
         )
         select(cds)
       ).toSet
@@ -645,7 +645,7 @@ object DB extends Schema {
 
   def getCDSParamSets:Set[(String, JavaDate)] = transaction {
     from(cdsparameters)(p => 
-      where (weekday(p.paramdate) < 5)
+//      where (weekday(p.paramdate) < 5)
       select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
 
@@ -659,24 +659,22 @@ object DB extends Schema {
    * @return A list of matching FXParameters.
    */
   def getFXParamSets:Set[(String, JavaDate)] = transaction {
-    from(fxrates)(p => 
-      where (weekday(p.paramdate) < 5) select(&(p.paramset), &(p.paramdate))).distinct.toSet
+    from(fxrates)(p => select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
-//  def getFXParamDates(fromDate:JavaDate, toDate:JavaDate):Set[JavaDate] = transaction {
-//    from(ratefxparameters)(p =>
-//      where((p.paramdate gte fromDate) and 
-//          (p.paramdate lte toDate) and 
-//          p.instrument === "FX" and 
-//          weekday(p.paramdate) < 5)
-//      select(&(p.paramdate))).distinct.toSet
-//    }
-  
-  def getLatestFXParamSet(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
+  def getFXParams(ccy:String):Map[JavaDate, Double] = transaction {
       from(fxrates)(ip =>
         where(
           (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
+          ip.currencyid === ccy
+        )
+        select((&(ip.paramdate), &(ip.fxjpy)))).toMap
+    }
+  
+  def getLatestFXParams(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
+      from(fxrates)(ip =>
+        where(
+          (ip.paramset like "%-000") and
           (ip.paramdate lte valuedate) and
           ip.currencyid === ccy
         )
@@ -684,12 +682,12 @@ object DB extends Schema {
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
     }
   
-  def getLatestFXParamSet(ccy1:String, ccy2:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction{
+  def getLatestFXParams(ccy1:String, ccy2:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction{
       from(fxrates, fxrates)((fx1, fx2) =>
         where(
           (fx1.paramset like "%-000") and
           (fx1.paramdate lte valuedate) and
-          weekday(fx1.paramdate) < 5 and
+//          weekday(fx1.paramdate) < 5 and
           (fx1.paramset === fx2.paramset) and
           (fx1.currencyid === ccy1) and
           (fx2.currencyid === ccy2) 
@@ -697,6 +695,19 @@ object DB extends Schema {
         select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
       }.map(d => (d._1, d._2/d._3))
+      
+      
+  def getFXParams(ccy1:String, ccy2:String):Map[JavaDate, Double] = transaction{
+      from(fxrates, fxrates)((fx1, fx2) =>
+        where(
+          (fx1.paramset like "%-000") and
+//          weekday(fx1.paramdate) < 5 and
+          (fx1.paramset === fx2.paramset) and
+          (fx1.currencyid === ccy1) and
+          (fx2.currencyid === ccy2) 
+        )
+        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
+      }.map(d => (d._1, d._2/d._3)).toMap
   
   def getFXParameter(ccy:String, paramset:String):Option[Double] = transaction {
       from(fxrates)(ip =>
@@ -726,7 +737,6 @@ object DB extends Schema {
       from(fxrates)(fx =>
         where(
           (fx.paramset like "%-000") and
-          weekday(fx.paramdate) < 5 and
           fx.currencyid === ccy
         )
         select((&(fx.paramdate), &(fx.fxjpy)))
@@ -745,7 +755,6 @@ object DB extends Schema {
 		      from(fxrates, fxrates)((fx1, fx2) =>
 		        where(
 		          (fx1.paramset like "%-000") and
-		          weekday(fx1.paramdate) < 5 and
 		          fx1.paramset === fx2.paramset and
 		          fx1.currencyid === currency1 and
 		          fx2.currencyid === currency2
@@ -766,7 +775,6 @@ object DB extends Schema {
 	        (c, 
 		      from(fxrates)(p =>
 		        where(
-		        	weekday(p.paramdate) < 5 and
 		            (p.paramset like "%-000") and 
 		            p.currencyid === c)
 		        select((&(p.paramdate), &(p.fxjpy)))
@@ -790,8 +798,7 @@ object DB extends Schema {
           (fx.paramset like "%-000") and
           fx.currencyid === currency and
           (fx.paramdate gte fromDate) and
-          (fx.paramdate lte toDate) and
-          weekday(fx.paramdate) < 5
+          (fx.paramdate lte toDate)
         )
         select((&(fx.paramdate), &(fx.fxjpy)))
       ).toMap
@@ -816,7 +823,6 @@ object DB extends Schema {
 		          fx1.paramset === fx2.paramset and
 		          (fx1.paramdate gte fromDate) and
 		          (fx1.paramdate lte toDate) and
-		          weekday(fx1.paramdate) < 5 and
 		          fx1.currencyid === currency1 and
 		          fx2.currencyid === currency2
 		        )
@@ -847,7 +853,6 @@ object DB extends Schema {
           (ip.paramdate gte fromDate) and
           (ip.paramdate lte toDate) and
           (ip.paramset like "%-000") and
-          weekday(ip.paramdate) < 5 and
           ip.issuerid === issuerid and
           ip.currencyid === currencyid and
           ip.maturity === maturity

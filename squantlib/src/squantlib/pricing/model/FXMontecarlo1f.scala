@@ -54,10 +54,12 @@ case class FXMontecarlo1f(val valuedate:qlDate,
 	def checkForward(paths:Int):Unit = 
 	  printf("date, MC, forward\n" + (mcDates zip modelForward(paths)).map{case (d, fwd) => { 
 	        val fxfwd = fx.forward(d); (d, fwd, fxfwd, fwd - fxfwd)}}.mkString("\n"))
+	        
+	private val cachedPrice = scala.collection.mutable.WeakHashMap[String, List[Double]]()
 	
 	def price:List[Double] = price(mcPaths)
 	
-	def price(paths:Int):List[Double] = fixPrice ++ mcPrice(paths)
+	def price(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", fixPrice ++ mcPrice(paths))
 	
 	val periods:List[CalcPeriod] = fixPeriods ++ mcPeriods
 	
@@ -70,9 +72,9 @@ object FXMontecarlo1f {
 	
 	var defaultPaths = 100000
 	
-	def apply(market:Market, bond:Bond):Option[FXMontecarlo1f] = apply(market, bond, defaultPaths)
+	def apply(market:Market, bond:Bond, engineName:String):Option[FXMontecarlo1f] = apply(market, bond, defaultPaths, engineName)
   
-	def apply(market:Market, bond:Bond, paths:Int):Option[FXMontecarlo1f] = {
+	def apply(market:Market, bond:Bond, paths:Int, engineName:String):Option[FXMontecarlo1f] = {
 			
 	  val valuedate = market.valuedate
 	  
@@ -84,8 +86,7 @@ object FXMontecarlo1f {
 	  if (fx == null) {println(bond.id + " : invalid fx underlying - " + variable + " in market " + market.paramset); return None}
 	  if (fx.currencyDom != bond.currency) {println(bond.id + " : quanto model not supported - " + variable); return None}
 	  
-	  val enginename = try { bond.settings.get.parseJsonString("mcengine") } catch {case _ => null}
-	  val mcmodel:Montecarlo1f = (enginename match {
+	  val mcmodel:Montecarlo1f = (engineName match {
 	    case "FXzeroVol" => FXzeroVol1f(fx)
 	    case "FXBlackScholes1f" => FXBlackScholes1f(fx)
 	    case null => FXBlackScholes1f(fx) // default

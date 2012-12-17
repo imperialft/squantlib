@@ -13,7 +13,7 @@ import org.codehaus.jackson.map.ObjectMapper
  *   formula = {min:double, max:double, mult:double, add:double, description:XXX}
  *   payment for array(i) is min <= mult * variable + add <= max
  */
-case class Linear1dPayoff(val variable:String, val payoff:Linear1dFormula) extends Payoff {
+case class Linear1dPayoff(variable:String, payoff:Linear1dFormula, description:String) extends Payoff {
   
 	val variables:Set[String] = if (variable == null) Set.empty else Set(variable)
 	 
@@ -39,13 +39,13 @@ object Linear1dPayoff {
 		  case None => null
 		}
 	  
-	  Linear1dPayoff(variable, payoff)
+	  Linear1dPayoff(variable, payoff, null)
 	}
 	
-	def apply(variable:String, payoff:JsonNode):Linear1dPayoff = Linear1dPayoff(variable, Linear1dFormula(payoff))
+	def apply(variable:String, payoff:JsonNode):Linear1dPayoff = Linear1dPayoff(variable, Linear1dFormula(payoff), null)
 	
 	def apply(variable:String, coeff:Option[Double], constant:Option[Double], minValue:Option[Double], maxValue:Option[Double], description:String = null):Linear1dPayoff = 
-	  Linear1dPayoff(variable, Linear1dFormula(coeff, constant, minValue, maxValue, description))
+	  Linear1dPayoff(variable, Linear1dFormula(coeff, constant, minValue, maxValue, description), description)
 }
 
 case class Linear1dFormula (val coeff:Option[Double], val constant:Option[Double], val minValue:Option[Double], val maxValue:Option[Double], val description:String) {
