@@ -194,10 +194,9 @@ object NDSDiscountCurve {
 	 * @param set of InputParameter
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[RateFXParameter], pivotDiscount:DiscountCurve, pivotTenorBS:TenorBasisSwapCurve):Set[NDSDiscountCurve] = {
+  	def apply(params:Set[RateFXParameter], pivotDiscount:DiscountCurve, pivotTenorBS:TenorBasisSwapCurve, valuedate:qlDate):Set[NDSDiscountCurve] = {
     
 	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useNDSdiscount }.keySet
-	  val valuedate = new qlDate(params.head.paramdate)
 	  
   	  val nonemptyinstruments:Map[String, Map[String, Map[qlPeriod, Double]]] = 
  	    params
@@ -218,7 +217,6 @@ object NDSDiscountCurve {
   	  	}.toSet
   	}
   
-  	def apply(params:Set[RateFXParameter], pivotDiscount:DiscountCurve, pivotTenorBS:TenorBasisSwapCurve):Set[NDSDiscountCurve] = getcurves(params, pivotDiscount, pivotTenorBS)
   
 } 
 

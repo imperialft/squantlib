@@ -12,13 +12,13 @@ object DefaultBondSetting {
 	def apply(bond:Bond):Unit = bond.db.productid match {
 	  
 	  case "DISC" | "SB" | "STEPUP" => 
-	    println(bond.id + " is fixed rate")
+//	    println(bond.id + " is fixed rate")
 	    bond.modelSetter = (m:Market, b:Bond) => NoModel(m, b)
 	    bond.forceModel = false
 	    bond.useCouponAsYield = false
 	    
 	  case "JGBR10F" | "JGBR10N" | "JGBR3" | "JGBR5" => 
-	    println(bond.id + " is JGBR")
+//	    println(bond.id + " is JGBR")
 	    bond.modelSetter = (m:Market, b:Bond) => JGBRModel(m, b)
 	    bond.forceModel = true
 	    bond.useCouponAsYield = true

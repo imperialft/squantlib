@@ -94,10 +94,9 @@ object FXDiscountCurve {
 	 * @param set of InputParameter
 	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
 	 */
-  	def getcurves(params:Set[RateFXParameter]):Set[FXDiscountCurve] = {
+  	def apply(params:Set[RateFXParameter], valuedate:qlDate):Set[FXDiscountCurve] = {
     
 	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useFXdiscount }.keySet
-	  val valuedate = new qlDate(params.head.paramdate)
 	  
   	  val nonemptyinstruments:Map[String, Map[String, Map[qlPeriod, Double]]] = 
  	    params
@@ -116,7 +115,5 @@ object FXDiscountCurve {
   	  	}.toSet
   	}
   
-  	def apply(params:Set[RateFXParameter]):Set[FXDiscountCurve] = getcurves(params)
-
 } 
 

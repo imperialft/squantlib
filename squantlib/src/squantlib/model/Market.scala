@@ -108,7 +108,7 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	 * Returns discount curve from full given parameter.
 	 */
 	private def getDiscountCurve(ccy:String, discountccy:String, spread:YieldParameter, cdsid:String) : Option[DiscountCurve] = 
-	  if (!curves.contains(ccy)) {println("curve " + ccy + " not found"); None}
+	  if (!curves.contains(ccy)) {println(paramset + " : curve " + ccy + " not found"); None}
 	  else if (contains(ccy, cdsid)) Some(repository(cdsid)(ccy))
 	  else {
 	    val newcurve = ccy match {
@@ -343,7 +343,6 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 		sortedcdscurves.foreach{case (n, c) => println(n + "\t" + c.rate.valuedate.shortDate + "\t" + c.rate.maxdate.shortDate)}
 	}
 	
-//    override def toString():String = "Market{" + curves.map(c => c._2).mkString(", ") + "}"
 	def describe = {
 		val eol = sys.props("line.separator")
 		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
@@ -358,18 +357,18 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 
 object Market {
   
-	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = getMarket(ratefxparams, cdsparams)
-  
-	def getMarket(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = {
-	  val liborCurves:Set[LiborDiscountCurve] = LiborDiscountCurve(ratefxparams)
-	  val fxCurves:Set[FXDiscountCurve] = FXDiscountCurve(ratefxparams)
+	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = if (ratefxparams.isEmpty) None else apply(ratefxparams, cdsparams, new qlDate(ratefxparams.head.paramdate))
+	
+	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter], valuedate:qlDate):Option[Market] = {
+	  val liborCurves:Set[LiborDiscountCurve] = LiborDiscountCurve(ratefxparams, valuedate)
+	  val fxCurves:Set[FXDiscountCurve] = FXDiscountCurve(ratefxparams, valuedate)
 	  val ndsCurves:Set[NDSDiscountCurve] = liborCurves.find(_.currency.code == "USD") match {
 	    case None => Set.empty
-	    case Some(curve) => NDSDiscountCurve(ratefxparams, curve.getZC(new FlatVector(curve.valuedate, 0.0)), curve.tenorbasis)
+	    case Some(curve) => NDSDiscountCurve(ratefxparams, curve.getZC(new FlatVector(curve.valuedate, 0.0)), curve.tenorbasis, valuedate)
 	  }
 	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
 	  
-	  val cdscurves = CDSCurve(cdsparams)
+	  val cdscurves = CDSCurve(cdsparams, valuedate)
 	  val fxparams = FXparameter(ratefxparams)
 	  val paramset = ratefxparams.head.paramset
 	  val fixingset:Map[String, Double] = ratefxparams.withFilter(_.instrument == "Fixing")

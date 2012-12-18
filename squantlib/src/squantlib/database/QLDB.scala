@@ -27,6 +27,8 @@ object QLDB {
     */
 	def getMarket(paramset:String):Option[Market] = Market(DB.getRateFXParameters(paramset), DB.getCDSParameters(paramset))
 	
+	def getMarket(paramset:String, valueDate:qlDate):Option[Market] = Market(DB.getRateFXParameters(paramset), DB.getCDSParameters(paramset), valueDate)
+	
 	def getBond(id:String):Option[sBond] = DB.getBonds(Set(id)).headOption.flatMap {bond => 
 	  val b = sBond(bond)
 	  if (b.isDefined) DefaultBondSetting(b.get)

@@ -1,7 +1,7 @@
 package squantlib.setting
 
 import squantlib.database.schemadefinitions.{Bond => dbBond}
-import squantlib.model.Market
+import squantlib.model.{Market, Bond}
 import squantlib.database.objectconstructor._
 import squantlib.jquantlib.instruments.bonds._
 import org.jquantlib.instruments.{Bond => qlBond}
@@ -21,13 +21,22 @@ object PricingConvention {
 		case _ => None
 		}
 	
-	def priceFrom(dbbond:dbBond):Option[JavaDate] = 
-	  dbbond match {
+	def priceFrom(bond:Bond):Option[JavaDate] = Some(addDays(bond.issueDate.longDate, -400))
+//	  bond match {
+//	    case p if JGBRFixedBond.isCompatible(p) => Some(p.issuedate)
+//		case p if JGBRFloatBond.isCompatible(p) => Some(p.issuedate)
+//		case p if FixedRateBond.isCompatible(p) => Some(addDays(p.issuedate, -400))
+//		case _ => None
+//	  }
+
+	def priceFromQL(bond:dbBond):Option[JavaDate] = 
+	  bond match {
 	    case p if JGBRFixedBond.isCompatible(p) => Some(p.issuedate)
 		case p if JGBRFloatBond.isCompatible(p) => Some(p.issuedate)
 		case p if FixedRateBond.isCompatible(p) => Some(addDays(p.issuedate, -400))
 		case _ => None
 	  }
+	
 	
 	def bondPriceFrom(bond:qlBond):Option[qlDate] = 
 	  bond match {

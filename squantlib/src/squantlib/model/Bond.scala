@@ -4,7 +4,7 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, _}
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
-import squantlib.database.schemadefinitions.{Bond => dbBond, BondPrice, Coupon => dbCoupon}
+import squantlib.database.schemadefinitions.{Bond => dbBond, BondPrice, Coupon => dbCoupon, ForwardPrice}
 import squantlib.payoff.{Payoffs, Schedule, Payoff, CalcPeriod, FixedPayoff}
 import squantlib.model.rates.DiscountCurve
 import squantlib.setting.initializer.{DayAdjustments, Currencies, Daycounters}
@@ -53,7 +53,7 @@ case class Bond(
 	
 	val initialFX:Double = db.initialfx
 	
-	val issuer:String = db.issuerid
+	var issuer:String = db.issuerid
 	
 	val settings:JsonNode = db.settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
 	
@@ -69,6 +69,8 @@ case class Bond(
 	  _market = Some(newMarket)
 		initializeModel
 	}
+	
+	def setMarket(newMarket:Market):Unit = market = newMarket
 	
 	/* 
 	 * Pricing model
@@ -293,6 +295,7 @@ case class Bond(
 	    case ds if ds.isEmpty => None
 	    case ds => ds.minBy{case (d, p) => d.paymentDate} match {case (d, p) => Some(d.paymentDate, d.dayCount * p.spotCoupon(mkt))}}
 	}
+	
 	/*	
 	 * Returns spot FX rate against JPY
 	 */
@@ -659,6 +662,21 @@ case class Bond(
 			  lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
 			  )}).toSet
 	   }
+	
+	
+	def toForwardPrice(vd:qlDate, fwdfx:Double):Option[ForwardPrice] = (market, cleanPrice) match {
+	  case (Some(mkt), Some(cp)) => Some(new ForwardPrice(
+	      id = "BOND:" + id + ":" + mkt.paramset + ":" + ("%tY%<tm%<td" format mkt.valuedate.longDate),
+	      paramset = mkt.paramset,
+	      paramdate = vd.longDate,
+	      valuedate = mkt.valuedate.longDate,
+	      underlying = "BOND:" + id,
+	      value = cp,
+	      valuejpy = if (db.initialfx == 0 || fwdfx == 0) None else Some(cp * fwdfx / db.initialfx),
+	      created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
+	      ))
+	  case _ => None
+	}
 	  
 	override def toString:String = id
 	
@@ -736,10 +754,10 @@ object Bond {
 		val id = db.id
 		
 		val currency:Currency = Currencies(db.currencyid).orNull
-		if (currency == null) { println(db.id  + " : currency not found"); return None}
+		if (currency == null) { return None}
 		
 		val period:qlPeriod = (db.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
-		if (period == null) { println(db.id  + " : period not defined"); return None}
+		if (period == null) { return None}
 		
 		val issueDate:qlDate = new qlDate(db.issuedate)
 		
@@ -775,7 +793,7 @@ object Bond {
 			    nextToLastdate, true, redemnotice)}
 			  catch { case _ => null}
 		      
-		if (schedule == null) { println(db.id  + " : schedule cannot be initialized"); return None}
+		if (schedule == null) { return None}
 
 		val coupon:Payoffs = if (db.coupon == null || db.coupon.isEmpty) null
 			else Payoffs(db.coupon, schedule.size - 1)
@@ -783,8 +801,8 @@ object Bond {
 		if (db.redemprice.isEmpty) {return None}
 		val redemption:Payoff = Payoff(db.redemprice)
 		
-		if (coupon == null) {println(id + " : coupon not defined"); return None}
-		if (coupon.size + 1 != schedule.size) {println(id + " : coupon (" + (coupon.size+1) + ") and schedule (" + schedule.size + ")  not compatible"); return None}
+		if (coupon == null) {return None}
+		if (coupon.size + 1 != schedule.size) {return None}
 		
 		Some(Bond(db, schedule, coupon, redemption))
 	  
