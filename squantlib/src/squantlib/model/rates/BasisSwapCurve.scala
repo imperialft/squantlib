@@ -35,9 +35,9 @@ object BasisSwapCurve {
   
   def basis_curve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter 
     = (values.keySet.size) match {
-     	case 1 => new FlatVector(valuedate, values)
-		case 2 => new LinearNoExtrapolation(valuedate, values)
-		case _ => new SplineNoExtrapolation(valuedate, values, 2)
+     	case 1 => FlatVector(valuedate, values)
+		case 2 => LinearNoExtrapolation(valuedate, values)
+		case _ => SplineNoExtrapolation(valuedate, values, 2)
 		} 
 	
   def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[BasisSwapCurve]

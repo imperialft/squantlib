@@ -367,6 +367,7 @@ object Market {
 	    case Some(curve) => NDSDiscountCurve(ratefxparams, curve.getZC(new FlatVector(curve.valuedate, 0.0)), curve.tenorbasis, valuedate)
 	  }
 	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
+	  if (discountcurves.forall(s => s.currency.code != "USD")) {return None}
 	  
 	  val cdscurves = CDSCurve(cdsparams, valuedate)
 	  val fxparams = FXparameter(ratefxparams)

@@ -6,6 +6,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
+import java.util.{Map => JavaMap}
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -25,9 +26,29 @@ case class LEPS1dPayoff(val variable:String, val payoff:List[LEPS1dComponent], v
 	  else Double.NaN
 	
 	override def price(fixing:Double)(implicit d:DummyImplicit) = payoff.map(_.price(fixing)).sum
-	override def toString = description textOr payoff.map(_.toString(variable)).mkString(" ")
+	override def toString = payoff.map(p => p.toString(variable)).mkString(" ")
 	
 	override def price = Double.NaN
+	
+	override val jsonString = {
+	  
+	  val jsonPayoff:Array[JavaMap[String, Any]] = payoff.toArray.map(p => {
+	    val leg:JavaMap[String, Any] = Map(
+	      "minrange" -> p.minRange.getOrElse("None"),
+	      "maxrange" -> p.maxRange.getOrElse("None"),
+	      "mult" -> p.coeff.getOrElse("None"),
+	      "add" -> p.constant.getOrElse("None")
+	      )
+	    leg})
+	    
+	  val infoMap:JavaMap[String, Any] = Map(
+	      "type" -> "leps1d", 
+	      "variable" -> variable, 
+	      "description" -> description,
+	      "payoff" -> jsonPayoff)
+	  
+	  (new ObjectMapper).writeValueAsString(infoMap)	  
+	}	
 	
 }
 
@@ -98,8 +119,7 @@ case class LEPS1dComponent (val coeff:Option[Double], val constant:Option[Double
 	  }
 	}
 	
-	def toString(variable:String) = coeff.asDoubleOr("0") + " * " + variable + " + " + constant.asPercentOr("0") + " for [" + 
-							minRange.asDoubleOr("") + ", " + maxRange.asDoubleOr("") + "]"
+	def toString(variable:String) = ("[" + minRange.asDoubleOr("") + ", " + maxRange.asDoubleOr("") + "] " + coeff.asDoubleOr("0") + "*" + variable + "+" + constant.asPercentOr("0")).replace("+-", "-")
 	
 }
 

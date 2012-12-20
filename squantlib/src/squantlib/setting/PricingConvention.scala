@@ -21,7 +21,7 @@ object PricingConvention {
 		case _ => None
 		}
 	
-	def priceFrom(bond:Bond):Option[JavaDate] = Some(addDays(bond.issueDate.longDate, -400))
+	def priceFrom(bond:Bond):qlDate = bond.issueDate.sub(400)
 //	  bond match {
 //	    case p if JGBRFixedBond.isCompatible(p) => Some(p.issuedate)
 //		case p if JGBRFloatBond.isCompatible(p) => Some(p.issuedate)

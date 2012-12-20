@@ -13,10 +13,10 @@ import squantlib.database.fixings.Fixings
 import squantlib.pricing.model.{PricingModel, NoModel}
 import squantlib.math.solver.NewtonRaphson
 import org.codehaus.jackson.JsonNode
-import scala.collection.mutable.{Set => mutableSet}
 import org.codehaus.jackson.node.{JsonNodeFactory, ObjectNode, ArrayNode}
 import org.codehaus.jackson.map.ObjectMapper
 import scala.collection.JavaConversions._
+import scala.collection.mutable.{Set => mutableSet}
 
 /**
  * Bond class with enclosed risk analysis functions.
@@ -56,6 +56,8 @@ case class Bond(
 	var issuer:String = db.issuerid
 	
 	val settings:JsonNode = db.settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
+	
+	val isFixedRateBond = coupon.variables.size == 0
 	
 	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
 
@@ -117,6 +119,7 @@ case class Bond(
 	    }
 	    case _ => None
 	  }
+//	  if (!isFixedRateBond) {cpncache.clear}
 	  cpncache.clear
 	}
 	
@@ -634,16 +637,19 @@ case class Bond(
 					lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))))
 	  
 	  case _ => None
-	}
+	} 
 	
 	def toCoupons:Set[dbCoupon] = {
 	  val pos = allPayoffLegs
+	  val spot:List[Double] = spotFixedRatesAll.unzip._2
 	  
 	  (0 to pos.size - 1).map(i => {
 	      val (s, p) = pos(i)
 	      val fixedrate = p match {case po:FixedPayoff => Some(po.payoff) case _ => None }
 	      val fixedamount = fixedrate.collect{case r => r * s.dayCount}
 	      val paytype = if (s isAbsolute) "REDEMPTION" else "COUPON"
+	      val spotrate = spot(i) match {case v if v.isNaN || fixedrate.isDefined => None case _ => Some(spot(i)) }
+	      val spotamount = spotrate.collect{case r => r * s.dayCount}
 	      
 	      new dbCoupon(
 	          id = id + ":" + i + ":" + paytype,
@@ -656,6 +662,9 @@ case class Bond(
 	          paymentdate = s.paymentDate.longDate,
 	          fixedrate = fixedrate,
 	          fixedamount = fixedamount,
+		      spotrate = spotrate,
+		      spotamount = spotamount,
+	          jsonformat = payoffs(i).jsonString,
 	          comment = p.description,
 	          daycount = s.daycounter.toString,
 	          paymenttype = paytype,

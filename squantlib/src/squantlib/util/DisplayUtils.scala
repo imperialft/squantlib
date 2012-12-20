@@ -4,28 +4,6 @@ import org.codehaus.jackson.JsonNode
 
 object DisplayUtils {
   
-	implicit def doubleToExtendedDouble(d:Double) = ExtendedDouble(d)
-	case class ExtendedDouble(d:Double) {
-	  def asPercent:String = "%.4f".format(d * 100.0) + "%"
-	}
-	
-	implicit def doubleToExtendedDoubleOpt(d:Option[Double]) = ExtendedDoubleOpt(d)
-	case class ExtendedDoubleOpt(d:Option[Double]) {
-	  def asPercentOr(alternative:String, prefix:String, suffix:String):String = d match {
-	    case Some(r) => prefix + "%.4f".format(r * 100.0) + "%" + suffix
-	    case None => alternative
-	  }
-	  def asPercentOr(alternative:String):String = asPercentOr(alternative, "", "")
-	  def asPercent = asPercentOr("")
-	  
-	  def asDoubleOr(alternative:String, prefix:String, suffix:String):String = d match {
-	    case Some(r) => prefix + "%.4f".format(r) + suffix
-	    case None => alternative
-	  }
-	  def asDoubleOr(alternative:String):String = asDoubleOr(alternative, "", "")
-	  def asDouble = asDoubleOr("")
-	}
-	   
 	implicit def stringToExtendedString(s:String) = ExtendedString(s)
 	case class ExtendedString(s:String) {
 	  def or(t:String) = if (s == null) t else s
@@ -37,10 +15,45 @@ object DisplayUtils {
 	  }	  
 	  
 	  def textOr(t:String) = if (s == null) t else s
+			  
+	  def trimZeros:String = {
+	    def trimAcc(d:String):String = d match {
+	      case d if d.isEmpty => "0"
+	      case d if (d takeRight 2) == ".0" => d
+	      case d if (d takeRight 1) == "." => trimAcc(d dropRight 1)
+		  case d if (d takeRight 1) == "0" && (d contains ".") => trimAcc(d dropRight 1)
+		  case d => d
+		}
+		trimAcc(s)
+	  }
+	}
+  
+	implicit def doubleToExtendedDouble(d:Double) = ExtendedDouble(d)
+	case class ExtendedDouble(d:Double) {
+	  def asPercent:String = "%.4f".format(d * 100.0).trimZeros + "%"
+	}
+	
+	implicit def doubleToExtendedDoubleOpt(d:Option[Double]) = ExtendedDoubleOpt(d)
+	case class ExtendedDoubleOpt(d:Option[Double]) {
+	  
+	  def asPercentOr(alternative:String, prefix:String, suffix:String):String = d match {
+	    case Some(r) => prefix + "%.4f".format(r * 100.0).trimZeros + "%" + suffix
+	    case None => alternative
+	  }
+	  def asPercentOr(alternative:String):String = asPercentOr(alternative, "", "")
+	  def asPercent = asPercentOr("")
+	  
+	  def asDoubleOr(alternative:String, prefix:String, suffix:String):String = d match {
+	    case Some(r) => prefix + "%.4f".format(r).trimZeros + suffix
+	    case None => alternative
+	  }
+	  def asDoubleOr(alternative:String):String = asDoubleOr(alternative, "", "")
+	  def asDouble = asDoubleOr("")
 	}
 	
 	implicit def nodeToExtendedNode(node:JsonNode) = ExtendedNode(node)
 	case class ExtendedNode(node:JsonNode) {
 	  def textOr(t:String) = if (node == null) t else node.getTextValue
 	}
+	
 }

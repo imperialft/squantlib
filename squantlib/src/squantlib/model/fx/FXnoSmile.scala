@@ -23,9 +23,9 @@ object FXnoSmile {
 	  
 	  val volYield = params.vol match {
 	    case v if v.isEmpty => null
-	    case v if v.size == 1 => new FlatVector(curveDom.valuedate, v)
-	    case v if v.size == 2 => new LinearNoExtrapolation(curveDom.valuedate, v)
-	    case v => new SplineNoExtrapolation(curveDom.valuedate, v, 1)
+	    case v if v.size == 1 => FlatVector(curveDom.valuedate, v)
+	    case v if v.size == 2 => LinearNoExtrapolation(curveDom.valuedate, v)
+	    case v => SplineNoExtrapolation(curveDom.valuedate, v, 1)
 	  }
 	  
 	  if (volYield == null) None else Some(new FXnoSmile(curveDom, curveFor, (f:Double) => volYield(f)))

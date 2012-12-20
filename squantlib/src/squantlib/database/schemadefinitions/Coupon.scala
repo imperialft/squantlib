@@ -18,6 +18,9 @@ class Coupon(@Column("ID")				var id:String,
 			@Column("PaymentDate")		var paymentdate:Date,
 			@Column("FixedRate")		var fixedrate:Option[Double],
 			@Column("FixedAmount")		var fixedamount:Option[Double],
+			@Column("SpotRate")			var spotrate:Option[Double],
+			@Column("SpotAmount")		var spotamount:Option[Double],
+			@Column("JsonFormat")		var jsonformat:String,
 			@Column("Comment")			var comment:String,
 			@Column("Daycount")			var daycount:String,
 			@Column("PaymentType")		var paymenttype:String,
@@ -36,6 +39,9 @@ class Coupon(@Column("ID")				var id:String,
       paymentdate = null,
       fixedrate = Some(-999.0),
       fixedamount = Some(-999.0),
+      spotrate = Some(-999.0),
+      spotamount = Some(-999.0),
+      jsonformat = null,
       comment = null,
       daycount = null,
       paymenttype = null,
@@ -56,6 +62,6 @@ class Coupon(@Column("ID")				var id:String,
     }
   }
       
-  override def toString():String = format("%-15s %-5s %-15s %tF %tF %tF %tF %-15s", bondid, currency, rate, eventdate, startdate, enddate, paymentdate, fixedamount.getOrElse(""))
+  override def toString():String = format("%-15s %-5s %-15s %tF %tF %-10s %-10s", bondid, currency, rate, eventdate, paymentdate, fixedamount.getOrElse(""), comment)
       
 }

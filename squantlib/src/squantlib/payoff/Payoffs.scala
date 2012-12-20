@@ -87,6 +87,7 @@ case class Payoffs(val payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	
 	def reorder(order:List[Int]) = new Payoffs((0 to payoffs.size-1).toList.map(i => payoffs(order(i))))
 	
+	val jsonString:String = payoffs.map(_.jsonString).mkString(";")
 }
 
 

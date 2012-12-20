@@ -4,6 +4,7 @@ import squantlib.payoff.{Payoff, Payoffs, Schedule, CalcPeriod}
 import squantlib.model.rates.DiscountCurve
 import scala.collection.mutable.Queue
 import squantlib.model.{Market, Bond}
+import org.jquantlib.time.{Date => qlDate}
 
 trait PricingModel {
   
@@ -41,7 +42,7 @@ trait PricingModel {
   }
 	
   def discountedPrice(curve:Option[DiscountCurve]):Option[Double] = Some(discountedPriceLegs(curve).sum)
-	
+  
 }
 
 

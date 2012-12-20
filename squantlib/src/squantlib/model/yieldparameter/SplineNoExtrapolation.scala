@@ -1,16 +1,10 @@
 package squantlib.model.yieldparameter
 
-//import scala.collection.immutable.TreeMap
-import scala.collection.SortedMap
-import scala.collection.Map
-import org.jquantlib.time.{ Date => JDate }
-import org.jquantlib.time.{ Period => JPeriod }
-import org.jquantlib.time.TimeUnit
+import scala.collection.immutable.SortedMap
+import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit }
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator
-import org.apache.commons.math3.analysis.function.Log
-import org.apache.commons.math3.analysis.function.Exp
-
+import org.apache.commons.math3.analysis.function.{Log, Exp}
 
 /**
  * TimeVector with Spline interpolation and no extrapolation. (ie. y-value is constant after last date)
@@ -20,33 +14,55 @@ import org.apache.commons.math3.analysis.function.Exp
  * @param input points
  * @param number of extra points (optional)
  */
-class SplineNoExtrapolation(var valuedate : JDate, values:Map[JPeriod, Double], extrapoints:Int) extends YieldParameter with AbstractYieldParameter {
+
+case class SplineNoExtrapolation(var valuedate : qlDate, values:Map[Double, Double], extrapoints:Int) extends YieldParameter with AbstractYieldParameter {
 	require(values.size >= 3, "spline requires at least 3 point : found " + values.size)
 	
-	val inputvalues = SortedMap(values.toSeq:_*)
+	val sortedValues = SortedMap(values.toSeq:_*)
+	val firstvalue = sortedValues.first._2
 	
-    val splinefunction = {
-	    var inputpoints:SortedMap[Double, Double] = SortedMap.empty
-	    
-	    for (d <- inputvalues.keySet) 
-	      { inputpoints ++= Map(d.days(valuedate).toDouble -> inputvalues(d)) }
+	val mindays = sortedValues.firstKey
+	val maxdays = sortedValues.lastKey
+	
+	val extrapolator = new Exp()
+	val logger = new Log()
+	
+	val impliedrate = if(sortedValues.last._2 < Double.MinPositiveValue) Double.NaN 
+				else -1.0 * logger.value(sortedValues.last._2 / firstvalue) / sortedValues.lastKey
+	
 
-	    for (i <- 1 to extrapoints) 
-	      { inputpoints ++= Map((inputvalues.lastKey.days(valuedate).toDouble + (30.0 * i.toDouble)).toDouble -> inputvalues.last._2) }
+	def lowextrapolation(v : Double) = sortedValues.first._2
+ 
+	def highextrapolation(v : Double) = sortedValues.last._2
+    						
+    def interpolation(v : Double) = splinefunction.value(v)
+
+    val splinefunction:PolynomialSplineFunction = {
+    	val extraKeys = (1 to extrapoints).toArray.map(i => sortedValues.lastKey + (30.0 * i.toDouble))
+    	val extraValues = (1 to extrapoints).toArray.map(i => sortedValues.last._2)
 	    
-	    val keysarray = inputpoints.keySet.toArray
-	    val valarray = keysarray.map((i:Double) => inputpoints(i))
+	    val keysarray = sortedValues.keySet.toArray ++ extraKeys
+	    val valarray = sortedValues.values.toArray ++ extraValues
 	    new SplineInterpolator().interpolate(keysarray, valarray)
+    }    
+
+    def shifted(shift:(Double, Double) => Double):SplineEExtrapolation = {
+      new SplineEExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k, v))}.toMap, extrapoints)
     }
     
-	val mindays = inputvalues.firstKey.days(valuedate).toDouble
-	val maxdays = inputvalues.lastKey.days(valuedate).toDouble
-
-	def lowextrapolation(v : Double) = inputvalues.first._2
-    def highextrapolation(v : Double) = inputvalues.last._2
-    def interpolation(v : Double) = splinefunction.value(v)
-    
-    def shifted(shift:(Double, Double) => Double):SplineNoExtrapolation = 
-      new SplineNoExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k.days(valuedate).toDouble, v))}.toMap, extrapoints)
-	
 }
+
+
+object SplineNoExtrapolation{
+  
+  def apply(valuedate:qlDate, values: => Map[qlPeriod, Double], extrapoints:Int):SplineNoExtrapolation = 
+    SplineNoExtrapolation(valuedate, values.map{case (d, v) => (d.days(valuedate).toDouble, v)}.toMap, extrapoints)
+    
+  def apply(valuedate:qlDate, values:Map[qlPeriod, Double]):SplineNoExtrapolation = apply(valuedate, values)
+  
+  def apply(valuedate:qlDate, values: => Map[Double, Double]):SplineNoExtrapolation = SplineNoExtrapolation(valuedate, values, 0)
+  
+}
+  
+  
+  

@@ -176,8 +176,8 @@ object DB extends Schema {
   
   def getBondIds:Set[String] = transaction {from (bonds) (b => select (&(b.id))).toSet}
   
-  def setBondPriceTag(tag:Option[Int], ids:Set[String]):Unit = transaction{
-    update(bonds)(b => where (b.id in ids) set(b.pricetag := tag))
+  def setBondPriceTag(tag:Option[Int], id:String):Unit = transaction{
+    update(bonds)(b => where (b.id === id) set(b.pricetag := tag))
   }
   
   /**

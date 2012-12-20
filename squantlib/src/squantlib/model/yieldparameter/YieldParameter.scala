@@ -98,3 +98,13 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
     
     def describe:String = ((1 to 10) ++ List(12, 15, 20, 25, 30)).map(i => {val m = new qlPeriod(i, TimeUnit.Years); m.toString + " " + value(m).toString + sys.props("line.separator")}).mkString("")
 }
+
+object YieldParameter {
+  
+	def apply(valuedate:qlDate, data:Map[Double, Double]):Option[YieldParameter] = data.size match {
+	    case s if s > 2 => Some(SplineNoExtrapolation(valuedate, data))
+	    case 2 => Some(LinearNoExtrapolation(valuedate, data))
+	    case 1 => Some(FlatVector(valuedate, data.head._1))
+	    case _ => None
+	}
+}

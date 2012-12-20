@@ -39,10 +39,7 @@ case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[
 	  if (variables.isEmpty) constant
 	  else Double.NaN
 	
-	override def toString:String = formula.map{
-	  case (vs, c) if (vs.isEmpty) => "(const) " + c
-	  case (vs, c) => "[ " + vs.reduce((x, y) => x + " x " + y) + " ] x " + c
-	}.reduce((x, y) => x + " + " + y)
+	override def toString:String = jsonString
 	
 	def remodelize:Payoff = 
 	  variables.size match {
@@ -53,6 +50,10 @@ case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[
 	    }
 	    case _ => this
 	  }
+	
+	override val jsonString = 
+	  formula.map{case (variables, coeff) => 
+	    ((if (variables.size > 0) variables.mkString("*") else "") + "*" + coeff)}.mkString("+").replace("+-", "+")
 	
 }
 

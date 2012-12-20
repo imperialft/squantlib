@@ -43,6 +43,8 @@ trait Payoff{
 	def spotCoupon(mkt:Market):Double = price(mkt.getFixings(variables)) 
 	
 	val description:String
+	
+	val jsonString:String
 }
 
 object Payoff {

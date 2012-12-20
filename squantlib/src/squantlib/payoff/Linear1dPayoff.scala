@@ -27,6 +27,21 @@ case class Linear1dPayoff(variable:String, payoff:Linear1dFormula, description:S
 	
 	override def toString:String = payoff.toString(variable)
 	
+	override val jsonString = {
+	    
+	  val jsonPayoff:java.util.Map[String, Any] = Map(
+	      "min" -> payoff.minValue.getOrElse("None"),
+	      "max" -> payoff.maxValue.getOrElse("None"),
+	      "coeff" -> payoff.coeff.getOrElse("None"),
+	      "description" -> payoff.description)
+	      
+	  val infoMap:java.util.Map[String, Any] = Map(
+	      "type" -> "linear1d", 
+	      "variable" -> variable, 
+	      "payoff" -> jsonPayoff)
+	  
+	  (new ObjectMapper).writeValueAsString(infoMap)	  
+	}
 }
 
 object Linear1dPayoff {
@@ -63,9 +78,8 @@ case class Linear1dFormula (val coeff:Option[Double], val constant:Option[Double
 	  p
 	} 
 	
-	def toString(varname:String) = description textOr 
-									(coeff.asDoubleOr("0") + " * " + varname + " + " + constant.asPercentOr("0") + 
-									minValue.asPercentOr("", " min ", "") + maxValue.asPercentOr("", " max ", ""))
+	def toString(varname:String) = ((coeff.asDoubleOr("0") + "*" + varname + "+" + constant.asPercentOr("0") + 
+									minValue.asPercentOr("", " >", "") + maxValue.asPercentOr("", " <", ""))).replace("+-", "-")
 }
 
 object Linear1dFormula {

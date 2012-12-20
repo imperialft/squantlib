@@ -1,27 +1,35 @@
 package squantlib.model.yieldparameter
 
-import org.jquantlib.time.{ TimeUnit, Period => JPeriod, Date => JDate }
+import org.jquantlib.time.{ TimeUnit, Period => qlPeriod, Date => qlDate }
 import scala.collection.Map
 
 /**
  * Flat vector
  * @param input point
  */
-class FlatVector(var valuedate : JDate, inputvalues:Map[JPeriod, Double]) extends YieldParameter with AbstractYieldParameter {
-	require(inputvalues.size == 1, "flat curve can have 1 point only : found " + inputvalues.size)
+case class FlatVector(var valuedate : qlDate, value:Double) extends YieldParameter with AbstractYieldParameter {
 	
-	val constantvalue = inputvalues.first._2
-	val firstvalue = inputvalues.first._2
-	
-	val mindays = inputvalues.first._1.days(valuedate).toDouble
-	val maxdays = mindays
+	override val mindays = 0.0
+	override val maxdays = 0.0
 
-	def lowextrapolation(v : Double) = constantvalue
-    def highextrapolation(v : Double) = constantvalue
-    def interpolation(v : Double) = constantvalue
+	override def lowextrapolation(v : Double) = value
+    override def highextrapolation(v : Double) = value
+    override def interpolation(v : Double) = value
     
-    def shifted(shift:(Double, Double) => Double):FlatVector = new FlatVector(valuedate, inputvalues.map{case (k, v) => (k, shift(k.days(valuedate).toDouble, v))}.toMap)
-    
-    def this(valuedate:JDate, inputvalue:Double) = this(valuedate, Map(new JPeriod(1, TimeUnit.Months) -> inputvalue))
+    override def shifted(shift:(Double, Double) => Double):FlatVector = new FlatVector(valuedate, shift(0.0, value))
 }
 
+
+object FlatVector {
+  
+	def apply(valuedate : qlDate, inputvalues:Map[qlPeriod, Double]):FlatVector = {
+	  require(inputvalues.size == 1, "flat curve can have 1 point only : found " + inputvalues.size)
+	  FlatVector(valuedate, inputvalues.first._2)
+	}
+
+	def apply(valuedate : qlDate, inputvalues: => Map[Double, Double]):FlatVector = {
+	  require(inputvalues.size == 1, "flat curve can have 1 point only : found " + inputvalues.size)
+	  FlatVector(valuedate, inputvalues.first._2)
+	}
+
+}

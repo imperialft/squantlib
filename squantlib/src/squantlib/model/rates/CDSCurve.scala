@@ -40,7 +40,7 @@ object CDSCurve{
 	 * Constructs CDScurve from one CDSParameter as flat spread.
 	 */
   	def getcurve(p:CDSParameter):CDSCurve = 
-  	  new CDSCurve(new FlatVector(new qlDate(p.paramdate), p.spread), Currencies(p.currencyid).get, p.issuerid)
+  	  new CDSCurve(FlatVector(new qlDate(p.paramdate), p.spread), Currencies(p.currencyid).get, p.issuerid)
 
 	/**
 	 * Constructs CDScurve from CDSParameter per each combination of issuerid, currency, paramset.
@@ -56,8 +56,8 @@ object CDSCurve{
   	  
 	def curveconstructor(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):YieldParameter
 		= (values.keySet.size) match {
-			case 1 => new FlatVector(valuedate, values)
-			case _ => new LinearNoExtrapolation(valuedate, values)
+			case 1 => FlatVector(valuedate, values)
+			case _ => LinearNoExtrapolation(valuedate, values)
 			}
   	 
   	def apply(params:Set[CDSParameter], valuedate:qlDate):Iterable[CDSCurve] = getcurves(params, valuedate)
