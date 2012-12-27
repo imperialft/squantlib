@@ -290,6 +290,15 @@ object DB extends Schema {
       from(correlations)(b => select(&(b.valuedate))).distinct.toSet
     }
   
+  def removeOldCorrelations:Boolean = {
+    val latest = getLatestCorrelationDate.orNull
+    if (latest != null) {
+      transaction {correlations.deleteWhere(b => b.valuedate lt latest)}
+      true
+    }
+    else false
+  }
+  
   def getLatestCorrelationDate:Option[JavaDate] = getCorrelationDates match {
     case d if d.isEmpty => None
     case d => Some(d.maxBy(s => s))
@@ -307,6 +316,25 @@ object DB extends Schema {
   def getForwardPriceParams:Set[String] = transaction {
       from(forwardprices)(p => select(&(p.paramset))).distinct.toSet
     }
+  
+  def getForwardPriceDates:Set[JavaDate] = transaction {
+      from(forwardprices)(p => select(&(p.paramdate))).distinct.toSet
+    }
+  
+  def getLatestForwardPriceDate:Option[JavaDate] = getForwardPriceDates match {
+    case d if d.isEmpty => None
+    case d => Some(d.maxBy(s => s))
+  } 
+  
+  
+  def removeOldForwardPrices:Boolean = {
+    val latest = getLatestForwardPriceDate.orNull
+    if (latest != null) {
+      transaction {forwardprices.deleteWhere(b => b.valuedate lt latest)}
+      true
+    }
+  else false
+   }
   
   /**
    * Returns a Set of ImpliedRate objects identified by a Set of ID.

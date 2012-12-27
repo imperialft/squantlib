@@ -17,7 +17,7 @@ import java.util.{Map => JavaMap}
  *     if minrange(i) <= X < maxrange(i) => mult(i) * variable + add(i)
  *     otherwise zero
  */
-case class LEPS1dPayoff(val variable:String, val payoff:List[LEPS1dComponent], val description:String = null) extends Payoff {
+case class LEPS1dPayoff(variable:String, payoff:List[LEPS1dComponent], description:String = null) extends Payoff {
   
 	override val variables:Set[String] = Set(variable)
 	  
@@ -98,7 +98,7 @@ object LEPS1dPayoff {
 }
 
 
-case class LEPS1dComponent (val coeff:Option[Double], val constant:Option[Double], val minRange:Option[Double], val maxRange:Option[Double]) {
+case class LEPS1dComponent (coeff:Option[Double], constant:Option[Double], minRange:Option[Double], maxRange:Option[Double]) {
 	 
 	def price(fixing:Double):Double = {
 	  minRange match {
@@ -119,14 +119,15 @@ case class LEPS1dComponent (val coeff:Option[Double], val constant:Option[Double
 	  }
 	}
 	
-	def toString(variable:String) = ("[" + minRange.asDoubleOr("") + ", " + maxRange.asDoubleOr("") + "] " + coeff.asDoubleOr("0") + "*" + variable + "+" + constant.asPercentOr("0")).replace("+-", "-")
+	def toString(variable:String) = 	  
+	  "[" + minRange.asDoubleOr("") + ", " + maxRange.asDoubleOr("") + "] " + linearFormula(coeff, variable, constant)
 	
 }
 
 object LEPS1dComponent {
 	
 	def apply(subnode:JsonNode):LEPS1dComponent = {
-	  val coeff:Option[Double] = subnode.parseJsonDouble("mult")
+	  val coeff:Option[Double] = Some(subnode.parseJsonDouble("mult").getOrElse(1.0))
 	  val constant:Option[Double] = subnode.parseJsonDouble("add")
 	  val minRange:Option[Double] = subnode.parseJsonDouble("minrange")
 	  val maxRange:Option[Double] = subnode.parseJsonDouble("maxrange")

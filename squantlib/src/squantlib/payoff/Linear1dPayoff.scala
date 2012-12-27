@@ -78,8 +78,9 @@ case class Linear1dFormula (val coeff:Option[Double], val constant:Option[Double
 	  p
 	} 
 	
-	def toString(varname:String) = ((coeff.asDoubleOr("0") + "*" + varname + "+" + constant.asPercentOr("0") + 
-									minValue.asPercentOr("", " >", "") + maxValue.asPercentOr("", " <", ""))).replace("+-", "-")
+	def toString(varname:String) = 
+	  linearFormula(coeff, varname, constant) + minValue.asPercentOr("", " >", "") + maxValue.asPercentOr("", " <", "")
+									
 }
 
 object Linear1dFormula {
@@ -87,7 +88,7 @@ object Linear1dFormula {
 	def apply(subnode:JsonNode):Linear1dFormula = {
 		val minValue:Option[Double] = subnode.parseJsonDouble("min")
 		val maxValue:Option[Double] = subnode.parseJsonDouble("max")
-		val coeff:Option[Double] = subnode.parseJsonDouble("mult")
+		val coeff:Option[Double] = Some(subnode.parseJsonDouble("mult").getOrElse(1.0))
 		val constant:Option[Double] = subnode.parseJsonDouble("add")
 		val description:String = subnode.parseJsonString("description")
 		Linear1dFormula(coeff, constant, minValue, maxValue, description)

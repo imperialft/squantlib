@@ -84,7 +84,27 @@ object PayoffExamples {
 	  val fixedleg = Payoff("0.5%")
 	  val linear1dleg = Payoff("12.5% * usdjpy / 80.2 - 10% > 0.5% < 3%")
       val combileg = Payoffs(List(fixedleg, linear1dleg))
+      
+      val binary = Payoff("""
+	    {"type" : "binary", 
+	    "variable" : "usdjpy", 
+	    "description" : "Binary Payoff", 
+	    "payoff" : [
+			{"amount" : "0.01%"}, 
+			{"strike" : 60, "amount" : "1.5%"}, 
+			{"strike" : 75, "amount" : "3%"}, 
+			{"strike" : 100, "amount" : "10%"}
+	    ]}""")
+      
+      val putdi = Payoff("""
+	    {"type" : "putdi", 
+	    "variable" : "usdjpy", 
+	    "trigger" : 70, 
+	    "strike" : 110, 
+	    "description" : "Put Down&In"
+	    }""")
 
+	    
 }
 
 

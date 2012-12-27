@@ -418,7 +418,7 @@ case class Bond(
     def irr(dc:DayCounter, accuracy:Double, maxIteration:Int):Option[Double] = yieldAnnual
     
     /*
-     * Yield value of a basis point The yield value of a one basis point change
+     * Yield value of a basis point. The yield value of a one basis point change
      * in price is the derivative of the yield with respect to the price
      */
     def yieldValueBasisPoint:Option[Double] = (dirtyPrice, modifiedDuration) match {
@@ -451,7 +451,7 @@ case class Bond(
 	}
 	
 	/*	
-	 * Returns modified duration defined as rate delta
+	 * Returns effective duration defined as 1bp rate delta * 10000
 	 */
 	def effectiveDuration:Option[Double] = rateDelta(-0.0001).collect{case d => d * 10000} // TO BE COMPUTED AS RATE DELTA
 	
@@ -558,7 +558,7 @@ case class Bond(
      * The convexity of a string of cash flows is defined as {@latex[ C = \frac{1}{P} \frac{\partial^2 P}{\partial y^2} } where
      * {@latex$ P } is the present value of the cash flows according to the given IRR {@latex$ y }.
      */
-    def convexity(comp:Compounding, freq:Frequency = Frequency.Annual):Option[Double] = (valueDate, discountCurve) match {
+    def formulaConvexity(comp:Compounding, freq:Frequency = Frequency.Annual):Option[Double] = (valueDate, discountCurve) match {
 	  case (Some(vd), Some(discount)) => 
 	    val currentRate:Double = if (comp == Compounding.Compounded) bondYield(comp, freq).getOrElse(Double.NaN) else 0.0
 	    if (currentRate.isNaN) return None
@@ -579,8 +579,17 @@ case class Bond(
 	    
 	  case _ => None
 	}
+    
+    def effectiveConvexity(shift:Double):Option[Double] = {
+      val durationlow = rateDelta(-shift)
+      val durationhigh = rateDelta(shift)
+      (durationlow, durationhigh) match {
+        case (Some(l), Some(h)) => Some((l + h) / shift / 10000)
+        case _ => None
+      }
+    }
 	
-	def convexity:Option[Double] = convexity(Compounding.Continuous, Frequency.Annual)
+	def convexity:Option[Double] = effectiveConvexity(0.0001)
 	
     /*
      * Remaining life in number of years

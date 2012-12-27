@@ -53,7 +53,8 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	 * Stores already calculated discount curves.
 	 * Assumption: for each key, value contains discount curve for both discount and pivot currency.
 	 */
-	var repository:Map[String, scala.collection.mutable.Map[String, DiscountCurve]] = Map.empty
+//	var repository:Map[String, scala.collection.mutable.Map[String, DiscountCurve]] = Map.empty
+	var repository = new scala.collection.mutable.WeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]]
 	
 	/**
 	 * Returns FX spot ccy1 / ccy2

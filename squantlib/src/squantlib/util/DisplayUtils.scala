@@ -27,10 +27,11 @@ object DisplayUtils {
 		trimAcc(s)
 	  }
 	}
-  
+	
 	implicit def doubleToExtendedDouble(d:Double) = ExtendedDouble(d)
 	case class ExtendedDouble(d:Double) {
 	  def asPercent:String = "%.4f".format(d * 100.0).trimZeros + "%"
+	  def asDouble:String = "%.4f".format(d).trimZeros
 	}
 	
 	implicit def doubleToExtendedDoubleOpt(d:Option[Double]) = ExtendedDoubleOpt(d)
@@ -55,5 +56,24 @@ object DisplayUtils {
 	case class ExtendedNode(node:JsonNode) {
 	  def textOr(t:String) = if (node == null) t else node.getTextValue
 	}
+	
+	def linearFormula(coeff:Option[Double], varname:String, constant:Option[Double]):String = {
+	  val coeffstr = coeff match {
+	    case None => ""
+	    case Some(c) if math.round(c * 1000000) == 1000000 => varname
+	    case Some(c) => c.asDouble + "*" + varname
+	  }
+	  
+	  val conststr = constant match {
+	    case None => ""
+	    case Some(c) if math.abs(math.round(c * 1000000)) < 1.0 => ""
+	    case Some(c) => c.asPercent
+	  }
+	  
+	  val addsign = if (coeffstr.isEmpty || conststr.isEmpty) "" else "+"
+	    
+	  (coeffstr + addsign + conststr).replace("+-", "-")
+	}
+  
 	
 }

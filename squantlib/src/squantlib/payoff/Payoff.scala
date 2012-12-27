@@ -46,7 +46,7 @@ trait Payoff{
 	
 	val jsonString:String
 }
-
+ 
 object Payoff {
   
 	def apply(formula:String):Payoff =
@@ -54,6 +54,9 @@ object Payoff {
 	    case "fixed" => FixedPayoff(formula)
 		case "leps1d" => LEPS1dPayoff(formula)
 		case "linear1d" => Linear1dPayoff(formula)
+		case "putdi" => PutDIPayoff(formula)
+		case "null" => NullPayoff(formula)
+	    case "binary" => BinaryPayoff(formula)
 		case _ => GeneralPayoff(formula).remodelize
 	  }
   
