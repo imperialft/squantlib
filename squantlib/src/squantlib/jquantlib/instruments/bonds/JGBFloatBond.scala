@@ -64,7 +64,7 @@ class JGBFloatBond(
 	implicit def qlDateToJavaDate(d:qlDate):JavaDate = d.longDate
 	
 	override def `yield`(dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxEvaluations:Int):Double =
-	  coupons.withFilter(_.isActive(settlementDate)).map(c => c.fixedrate).collect{case Some(r) => r}.sum
+	  coupons.withFilter(_.isActive(settlementDate)).map(c => c.fixedrate.collect{case v => v.toDouble}).collect{case Some(r) => r}.sum
 
     override def `yield`(dc:DayCounter, comp:Compounding, freq:Frequency):Double = `yield`(dc, comp, freq, 1.0e-8, 100)
     

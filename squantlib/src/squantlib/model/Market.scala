@@ -222,18 +222,20 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	
 	def getFixings(params:Set[String]):Map[String, Double] = params.map(p => (p, getFixing(p))).collect{case (n, Some(p)) => (n, p)}.toMap
 	
-	def getFixing(param:String):Option[Double] = param.trim match {
-	  case p if fixings contains p => Some(fixings(p))
-	  case "CMT10" => fixings.get("JGBY10Y")
-	  case p if p.size <= 3 => None
-	  case p => (p take 3, p substring 3) match {
-	    case (ccy, _) if !isCcy(ccy) => None
-	    case (ccy1, ccy2) if isCcy(ccy2) => fx(ccy1, ccy2)
-	    case (ccy, mat) if !isNumber(mat dropRight 1) => None
-	    case (ccy, mat) if cashPeriods contains (mat takeRight 1) => getCash(ccy, new qlPeriod(mat))
-	    case (ccy, mat) if swapPeriods contains (mat takeRight 1) => getSwap(ccy, new qlPeriod(mat))
-	    case _ => None
-	  }
+	def getFixing(param:String):Option[Double] = 
+	  if (param == null) None
+	  else param.trim match {
+	      case p if fixings contains p => Some(fixings(p))
+		  case "CMT10" => fixings.get("JGBY10Y")
+		  case p if p.size <= 3 => None
+		  case p => (p take 3, p substring 3) match {
+		    case (ccy, _) if !isCcy(ccy) => None
+		    case (ccy1, ccy2) if isCcy(ccy2) => fx(ccy1, ccy2)
+		    case (ccy, mat) if !isNumber(mat dropRight 1) => None
+		    case (ccy, mat) if cashPeriods contains (mat takeRight 1) => getCash(ccy, new qlPeriod(mat))
+		    case (ccy, mat) if swapPeriods contains (mat takeRight 1) => getSwap(ccy, new qlPeriod(mat))
+		    case _ => None
+		  }
 	}
 	
 	/**

@@ -105,6 +105,9 @@ object Payoffs {
 		  case "leps1dseries" => LEPS1dPayoffSeries(f) 
 		  case "linear1d" => List(Linear1dPayoff(f))
 		  case "linear1dseries" => Linear1dPayoffSeries(f)
+		  case "putdi" => List(PutDIPayoff(f))
+		  case "null" => List(NullPayoff(f))
+		  case "binary" => List(BinaryPayoff(f))
 		  case _ => List(GeneralPayoff(f).remodelize)
 		}
 	   }.flatten

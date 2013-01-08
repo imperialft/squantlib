@@ -1,6 +1,6 @@
 package squantlib.model.rates
 
-import squantlib.model.yieldparameter.YieldParameter
+import squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
 import squantlib.jquantlib.termstructures.ZCImpliedYieldTermStructure
 import squantlib.util.DateUtils
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
@@ -16,9 +16,7 @@ import java.lang.UnsupportedOperationException
  * value = discount factor, ZCspread = discount spread on 3m float rate (not defined on FX discount)
  */
 
-case class DiscountCurve(currency:Currency, zc : YieldParameter, discountspread : YieldParameter, fx:Double) extends YieldParameter {
-  
-	def this(c:Currency, v:YieldParameter, fx:Double) = this(c, v, null, fx)
+case class DiscountCurve(currency:Currency, zc:YieldParameter, discountspread:YieldParameter, fx:Double, vol:Option[RateVolatility]) extends YieldParameter {
   
   	def toZCImpliedYieldTermStructure = new ZCImpliedYieldTermStructure(this)
   	def toZCImpliedYieldTermStructure(calendar:Calendar) = new ZCImpliedYieldTermStructure(this, calendar)
@@ -60,6 +58,16 @@ case class DiscountCurve(currency:Currency, zc : YieldParameter, discountspread 
     def impliedRate(date:qlDate):Double = impliedRate(date.serialNumber - valuedate.serialNumber)
     def impliedRate(period:qlPeriod):Double = impliedRate(period.days(valuedate))
     
+    def forwardRate(expiry:Double, maturity:Double):Double = (impliedRate(expiry + maturity) * (expiry + maturity) - impliedRate(expiry) * (expiry)) / maturity
+    def forwardRate(expiry:Long, maturity:Long):Double = forwardRate(expiry.toDouble, maturity.toDouble)
+    def forwardRate(expiry:qlDate, maturity:qlDate):Double = forwardRate(expiry.serialNumber - valuedate.serialNumber, maturity.serialNumber - expiry.serialNumber)
+    def forwardRate(expiry:qlPeriod, maturity:qlPeriod):Double = forwardRate(expiry.days(valuedate), maturity.days(valuedate) - expiry.days(valuedate))
+    
+    def volatility(expiry:Double, maturity:Double):Option[Double] = vol.collect{case v => v(expiry, maturity)}
+    def volatility(expiry:Long, maturity:Long):Option[Double] = vol.collect{case v => v(expiry, maturity)}
+    def volatility(expiry:qlDate, maturity:qlDate):Option[Double] = vol.collect{case v => v(expiry, maturity)}
+    def volatility(expiry:qlPeriod, maturity:qlPeriod):Option[Double] = vol.collect{case v => v(expiry, maturity)}
+    
     def duration(maturity:qlPeriod, period:qlPeriod, daycount:DayCounter, convention:BusinessDayConvention):Double = 
       duration(valuedate.add(maturity), period, daycount, convention)
     
@@ -76,3 +84,8 @@ case class DiscountCurve(currency:Currency, zc : YieldParameter, discountspread 
   				 "ZC:\t" + zc.describe + sys.props("line.separator") 
 }
 
+object DiscountCurve {
+  
+  def apply(c:Currency, v:YieldParameter, fx:Double):DiscountCurve = DiscountCurve(c, v, null, fx, None)
+  
+}

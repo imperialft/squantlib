@@ -40,7 +40,9 @@ extends Payoff {
 	    case (v, Some(l), Some(h)) if fixing > l && fixing <= h => v
 	    case _ => 0.0}.sum
 	
-	override def toString = vertical.toList.sortBy(_._1.getOrElse(Double.MinValue)).reverse.map{
+	override def toString =
+	  if (payoff.isEmpty) description
+	  else vertical.toList.sortBy(_._1.getOrElse(Double.MinValue)).reverse.map{
 	      case (None, v) => v.asPercent
 	      case (Some(s), v) => v.asPercent + " [" + s.asDouble + "]"
 	    }.mkString(" ")

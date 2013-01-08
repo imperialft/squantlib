@@ -16,10 +16,10 @@ class Coupon(@Column("ID")				var id:String,
 			@Column("StartDate")		var startdate:Date,
 			@Column("EndDate")			var enddate:Date,
 			@Column("PaymentDate")		var paymentdate:Date,
-			@Column("FixedRate")		var fixedrate:Option[Double],
-			@Column("FixedAmount")		var fixedamount:Option[Double],
-			@Column("SpotRate")			var spotrate:Option[Double],
-			@Column("SpotAmount")		var spotamount:Option[Double],
+			@Column("FixedRate")		var fixedrate:Option[BigDecimal],
+			@Column("FixedAmount")		var fixedamount:Option[BigDecimal],
+			@Column("SpotRate")			var spotrate:Option[BigDecimal],
+			@Column("SpotAmount")		var spotamount:Option[BigDecimal],
 			@Column("JsonFormat")		var jsonformat:String,
 			@Column("Comment")			var comment:String,
 			@Column("Daycount")			var daycount:String,
@@ -57,7 +57,7 @@ class Coupon(@Column("ID")				var id:String,
       case None => None
       case Some(r) => {
         val dcf = Daycounters.getOrElse(daycount, new Actual365Fixed)
-        Some(r * dcf.yearFraction(new qlDate(startdate), new qlDate(valuedate)))
+        Some(r.toDouble * dcf.yearFraction(new qlDate(startdate), new qlDate(valuedate)))
       }
     }
   }

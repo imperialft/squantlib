@@ -15,7 +15,7 @@ import squantlib.setting.RateConvention
    * - no 3m-Xm basis for X < 6 (implied by ZC interpolation 3m & 6m)
    * - no 6m-Xm basis for X > 6 (implied by ZC interpolation 6m & 12m)
    */
-case class NDSDiscountCurve (nds:NDSCurve, pivotDiscount:DiscountCurve, pivotTenorBS:TenorBasisSwapCurve, fx:Double) 
+case class NDSDiscountCurve (nds:NDSCurve, pivotDiscount:DiscountCurve, pivotTenorBS:TenorBasisSwapCurve, fx:Double, vol:Option[RateVolatility]) 
 extends DiscountableCurve {
 
 	assert(nds.floatCurrency.code == "USD")
@@ -104,7 +104,7 @@ extends DiscountableCurve {
 		  val ZCvector = SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = SplineNoExtrapolation(valuedate, ZCspread, 2)
 		  
-		  new DiscountCurve(currency, ZCvector, ZCspdvector, fx)
+		  DiscountCurve(currency, ZCvector, ZCspdvector, fx, vol)
 	  }
 
 	  /** 
@@ -171,12 +171,12 @@ extends DiscountableCurve {
 		  val ZCvector = SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = SplineNoExtrapolation(valuedate, ZCspread, 2)
 		  
-		  new DiscountCurve(currency, ZCvector, ZCspdvector, fx)
+		  DiscountCurve(currency, ZCvector, ZCspdvector, fx, vol)
 	    
 	  }
 	  
-	  override def shiftRate(shift: (Double, Double) => Double):NDSDiscountCurve = NDSDiscountCurve(nds.shifted(shift), pivotDiscount, pivotTenorBS, fx)
-	  override def multFX(v: Double):NDSDiscountCurve = NDSDiscountCurve(nds, pivotDiscount, pivotTenorBS, fx * v)
+	  override def shiftRate(shift: (Double, Double) => Double):NDSDiscountCurve = NDSDiscountCurve(nds.shifted(shift), pivotDiscount, pivotTenorBS, fx, null)
+	  override def multFX(v: Double):NDSDiscountCurve = NDSDiscountCurve(nds, pivotDiscount, pivotTenorBS, fx * v, null)
   
 }
 
@@ -208,12 +208,11 @@ object NDSDiscountCurve {
   	      if (r.maturity == null || r.maturity.trim.isEmpty) (null, r.value)
   	      else (new qlPeriod(r.maturity.trim), r.value)
   	    }).toMap))
-  	    
   	  
   	  nonemptyinstruments.map{ case (ccy, values) => 
   		  val ndscurve = NDSCurve(valuedate, ccy, values(ndsKey)).orNull
   		  val fxvalue = values(fxKey).head._2
-  		  NDSDiscountCurve(ndscurve, pivotDiscount, pivotTenorBS, fxvalue)
+  		  NDSDiscountCurve(ndscurve, pivotDiscount, pivotTenorBS, fxvalue, None)
   	  	}.toSet
   	}
   

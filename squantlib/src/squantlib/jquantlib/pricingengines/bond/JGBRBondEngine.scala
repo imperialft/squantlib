@@ -16,7 +16,7 @@ class JGBRBondEngine(val valuationDate:qlDate) extends Bond.EngineImpl {
 	        val vd = valuationDate.longDate
 	        val (currentcpns, lastcpns) = DB.getCurrentAndPreviousCoupons(a.bondid, vd, 2)
 	        val accrued = currentcpns.map(_.accruedCoupon(vd).getOrElse(Double.NaN)).sum
-	        val previous = lastcpns.map(_.fixedamount.getOrElse(Double.NaN)).sum
+	        val previous = lastcpns.map(_.fixedamount.collect{case v => v.toDouble}.getOrElse(Double.NaN)).sum
 	        storedprice = Some((1 + accrued - previous)*100)
 	        storedprice.get
 	    }

@@ -74,12 +74,12 @@ case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
 		   * ZCspread vector is spline interpolation with no extrapolation and with 2 additional points
 		   */
 		  val ZCvector = SplineEExtrapolation(valuedate, ZC, 1)
-		  new DiscountCurve(currency, ZCvector, fx)
+		  DiscountCurve(currency, ZCvector, fx)
 	    
 	  }
 	  
-	  def shiftRate(shift:(Double, Double) => Double):FXDiscountCurve = new FXDiscountCurve(swappoint.shifted(shift), fx)
-	  def multFX(mult:Double):FXDiscountCurve= new FXDiscountCurve(swappoint, fx * mult)
+	  def shiftRate(shift:(Double, Double) => Double):FXDiscountCurve = FXDiscountCurve(swappoint.shifted(shift), fx)
+	  def multFX(mult:Double):FXDiscountCurve= FXDiscountCurve(swappoint, fx * mult)
   
 }
 

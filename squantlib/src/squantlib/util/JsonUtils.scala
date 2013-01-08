@@ -30,8 +30,13 @@ object JsonUtils {
 	case class JsonString(formula:String) {
 	  
 	  val mapper = new ObjectMapper
+	  
 	  def jsonNode:Option[JsonNode] = try { Some(mapper.readTree(formula)) } catch { case _ => None }
-	  def jsonNode(name:String):Option[JsonNode] = try { Some(mapper.readTree(formula).get(name)) } catch { case _ => None }
+	  
+	  def jsonNode(name:String):Option[JsonNode] = try { 
+	    val node = mapper.readTree(formula).get(name)
+	    if (node == null) None else Some(node)
+	    } catch { case _ => None }
 	  
 	  def parseJsonDouble:Option[Double] = 
 	    try { mapper.readTree(formula).parseJsonDouble }

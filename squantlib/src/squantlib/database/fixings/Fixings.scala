@@ -23,18 +23,20 @@ object Fixings {
 	    }
 	  }
 	  
-	def getHistorical(param:String):Option[Map[qlDate, Double]] = (param.trim match {
-	  case "CMT10" => Some(DB.getRateFXParams("Fixing", "JGBY", "10Y"))
-	  case p if p.size <= 3 => None
-	  case p => (p take 3, p substring 3) match {
-	    case (ccy, _) if !isCcy(ccy) => None
-	    case (ccy1, "JPY") => Some(DB.getFXParams(ccy1))
-	    case ("JPY", ccy2) if isCcy(ccy2) => Some(DB.getFXParams(ccy2).collect{case (d, n) => (d, 1.0 / n)})
-	    case (ccy1, ccy2) if isCcy(ccy2) => Some(DB.getFXParams(ccy1, ccy2))
-	    case (ccy, mat) if !isNumber(mat dropRight 1) => None
-	    case (ccy, mat) if cashPeriods contains (mat takeRight 1) => Some(DB.getRateFXParams("Cash", ccy, mat))
-	    case (ccy, mat) if swapPeriods contains (mat takeRight 1) => Some(DB.getRateFXParams("Swap", ccy, mat))
-	    case _ => None
+	def getHistorical(param:String):Option[Map[qlDate, Double]] = 
+	  if (param == null) None
+	  else (param.trim match {
+	    case "CMT10" => Some(DB.getRateFXParams("Fixing", "JGBY", "10Y"))
+	    case p if p.size <= 3 => None
+	    case p => (p take 3, p substring 3) match {
+	      case (ccy, _) if !isCcy(ccy) => None
+	      case (ccy1, "JPY") => Some(DB.getFXParams(ccy1))
+	      case ("JPY", ccy2) if isCcy(ccy2) => Some(DB.getFXParams(ccy2).collect{case (d, n) => (d, 1.0 / n)})
+	      case (ccy1, ccy2) if isCcy(ccy2) => Some(DB.getFXParams(ccy1, ccy2))
+	      case (ccy, mat) if !isNumber(mat dropRight 1) => None
+	      case (ccy, mat) if cashPeriods contains (mat takeRight 1) => Some(DB.getRateFXParams("Cash", ccy, mat))
+	      case (ccy, mat) if swapPeriods contains (mat takeRight 1) => Some(DB.getRateFXParams("Swap", ccy, mat))
+	      case _ => None
 	  }
 	}).collect{case m:Map[JavaDate, Double] => m.map{case (d, v) => (new qlDate(d), v)}}
  	  

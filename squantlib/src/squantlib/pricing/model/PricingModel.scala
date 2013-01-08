@@ -13,6 +13,8 @@ trait PricingModel {
   val periods:List[CalcPeriod]
 	
   val payoff:List[Payoff]
+  
+  val optionValue:Option[Double] = None
 		
   def schedule:Schedule = Schedule(periods)	
 	

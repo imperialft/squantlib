@@ -15,7 +15,7 @@ import squantlib.setting.RateConvention
    * - no 3m-Xm basis for X < 6 (implied by ZC interpolation 3m & 6m)
    * - no 6m-Xm basis for X > 6 (implied by ZC interpolation 6m & 12m)
    */
-case class LiborDiscountCurve (cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, fx : Double) 
+case class LiborDiscountCurve (cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, fx:Double, vol:Option[RateVolatility]) 
 extends RateCurve{
   require (
 		(cash == null || (cash.valuedate == swap.valuedate && cash.currency == swap.currency && cash.floatindex.dayCounter == swap.floatindex.dayCounter))
@@ -127,7 +127,7 @@ extends RateCurve{
 		  val ZCvector = SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = SplineNoExtrapolation(valuedate, ZCspread, 2)
 		  
-		  new DiscountCurve(currency, ZCvector, ZCspdvector, fx)
+		  DiscountCurve(currency, ZCvector, ZCspdvector, fx, vol)
 	  }
 
 	  /** 
@@ -211,14 +211,12 @@ extends RateCurve{
 		  val ZCvector = SplineEExtrapolation(valuedate, ZC, 1)
 		  val ZCspdvector = SplineNoExtrapolation(valuedate, ZCspread, 2)
 		  
-		  new DiscountCurve(currency, ZCvector, ZCspdvector, fx)
+		  DiscountCurve(currency, ZCvector, ZCspdvector, fx, vol)
 	    
 	  }
 	  
-	  override def shiftRate(shift: (Double, Double) => Double):LiborDiscountCurve = new LiborDiscountCurve(cash.shifted(shift), swap.shifted(shift), basis, tenorbasis, fx)
-	  override def multFX(v: Double):LiborDiscountCurve = new LiborDiscountCurve(cash, swap, basis, tenorbasis, fx * v)
-  
-	  def this(cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve) = this(cash, swap, basis, tenorbasis, 0.0)
+	  override def shiftRate(shift: (Double, Double) => Double):LiborDiscountCurve = LiborDiscountCurve(cash.shifted(shift), swap.shifted(shift), basis, tenorbasis, fx, vol)
+	  override def multFX(v: Double):LiborDiscountCurve = LiborDiscountCurve(cash, swap, basis, tenorbasis, fx * v, vol)
 
 }
 
@@ -232,6 +230,7 @@ object LiborDiscountCurve {
 	val basisKey = "BasisSwap"
 	val basis36Key = "BS3M6M"
 	val fxKey = "FX"
+	val swaptionKey = "Swaption"
 
 	/**
 	 * Constructs LiborDiscountCurve from InputParameter per each combination of currency & paramset.
@@ -264,12 +263,26 @@ object LiborDiscountCurve {
   		  
   		  val basis36curve = if (values contains basis36Key) TenorBasisSwapCurve(valuedate, ccy, values(basis36Key)).orNull else null
   		  
+  		  val swaptionCurve = {
+  		    if (values.keySet.exists(_ startsWith swaptionKey)) {
+  		      val swaptionpts = values.filterKeys(_ startsWith swaptionKey).map{
+  		        case (mat, vec) => {
+  		          val matperiod = new qlPeriod(mat.replace(swaptionKey, "").trim)
+  		          vec.map{ case (k, v) => ((k, matperiod), v)}
+  		      }}.flatten.toMap
+  		      Some(RateVolatility(valuedate, swaptionpts))
+  		    }
+  		    else None
+  		  }
+  		  
   		  val fxvalue = values(fxKey).head._2
   		  
-  		  LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, fxvalue)
+  		  LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, fxvalue, swaptionCurve)
   		  
   	  	}.toSet
   	}
-  
+	
+	def apply(cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, vol:Option[RateVolatility]):Set[LiborDiscountCurve] = 
+	  Set(LiborDiscountCurve(cash, swap, basis, tenorbasis, 0.0, vol))  
 } 
 

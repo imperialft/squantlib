@@ -17,6 +17,7 @@ import org.codehaus.jackson.node.{JsonNodeFactory, ObjectNode, ArrayNode}
 import org.codehaus.jackson.map.ObjectMapper
 import scala.collection.JavaConversions._
 import scala.collection.mutable.{Set => mutableSet}
+import java.math.{MathContext => JMC, RoundingMode}
 
 /**
  * Bond class with enclosed risk analysis functions.
@@ -219,9 +220,13 @@ case class Bond(
 	    livePayoffLegs.map{case (d, p) => (d, market match { case Some(mkt) => p.spotCoupon(mkt) case None => Double.NaN})}
 	  )
 	  
+	def spotFixedRates(vd:qlDate):List[(CalcPeriod, Double)] = spotFixedRates.filter{case (p, d) => (p.paymentDate gt vd)}
+	  
 	def spotFixedAmount:List[(CalcPeriod, Double)] = cpncache.getOrElseUpdate("SPOTFIXEDAMOUNT",
 	    spotFixedRates.map{case (d, p) => (d, p * d.dayCount)}
 	  )
+	  
+	def spotFixedAmount(vd:qlDate):List[(CalcPeriod, Double)] = spotFixedAmount.filter{case (p, d) => (p.paymentDate gt vd)}
 	  
 	def spotFixedRatesAll:List[(CalcPeriod, Double)] = cpncache.getOrElseUpdate("SPOTFIXEDRATESALL",
 	    allPayoffLegs.map{case (d, p) => (d, market match { case Some(mkt) => p.spotCoupon(mkt) case None => Double.NaN})}
@@ -259,15 +264,21 @@ case class Bond(
 	  case _ => None
 	}
 	
+//	def modelPrice:Option[Double] = priceLegs.collect{case legs => legs.sum}
+	
+	def europeanPrice:Option[Double] = model.flatMap(m => 
+	  if (m.isPricedByLegs) priceLegs.collect{case legs => legs.sum}
+	  else m.discountedPrice(discountCurve)
+	  )
+	  
+	def optionPrice:Option[Double] = model.flatMap{case m => m.optionValue}
+	
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
 	 */
-	def dirtyPrice:Option[Double] = model.flatMap(m => 
-	  if (m.isPricedByLegs) modelPrice
-	  else m.discountedPrice(discountCurve)
-	  )
-	
-	def modelPrice:Option[Double] = priceLegs.collect{case legs => legs.sum}
+	def dirtyPrice:Option[Double] = europeanPrice.collect{
+	  case p => p + optionPrice.getOrElse(0.0)
+	}
 	  
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)
@@ -331,7 +342,29 @@ case class Bond(
 	/* 
 	 * Returns rate at which the MtM of the bond is target price.
 	 */
-    def getYield(target:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = valueDate.flatMap{ case vd =>
+//    def getYield(target:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = valueDate.flatMap{ case vd =>
+//      if (comp == Compounding.None) return None
+//	  
+//	  val paylegs:List[(Double, Double)] = spotFixedRates.map{case (d, r) => (dc.yearFraction(vd, d.paymentDate), r * d.dayCount)}
+//	  if (paylegs.exists(_._2.isNaN)) return None
+//	    
+//	  def priceFromYield(y:Double):Double = {
+//	    def zc(d:Double) = comp match {
+//	      case Compounding.Simple => 1.0 / (1.0 + y * d)
+//	      case Compounding.Compounded | Compounding.SimpleThenCompounded => {val fr = freq.toInteger.toDouble; 1.0 / math.pow(1.0 + y / fr, fr * d)}
+//	      case Compounding.Continuous => math.exp(-y * d)
+//	      } 
+//	      paylegs.map{case (d, v) => v * zc(d)}.sum
+//	    }
+//	    
+//	    val priceformula = (y:Double) => (priceFromYield(y) - target)
+//	    NewtonRaphson.solve(priceformula, 0.03, accuracy, 0.01, maxIteration)
+//	  }
+	
+    def getYield(target:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = 
+      valueDate.flatMap{ case vd => getYield(target, dc, comp, freq, accuracy, maxIteration, vd) }
+    
+    def getYield(target:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = {
       if (comp == Compounding.None) return None
 	  
 	  val paylegs:List[(Double, Double)] = spotFixedRates.map{case (d, r) => (dc.yearFraction(vd, d.paymentDate), r * d.dayCount)}
@@ -349,6 +382,8 @@ case class Bond(
 	    val priceformula = (y:Double) => (priceFromYield(y) - target)
 	    NewtonRaphson.solve(priceformula, 0.03, accuracy, 0.01, maxIteration)
 	  }
+    
+    
 	
 	/*	
 	 * Returns bond yield.
@@ -394,6 +429,8 @@ case class Bond(
 	 * 		"Continuous" => 
 	 */
 	def parMtMYield:Option[Double] = getYield(1.0, new Actual365Fixed, Compounding.Continuous, null, 0.00001, 20)
+	
+	def nextRateStrike:Option[Double] = nextPayment.flatMap{ case (d, _) => getYield(1.0, new Actual365Fixed, Compounding.Continuous, null, 0.00001, 20, d) }
 	
 	/*	Returns FX at which JPY dirty bond price becomes 100% (if any)
 	 */
@@ -648,6 +685,8 @@ case class Bond(
 	  case _ => None
 	} 
 	
+	val defaultMathContext = new JMC(34, RoundingMode.HALF_UP)
+	
 	def toCoupons:Set[dbCoupon] = {
 	  val pos = allPayoffLegs
 	  val spot:List[Double] = spotFixedRatesAll.unzip._2
@@ -669,10 +708,10 @@ case class Bond(
 	          startdate = s.startDate.longDate,
 	          enddate = s.endDate.longDate,
 	          paymentdate = s.paymentDate.longDate,
-	          fixedrate = fixedrate,
-	          fixedamount = fixedamount,
-		      spotrate = spotrate,
-		      spotamount = spotamount,
+	          fixedrate = fixedrate.collect{case v => BigDecimal(v, defaultMathContext)},
+	          fixedamount = fixedamount.collect{case v => BigDecimal(v, defaultMathContext)},
+		      spotrate = spotrate.collect{case v => BigDecimal(v, defaultMathContext)},
+		      spotamount = spotamount.collect{case v => BigDecimal(v, defaultMathContext)},
 	          jsonformat = payoffs(i).jsonString,
 	          comment = p.description,
 	          daycount = s.daycounter.toString,
@@ -816,7 +855,7 @@ object Bond {
 		val coupon:Payoffs = if (db.coupon == null || db.coupon.isEmpty) null
 			else Payoffs(db.coupon, schedule.size - 1)
 			
-		if (db.redemprice.isEmpty) {return None}
+		if (db.redemprice == null || db.redemprice.isEmpty) {return None}
 		val redemption:Payoff = Payoff(db.redemprice)
 		
 		if (coupon == null) {return None}
