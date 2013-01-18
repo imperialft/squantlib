@@ -26,8 +26,6 @@ case class OneTimeSwaptionModel(ipayoffs:Payoffs, ischedule:Schedule, valueDate:
 	
 	override val optionValue:Option[Double] = Some(-swaptionPrice)
 	
-	var mcPaths:Int = 0
-	
 	val periods:List[CalcPeriod] = ischedule.toList
 	
 	val payoff:List[Payoff] = ipayoffs.toList
@@ -49,7 +47,7 @@ object OneTimeSwaptionModel {
 	  val curve = bond.discountCurve.orNull
 	  if (curve == null) {return None}
 	  
-	  val strike = bond.nextRateStrike.getOrElse(Double.NaN)
+	  val strike = bond.nextRateFrontier.getOrElse(Double.NaN)
 	  if (strike isNaN) {return None}
 	  
 	  Some(OneTimeSwaptionModel(payoffs, schedule, market.valuedate, nextPayment, maturity, strike, curve))

@@ -55,9 +55,11 @@ object Payoff {
 		case "leps1d" => LEPS1dPayoff(formula)
 		case "linear1d" => Linear1dPayoff(formula)
 		case "putdi" => PutDIPayoff(formula)
+		case "forward" => ForwardPayoff(formula)
 		case "null" => NullPayoff(formula)
 	    case "binary" => BinaryPayoff(formula)
-		case _ => GeneralPayoff(formula).remodelize
+	    case "general" => GeneralPayoff(formula)
+		case _ => GeneralPayoff(formula)
 	  }
   
 	def payoffType(formula:String):String = formula match {

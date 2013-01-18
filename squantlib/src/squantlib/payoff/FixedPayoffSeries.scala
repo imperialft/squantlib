@@ -12,9 +12,9 @@ import squantlib.util.JsonUtils._
 object FixedPayoffSeries {
   
 	def apply(formula:String):List[FixedPayoff] = formula.jsonNode match {
-	    case Some(n) if n.isObject => n.get("payoff").getElements.map(e => FixedPayoff(e.parseJsonDouble.getOrElse(Double.NaN))).toList
-		case Some(n) if n.isArray => n.getElements.map(e => FixedPayoff(e.parseJsonDouble.getOrElse(Double.NaN))).toList
-		case Some(n) if n.isNumber => List(FixedPayoff(n.parseJsonDouble.getOrElse(Double.NaN)))
+	    case Some(n) if n isObject => n.get("payoff").getElements.map(e => FixedPayoff(e.parseJsonDouble.getOrElse(Double.NaN))).toList
+		case Some(n) if n isArray => n.getElements.map(e => FixedPayoff(e.parseJsonDouble.getOrElse(Double.NaN))).toList
+		case Some(n) if n isNumber => List(FixedPayoff(n.parseJsonDouble.getOrElse(Double.NaN)))
 		case _ => List.empty
 	  }
 	

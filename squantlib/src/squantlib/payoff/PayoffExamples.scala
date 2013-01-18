@@ -87,20 +87,20 @@ object PayoffExamples {
       
       val binary = Payoff("""
 	    {"type" : "binary", 
-	    "variable" : "usdjpy", 
+	    "variable" : ["usdjpy", "NKY"], 
 	    "description" : "Binary Payoff", 
 	    "payoff" : [
 			{"amount" : "0.01%"}, 
-			{"strike" : 60, "amount" : "1.5%"}, 
-			{"strike" : 75, "amount" : "3%"}, 
-			{"strike" : 100, "amount" : "10%"}
+			{"strike" : [60, 7000], "amount" : "1.5%"}, 
+			{"strike" : [75, 10000], "amount" : "3%"}, 
+			{"strike" : [100, 5000], "amount" : "10%"}
 	    ]}""")
       
       val putdi = Payoff("""
 	    {"type" : "putdi", 
-	    "variable" : "usdjpy", 
-	    "trigger" : 70, 
-	    "strike" : 110, 
+	    "variable" : ["usdjpy", "NKY"], 
+	    "trigger" : [70, 7000], 
+	    "strike" : [100, 10000], 
 	    "description" : "Put Down&In"
 	    }""")
 

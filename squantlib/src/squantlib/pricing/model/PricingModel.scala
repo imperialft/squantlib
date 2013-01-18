@@ -20,6 +20,8 @@ trait PricingModel {
 	
   def payoffs:Payoffs = Payoffs(payoff)
 
+  var mcPaths:Int = 100000
+
   protected def price:List[Double]
 
   def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
@@ -45,6 +47,7 @@ trait PricingModel {
 	
   def discountedPrice(curve:Option[DiscountCurve]):Option[Double] = Some(discountedPriceLegs(curve).sum)
   
+  def calibrate:PricingModel = this
 }
 
 

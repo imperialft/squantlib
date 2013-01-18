@@ -59,6 +59,8 @@ class Schedule(val dates:List[CalcPeriod]) extends LinearSeq[CalcPeriod] {
     def coefficient(i:Int, curve:DiscountCurve):Double = dayCount(i) * zeroCoupon(i, curve)
     def coefficients(curve:DiscountCurve):List[Double] = (dayCounts, zeroCoupons(curve)).zipped.map(_ * _)
     
+    def shifted(shift:Int):Schedule = new Schedule(dates.map(d => d.shifted(shift)))
+    
     override def toList:List[CalcPeriod] = dates
     
     override def toString = "eventdate startdate enddate paymentdate\n" + dates.mkString("\n")
@@ -69,7 +71,7 @@ object Schedule{
 	
 	def empty:Schedule = new Schedule(List.empty)
   
-	def apply(inputDates:List[CalcPeriod]) = new Schedule(inputDates)
+	def apply(inputDates:List[CalcPeriod]):Schedule = new Schedule(inputDates)
 	
 	def apply(
 	    effectiveDate:Date,
@@ -86,7 +88,7 @@ object Schedule{
 		firstDate:Option[Date],
 		nextToLastDate:Option[Date],
 		addRedemption:Boolean,
-		maturityNotice:Int) = {
+		maturityNotice:Int):Schedule = {
 	  
 		assert(firstDate.isEmpty || firstDate.get.gt(effectiveDate))
 		assert(nextToLastDate.isEmpty || nextToLastDate.get.lt(terminationDate))
@@ -100,7 +102,9 @@ object Schedule{
 	      if(addRedemption) List(CalcPeriod(effectiveDate, terminationDate, maturityNotice, true, new Absolute, calendar, terminationDateConvention))
 	      else List.empty
 	    
-	    val couponLegs:List[CalcPeriod] = (rule match {
+	    if (tenor.length == 0) {return null}
+	      
+	    val couponLegs:List[CalcPeriod] = rule match {
 		  
 		  case Zero => List(calcperiod(effectiveDate, terminationDate))
 	
@@ -151,7 +155,7 @@ object Schedule{
 	      case _ => 
 	        println("Unknown schedule rule")
 	        List.empty
-	    })
+	    }
 	    
 	    new Schedule(couponLegs ++ redemptionLegs)
 	}
@@ -180,6 +184,8 @@ case class CalcPeriod(eventDate:Date, startDate:Date, endDate:Date, paymentDate:
         case d:Absolute => true
         case _ => false
       }
+	
+	def shifted(shift:Int):CalcPeriod = CalcPeriod(eventDate.add(shift), startDate.add(shift), endDate.add(shift), paymentDate.add(shift), daycounter)
   
 	override def toString = eventDate.shortDate.toString + " " + startDate.shortDate.toString + " " + endDate.shortDate.toString + " " + paymentDate.shortDate.toString + " " + daycounter.toString
 }
@@ -187,6 +193,7 @@ case class CalcPeriod(eventDate:Date, startDate:Date, endDate:Date, paymentDate:
 object CalcPeriod {
   
 	def apply(startDate:Date, endDate:Date, notice:Int, inarrears:Boolean, daycount:DayCounter, calendar:Calendar, paymentConvention:BusinessDayConvention):CalcPeriod = {
+	  
 	  val eventDate = if (inarrears) calendar.advance(endDate, -notice, TimeUnit.Days)
 			  		else calendar.advance(startDate, -notice, TimeUnit.Days)
 			  		  

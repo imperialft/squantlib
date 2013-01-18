@@ -14,40 +14,36 @@ import java.util.{Map => JavaMap}
  *  {type:"putdi", variable:[String], trigger:[Double], strike:[Double], description:String}, 
  * No strike is considered as no low boundary
  */
-case class PutDIPayoff(putVariables:List[String], trigger:List[Double], strike:List[Double], description:String = null) 
+case class ForwardPayoff(fwdVariables:List[String], strike:List[Double], description:String = null) 
 extends Payoff {
   
-	val variables = putVariables.toSet
+	val variables = fwdVariables.toSet
   
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
-	    Some((0 to putVariables.size - 1).toList.map(i => fixings(putVariables(i))))
+	    Some((0 to fwdVariables.size - 1).toList.map(i => fixings(fwdVariables(i))))
 	  else None
 	    
 	override def price(fixings:Map[String, Double]) = 
 	  getFixings(fixings) match {
 	    case None => Double.NaN
-	    case Some(fixValues) => 
-	      if (fixValues.corresponds(trigger) {_ >= _}) 1.0
-	      else (fixValues, strike).zipped.map((v, k) => v/k).min
+	    case Some(fixValues) => (fixValues, strike).zipped.map((v, k) => v/k).min
 	  }
 	  
 	override def price(fixing:Double)(implicit d:DummyImplicit) =
 	  if (variables.size != 1) Double.NaN
-	  else if (fixing >= trigger.head) 1.0
 	  else fixing / strike.head
 	
 	override def toString =
-	  "100% [" + trigger.mkString(",") + "] Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "]"
+	  "Min{[" + variables.mkString(",") + "] / [" + strike.mkString(",") + "]}"
 	
 	override def price = Double.NaN
 	
 	override val jsonString = {
 	  
 	  val infoMap:JavaMap[String, Any] = Map(
-	      "type" -> "putdi", 
-	      "variable" -> putVariables.toArray, 
-	      "trigger" -> trigger.toArray, 
+	      "type" -> "forward", 
+	      "variable" -> fwdVariables.toArray, 
 	      "strike" -> strike.toArray, 
 	      "description" -> description)
 	  
@@ -56,20 +52,16 @@ extends Payoff {
 	
 }
 
-object PutDIPayoff {
+object ForwardPayoff {
   
-	def apply(node:String):PutDIPayoff = {
+	def apply(node:String):ForwardPayoff = {
+	  
 	  val variable:List[String] = node.jsonNode("variable") match {
 	    case Some(n) if n isArray => n.map(s => s.asText).toList
 	    case Some(n) if n isTextual => List(n.asText)
 	    case _ => List.empty
 	  }
 	  
-	  val trigger:List[Double] = node.jsonNode("trigger") match {
-	    case Some(n) if n isArray => n.map(s => s.parseJsonDouble.getOrElse(Double.NaN)).toList
-	    case Some(n) if n isDouble => List(n.parseJsonDouble.getOrElse(Double.NaN))
-	    case _ => List.empty
-	  }
 
 	  val strike:List[Double] = node.jsonNode("strike") match {
 	    case Some(n) if n isArray => n.map(s => s.parseJsonDouble.getOrElse(Double.NaN)).toList
@@ -78,7 +70,7 @@ object PutDIPayoff {
 	  }
 	  
 	  val description:String = node.parseJsonString("description")
-	  PutDIPayoff(variable, trigger, strike, description)
+	  ForwardPayoff(variable, strike, description)
 	}
   
 }

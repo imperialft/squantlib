@@ -14,7 +14,6 @@ import org.apache.commons.math3.analysis.function.{Log, Exp}
  * @param number of extra points (optional)
  */
 case class Microsphere3D(var valuedate:qlDate, values:Map[(Double, Double), Double]) extends YieldParameter3D {
-	require(values.size >= 3, "spline requires at least 3 point : found " + values.size)
 	
 	def minValue = values.values.min
 	def maxValue = values.values.max

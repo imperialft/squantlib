@@ -14,6 +14,8 @@ object Fixings {
   
 	def apply(id:String):Option[Map[qlDate, Double]] = fixingcache.getOrElseUpdate(id, getHistorical(id))
 	
+	def byDate(id:String, vd:JavaDate):Option[(qlDate, Double)] = byDate(id, new qlDate(vd))
+	
 	def byDate(id:String, vd:qlDate):Option[(qlDate, Double)] = 
 	  if (vd gt latestParamDate) None 
 	  else apply(id).flatMap{

@@ -3,7 +3,7 @@ package squantlib.database
 import squantlib.database.schemadefinitions.{ Bond => dbBond, CDSParameter, BondPrice, RateFXParameter}
 import squantlib.model.rates._
 import squantlib.model.Market
-import squantlib.database.objectconstructor.BondPrice
+//import squantlib.database.objectconstructor.BondPrice
 import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.termstructures.YieldTermStructure
 import org.jquantlib.time.{Date => qlDate, TimeSeries}
@@ -35,23 +35,23 @@ object QLConstructors {
 	  def toSortedMap = SortedMap(ts.mapValues(d => d.doubleValue).toSeq:_*)
 	}
 	
-	implicit def Bond2RichBond(bond:qlBond) = new RichBond(bond)
-	class RichBond(val bond:qlBond){
-	  def bondprice(factory:Market) = BondPrice(bond, factory)
-	  def bondprice(valuedate:qlDate, factory:Market) = BondPrice(bond, factory)
-	  def bondprice(valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure):BondPrice 
-			= BondPrice(bond, valuedate, fx, paramset, termstructure)
-			
-	  def isPriceable:Boolean = {
-	    val estream = new java.io.PrintStream(new java.io.OutputStream{
-	    	override def write(b:Int) = {}})
-	    val err = System.err
-	    System.setErr(estream)
-	    val result = try { val p = bond.dirtyPrice; !p.isNaN } catch { case _ => false }
-	    System.setErr(err)
-	    result
-	  }
-	}
+//	implicit def Bond2RichBond(bond:qlBond) = new RichBond(bond)
+//	class RichBond(val bond:qlBond){
+//	  def bondprice(factory:Market) = BondPrice(bond, factory)
+//	  def bondprice(valuedate:qlDate, factory:Market) = BondPrice(bond, factory)
+//	  def bondprice(valuedate:qlDate, fx:Double, paramset:String, termstructure:YieldTermStructure):BondPrice 
+//			= BondPrice(bond, valuedate, fx, paramset, termstructure)
+//			
+//	  def isPriceable:Boolean = {
+//	    val estream = new java.io.PrintStream(new java.io.OutputStream{
+//	    	override def write(b:Int) = {}})
+//	    val err = System.err
+//	    System.setErr(estream)
+//	    val result = try { val p = bond.dirtyPrice; !p.isNaN } catch { case _ => false }
+//	    System.setErr(err)
+//	    result
+//	  }
+//	}
 	
 	
 }

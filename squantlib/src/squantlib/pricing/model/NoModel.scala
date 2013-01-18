@@ -14,8 +14,6 @@ case class NoModel(ipayoffs:Payoffs, ischedule:Schedule) extends PricingModel {
 	
 	def price:List[Double] = ipayoffs.price
 	
-	var mcPaths:Int = 0
-	
 	val periods:List[CalcPeriod] = ischedule.toList
 	
 	val payoff:List[Payoff] = ipayoffs.toList

@@ -32,6 +32,4 @@ trait DiscountableCurve {
   def getZC(discountrate:RateCurve, discountcurve:DiscountCurve) : DiscountCurve
   
   override def toString():String 
-//  def describe:String
-//  def convention:String
 }

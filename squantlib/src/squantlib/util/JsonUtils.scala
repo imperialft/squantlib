@@ -12,13 +12,15 @@ object JsonUtils {
 	  
 	  def parseJsonDouble:Option[Double] = node match {
 	    case n if n.isNumber => Some(n.getDoubleValue)
-		case n if n.getTextValue.trim.endsWith("%") => 
+		case n if n.getTextValue != null && n.getTextValue.trim.endsWith("%") => 
 		  try {Some(n.getTextValue.trim.dropRight(1).toDouble / 100)} 
 		  catch { case e:Exception => println(e.getMessage) ; None}
-		case _ => None
+		case n => FormulaParser.calculate(n.getTextValue)
 	  }
 	  
 	  def parseJsonDouble(name:String):Option[Double] = if (node has name) node.get(name).parseJsonDouble else None
+	  
+	  def parseJsonString:String = node.getTextValue
 	  
 	  def parseJsonString(name:String):String = if (node has name) node.get(name).getTextValue else null
 	    
@@ -51,7 +53,8 @@ object JsonUtils {
 	  	catch { case _ => null }
 	  	
 	}
-  
+	
+
 } 
 
 

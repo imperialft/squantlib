@@ -44,28 +44,45 @@ case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[
 	    ((if (variables.size > 0) variables.mkString("*") + "*" + coeff.toDouble else coeff.asPercent) )}.mkString("+").replace("+-", "+")
 
 	
-	def remodelize:Payoff = 
-	  variables.size match {
-	    case 0 => FixedPayoff(constant)
-	    case 1 => {
-	      val variable = variables.head
-	      Linear1dPayoff(variable, Some(leverage(variable)), Some(constant), floor, cap)
-	    }
-	    case _ => this
-	  }
-	
-	override val jsonString = 
-	  formula.map{case (variables, coeff) => 
+	override val jsonString = formula.map{
+	  case (variables, coeff) => 
 	    ((if (variables.size > 0) variables.mkString("*") + "*" + coeff else coeff) )}.mkString("+").replace("+-", "+")
 	
 }
 
+import scala.collection.JavaConversions._
 
 object GeneralPayoff {
   
-	def apply(formula:String):GeneralPayoff = {
+	def apply(inputstring:String):Payoff = {
+
+	  val formula = if (inputstring.startsWith("{") && inputstring.parseJsonString("type") == "general") {
+	    var f = inputstring.parseJsonString("payoff") match { case null => ""; case n => n}
+	    inputstring.jsonNode match {
+	      case Some(node) => 
+	        val fieldnames = node.getFieldNames.filter(n => !List("type", "description", "payoff", "variable").contains(n))
+	        fieldnames.foreach(n => f = f.replace(n, node.get(n).parseJsonDouble.getOrElse(Double.NaN).toString))
+	      case None => {}
+	    }
+	    f
+	  } else inputstring
+	  
+	  val description =  if (inputstring.startsWith("{")) inputstring.parseJsonString("description") else null
+	  
 	  val (parsedformula, floor, cap) = FormulaParser.parse(formula)
-	  GeneralPayoff(parsedformula, floor, cap)
+	  
+	  val variables = parsedformula.keySet.flatten
+	  val constant = parsedformula.getOrElse(Set.empty, 0.0)
+	  
+	  variables.size match {
+	    case 0 => FixedPayoff(constant, description)
+	    case 1 => {
+	      val variable = variables.head
+	      Linear1dPayoff(variable, Some(parsedformula.getOrElse(Set(variable), 0.0)), Some(constant), floor, cap, description)
+	    }
+	    case _ => GeneralPayoff(parsedformula, floor, cap, description)
+	  }
+	  
 	}
 
 }

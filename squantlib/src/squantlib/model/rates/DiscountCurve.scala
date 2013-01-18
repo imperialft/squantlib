@@ -1,7 +1,7 @@
 package squantlib.model.rates
 
 import squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import squantlib.jquantlib.termstructures.ZCImpliedYieldTermStructure
+//import squantlib.jquantlib.termstructures.ZCImpliedYieldTermStructure
 import squantlib.util.DateUtils
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.instruments
@@ -18,11 +18,11 @@ import java.lang.UnsupportedOperationException
 
 case class DiscountCurve(currency:Currency, zc:YieldParameter, discountspread:YieldParameter, fx:Double, vol:Option[RateVolatility]) extends YieldParameter {
   
-  	def toZCImpliedYieldTermStructure = new ZCImpliedYieldTermStructure(this)
-  	def toZCImpliedYieldTermStructure(calendar:Calendar) = new ZCImpliedYieldTermStructure(this, calendar)
+//  	def toZCImpliedYieldTermStructure = new ZCImpliedYieldTermStructure(this)
+//  	def toZCImpliedYieldTermStructure(calendar:Calendar) = new ZCImpliedYieldTermStructure(this, calendar)
   
-  	def toDiscountBondEngine = new DiscountingBondEngine(toZCImpliedYieldTermStructure)
-  	def toDiscountBondEngine(calendar:Calendar) = new DiscountingBondEngine(toZCImpliedYieldTermStructure(calendar))
+//  	def toDiscountBondEngine = new DiscountingBondEngine(toZCImpliedYieldTermStructure)
+//  	def toDiscountBondEngine(calendar:Calendar) = new DiscountingBondEngine(toZCImpliedYieldTermStructure(calendar))
 	
 	private var vd = zc.valuedate
   

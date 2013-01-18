@@ -180,6 +180,10 @@ object DB extends Schema {
     update(bonds)(b => where (b.id === id) set(b.pricetag := tag))
   }
   
+  def setBondFixing(fixings:String, id:String):Unit = transaction{
+    update(bonds)(b => where (b.id === id) set(b.fixings := fixings))
+  }
+  
   /**
    * Returns a Set of BondPrice objects identified by a Set of ID.
    * 

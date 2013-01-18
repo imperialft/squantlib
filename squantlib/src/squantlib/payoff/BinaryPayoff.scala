@@ -11,56 +11,58 @@ import java.util.{Map => JavaMap}
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
  * JSON format:
- *  {type:"binary", variable:string, payoff:[{strike:double, amount:double}], description:String}, 
+ *  {type:"binary", variable:[string], payoff:[{amount:double, strike:[double]}], description:String}, 
  * No strike is considered as no low boundary
  */
-case class BinaryPayoff(variable:String, payoff:List[(Double, Option[Double], Option[Double])], description:String = null) 
+case class BinaryPayoff(binaryVariables:List[String], payoff:List[(Double, Option[List[Double]])], description:String = null) 
 extends Payoff {
   
-	override val variables:Set[String] = Set(variable)
-	
-	val vertical:Set[(Option[Double], Double)] = {
-	  val strikes:Set[Option[Double]] = (payoff.map(_._2) ++ payoff.map(_._3)).toSet
-	  strikes.map{
-	    case None => (None, price(Double.MinValue))
-	    case Some(s) => (Some(s), price(s + 1e-10))
-	  }
-	}
-	  
+	val variables = binaryVariables.toSet
+  
+	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
+	  if (variables.toSet subsetOf fixings.keySet) 
+	    Some((0 to binaryVariables.size - 1).toList.map(i => fixings(binaryVariables(i))))
+	  else None
+	    
 	override def price(fixings:Map[String, Double]) = 
-	  if (fixings contains variable) price(fixings(variable))
-	  else Double.NaN
-	
-	override def price(fixing:Double)(implicit d:DummyImplicit) =
 	  if (payoff.isEmpty) Double.NaN
+	  else getFixings(fixings) match {
+	    case None => Double.NaN
+	    case Some(fixValues) => 
+	      payoff.map{
+	        case (v, None) => v
+	        case (v, Some(l)) if fixValues.corresponds(l) {_ >= _} => v
+	        case _ => 0.0}.max
+	  }
+	  
+	override def price(fixing:Double)(implicit d:DummyImplicit) =
+	  if (payoff.isEmpty || variables.size != 1) Double.NaN
 	  else payoff.map{
-	    case (v, None, None) => v 
-	    case (v, Some(l), None) if fixing > l => v
-	    case (v, None, Some(h)) if fixing <= h => v
-	    case (v, Some(l), Some(h)) if fixing > l && fixing <= h => v
-	    case _ => 0.0}.sum
+	    case (v, None) => v 
+	    case (v, Some(l)) if fixing > l.head => v
+	    case _ => 0.0}.max
 	
 	override def toString =
 	  if (payoff.isEmpty) description
-	  else vertical.toList.sortBy(_._1.getOrElse(Double.MinValue)).reverse.map{
-	      case (None, v) => v.asPercent
-	      case (Some(s), v) => v.asPercent + " [" + s.asDouble + "]"
+	  else payoff.map{
+	      case (v, None) => v.asPercent + " [Const]"
+	      case (v, Some(s)) => v.asPercent + " [" + s.mkString(",") + "]"
 	    }.mkString(" ")
 	
 	override def price = Double.NaN
 	
 	override val jsonString = {
 	  
-	  val jsonPayoff:Array[JavaMap[String, Any]] = vertical.toArray.map(p => {
-	    val leg:JavaMap[String, Any] = Map(
-	      "strike" -> p._1.getOrElse("None"),
-	      "amount" -> p._2
-	      )
-	    leg})
+	  val jsonPayoff:Array[JavaMap[String, Any]] = payoff.map{
+	    case (v, None) => val jmap:JavaMap[String, Any] = Map("amount" -> v); jmap
+	    case (v, Some(s)) => val jmap:JavaMap[String, Any] = Map("amount" -> v, "strike" -> s.toArray); jmap
+	  }.toArray
+	  
+	  val varSet:java.util.List[String] = scala.collection.mutable.ListBuffer(binaryVariables: _*)
 	    
 	  val infoMap:JavaMap[String, Any] = Map(
-	      "type" -> "binary", 
-	      "variable" -> variable, 
+	      "type" -> "binary",
+	      "variable" -> varSet, 
 	      "description" -> description,
 	      "payoff" -> jsonPayoff)
 	  
@@ -72,26 +74,23 @@ extends Payoff {
 object BinaryPayoff {
   
 	def apply(node:String):BinaryPayoff = {
-	  val variable:String = node.parseJsonString("variable")
-	  
-	  val payoff:List[(Double, Option[Double])] = (node.jsonNode("payoff") match {
-	    case None => List.empty
-	    case Some(subnode) if subnode isArray => subnode.map(n => {
-	      (n.parseJsonDouble("amount").getOrElse(Double.NaN), n.parseJsonDouble("strike"))
-	    })
-	  }).toList.sortBy(_._2.getOrElse(Double.MinValue))
-	  
-	  val binaryArray:List[(Double, Option[Double], Option[Double])] = payoff.size match {
-	    case 0 => List.empty
-	    case 1 => List((payoff.head._1, payoff.head._2, None))
-	    case _ => 
-	      val array1:List[(Double, Option[Double], Option[Double])] = (0 to payoff.size - 2).map(i => (payoff(i)._1, payoff(i)._2, payoff(i+1)._2)).toList
-	      val lastelement = (payoff.last._1, payoff.last._2, None)
-	      array1 :+  lastelement
+	  val variable:List[String] = node.jsonNode("variable") match {
+	    case Some(n) if n isArray => n.map(s => s.parseJsonString).toList
+	    case Some(n) if n isTextual => List(n.asText)
+	    case _ => List.empty
 	  }
 	  
+	  val payoff:List[(Double, Option[List[Double]])] = (node.jsonNode("payoff") match {
+	    case None => List.empty[(Double, Option[List[Double]])]
+	    case Some(subnode) if subnode isArray => subnode.map(n => {
+	      val amount = n.parseJsonDouble("amount").getOrElse(Double.NaN)
+	      if (n.get("strike") == null) (amount, None)
+	      else (amount, Some(n.get("strike").map(s => s.parseJsonDouble.getOrElse(Double.NaN)).toList))
+	    })
+	  }).toList
+	  
 	  val description:String = node.parseJsonString("description")
-	  BinaryPayoff(variable, binaryArray, description)
+	  BinaryPayoff(variable, payoff, description)
 	}
   
 }
