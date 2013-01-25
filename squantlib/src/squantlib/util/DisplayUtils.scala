@@ -31,7 +31,10 @@ object DisplayUtils {
 	implicit def doubleToExtendedDouble(d:Double) = ExtendedDouble(d)
 	case class ExtendedDouble(d:Double) {
 	  def asPercent:String = "%.4f".format(d * 100.0).trimZeros + "%"
+	  def asPercent(decimals:Int):String = ("%." + decimals + "f").format(d * 100.0).trimZeros + "%"
+	  
 	  def asDouble:String = "%.4f".format(d).trimZeros
+	  def asDouble(decimals:Int):String = ("%." + decimals + "f").format(d).trimZeros
 	}
 	
 	implicit def doubleToExtendedDoubleOpt(d:Option[Double]) = ExtendedDoubleOpt(d)
@@ -74,6 +77,5 @@ object DisplayUtils {
 	    
 	  (coeffstr + addsign + conststr).replace("+-", "-")
 	}
-  
 	
 }

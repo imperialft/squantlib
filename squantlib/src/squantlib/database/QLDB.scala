@@ -3,7 +3,6 @@ package squantlib.database
 import squantlib.model.Market
 import squantlib.model.rates._
 import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXParameter, CDSParameter}
-import squantlib.database.objectconstructor._
 import squantlib.database.QLConstructors._
 import squantlib.math.timeseries.SeriesAnalysis._
 import squantlib.model.fx.FXparameter

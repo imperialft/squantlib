@@ -7,6 +7,7 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
+import squantlib.util.VariableInfo
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -14,7 +15,7 @@ import java.util.{Map => JavaMap}
  *  {type:"binary", variable:[string], payoff:[{amount:double, strike:[double]}], description:String}, 
  * No strike is considered as no low boundary
  */
-case class BinaryPayoff(binaryVariables:List[String], payoff:List[(Double, Option[List[Double]])], description:String = null) 
+case class BinaryPayoff(binaryVariables:List[String], payoff:List[(Double, Option[List[Double]])], description:String = null)
 extends Payoff {
   
 	val variables = binaryVariables.toSet
@@ -51,7 +52,7 @@ extends Payoff {
 	
 	override def price = Double.NaN
 	
-	override val jsonString = {
+	override def jsonString = {
 	  
 	  val jsonPayoff:Array[JavaMap[String, Any]] = payoff.map{
 	    case (v, None) => val jmap:JavaMap[String, Any] = Map("amount" -> v); jmap
@@ -68,7 +69,27 @@ extends Payoff {
 	  
 	  (new ObjectMapper).writeValueAsString(infoMap)	  
 	}	
-	
+	    
+	override def display(isRedemption:Boolean):String = {
+	  val varnames = binaryVariables.map(v => (v, VariableInfo.namejpn(v))).toMap
+	  val dispValue = (v:String, s:Double) => VariableInfo.displayValue(v, s)
+	  
+	  if (isRedemption)
+	    "最終参照日の参照価格によって決定されます。" + sys.props("line.separator") + 
+	    payoff.sortBy{case (amt, stk) => amt}.reverse.map{
+	      case (amt, Some(stks)) => (binaryVariables, stks).zipped.map{
+	      case (v, s) => "・ " + varnames(v) + "が " + dispValue(v, s) + "以上"}.mkString("、") + "の場合 ： 額面 " + amt.asPercent
+	      case (amt, None) => "・ それ以外の場合 ： 額面 "+ amt.asPercent
+	    }.mkString(sys.props("line.separator"))
+	  
+	  else
+	    "利率決定日の参照価格によって決定されます。" + sys.props("line.separator") + 
+	    payoff.sortBy{case (amt, stk) => amt}.reverse.map{
+	      case (amt, Some(stks)) => (binaryVariables, stks).zipped.map{
+	      case (v, s) => "・ " + varnames(v) + "が " + dispValue(v, s) + "以上"}.mkString("、") + "の場合 ： 年率 " + amt.asPercent
+	      case (amt, None) => "・ それ以外の場合 ： 年率 "+ amt.asPercent
+	    }.mkString(sys.props("line.separator"))
+	}
 }
 
 object BinaryPayoff {
@@ -81,7 +102,7 @@ object BinaryPayoff {
 	  }
 	  
 	  val payoff:List[(Double, Option[List[Double]])] = (node.jsonNode("payoff") match {
-	    case None => List.empty[(Double, Option[List[Double]])]
+	    case None => List.empty
 	    case Some(subnode) if subnode isArray => subnode.map(n => {
 	      val amount = n.parseJsonDouble("amount").getOrElse(Double.NaN)
 	      if (n.get("strike") == null) (amount, None)

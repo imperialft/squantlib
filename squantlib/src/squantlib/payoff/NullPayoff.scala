@@ -21,7 +21,9 @@ case class NullPayoff(description:String = null, inputString:String = null) exte
 	
 	override def toString = description
 	
-	override val jsonString = inputString
+	override def display(isRedemption:Boolean):String = description
+	
+	override def jsonString = inputString
 	
 }
 

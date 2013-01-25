@@ -30,8 +30,8 @@ case class FXBlackScholes1f(var spot:Double, var ratedomF: Double => Double, var
    * Check with first tuple argument for the order of dates.
   */
   
-  override def generatePaths(eventDates:List[Double], paths:Int) = {
-    require(!eventDates.isEmpty)
+  override def generatePaths(eventDates:List[Double], paths:Int):(List[Double], List[List[Double]]) = {
+    if (eventDates.isEmpty) {return (List.empty, List.empty)}
     
     reset 
     

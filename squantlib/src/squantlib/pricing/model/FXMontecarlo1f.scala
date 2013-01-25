@@ -42,8 +42,15 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	  else { println("invalid mc dates"); List.empty}
 	}
 	
-	def mcPrice(paths:Int):List[Double] = 
-	  generatePaths(paths).map(p => ipayoffs.price(p, trigger, trigAmounts)).transpose.map(_.sum / paths.toDouble)
+	def mcPrice(paths:Int):List[Double] = {
+	  try {
+		  generatePaths(paths).map(p => ipayoffs.price(p, trigger, trigAmounts)).transpose.map(_.sum / paths.toDouble)
+//		  generatePaths(paths)
+//		  .map(p => ipayoffs.price(List.tabulate(legs)(i => if (mcMap contains i) p(mcMap(i)) else 0.0), trigger, trigAmounts))
+//		  .transpose.map(_.sum / paths.toDouble)
+	  }
+	  catch {case e => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
+	}
 	
 	def modelForward(paths:Int):List[Double] = generatePaths(paths).transpose.map(_.sum).map(_ / paths)
 	  
@@ -81,7 +88,8 @@ object FXMontecarlo1f {
 	  } 
 	  apply(market, bond, paths, engineName, trig)
 	}
-	  
+
+	
 	def apply(market:Market, bond:Bond, paths:Int, engineName:String, triggers:List[Option[Double]]):Option[FXMontecarlo1f] = {
 	  val valuedate = market.valuedate
 	  val (schedule, payoffs) = bond.livePayoffs(valuedate)

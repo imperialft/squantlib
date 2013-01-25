@@ -57,6 +57,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	}
 	
 	def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = {
+	  if (fixings.size != this.size || fixings.size != trigger.size) println("fixingsize " + fixings.size + " thissize : " + this.size + " trigger size: " + trigger.size)
 	  assert(fixings.size == this.size && fixings.size == trigger.size)
 	  
 	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Double], acc:List[Double], triglist:List[Option[Double]], trigamt:List[Double], triggered:Boolean):List[Double] = {
@@ -75,7 +76,8 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  payoffs.map(_.price)
 	}
 	
-	/* Replaces already-fixed payoffs to fixed leg
+	/* 
+	 * Replaces already-fixed payoffs to fixed leg
 	 */
 	
 	def applyFixing(fixings:List[Map[String, Double]]):Payoffs = {

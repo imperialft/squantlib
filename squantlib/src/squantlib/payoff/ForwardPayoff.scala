@@ -6,6 +6,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
+import squantlib.util.VariableInfo
 import java.util.{Map => JavaMap}
 
 /**
@@ -39,7 +40,7 @@ extends Payoff {
 	
 	override def price = Double.NaN
 	
-	override val jsonString = {
+	override def jsonString = {
 	  
 	  val infoMap:JavaMap[String, Any] = Map(
 	      "type" -> "forward", 
@@ -49,6 +50,35 @@ extends Payoff {
 	  
 	  (new ObjectMapper).writeValueAsString(infoMap)	  
 	}	
+	
+	override def display(isRedemption:Boolean):String = {
+ 	  val varnames = fwdVariables.map(VariableInfo.namejpn)
+	  val strikeMap = (fwdVariables, strike).zipped.map{case (v, k) => (VariableInfo.namejpn(v), VariableInfo.displayValue(v, k))}
+	  val multiple = variables.size > 1
+	  
+	  if (isRedemption) {
+	    if (multiple) 
+	      (List("最終参照日の" + varnames.mkString("、") + "によって、下記の低い（パフォーマンスが悪い）ほうの金額が支払われます。") ++ 
+	          strikeMap.map{case (v, k) => "・ 額面 x " + v + " / " + k}).mkString(sys.props("line.separator"))
+	    else
+	      List("最終参照日の" + varnames.head + "によって決定されます。", 
+	          strikeMap.head match {case (v, k) => "額面 x " + v + " / " + k}).mkString(sys.props("line.separator"))
+	  }
+	  else {
+	    if (multiple) 
+	      (List("利率決定日の" + varnames.mkString("、") + "によって、下記の低い（パフォーマンスが悪い）ほうの金額が支払われます。") ++ 
+	          strikeMap.map{case (v, k) => "・ " + v + " / " + k + " （年率）"}).mkString(sys.props("line.separator"))
+	    else
+	      List("利率決定日の" + varnames.head + "によって決定されます。", 
+	          strikeMap.head match {case (v, k) => "額面 x " + v + " / " + k + " （年率）"}).mkString(sys.props("line.separator"))
+	  }
+	    
+	}
+	
+//	override def display:String =
+//	  (fwdVariables, strike).zipped.map{case (v, k) => 
+//	    "額面 * 参照日における" + VariableInfo.namejpn(v) + " / " + VariableInfo.displayValue(v, k)}.mkString(sys.props("line.separator")) + 
+//	    (if (fwdVariables.size > 1) sys.props("line.separator") + "の低いほう" else "")
 	
 }
 

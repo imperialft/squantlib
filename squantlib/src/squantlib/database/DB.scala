@@ -19,6 +19,7 @@ import org.apache.commons.lang3.StringEscapeUtils
 
 object DB extends Schema { 
 
+  private val properties = new Properties
   val dataSource = new ComboPooledDataSource
 
   /**
@@ -30,7 +31,6 @@ object DB extends Schema {
    *
    */
   def setup(propertiesPath:String):Unit = {
-    val properties = new Properties
     properties.load(new FileInputStream(propertiesPath))
     setup(properties.get("uri").toString, properties.get("username").toString, properties.get("password").toString)
   }
@@ -52,11 +52,15 @@ object DB extends Schema {
     dataSource.setMinPoolSize(5)
     dataSource.setMaxPoolSize(10)
     dataSource.setCheckoutTimeout(10000)
+    dataSource.setIdleConnectionTestPeriod(30)
     SessionFactory.concreteFactory = Some(() => {
       Session.create(dataSource.getConnection, new MySQLInnoDBAdapter)
     })
   }
 
+  def reconnect:Unit = {
+    setup(properties.get("uri").toString, properties.get("username").toString, properties.get("password").toString)
+  }
   
   /** 
    * Attach schema definitions to the tables.
@@ -82,6 +86,7 @@ object DB extends Schema {
   val coupons = table[Coupon]("Coupons")
   val forwardprices = table[ForwardPrice]("ForwardPrices")
   val impliedrates = table[ImpliedRate]("ImpliedRates")
+  val underlyings = table[Underlying]("Underlyings")
   
   
   private def getKeyedEntity[A<:KeyedEntity[String]](t:Table[A]):Set[A] = transaction {
@@ -89,6 +94,9 @@ object DB extends Schema {
   
   private def getKeyedEntity[A<:KeyedEntity[String]](t:Table[A], ids:Traversable[String]):Set[A] = transaction {
       from(t)(p => where(p.id in ids) select(p)).toSet }
+  
+  private def getAKeyedEntity[A<:KeyedEntity[String]](t:Table[A], id:String):Option[A] = transaction {
+      from(t)(p => where(p.id === id) select(p)).firstOption }
   
 //  private def weekday(b: TypedExpression[java.util.Date,TDate])
 //  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
@@ -119,6 +127,12 @@ object DB extends Schema {
    */
   def getCurrencies:Set[Currency] = getKeyedEntity(currencies)
   def getCurrencies(ids:Traversable[String]):Set[Currency] = getKeyedEntity(currencies, ids)
+  
+  def getCurrencyShortJNames:Map[String, String] = transaction {
+      from(currencies)(c => select((&(c.id), &(c.name_jpn_short)))).toMap}
+
+  def getCurrencyJNames:Map[String, String] = transaction {
+      from(currencies)(c => select((&(c.id), &(c.name_jpn)))).toMap}
 
   /**
    * Returns a Set of Distributors objects identified by a Set of ID.
@@ -137,6 +151,13 @@ object DB extends Schema {
    */
   def getIssuers:Set[Issuer] = getKeyedEntity(issuers)
   def getIssuers(ids:Traversable[String]):Set[Issuer] = getKeyedEntity(issuers, ids)
+  
+  /**
+   * Returns Underlying information
+   */ 
+  def getUnderlyings:Set[Underlying] = getKeyedEntity(underlyings)
+  def getUnderlyings(ids:Traversable[String]):Set[Underlying] = getKeyedEntity(underlyings, ids)
+  def getUnderlying(id:String):Option[Underlying] = getAKeyedEntity(underlyings, id)
   
   /**
    * Returns a Set of Product objects identified by a Set of ID.
@@ -1083,6 +1104,7 @@ object DB extends Schema {
     val csv = buildCSVImportStatement(objects, overwrite)
     var result = 0
     csv.foreach(x => result += runSQLUpdateStatement(x))
+    runSQLCommitStatement
     result
   }
 
@@ -1097,7 +1119,8 @@ object DB extends Schema {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement(statement)
     val result = preparedStatement.execute
-    if (dataSource.getNumBusyConnections > 1) session.close
+ //   if (dataSource.getNumBusyConnections > 1) session.close
+    session.close
     result
   }
   
@@ -1111,10 +1134,19 @@ object DB extends Schema {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement(statement)
     val result = preparedStatement.executeUpdate
-    if (dataSource.getNumBusyConnections > 2) session.close
+//    if (dataSource.getNumBusyConnections > 2) session.close
+    session.close
     result
   }
   
+  def runSQLCommitStatement:Int = {
+    val session           = SessionFactory.concreteFactory.get()
+    val preparedStatement = session.connection.prepareStatement("COMMIT;")
+    val result = preparedStatement.executeUpdate
+//    if (dataSource.getNumBusyConnections > 2) session.close
+    session.close
+    result
+  }
 
   /**
    * Builds MySQL CSV import statement from multiple Squeryl objects.
@@ -1150,14 +1182,13 @@ object DB extends Schema {
     
     val insertstatement = tempfiles.map(f => 
       "LOAD DATA LOCAL INFILE '" + f.replaceAll("\\\\", "\\\\\\\\") + "' " +
-        (if(overwrite) "REPLACE " else "") + "INTO TABLE " + tableName + " " +
+        (if(overwrite) "REPLACE " else "IGNORE ") + "INTO TABLE " + tableName + " " +
         "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +
         "IGNORE 1 LINES " +
         "(" + columnNames.mkString(", ") + ")" + ";"
     )
     
-    List(
-      "START TRANSACTION;", "SET FOREIGN_KEY_CHECKS = 1;") ++ insertstatement ++ List("COMMIT;")
+    List("START TRANSACTION;", "SET FOREIGN_KEY_CHECKS = 1;") ++ insertstatement ++ List("COMMIT;")
 //      "LOAD DATA LOCAL INFILE '" + tempFilePath.replaceAll("\\\\", "\\\\\\\\") + "' " +
 //        (if(overwrite) "REPLACE " else "") + "INTO TABLE " + tableName + " " +
 //        "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +

@@ -3,13 +3,14 @@ package squantlib.payoff
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
+import squantlib.util.VariableInfo
 
 /**
  * Interprets general formula as the sum of weighted variables + constant, with cap and floor.
  * Any symbols other than +, -, *, /, > and < are considered as an independent variable.
  * Brackets are not supported.
  */
-case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[Double], val cap:Option[Double], val description:String = null) extends Payoff {
+case class GeneralPayoff(formula:Map[Set[String], Double], floor:Option[Double], cap:Option[Double], description:String = null) extends Payoff {
 	
 	override val variables:Set[String] = formula.keySet.flatten
 	 
@@ -42,9 +43,65 @@ case class GeneralPayoff(val formula:Map[Set[String], Double], val floor:Option[
 	override def toString:String = 
 	  	  formula.map{case (variables, coeff) => 
 	    ((if (variables.size > 0) variables.mkString("*") + "*" + coeff.toDouble else coeff.asPercent) )}.mkString("+").replace("+-", "+")
+	    
 
+	override def display(isRedemption:Boolean):String = 
+	  if (isRedemption) {
+	    "最終参照日の" + variables.mkString("、") + "によって、額面に対して下記の金額が支払われます。" + sys.props("line.separator") + 
+	    formula.toList.sortBy{case (s, _) => s.size}.reverse.map{
+	      case (vars, coeff) if vars.size > 0 && coeff == 1.0 => 
+	        (vars.head match {
+	          case v if v.take(1) == "/" => " 1 / " + VariableInfo.namejpn(v drop 1)
+	          case v => VariableInfo.namejpn(v)
+	        }) + vars.tail.map{
+	          case v if v.take(1) == "/" => " / " + VariableInfo.namejpn(v drop 1)
+	          case v => " * " + VariableInfo.namejpn(v)
+	        }.mkString("")
+	        
+	      case (vars, coeff) if vars.size > 0 => 
+	        coeff.asDouble + vars.map{ 
+	          case v if v.take(1) == "/" => " / " + VariableInfo.namejpn(v drop 1)
+	          case v => " * " + VariableInfo.namejpn(v)
+	      }.mkString("")
+	    
+	      case (_, coeff) => coeff.asPercent
+	    
+	    }.mkString(" + ").replace("+ -", "- ") + sys.props("line.separator") + ((cap, floor) match {
+	      case (Some(c), None) => "ただし" + c.asPercent + "を上回りません。"
+	      case (None, Some(f)) => "ただし" + f.asPercent + "を下回りません。"
+	      case (Some(c), Some(f)) => "ただし" + c.asPercent + "を上回らず、" + f.asPercent + "を下回りません。"
+	      case (None, None) => ""	    
+	  })}
+	  
+	  else {
+	    "利率決定日の" + variables.mkString("、") + "によって決定されます。" + sys.props("line.separator") + 
+	    formula.toList.sortBy{case (s, _) => s.size}.reverse.map{
+	      case (vars, coeff) if vars.size > 0 && coeff == 1.0 => 
+	        (vars.head match {
+	          case v if v.take(1) == "/" => " 1 / " + VariableInfo.namejpn(v drop 1)
+	          case v => VariableInfo.namejpn(v)
+	        }) + vars.tail.map{
+	          case v if v.take(1) == "/" => " / " + VariableInfo.namejpn(v drop 1)
+	          case v => " * " + VariableInfo.namejpn(v)
+	        }.mkString("")
+	        
+	      case (vars, coeff) if vars.size > 0 => 
+	        coeff.asDouble + vars.map{ 
+	          case v if v.take(1) == "/" => " / " + VariableInfo.namejpn(v drop 1)
+	          case v => " * " + VariableInfo.namejpn(v)
+	      }.mkString("")
+	    
+	      case (_, coeff) => coeff.asPercent
+	    
+	    }.mkString(" + ").replace("+ -", "- ") + " （年率）" + sys.props("line.separator") + ((cap, floor) match {
+	      case (Some(c), None) => "ただし" + c.asPercent + "を上回りません。"
+	      case (None, Some(f)) => "ただし" + f.asPercent + "を下回りません。"
+	      case (Some(c), Some(f)) => "ただし" + c.asPercent + "を上回らず、" + f.asPercent + "を下回りません。"
+	      case (None, None) => ""
+	  })}
+	    
 	
-	override val jsonString = formula.map{
+	override def jsonString = formula.map{
 	  case (variables, coeff) => 
 	    ((if (variables.size > 0) variables.mkString("*") + "*" + coeff else coeff) )}.mkString("+").replace("+-", "+")
 	

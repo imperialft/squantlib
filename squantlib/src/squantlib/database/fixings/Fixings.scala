@@ -25,10 +25,13 @@ object Fixings {
 	    }
 	  }
 	  
+	def latest(id:String):Option[(qlDate, Double)] = apply(id).collect{case p => p.maxBy(_._1)}
+	
 	def getHistorical(param:String):Option[Map[qlDate, Double]] = 
 	  if (param == null) None
 	  else (param.trim match {
 	    case "CMT10" => Some(DB.getRateFXParams("Fixing", "JGBY", "10Y"))
+	    case "NKY" => Some(DB.getRateFXParams("Fixing", "NKY", ""))
 	    case p if p.size <= 3 => None
 	    case p => (p take 3, p substring 3) match {
 	      case (ccy, _) if !isCcy(ccy) => None

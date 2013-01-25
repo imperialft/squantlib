@@ -42,9 +42,11 @@ trait Payoff{
 	
 	def spotCoupon(mkt:Market):Double = price(mkt.getFixings(variables)) 
 	
-	val description:String
+	def description:String
 	
-	val jsonString:String
+	def display(isRedemption:Boolean):String
+	
+	def jsonString:String
 }
  
 object Payoff {
@@ -55,6 +57,7 @@ object Payoff {
 		case "leps1d" => LEPS1dPayoff(formula)
 		case "linear1d" => Linear1dPayoff(formula)
 		case "putdi" => PutDIPayoff(formula)
+		case "putdiamerican" => PutDIAmericanPayoff(formula)
 		case "forward" => ForwardPayoff(formula)
 		case "null" => NullPayoff(formula)
 	    case "binary" => BinaryPayoff(formula)

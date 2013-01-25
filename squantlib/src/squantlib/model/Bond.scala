@@ -79,8 +79,9 @@ case class Bond(
 	
 	def market:Option[Market] = _market
 	def market_= (newMarket:Market) = {
+	  val recalib = market match {case Some(m) => !m.valuedate.eq(newMarket.valuedate) case None => true}
 	  _market = Some(newMarket)
-	  initializeModel
+	  initializeModel(recalib)
 	}
 	
 	def setMarket(newMarket:Market):Unit = market = newMarket
@@ -112,7 +113,8 @@ case class Bond(
 	/* 
 	 * Reset model
 	 */
-	def initializeModel = {
+	def initializeModel(reCalibrate:Boolean = false) = {
+	  if (reCalibrate) {calibrationCache.clear; modelCalibrated = false}
 	  model = market match {
 	    case (Some(mkt)) => livePayoffs match {
 	    	case (dates, payoff) if !forceModel && payoff.variables.size == 0 => Some(NoModel(payoff, dates))
@@ -129,9 +131,10 @@ case class Bond(
 	
 	
 	def reset(newMarket:Market, setter:(Market, Bond) => Option[PricingModel]) = {
+	  val recalib = market match {case Some(m) => !m.valuedate.eq(newMarket.valuedate) case None => true}
 	  _market = Some(newMarket)
 	  defaultModel = setter
-	  initializeModel
+	  initializeModel(recalib)
 	}
 	
 	/* 
@@ -501,8 +504,12 @@ case class Bond(
     def fxFrontiers:List[List[Option[Double]]] = fxFrontiers(1.00, 0.001, 20)
       
     def fxFrontiers(target:Double, accuracy:Double, maxIteration:Int, paths:Int = 0):List[List[Option[Double]]] = {
-      val vds = (schedule zip bermudan).zipWithIndex.filter{case ((_, t), _) => t == true}.map{case ((d, _), index) => (d.paymentDate, index)}.toList.sortBy(_._1).reverse
-      val tempTrigger = scala.collection.mutable.ArrayBuffer(trigger:_*)
+      
+      val vds = (liveSchedule zip liveBermudans).zipWithIndex.filter{case ((_, t), _) => t == true}
+      			.map{case ((d, _), index) => (d.paymentDate, index)}
+      			.toList.sortBy(_._1).reverse
+      			
+      val tempTrigger = scala.collection.mutable.ArrayBuffer(liveTriggers:_*)
       println("FX frontiers : " + id)
       
       vds.foreach{case (vd, index) => 
@@ -510,7 +517,7 @@ case class Bond(
         tempBond.market = this.market.orNull
         tempBond.defaultModel = this.defaultModel
         
-        if (trigger(index).isEmpty) {
+        if (liveTriggers(index).isEmpty) {
           tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
           println(index + " : " + tempTrigger(index).mkString(","))
         }
@@ -788,6 +795,7 @@ case class Bond(
 		      spotrate = spotrate.collect{case v => BigDecimal(v, defaultMathContext)},
 		      spotamount = spotamount.collect{case v => BigDecimal(v, defaultMathContext)},
 	          jsonformat = payoffs(i).jsonString,
+	          display = p.display(paytype == "REDEMPTION"),
 	          comment = p.description,
 	          daycount = s.daycounter.toString,
 	          paymenttype = paytype,
@@ -888,7 +896,13 @@ object Bond {
 		val defaultAdjustment:BusinessDayConvention = BusinessDayConvention.ModifiedFollowing
 		
 		val fixingMap:Map[String, Double] = 
-		  if (db.fixings == null || db.fixings.isEmpty) Map.empty
+		  if (db.fixings == null || db.fixings.isEmpty) {
+		    (db.underlying.jsonNode, db.fixingdate) match {
+		      case (Some(ul), Some(d)) if ul.isArray && (d after Fixings.latestParamDate.longDate) =>
+		       ul.map(u => (u.asText, Fixings.latest(u.asText))).collect{case (a, Some(b)) => (a, b._2)}.toMap
+		      case _ => Map.empty
+		    }
+		  }
 		  else {
 		    val vmap:JavaMap[String, Double] = (new ObjectMapper).readValue(db.fixings, new TypeReference[JavaMap[String, Double]]{})
 		    vmap.toMap

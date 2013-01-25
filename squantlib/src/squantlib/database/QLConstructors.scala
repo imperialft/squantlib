@@ -25,6 +25,11 @@ object QLConstructors {
 	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (q._1, new JavaDouble(q._2))))
 	}
 	
+	implicit def qlJavaMap2Ts(m:scala.collection.Map[qlDate, JavaDouble]) = new ConvertableQlJavaMap(m)
+	class ConvertableQlJavaMap(m:scala.collection.Map[qlDate, JavaDouble]) {
+	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (q._1, q._2)))
+	}
+	
 	implicit def JavaMap2Ts(m:scala.collection.Map[JavaDate, Double]) = new ConvertableJavaMap(m)
 	class ConvertableJavaMap(m:scala.collection.Map[JavaDate, Double]) {
 	  def toTimeSeries = new TimeSeries[JavaDouble](JavaDouble.TYPE, m.map(q => (new qlDate(q._1), new JavaDouble(q._2))))

@@ -7,6 +7,7 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
+import squantlib.util.VariableInfo
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -30,7 +31,56 @@ case class LEPS1dPayoff(variable:String, payoff:List[LEPS1dComponent], descripti
 	
 	override def price = Double.NaN
 	
-	override val jsonString = {
+	override def display(isRedemption:Boolean):String = {
+	  val varname = VariableInfo.namejpn(variable)
+	  val vardisp = (v:Double) => VariableInfo.displayValue(variable, v)
+	  
+	  if (isRedemption) {
+	    "最終参照日の" + varname + "によって、下記の金額で償還されます。" + 
+	    sys.props("line.separator") + 
+	    payoff.sortBy{case LEPS1dComponent(_, _, m, _) => m.getOrElse(-9999.0)}.map(p => 
+	    (p match {
+	      case LEPS1dComponent(_, _, Some(min), Some(max)) => 
+	        varname + "が" + vardisp(min) + "以上、" + vardisp(max) + "未満の場合 ： "
+	      case LEPS1dComponent(_, _, None, Some(max)) => 
+	        varname + "が" + vardisp(max) + "未満の場合 ： "
+	      case LEPS1dComponent(_, _, Some(min), None) => 
+	        varname + "が" + vardisp(min) + "以上の場合 ： "
+	      case LEPS1dComponent(_, _, None, None) => 
+	        "指数に関わらず ： "
+	    }) +  
+	      (p match {
+	      case LEPS1dComponent(None, None, _, _) => "額面 " + (0.0).asPercent
+	      case LEPS1dComponent(Some(coeff), None, _, _) => "額面 x " + coeff.asDouble + " * " + varname
+	      case LEPS1dComponent(None, Some(const), _, _) => "額面 " + const.asPercent
+	      case LEPS1dComponent(Some(coeff), Some(const), _, _) => "額面 x (" + coeff.asDouble + " * " + varname + (if(const < 0) " - " else " + ") + math.abs(const).asPercent + ")"
+	    })).mkString(sys.props("line.separator"))
+	  }
+	  
+	  else {
+	    "利率決定日の" + varname + "によって決定されます。" + 
+	    sys.props("line.separator") + 
+	    payoff.sortBy{case LEPS1dComponent(_, _, m, _) => m.getOrElse(-9999.0)}.map(p => 
+	    (p match {
+	      case LEPS1dComponent(_, _, Some(min), Some(max)) => 
+	        varname + "が" + vardisp(min) + "以上、" + vardisp(max) + "未満の場合 ： "
+	      case LEPS1dComponent(_, _, None, Some(max)) => 
+	        varname + "が" + vardisp(max) + "未満の場合 ： "
+	      case LEPS1dComponent(_, _, Some(min), None) => 
+	        varname + "が" + vardisp(min) + "以上の場合 ： "
+	      case LEPS1dComponent(_, _, None, None) => 
+	        "指数に関わらず ： "
+	    }) + 
+	      (p match {
+	      case LEPS1dComponent(None, None, _, _) => (0.0).asPercent
+	      case LEPS1dComponent(Some(coeff), None, _, _) => coeff.asDouble + " * " + varname
+	      case LEPS1dComponent(None, Some(const), _, _) => const.asPercent
+	      case LEPS1dComponent(Some(coeff), Some(const), _, _) => coeff.asDouble + " * " + varname + (if(const < 0) " - " else " + ") + math.abs(const).asPercent
+	    }) + " （年率）").mkString(sys.props("line.separator"))
+	  }
+	}
+	
+	override def jsonString = {
 	  
 	  val jsonPayoff:Array[JavaMap[String, Any]] = payoff.toArray.map(p => {
 	    val leg:JavaMap[String, Any] = Map(
