@@ -96,7 +96,7 @@ object DB extends Schema {
       from(t)(p => where(p.id in ids) select(p)).toSet }
   
   private def getAKeyedEntity[A<:KeyedEntity[String]](t:Table[A], id:String):Option[A] = transaction {
-      from(t)(p => where(p.id === id) select(p)).firstOption }
+      from(t)(p => where(p.id === id) select(p)).headOption }
   
 //  private def weekday(b: TypedExpression[java.util.Date,TDate])
 //  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
@@ -542,7 +542,7 @@ object DB extends Schema {
           ip.maturity   === maturity
         )
         select(&(ip.value))
-      ).firstOption
+      ).headOption
     }
   
   def getRateFXParamSets:Set[(String, JavaDate)] = transaction {
@@ -770,7 +770,7 @@ object DB extends Schema {
       from(fxrates)(ip =>
         where(ip.paramset === paramset and ip.currencyid === ccy)
         select(&(ip.fxjpy))
-      ).firstOption
+      ).headOption
     }
       
   def getFXParameter(ccy1:String, ccy2:String, paramset:String):Option[Double] = transaction{
@@ -781,7 +781,7 @@ object DB extends Schema {
           fx1.currencyid === ccy1 and 
           fx2.currencyid === ccy2
         )
-        select((&(fx1.fxjpy), &(fx2.fxjpy)))).firstOption.map(d => d._1 / d._2)
+        select((&(fx1.fxjpy), &(fx2.fxjpy)))).headOption.map(d => d._1 / d._2)
       }
   
   /**

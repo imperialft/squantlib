@@ -27,7 +27,7 @@ case class LinearNoExtrapolation(var valuedate : qlDate, values:Map[Double, Doub
 	override val mindays = sortedValues.firstKey
 	override val maxdays = sortedValues.lastKey
 
-	override def lowextrapolation(v : Double) = sortedValues.first._2
+	override def lowextrapolation(v : Double) = sortedValues.head._2
     override def highextrapolation(v : Double) = sortedValues.last._2
     override def interpolation(v : Double) = linearfunction.value(v)
     

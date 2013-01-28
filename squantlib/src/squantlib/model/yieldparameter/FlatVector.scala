@@ -24,12 +24,12 @@ object FlatVector {
   
 	def apply(valuedate : qlDate, inputvalues:Map[qlPeriod, Double]):FlatVector = {
 	  require(inputvalues.size == 1, "flat curve can have 1 point only : found " + inputvalues.size)
-	  FlatVector(valuedate, inputvalues.first._2)
+	  FlatVector(valuedate, inputvalues.head._2)
 	}
 
 	def apply(valuedate : qlDate, inputvalues: => Map[Double, Double]):FlatVector = {
 	  require(inputvalues.size == 1, "flat curve can have 1 point only : found " + inputvalues.size)
-	  FlatVector(valuedate, inputvalues.first._2)
+	  FlatVector(valuedate, inputvalues.head._2)
 	}
 
 }

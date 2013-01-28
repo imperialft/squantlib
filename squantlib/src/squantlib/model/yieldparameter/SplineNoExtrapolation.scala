@@ -19,7 +19,7 @@ case class SplineNoExtrapolation(var valuedate : qlDate, values:Map[Double, Doub
 	require(values.size >= 3, "spline requires at least 3 point : found " + values.size)
 	
 	val sortedValues = SortedMap(values.toSeq:_*)
-	val firstvalue = sortedValues.first._2
+	val firstvalue = sortedValues.head._2
 	
 	val mindays = sortedValues.firstKey
 	val maxdays = sortedValues.lastKey
@@ -31,7 +31,7 @@ case class SplineNoExtrapolation(var valuedate : qlDate, values:Map[Double, Doub
 				else -1.0 * logger.value(sortedValues.last._2 / firstvalue) / sortedValues.lastKey
 	
 
-	def lowextrapolation(v : Double) = sortedValues.first._2
+	def lowextrapolation(v : Double) = sortedValues.head._2
  
 	def highextrapolation(v : Double) = sortedValues.last._2
     						

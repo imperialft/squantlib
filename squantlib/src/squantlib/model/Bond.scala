@@ -38,7 +38,7 @@ case class Bond(
 	 */
 	val id = db.id
 	
-	val issueDate:qlDate = inputSchedule.first.startDate
+	val issueDate:qlDate = inputSchedule.head.startDate
 	
 	val maturity:qlDate = inputSchedule.last.endDate
 	
