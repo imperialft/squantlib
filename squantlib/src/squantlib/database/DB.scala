@@ -79,6 +79,7 @@ object DB extends Schema {
   val products = table[Product]("Products")
   val bonds = table[Bond]("Bonds")
   val ratefxparameters = table[RateFXParameter]("RateFXParameters")
+  val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
   val volatilities = table[Volatility]("Volatilities")
@@ -291,6 +292,7 @@ object DB extends Schema {
     case d if d.isEmpty => None
     case d => Some(d.maxBy(s => s))
   }
+   
   
  def getVolatilityUnderlyings:Set[String] = transaction {
       from(volatilities)(b => select(&(b.underlying))).distinct.toSet
@@ -549,6 +551,22 @@ object DB extends Schema {
     from(ratefxparameters)(p => select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
   
+  def getLatestRateFXParamsDate:Option[JavaDate] = getRateFXParamSets match {
+    case d if d.isEmpty => None
+    case d => Some(d.unzip._2.max)
+  }
+  
+  def getEquityParamSets:Set[(String, JavaDate)] = transaction {
+    from(ratefxparameters)(p => 
+      where(p.instrument === "Equity")
+      select(&(p.paramset), &(p.paramdate))).distinct.toSet
+    }
+
+  def getLatestEquityParamsDate:Option[JavaDate] = getEquityParamSets match {
+    case d if d.isEmpty => None
+    case d => Some(d.unzip._2.max)
+  }
+  
   def getRateFXParams(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = transaction {
       from(ratefxparameters)(ip =>
         where(
@@ -584,6 +602,7 @@ object DB extends Schema {
         select((&(ip.paramdate), &(ip.value))))
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
 	 }
+
   
   /**
    * Returns historical values of RateFX parameter.
@@ -1079,6 +1098,19 @@ object DB extends Schema {
     if (datatable == null) return 0
     insertMany(data.toSet, overwrite)
   }
+  
+  def insertOrUpdate[T <: KeyedEntity[Int]](data:Traversable[T], overwrite:Boolean)(implicit d:DummyImplicit):Int = {
+    
+    if (data.isEmpty) return 0
+    
+    val datatable = data.head.getClass.getSimpleName.toString match {
+      case "InputParameter" => inputparameters
+      case _ => null
+    }
+    
+    if (datatable == null) return 0
+    insertMany(data.toSet, overwrite)
+  }
 
   /**
    * Inserts bond prices to the database.
@@ -1174,7 +1206,8 @@ object DB extends Schema {
 	      builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(","))
 	      builder.append("\n")
 	    }
-	    val out = new BufferedWriter(new FileWriter(tempFile))
+//	    val out = new BufferedWriter(new FileWriter(tempFile))
+	    val out = new java.io.OutputStreamWriter(new java.io.FileOutputStream(tempFile), "UTF-8")
 	    out.write(builder.toString)
 	    out.close()
 	    tempFilePath
@@ -1185,7 +1218,7 @@ object DB extends Schema {
         (if(overwrite) "REPLACE " else "IGNORE ") + "INTO TABLE " + tableName + " " +
         "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +
         "IGNORE 1 LINES " +
-        "(" + columnNames.mkString(", ") + ")" + ";"
+        "(" + columnNames.map(n => "`" + n + "`").mkString(", ") + ")" + ";"
     )
     
     List("START TRANSACTION;", "SET FOREIGN_KEY_CHECKS = 1;") ++ insertstatement ++ List("COMMIT;")
