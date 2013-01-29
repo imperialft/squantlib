@@ -375,7 +375,8 @@ object Market {
 	  val cdscurves = CDSCurve(cdsparams, valuedate)
 	  val fxparams = FXparameter(ratefxparams)
 	  val paramset = ratefxparams.head.paramset
-	  val fixingset:Map[String, Double] = ratefxparams.withFilter(_.instrument == "Fixing")
+	  val fixingParams = Set("Fixing", "Index", "Equity")
+	  val fixingset:Map[String, Double] = ratefxparams.withFilter(p => fixingParams contains p.instrument)
 	  	.map(p => (p.asset + (if (p.maturity != null) p.maturity else "").trim, p.value)).toMap
 	  
 	  if (discountcurves.size == 0 || cdscurves.size == 0) None

@@ -567,6 +567,16 @@ object DB extends Schema {
     case d => Some(d.unzip._2.max)
   }
   
+  def getRateFXParams(instrument:String, asset:String):Map[JavaDate, Double] = transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          ip.asset      === asset
+        )
+        select((&(ip.paramdate), &(ip.value)))).toMap
+    }
+  
   def getRateFXParams(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = transaction {
       from(ratefxparameters)(ip =>
         where(
