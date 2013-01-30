@@ -33,6 +33,8 @@ class Bond(@Column("ID")					var id: String,
               @Column("FIXINGS")			var fixings: String,
               @Column("ISIN")				var isin: String,
               @Column("TICKER")				var ticker: String,
+              @Column("LEADMANAGER")		var leadmanager: String,
+              @Column("BONDNAME")			var bondname: String,
               @Column("DESCRIPTION_JPN")	var description_jpn: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("CurrencyID")			var currencyid: String,
@@ -50,6 +52,22 @@ class Bond(@Column("ID")					var id: String,
     val cdrlist:Set[String] = calendar_str.split(",").map(_.trim).toSet
     Calendars(cdrlist).getOrElse(Calendars(currencyid).get)
   }
+  
+  private def getFieldMap: Map[String, Any] = {
+    val fieldsAsPairs = for (field <- this.getClass.getDeclaredFields) yield {
+      field.setAccessible(true)
+	  (field.getName, field.get(this))
+	  }
+	  Map(fieldsAsPairs :_*)
+	}
+  
+  private def compareMap(m1:Map[String, Any], m2:Map[String, Any]) = m1.forall{
+    case (k, v) => m2.get(k) match {case Some(vv) => vv == v; case None => false}}
+  
+  def isSameContent(b:Bond) = {
+    compareMap(getFieldMap, b.getFieldMap)
+  }
+  
   
   def this() = this(
 		id = null,
@@ -78,6 +96,8 @@ class Bond(@Column("ID")					var id: String,
 		fixings = null,
 		isin = null,
 		ticker = null,
+		leadmanager = null,
+		bondname = null,
 		description_jpn = null,
 		description_eng = null, 
 		currencyid = null,

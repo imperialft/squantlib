@@ -1083,6 +1083,19 @@ object DB extends Schema {
 	      ).map(v => (v._1, v._2 * v._3 / basefx)).toMap
   	}
   
+  def insertStringEntity[T <: KeyedEntity[String]](data:Set[T]):Unit = {
+    dataTable(data.head.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.insert(data)
+      case _ => {}
+    }
+  }
+  
+  def updateStringEntity[T <: KeyedEntity[String]](data:Set[T]):Unit = {
+    dataTable(data.head.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.update(data)
+      case _ => {}
+    }
+  }
   
   /**
    * Inserts bond prices to the database.
@@ -1095,19 +1108,34 @@ object DB extends Schema {
     
     if (data.isEmpty) return 0
     
-    val datatable = data.head.getClass.getSimpleName.toString match {
-      case "BondPrice" => bondprices
-      case "Volatility" => volatilities
-      case "Correlation" => correlations
-      case "Coupon" => coupons
-      case "ForwardPrice" => forwardprices
-      case "ImpliedRate" => impliedrates
-      case _ => null
+//    val datatable:Table[_ <: KeyedEntity[String]] = data.head.getClass.getSimpleName.toString match {
+//      case "BondPrice" => bondprices
+//      case "Volatility" => volatilities
+//      case "Correlation" => correlations
+//      case "Coupon" => coupons
+//      case "ForwardPrice" => forwardprices
+//      case "ImpliedRate" => impliedrates
+//      case _ => null
+//    }
+    
+    dataTable(data.head.getClass.getSimpleName.toString) match {
+      case Some(t) => insertMany(data.toSet, overwrite)
+      case None => 0
     }
     
-    if (datatable == null) return 0
-    insertMany(data.toSet, overwrite)
+//    if (datatable == null) return 0
+//    insertMany(data.toSet, overwrite)
   }
+  
+  def dataTable(name:String):Option[Table[_ <: KeyedEntity[String]]] = name match {
+      case "BondPrice" => Some(bondprices)
+      case "Volatility" => Some(volatilities)
+      case "Correlation" => Some(correlations)
+      case "Coupon" => Some(coupons)
+      case "ForwardPrice" => Some(forwardprices)
+      case "ImpliedRate" => Some(impliedrates)
+      case _ => None
+    }
   
   def insertOrUpdate[T <: KeyedEntity[Int]](data:Traversable[T], overwrite:Boolean)(implicit d:DummyImplicit):Int = {
     
