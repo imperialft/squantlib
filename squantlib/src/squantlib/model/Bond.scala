@@ -42,7 +42,7 @@ case class Bond(
 	
 	val maturity:qlDate = inputSchedule.last.endDate
 	
-	val nominal:Double = db.nominal
+	val nominal:Option[Double] = db.nominal
 	
 	val currency:Currency = Currencies(db.currencyid).orNull
 	

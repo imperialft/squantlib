@@ -54,7 +54,7 @@ object DB extends Schema {
     dataSource.setCheckoutTimeout(10000)
     dataSource.setIdleConnectionTestPeriod(30)
     SessionFactory.concreteFactory = Some(() => {
-      Session.create(dataSource.getConnection, new MySQLInnoDBAdapter)
+      Session.create(dataSource.getConnection, new MySQLInnoDBAdapter {override def quoteIdentifier(s:String):String = "`" + s + "`"})
     })
   }
 
@@ -175,6 +175,11 @@ object DB extends Schema {
    * @param ids A Set of unique IDs.
    * @return A Set of Bond objects.
    */
+
+  def getBond(id:String):Option[Bond] = getBonds(Set(id)) match {
+    case b if b.isEmpty => None
+    case b => Some(b.head)}
+  
   def getBonds:Set[Bond] = getKeyedEntity(bonds)
   def getBonds(ids:Traversable[String]):Set[Bond] = getKeyedEntity(bonds, ids)
   
@@ -202,8 +207,12 @@ object DB extends Schema {
     update(bonds)(b => where (b.id === id) set(b.pricetag := tag))
   }
   
-  def setBondFixing(fixings:String, id:String):Unit = transaction{
+  def setBondFixing(id:String, fixings:String):Unit = transaction{
     update(bonds)(b => where (b.id === id) set(b.fixings := fixings))
+  }
+  
+  def setInitialFXFixing(id:String, initialFX:Double):Unit = transaction{
+    update(bonds)(b => where (b.id === id) set(b.initialfx := initialFX))
   }
   
   /**
@@ -1083,17 +1092,31 @@ object DB extends Schema {
 	      ).map(v => (v._1, v._2 * v._3 / basefx)).toMap
   	}
   
-  def insertStringEntity[T <: KeyedEntity[String]](data:Set[T]):Unit = {
-    dataTable(data.head.getClass.getSimpleName.toString) match {
+  def insertStringEntity[T <: KeyedEntity[String]](data:T):Unit = transaction{
+    dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.insert(data)
-      case _ => {}
+      case _ => println("table not found")
     }
   }
   
-  def updateStringEntity[T <: KeyedEntity[String]](data:Set[T]):Unit = {
+  def insertStringEntity[T <: KeyedEntity[String]](data:Set[T]):Unit = transaction{
+    dataTable(data.head.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.insert(data)
+      case _ => println("table not found")
+    }
+  }
+  
+  def updateStringEntity[T <: KeyedEntity[String]](data:Set[T]):Unit = transaction{
     dataTable(data.head.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.update(data)
-      case _ => {}
+      case _ => println("table not found")
+    }
+  }
+  
+  def updateStringEntity[T <: KeyedEntity[String]](data:T):Unit = transaction{
+    dataTable(data.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.update(data)
+      case _ => println("table not found")
     }
   }
   
@@ -1134,6 +1157,7 @@ object DB extends Schema {
       case "Coupon" => Some(coupons)
       case "ForwardPrice" => Some(forwardprices)
       case "ImpliedRate" => Some(impliedrates)
+      case "Bond" => Some(bonds)
       case _ => None
     }
   

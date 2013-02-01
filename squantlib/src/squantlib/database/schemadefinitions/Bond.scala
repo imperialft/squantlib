@@ -12,7 +12,7 @@ class Bond(@Column("ID")					var id: String,
               @Column("FILING")				var filing: Date,
               @Column("ISSUEDATE")			var issuedate: Date,
               @Column("MATURITY")			var maturity: Date,
-              @Column("NOMINAL")			var nominal: Double,
+              @Column("NOMINAL")			var nominal: Option[Double],
               @Column("DENOMINATION")		var denomination: Option[Double],
               @Column("UNDERLYING")			var underlying: String,
               @Column("COUPON")				var coupon: String,
@@ -61,13 +61,31 @@ class Bond(@Column("ID")					var id: String,
 	  Map(fieldsAsPairs :_*)
 	}
   
-  private def compareMap(m1:Map[String, Any], m2:Map[String, Any]) = m1.forall{
-    case (k, v) => m2.get(k) match {case Some(vv) => vv == v; case None => false}}
+  private def emptyToNull(s:Any) = s match {
+    case x:String => if (x != null && x.trim.isEmpty) null else s
+    case x => x
+  }
   
-  def isSameContent(b:Bond) = {
+  private def objCompare(a:Any, b:Any) = emptyToNull(a) == emptyToNull(b)
+  
+  private def compareMap(m1:Map[String, Any], m2:Map[String, Any]):Boolean = m1.forall{
+    case ("lastmodified", _) | ("created", _) | ("initialfx", _) | ("fixings", _)=> true
+    case (k, _) if k.head == '_' => true
+    case (k, v) => m2.get(k) match {
+      case Some(vv) => objCompare(v, vv)
+      case None => false
+      }
+    }
+  
+  def isSameContent(b:Bond):Boolean = {
     compareMap(getFieldMap, b.getFieldMap)
   }
   
+//  def updateContent(b:Bond):Boolean = {
+////    compareMap(getFieldMap, b.getFieldMap)
+//    this.getClass.getDeclaredFields.filter(f => f.)
+//    
+//  }
   
   def this() = this(
 		id = null,
@@ -75,7 +93,7 @@ class Bond(@Column("ID")					var id: String,
 		filing = new Date,
 		issuedate = new Date,
 		maturity = new Date,
-		nominal = 0.0,
+		nominal = Some(-9999),
 		denomination = Some(-999.0),
 		underlying = null,
 		coupon = null,
