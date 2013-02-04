@@ -25,7 +25,7 @@ object Fixings {
 	    }
 	  }
 	  
-	def latest(id:String):Option[(qlDate, Double)] = apply(id).collect{case p => p.maxBy(_._1)}
+	def latest(id:String):Option[(qlDate, Double)] = apply(id).collect{case p if !p.isEmpty => p.maxBy(_._1)}
 	
 	def getHistorical(param:String, paramType:String = null):Option[Map[qlDate, Double]] = 
 	  if (param == null) None

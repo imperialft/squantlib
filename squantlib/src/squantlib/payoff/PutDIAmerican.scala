@@ -132,7 +132,7 @@ object PutDIAmericanPayoff {
 	  
 	  val knockedIn:Boolean = 
 	    if (refStart == null || refEnd == null) false
-	    else !(variable zip trigger).forall{case (v, trig) => println("check ki")
+	    else !(variable zip trigger).forall{case (v, trig) => 
 	    Fixings.getHistorical(v) match {
 	      case Some(h) => h.filter{case (d, _) => (d ge refStart) && (d le refEnd)}.forall{case (_, x) => x > trig}
 	      case None => true
