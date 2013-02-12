@@ -26,15 +26,15 @@ object CsvParser extends JavaTokenParsers {
 case class Csv(data:List[List[String]]) {
   
   val titles = data.head.zipWithIndex.toMap
-  val ids = data.map(_.head).zipWithIndex.toMap
+  val ids = data.tail.map(_.head).zipWithIndex.toMap
   
   def apply(id:String, column:String):Option[String] = (ids.get(id), titles.get(column)) match {
-    case (Some(i), Some(c)) => Some(data(i)(c))
+    case (Some(i), Some(c)) => Some(data(i+1)(c))
     case _ => None
   }
   
   def apply(id:String, column:Int):Option[String] = (ids.get(id), column) match {
-    case (Some(i), c) => Some(data(i)(c))
+    case (Some(i), c) => Some(data(i+1)(c))
     case _ => None
   }
   

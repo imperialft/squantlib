@@ -104,7 +104,16 @@ object PayoffExamples {
 	    "description" : "Put Down&In"
 	    }""")
 
+      val forward = Payoff("""
+	    {"type" : "putdi", 
+	    "variable" : ["usdjpy", "NKY"], 
+	    "strike" : [100, 10000], 
+	    "description" : "Forward"
+	    }""")
 	    
+      val general_json = Payoff("""{"type":"general", "payoff":"24.00%*AUDJPY/strike-20.00% > 1% < 6%", "strike":"80.2"}""")
+      val general = Payoff("""24.00%*AUDJPY/80.2-20.00% > 1% < 6%""")
+      
 }
 
 

@@ -57,7 +57,7 @@ object DisplayUtils {
 	
 	implicit def nodeToExtendedNode(node:JsonNode) = ExtendedNode(node)
 	case class ExtendedNode(node:JsonNode) {
-	  def textOr(t:String) = if (node == null) t else node.getTextValue
+	  def textOr(t:String) = if (node == null) t else node.asText
 	}
 	
 	def linearFormula(coeff:Option[Double], varname:String, constant:Option[Double]):String = {

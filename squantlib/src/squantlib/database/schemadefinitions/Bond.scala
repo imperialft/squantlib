@@ -5,7 +5,8 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 import squantlib.setting.initializer.Calendars
 import org.jquantlib.time.Calendar
-
+import squantlib.util.JsonUtils._
+import scala.collection.JavaConversions._
 
 class Bond(@Column("ID")					var id: String,
               @Column("REF_NUMBER")			var ref_number: Int,
@@ -15,6 +16,7 @@ class Bond(@Column("ID")					var id: String,
               @Column("NOMINAL")			var nominal: Option[Double],
               @Column("DENOMINATION")		var denomination: Option[Double],
               @Column("UNDERLYING")			var underlying: String,
+              @Column("UNDERLYINGINFO")		var underlyinginfo: String,
               @Column("COUPON")				var coupon: String,
               @Column("COUPON_FREQ")		var coupon_freq: Option[Int],
               @Column("DAYCOUNT")			var daycount: String,
@@ -35,6 +37,8 @@ class Bond(@Column("ID")					var id: String,
               @Column("TICKER")				var ticker: String,
               @Column("LEADMANAGER")		var leadmanager: String,
               @Column("BONDNAME")			var bondname: String,
+              @Column("SHORTNAME")			var shortname: String,
+              @Column("EDINETNAME")			var edinetname: String,
               @Column("DESCRIPTION_JPN")	var description_jpn: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("CurrencyID")			var currencyid: String,
@@ -81,11 +85,15 @@ class Bond(@Column("ID")					var id: String,
     compareMap(getFieldMap, b.getFieldMap)
   }
   
-//  def updateContent(b:Bond):Boolean = {
-////    compareMap(getFieldMap, b.getFieldMap)
-//    this.getClass.getDeclaredFields.filter(f => f.)
-//    
-//  }
+  def couponList:List[String] = coupon.parseJsonStringList.map(_.orNull)
+  def underlyingList:List[String] = underlying.parseJsonStringList.map(_.orNull)
+  
+  def bermudanList:List[Boolean] = call.parseJsonStringList.map(_.orNull == "berm")
+  def triggerList:List[List[String]] = call.jsonArray.map(_.parseStringList.map(_.orNull))
+  
+  def fixingList:Map[String, Double] = fixings.parseJsonDoubleFields
+  def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
+  def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
   
   def this() = this(
 		id = null,
@@ -96,6 +104,7 @@ class Bond(@Column("ID")					var id: String,
 		nominal = Some(-9999),
 		denomination = Some(-999.0),
 		underlying = null,
+		underlyinginfo = null,
 		coupon = null,
 		coupon_freq = Some(9999),
 		daycount = null,
@@ -116,6 +125,8 @@ class Bond(@Column("ID")					var id: String,
 		ticker = null,
 		leadmanager = null,
 		bondname = null,
+		shortname = null,
+		edinetname = null,
 		description_jpn = null,
 		description_eng = null, 
 		currencyid = null,

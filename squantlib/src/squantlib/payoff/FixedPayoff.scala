@@ -38,7 +38,7 @@ object FixedPayoff {
   
 	def apply(formula:String):FixedPayoff = formula.parseDouble match {
 	  case Some(v) => FixedPayoff(v)
-	  case None => FixedPayoff(formula.parseJsonDouble("payoff").getOrElse(Double.NaN), formula.parseJsonString("description"))
+	  case None => FixedPayoff(formula.parseJsonDouble("payoff").getOrElse(Double.NaN), formula.parseJsonString("description").orNull)
 	}
 	
 	def apply(payoff:Double):FixedPayoff = new FixedPayoff(payoff)

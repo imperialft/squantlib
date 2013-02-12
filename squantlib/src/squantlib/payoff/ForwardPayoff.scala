@@ -6,13 +6,13 @@ import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
-import squantlib.util.VariableInfo
+import squantlib.util.UnderlyingInfo
 import java.util.{Map => JavaMap}
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
  * JSON format:
- *  {type:"putdi", variable:[String], trigger:[Double], strike:[Double], description:String}, 
+ *  {type:"forward", variable:[String], trigger:[Double], strike:[Double], description:String}, 
  * No strike is considered as no low boundary
  */
 case class ForwardPayoff(fwdVariables:List[String], strike:List[Double], description:String = null) 
@@ -52,8 +52,8 @@ extends Payoff {
 	}	
 	
 	override def display(isRedemption:Boolean):String = {
- 	  val varnames = fwdVariables.map(VariableInfo.namejpn)
-	  val strikeMap = (fwdVariables, strike).zipped.map{case (v, k) => (VariableInfo.namejpn(v), VariableInfo.displayValue(v, k))}
+ 	  val varnames = fwdVariables.map(UnderlyingInfo.nameJpn)
+	  val strikeMap = (fwdVariables, strike).zipped.map{case (v, k) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, k))}
 	  val multiple = variables.size > 1
 	  
 	  if (isRedemption) {
@@ -77,7 +77,7 @@ extends Payoff {
 	
 //	override def display:String =
 //	  (fwdVariables, strike).zipped.map{case (v, k) => 
-//	    "額面 * 参照日における" + VariableInfo.namejpn(v) + " / " + VariableInfo.displayValue(v, k)}.mkString(sys.props("line.separator")) + 
+//	    "額面 * 参照日における" + UnderlyingInfo.namejpn(v) + " / " + UnderlyingInfo.displayValue(v, k)}.mkString(sys.props("line.separator")) + 
 //	    (if (fwdVariables.size > 1) sys.props("line.separator") + "の低いほう" else "")
 	
 }
@@ -86,20 +86,9 @@ object ForwardPayoff {
   
 	def apply(node:String):ForwardPayoff = {
 	  
-	  val variable:List[String] = node.jsonNode("variable") match {
-	    case Some(n) if n isArray => n.map(s => s.asText).toList
-	    case Some(n) if n isTextual => List(n.asText)
-	    case _ => List.empty
-	  }
-	  
-
-	  val strike:List[Double] = node.jsonNode("strike") match {
-	    case Some(n) if n isArray => n.map(s => s.parseJsonDouble.getOrElse(Double.NaN)).toList
-	    case Some(n) if n isDouble => List(n.parseJsonDouble.getOrElse(Double.NaN))
-	    case _ => List.empty
-	  }
-	  
-	  val description:String = node.parseJsonString("description")
+	  val variable:List[String] = node.parseJsonStringList("variable").map(_.orNull)
+	  val strike:List[Double] = node.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+	  val description:String = node.parseJsonString("description").orNull
 	  ForwardPayoff(variable, strike, description)
 	}
   

@@ -53,7 +53,6 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	 * Stores already calculated discount curves.
 	 * Assumption: for each key, value contains discount curve for both discount and pivot currency.
 	 */
-//	var repository:Map[String, scala.collection.mutable.Map[String, DiscountCurve]] = Map.empty
 	var repository = new scala.collection.mutable.WeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]]
 	
 	/**
@@ -283,49 +282,11 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	  new Market(curves, cdscurves, fxparams.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}.toMap, paramset, fixings)
 	
 	
-//	
-//	{
-//	  val equivshift:Map[String, Double] = fxShift.filter{case (k, v) => fxparams contains k}
-//	  			.map { case (k, v) => (k, r + v)}
-//	  
-//	  new Market(curves, cdscurves, fxparams.map{case (c, v) => if (equivshift contains c) (c, v.shiftVolFX(equivshift(c))) else (c, v)}.toMap, paramset, fixings)
-//	}
-	
 	private def isCcy(v:String):Boolean = curves.contains(v)
 	private val cashPeriods = Set("M", "W", "D")
 	private val swapPeriods = Set("Y")
 	private def isNumber(v:String):Boolean = try {v.toInt; true} catch {case _ => false}
 	  
-//	def getYieldTermStructure(bond:qlBond):Option[YieldTermStructure] = 
-//	  	try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toZCImpliedYieldTermStructure) } 
-//		catch { case _ => None}
-//										   
-//	def getYieldTermStructure(bond:qlBond, calendar:Calendar):Option[YieldTermStructure] = 
-//		try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toZCImpliedYieldTermStructure(calendar))} 
-//		catch { case _ => None}
-//	
-//	def getCustomYieldTermStructure(bond:qlBond, calendar:Calendar, newvaluedate:qlDate):Option[YieldTermStructure] = 
-//		try { 
-//		  val newcurve = getDiscountCurve(bond.currency.code, bond.creditSpreadID).get
-//		  newcurve.valuedate = newvaluedate
-//		  Some(newcurve.toZCImpliedYieldTermStructure(calendar))
-//		  } 
-//		catch { case _ => None}
-//	
-//	def getDiscountBondEngine(bond:qlBond):Option[DiscountingBondEngine] = 
-//	  	try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toDiscountBondEngine) } 
-//		catch { case _ => None}
-//		 
-//	def getDiscountBondEngine(bond:qlBond, calendar:Calendar):Option[DiscountingBondEngine] = 
-//		try { Some(getDiscountCurve(bond.currency.code, bond.creditSpreadID).get.toDiscountBondEngine(calendar)) } 
-//		catch { case _ => None}
-//	
-//	def getCustomDiscountBondEngine(bond:qlBond, calendar:Calendar, newvaluedate:qlDate):Option[DiscountingBondEngine] = 
-//		try { 
-//		  val newcurve = getDiscountCurve(bond.currency.code, bond.creditSpreadID).get
-//		  newcurve.valuedate = newvaluedate
-//		  Some(newcurve.toDiscountBondEngine(calendar)) } 
-//		catch { case _ => None}
 	
 	/** 
 	 * Checks whether the given curve is already calculated and stored in the repository.

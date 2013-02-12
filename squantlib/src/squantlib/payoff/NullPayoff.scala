@@ -31,7 +31,7 @@ case class NullPayoff(description:String = null, inputString:String = null) exte
 object NullPayoff {
   
 	def apply(formula:String):NullPayoff = {
-	  val description:String = formula.parseJsonString("description")
+	  val description:String = formula.parseJsonString("description").orNull
 	  NullPayoff(description, formula)
 	}
 }

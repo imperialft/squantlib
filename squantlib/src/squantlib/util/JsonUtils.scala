@@ -2,28 +2,84 @@ package squantlib.util
 
 import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.JsonNode
+import scala.collection.JavaConversions._
+import org.jquantlib.time.{Date => qlDate}
 
 
 object JsonUtils {
+  
+	val jsonDateFormat = new java.text.SimpleDateFormat("y/M/d")
   
 	implicit def jsonToExtendedJson(node:JsonNode) = ExtendedJson(node)
 	
 	case class ExtendedJson(node:JsonNode) {
 	  
-	  def parseJsonDouble:Option[Double] = node match {
-	    case n if n.isNumber => Some(n.getDoubleValue)
-		case n if n.getTextValue != null && n.getTextValue.trim.endsWith("%") => 
-		  try {Some(n.getTextValue.trim.dropRight(1).toDouble / 100)} 
-		  catch { case e:Exception => println(e.getMessage) ; None}
-		case n => FormulaParser.calculate(n.getTextValue)
+	  def hasName(name:String) = (node != null) && (node has name)
+	  
+	  def parseInt:Option[Int]= node match {
+	    case null => None
+	    case n if n.isInt => Some(n.getIntValue)
+	    case n if n.isDouble => Some(n.getDoubleValue.round.toInt)
+	    case n => FormulaParser.calculate(n.asText).collect{case d => d.round.toInt}
 	  }
+	  def parseInt(name:String):Option[Int] = if (hasName(name)) node.get(name).parseInt else None
 	  
-	  def parseJsonDouble(name:String):Option[Double] = if (node has name) node.get(name).parseJsonDouble else None
+	  def parseDouble:Option[Double] = node match {
+	    case null => None
+	    case n if n.isNumber => Some(n.getDoubleValue)
+		case n => FormulaParser.calculate(n.asText)
+	  }
+	  def parseDouble(name:String):Option[Double] = if (hasName(name)) node.get(name).parseDouble else None
 	  
-	  def parseJsonString:String = node.getTextValue
+	  def parseString:Option[String] = Some(node.asText)
+	  def parseString(name:String):Option[String] = if (hasName(name)) node.get(name).parseString else None
+
+	  def parseDate:Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString.orNull)))} catch {case _ => None}
+	  def parseDate(name:String):Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString(name).orNull)))} catch {case _ => None}
 	  
-	  def parseJsonString(name:String):String = if (node has name) node.get(name).getTextValue else null
-	    
+	  def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))
+	  def parseObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = if (hasName(name)) Some(constructor(node.get(name).parseValueFields)) else None
+	  
+	  def parseList:List[JsonNode] = node match {
+	    case n if n == null => List.empty
+	    case n if n isArray => n.map(s => s).toList
+	    case n if n.isNull => List.empty
+	    case n => List(n)
+	  }
+	  def parseList(name:String):List[JsonNode] = if (hasName(name)) node.get(name).parseList else List.empty
+	  
+	  def parseIntList:List[Option[Int]] = parseList.map(_.parseInt)
+	  def parseIntList(name:String):List[Option[Int]] = if (hasName(name)) node.get(name).parseIntList else List.empty
+	  
+	  def parseDoubleList:List[Option[Double]] = parseList.map(_.parseDouble)
+	  def parseDoubleList(name:String):List[Option[Double]] = if (hasName(name)) node.get(name).parseDoubleList else List.empty
+	  
+	  def parseStringList:List[Option[String]] = parseList.map(_.parseString)
+	  def parseStringList(name:String):List[Option[String]] = if (hasName(name)) node.get(name).parseStringList else List.empty
+	  
+	  def parseValueFields:Map[String, Any] = if (node == null) Map.empty
+		  else node.getFieldNames.map(f => (f, node.get(f) match {
+		    case n if n.isContainerNode => None
+		    case n if n.isInt => n.parseInt
+		    case n if n.isDouble => n.parseDouble
+		    case n if n.isTextual => n.parseString
+		    case n => n.parseString
+		  })).collect{case (a, Some(b)) => (a, b)}.toMap
+	  def parseValueFields(name:String):Map[String, Any] = if (hasName(name)) node.get(name).parseValueFields else Map.empty
+	  
+	  def parseDoubleFields:Map[String, Double] = if (node == null) Map.empty
+		  else node.getFieldNames.map(f => (f, node.get(f).parseDouble)).collect{case (a, Some(b)) => (a, b)}.toMap
+		  
+	  def parseDoubleFields(name:String):Map[String, Double] = if (hasName(name)) Map.empty
+		  else node.get(name).getFieldNames.map(f => (f, node.get(f).parseDouble)).collect{case (a, Some(b)) => (a, b)}.toMap
+		  
+	  def parseStringFields:Map[String, String] = if (node == null) Map.empty
+		  else node.getFieldNames.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
+		  
+	  def parseStringFields(name:String):Map[String, String] = if (hasName(name)) Map.empty
+		  else node.get(name).getFieldNames.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
+		  
+	  
 	}
 	
 	
@@ -39,21 +95,84 @@ object JsonUtils {
 	    val node = mapper.readTree(formula).get(name)
 	    if (node == null) None else Some(node)
 	    } catch { case _ => None }
+	    
+	  def jsonArray:List[JsonNode] = jsonNode match {
+	    case Some(n) if n isArray => n.getElements.toList
+	    case Some(n) => List(n)
+	    case _ => List.empty
+	  }
+	    
+	  def jsonArray(name:String):List[JsonNode] = jsonNode(name) match {
+	    case Some(n) if n isArray => n.getElements.toList
+	    case Some(n) => List(n)
+	    case _ => List.empty
+	  }
 	  
-	  def parseJsonDouble:Option[Double] = 
-	    try { mapper.readTree(formula).parseJsonDouble }
-	  	catch { case _ => None }
+	  def jsonParser[T](f:JsonNode => Option[T]):Option[T] = jsonNode match { case Some(n) => f(n); case _ => None}
+	  def jsonParserOrElse[T](f:JsonNode => T, alternative:T):T = jsonNode match { case Some(n) => f(n); case _ => alternative}
+	  
+	  def parseJsonInt:Option[Int] = jsonParser(_.parseInt)
+	  def parseJsonInt(name:String):Option[Int] = jsonParser(_.parseInt(name))
+	  
+	  def parseJsonDouble:Option[Double] = jsonParser(_.parseDouble)
+	  def parseJsonDouble(name:String):Option[Double] = jsonParser(_.parseDouble(name))
 	  	
-	  def parseJsonDouble(name:String):Option[Double] = 
-	    try { mapper.readTree(formula).get(name).parseJsonDouble }
-	  	catch { case _ => None }
-	  	
-	  def parseJsonString(name:String):String = 
-	    try { mapper.readTree(formula).get(name).getTextValue }
-	  	catch { case _ => null }
-	  	
+	  def parseJsonString:Option[String] = jsonParser(_.parseString)
+	  def parseJsonString(name:String):Option[String] = jsonParser(_.parseString(name))
+	  
+	  def parseJsonDate:Option[qlDate] = jsonParser(_.parseDate)
+	  def parseJsonDate(name:String):Option[qlDate] = jsonParser(_.parseDate(name))
+	  
+	  def parseJsonObject[T](constructor:Map[String, Any] => T):Option[T] = jsonParser(_.parseObject(constructor))
+	  def parseJsonObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = jsonParser(_.parseObject(name, constructor))
+	  
+	  def parseJsonValueFields:Map[String, Any] = jsonParserOrElse(_.parseValueFields, Map.empty)
+	  def parseJsonValueFields(name:String):Map[String, Any] = jsonParserOrElse(_.parseValueFields(name), Map.empty)
+	  
+	  def parseJsonIntList:List[Option[Int]] = jsonParserOrElse(_.parseIntList, List.empty)
+	  def parseJsonIntList(name:String):List[Option[Int]] = jsonParserOrElse(_.parseIntList(name), List.empty)
+	  
+	  def parseJsonDoubleList:List[Option[Double]] = jsonParserOrElse(_.parseDoubleList, List.empty)
+	  def parseJsonDoubleList(name:String):List[Option[Double]] = jsonParserOrElse(_.parseDoubleList(name), List.empty)
+	  
+	  def parseJsonStringList:List[Option[String]] = jsonParserOrElse(_.parseStringList, List.empty)
+	  def parseJsonStringList(name:String):List[Option[String]] = jsonParserOrElse(_.parseStringList(name), List.empty)
+	  
+	  def parseJsonDoubleFields:Map[String, Double] = jsonParserOrElse(_.parseDoubleFields, Map.empty)
+	  def parseJsonDoubleFields(name:String):Map[String, Double] = jsonParserOrElse(_.parseDoubleFields(name), Map.empty)
+	  
+	  def parseJsonStringFields:Map[String, String] = jsonParserOrElse(_.parseStringFields, Map.empty)
+	  def parseJsonStringFields(name:String):Map[String, String] = jsonParserOrElse(_.parseStringFields(name), Map.empty)
+	  
 	}
 	
+	implicit def mapToExtendedMap(m:Map[String, Any]) = ParsingMap(m)
+	
+	case class ParsingMap(map:Map[String, Any]) {
+	  
+	  def getDouble(key:String):Option[Double] = map.get(key) match {
+	    case Some(v:Double) => Some(v)
+	    case Some(v:Int) => Some(v.toDouble)
+	    case Some(v:String) => FormulaParser.calculate(v)
+	    case _ => None
+	  }
+	  
+	  def getInt(key:String):Option[Int] = map.get(key) match {
+	    case Some(v:Int) => Some(v)
+	    case Some(v:Double) => Some(v.round.toInt)
+	    case Some(v:String) => FormulaParser.calculate(v).collect{case s => s.round.toInt}
+	    case _ => None
+	  }
+	  
+	  def getString(key:String):Option[String] = Some(map(key).toString)
+	}
+
+
+	
+	def jsonString[T](map:Map[String, T]):String = {
+	  val infoMap:java.util.Map[java.lang.String, T] = map
+	  (new ObjectMapper).writeValueAsString(infoMap)	  
+	}
 
 } 
 

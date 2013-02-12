@@ -7,7 +7,7 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
-import squantlib.util.VariableInfo
+import squantlib.util.UnderlyingInfo
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -71,8 +71,8 @@ extends Payoff {
 	}	
 	    
 	override def display(isRedemption:Boolean):String = {
-	  val varnames = binaryVariables.map(v => (v, VariableInfo.namejpn(v))).toMap
-	  val dispValue = (v:String, s:Double) => VariableInfo.displayValue(v, s)
+	  val varnames = binaryVariables.map(v => (v, UnderlyingInfo.nameJpn(v))).toMap
+	  val dispValue = (v:String, s:Double) => UnderlyingInfo.displayValue(v, s)
 	  
 	  if (isRedemption)
 	    "最終参照日の参照価格によって決定されます。" + sys.props("line.separator") + 
@@ -95,22 +95,19 @@ extends Payoff {
 object BinaryPayoff {
   
 	def apply(node:String):BinaryPayoff = {
-	  val variable:List[String] = node.jsonNode("variable") match {
-	    case Some(n) if n isArray => n.map(s => s.parseJsonString).toList
-	    case Some(n) if n isTextual => List(n.asText)
-	    case _ => List.empty
-	  }
+	  val variable:List[String] = node.parseJsonStringList("variable").map(_.orNull)
 	  
 	  val payoff:List[(Double, Option[List[Double]])] = (node.jsonNode("payoff") match {
 	    case None => List.empty
 	    case Some(subnode) if subnode isArray => subnode.map(n => {
-	      val amount = n.parseJsonDouble("amount").getOrElse(Double.NaN)
+	      val amount = n.parseDouble("amount").getOrElse(Double.NaN)
 	      if (n.get("strike") == null) (amount, None)
-	      else (amount, Some(n.get("strike").map(s => s.parseJsonDouble.getOrElse(Double.NaN)).toList))
+	      else (amount, Some(n.get("strike").map(s => s.parseDouble.getOrElse(Double.NaN)).toList))
 	    })
+	    case _ => List.empty
 	  }).toList
 	  
-	  val description:String = node.parseJsonString("description")
+	  val description:String = node.parseJsonString("description").orNull
 	  BinaryPayoff(variable, payoff, description)
 	}
   

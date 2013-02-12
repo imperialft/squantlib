@@ -20,23 +20,25 @@ import squantlib.util.JsonUtils._
 object LEPS1dPayoffSeries {
   
 	def apply(formula:String):List[LEPS1dPayoff] = {
-	  val variable:String = formula.parseJsonString("variable")
+	  val variable:String = formula.parseJsonString("variable").orNull
 	  
 	  formula.jsonNode("legs") match {
 	    
 	    case None => List.empty
 	    
-	    case Some(node) if node isArray => node.getElements.map { n => {
-	      val description:String = n.parseJsonString("description")
-	      LEPS1dPayoff(variable, n.get("payoff"), description)
-	    }}.toList
+	    case Some(node) => node.parseList.map(n => LEPS1dPayoff(variable, n.get("payoff"), n.parseString("description").orNull))
 	    
-	    case Some(node) if node isObject => {
-	      val description:String = node.parseJsonString("description")
-	      List(LEPS1dPayoff(variable, node.get("payoff"), description))
-	    }
-	    
-	    case _ => List.empty
+//	    case Some(node) if node isArray => node.getElements.map { n => {
+//	      val description:String = n.parseString("description").orNull
+//	      LEPS1dPayoff(variable, n.get("payoff"), description)
+//	    }}.toList
+//	    
+//	    case Some(node) if node isObject => {
+//	      val description:String = node.parseString("description").orNull
+//	      List(LEPS1dPayoff(variable, node.get("payoff"), description))
+//	    }
+//	    
+//	    case _ => List.empty
 	  }
 	}
 	  

@@ -18,6 +18,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.`type`.TypeReference;
 import scala.collection.JavaConversions._
 import scala.collection.mutable.{Set => mutableSet}
+import scala.collection.mutable.WeakHashMap
 import java.math.{MathContext => JMC, RoundingMode}
 import java.util.{Map => JavaMap}
 
@@ -31,7 +32,16 @@ case class Bond(
 		redemption:Payoff,
 		underlyings:List[String],
 		bermudan:List[Boolean],
-		trigger:List[List[Option[Double]]]) {
+		trigger:List[List[Option[Double]]],
+		var defaultModel:(Market, Bond) => Option[PricingModel] = null,
+		var forceModel:Boolean = false,
+		var useCouponAsYield:Boolean = false,
+		var requiresCalibration:Boolean = false,
+		var modelCalibrated:Boolean = false,
+		var _market:Option[Market] = None,
+		var model:Option[PricingModel] = None
+		) {
+	
 	
 	/*
 	 * Standard bond parameters
@@ -66,16 +76,22 @@ case class Bond(
 	
 	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
 	
-	override def clone:Bond = Bond(db, inputSchedule, coupon, redemption, underlyings, bermudan, trigger)
+	override def clone:Bond = {
+	  val bond = new Bond(db, inputSchedule, coupon, redemption, underlyings, bermudan, trigger, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model) 
+	  calibrationCache.foreach{case (a, b) => bond.calibrationCache.update(a, b)}
+	  bond
+	}
 	
-	def dateShifted(shift:Int):Bond = Bond(db, inputSchedule.shifted(shift), coupon, redemption, underlyings, bermudan, trigger)
+	def dateShifted(shift:Int):Bond = {
+	  val bond = new Bond(db, inputSchedule.shifted(shift), coupon, redemption, underlyings, bermudan, trigger, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
+	  bond
+	} 
 
-	def triggerShifted(trig:List[List[Option[Double]]]):Bond = Bond(db, inputSchedule, coupon, redemption, underlyings, bermudan, trig)
+	def triggerShifted(trig:List[List[Option[Double]]]):Bond = {
+	  val bond = new Bond(db, inputSchedule, coupon, redemption, underlyings, bermudan, trig, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
+	  bond
+	} 
 	
-	/* 
-	 * Specify default market parameters
-	 */
-	protected var _market:Option[Market] = None
 	
 	def market:Option[Market] = _market
 	def market_= (newMarket:Market) = {
@@ -86,29 +102,6 @@ case class Bond(
 	
 	def setMarket(newMarket:Market):Unit = market = newMarket
 	
-	/* 
-	 * Pricing model
-	 */
-	var model:Option[PricingModel] = None
-	
-	/* 
-	 * Use ModelSetter to define pricing model.
-	 */
-	var defaultModel:(Market, Bond) => Option[PricingModel] = null
-	
-	/* 
-	 * Prevent using NoModel for fixed rate coupon legs automatically.
-	 */
-	protected var _forceModel = false
-	
-	def forceModel:Boolean = _forceModel
-	def forceModel_= (newParam:Boolean) = _forceModel = newParam
-	
-	
-	/* 
-	 * Use average of future coupons as yield
-	 */
-	var useCouponAsYield = false
 	
 	/* 
 	 * Reset model
@@ -140,14 +133,13 @@ case class Bond(
 	/* 
 	 * True if necessary to run calibrateModel to get accurate price.
 	 */
-	var requiresCalibration:Boolean = false
-	var modelCalibrated:Boolean = false
+//	var modelCalibrated:Boolean = false
 	def calibrateModel = model match {
 	  case Some(m) => {model = Some(m.calibrate); cpncache.clear}
 	  case None => {}
 	}
 	
-	val calibrationCache = new scala.collection.mutable.WeakHashMap[String, Any]
+	val calibrationCache = new WeakHashMap[String, Any]
 	def getCalibrationCache[A](k:String):Option[A] = 
 	  if (calibrationCache contains k) calibrationCache(k) match {
 	    case obj:A => Some(obj)
@@ -486,8 +478,6 @@ case class Bond(
         underlyings.map(ul => {
           if (ul.size != 6 || ul.takeRight(3) == "JPY") None
             val ccy = ul take 3
-            bond.defaultModel = this.defaultModel
-            bond.market = mkt
             
 			def priceFromFXmult(y:Double):Double = {
               bond.market = mkt.fxShifted(Map(ccy -> y))
@@ -514,8 +504,6 @@ case class Bond(
       
       vds.foreach{case (vd, index) => 
         val tempBond = triggerShifted(tempTrigger.toList)
-        tempBond.market = this.market.orNull
-        tempBond.defaultModel = this.defaultModel
         
         if (liveTriggers(index).isEmpty) {
           tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
@@ -605,7 +593,7 @@ case class Bond(
 	  val initprice = target(this)
 	  val newBond = this.clone
 	  newBond.calibrationCache ++= this.calibrationCache
-	  newBond.defaultModel = this.defaultModel
+//	  newBond.defaultModel = this.defaultModel
 	  newBond.market = mkt.rateShifted(shift)
 	  val newprice = target(newBond)
 	  (initprice, newprice) match { case (Some(i), Some(n)) => Some(n - i) case _ => None }
@@ -643,7 +631,7 @@ case class Bond(
 	  val initprice = target(this)
 	  val newBond = this.clone
 	  newBond.calibrationCache ++= this.calibrationCache
-	  newBond.defaultModel = this.defaultModel
+//	  newBond.defaultModel = this.defaultModel
 	  newBond.market = mkt.fxShifted(mult)
 	  val newprice = target(newBond)
 	  (initprice, newprice) match { case (Some(i), Some(n)) => Some(n - i) case _ => None }
@@ -666,7 +654,7 @@ case class Bond(
 	  val initprice = target(this)
 	  val newBond = this.clone
 	  newBond.calibrationCache ++= this.calibrationCache
-	  newBond.defaultModel = this.defaultModel
+//	  newBond.defaultModel = this.defaultModel
 	  newBond.market = mkt.fxVolShifted(addvol)
 	  val newprice = target(newBond)
 	  (initprice, newprice) match { case (Some(i), Some(n)) => Some(n - i) case _ => None }
@@ -967,22 +955,24 @@ object Bond {
 		val calllist = applyFixing(db.call).jsonNode
 		
 		val bermudan:List[Boolean] = calllist match {
-		  case Some(b) if b.isArray && b.size == 1 => List.fill(schedule.size - 2)(b.head.parseJsonString == "berm") ++ List(false, false)
-		  case Some(b) if b isArray => List.fill(schedule.size - b.size - 2)(false) ++ b.map(_.parseJsonString == "berm").toList ++ List(false, false)
+		  case Some(b) if b.isArray && b.size == 1 => List.fill(schedule.size - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
+		  case Some(b) if b isArray => List.fill(schedule.size - b.size - 2)(false) ++ b.map(_.parseString == Some("berm")).toList ++ List(false, false)
 		  case _ => List.fill(schedule.size)(false)
 		}
+
+		val underlyings:List[String] = db.underlying.parseJsonStringList.map(_.orNull)
 		
-		val underlyings:List[String] = db.underlying.jsonNode match {
-		  case Some(n) if n isArray => n.map(_.parseJsonString).toList
-		  case _ => List.empty
-		}
+//		val underlyings:List[String] = db.underlying.jsonNode match {
+//		  case Some(n) if n isArray => n.map(_.parseString.orNull).toList
+//		  case _ => List.empty
+//		}
 		
 		val trigger:List[List[Option[Double]]] = calllist match {
 		  case Some(b) if b.isArray && b.size == 1 => 
-		    List.fill(schedule.size - 2)(if (b.head isArray) b.head.map(_.parseJsonDouble).toList else List.empty) ++ List.fill(2)(List.empty)
+		    List.fill(schedule.size - 2)(if (b.head isArray) b.head.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
 		  case Some(b) if b isArray => 
 		    List.fill(schedule.size - b.size - 2)(List.empty) ++ 
-		    b.map(n => if (n isArray) n.map(_.parseJsonDouble).toList else List.empty) ++ List.fill(2)(List.empty)
+		    b.map(n => if (n isArray) n.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
 		  case _ => List.fill(schedule.size)(List.empty)
 		}
 		

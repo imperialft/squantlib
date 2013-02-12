@@ -68,7 +68,7 @@ object Payoff {
 	def payoffType(formula:String):String = formula match {
 	  case f if f.parseDouble.isDefined => "fixed"
 	  case f if f.startsWith("leps") => "leps1d"
-	  case f => formula.parseJsonString("type")
+	  case f => formula.parseJsonString("type").orNull
 	  }
 }
 

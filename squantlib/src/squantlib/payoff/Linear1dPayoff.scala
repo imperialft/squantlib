@@ -5,7 +5,7 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
-import squantlib.util.VariableInfo
+import squantlib.util.UnderlyingInfo
 
 /**
  * Interprets JSON formula specification for a linear formula with cap & floor.
@@ -29,8 +29,8 @@ case class Linear1dPayoff(variable:String, payoff:Linear1dFormula, description:S
 	override def toString:String = payoff.toString(variable)
 	
 	override def display(isRedemption:Boolean):String = {
-	  val varname = VariableInfo.namejpn(variable)
-	  val vardisp = (v:Double) => VariableInfo.displayValue(variable, v)
+	  val varname = UnderlyingInfo.nameJpn(variable)
+	  val vardisp = (v:Double) => UnderlyingInfo.displayValue(variable, v)
 	  
 	  if (isRedemption) {
 	    "最終参照日の" + varname + "によって、下記の金額が支払われます。" + 
@@ -85,17 +85,21 @@ case class Linear1dPayoff(variable:String, payoff:Linear1dFormula, description:S
 object Linear1dPayoff {
   
 	def apply(formula:String):Linear1dPayoff = {
-	  val variable:String = formula.parseJsonString("variable")	
+	  val variable:String = formula.parseJsonString("variable").orNull
 	  
-	  val payoff:Linear1dFormula = formula.jsonNode("payoff") match {
-		  case Some(n) => Linear1dFormula(n)
-		  case None => null
-		}
+	  val payoff:Linear1dFormula = formula.parseJsonObject("payoff", Linear1dFormula(_)).orNull
+	  
+//	  val payoff:Linear1dFormula = formula.jsonNode("payoff") match {
+//		  case Some(n) => Linear1dFormula(n)
+//		  case None => null
+//		} 
 	  
 	  Linear1dPayoff(variable, payoff, null)
 	}
 	
-	def apply(variable:String, payoff:JsonNode):Linear1dPayoff = Linear1dPayoff(variable, Linear1dFormula(payoff), null)
+//	def apply(variable:String, payoff:JsonNode):Linear1dPayoff = Linear1dPayoff(variable, Linear1dFormula(payoff), null)
+	def apply(variable:String, payoff:Map[String, Any]):Linear1dPayoff = Linear1dPayoff(variable, Linear1dFormula(payoff), null)
+	
 	
 	def apply(variable:String, coeff:Option[Double], constant:Option[Double], minValue:Option[Double], maxValue:Option[Double], description:String = null):Linear1dPayoff = 
 	  Linear1dPayoff(variable, Linear1dFormula(coeff, constant, minValue, maxValue, description), description)
@@ -123,12 +127,21 @@ case class Linear1dFormula (val coeff:Option[Double], val constant:Option[Double
 
 object Linear1dFormula {
   
-	def apply(subnode:JsonNode):Linear1dFormula = {
-		val minValue:Option[Double] = subnode.parseJsonDouble("min")
-		val maxValue:Option[Double] = subnode.parseJsonDouble("max")
-		val coeff:Option[Double] = Some(subnode.parseJsonDouble("mult").getOrElse(1.0))
-		val constant:Option[Double] = subnode.parseJsonDouble("add")
-		val description:String = subnode.parseJsonString("description")
+//	def apply(subnode:JsonNode):Linear1dFormula = {
+//		val minValue:Option[Double] = subnode.parseDouble("min")
+//		val maxValue:Option[Double] = subnode.parseDouble("max")
+//		val coeff:Option[Double] = Some(subnode.parseDouble("mult").getOrElse(1.0))
+//		val constant:Option[Double] = subnode.parseDouble("add")
+//		val description:String = subnode.parseString("description").orNull
+//		Linear1dFormula(coeff, constant, minValue, maxValue, description)
+//	}
+	
+	def apply(parameters:Map[String, Any]):Linear1dFormula = {
+		val minValue:Option[Double] = parameters.getDouble("min")
+		val maxValue:Option[Double] = parameters.getDouble("max")
+		val coeff:Option[Double] = Some(parameters.getDouble("mult").getOrElse(1.0))
+		val constant:Option[Double] = parameters.getDouble("add")
+		val description:String = parameters.getString("description").orNull
 		Linear1dFormula(coeff, constant, minValue, maxValue, description)
 	}
 	

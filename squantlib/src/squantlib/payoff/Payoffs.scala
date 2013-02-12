@@ -6,6 +6,7 @@ import scala.collection.LinearSeq
 import scala.annotation.tailrec 
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
+import scala.collection.JavaConversions._
 
 case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
   
@@ -121,7 +122,6 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	val jsonString:String = payoffs.map(_.jsonString).mkString(";")
 }
 
-import scala.collection.JavaConversions._
 
 object Payoffs {
 	
@@ -143,7 +143,7 @@ object Payoffs {
 	def payoffType(formula:String):String = formula.trim match {
 	  case f if f.parseDouble.isDefined => "fixed"
 	  case f if f.startsWith("leps") => "leps1d"
-	  case f => formula.parseJsonString("type")
+	  case f => formula.parseJsonString("type").orNull
 	  }
 	
 	def getPayoff(f:String):List[Payoff] = payoffType(f) match {

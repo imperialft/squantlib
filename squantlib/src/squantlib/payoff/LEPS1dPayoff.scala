@@ -7,7 +7,7 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
-import squantlib.util.VariableInfo
+import squantlib.util.UnderlyingInfo
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -32,8 +32,8 @@ case class LEPS1dPayoff(variable:String, payoff:List[LEPS1dComponent], descripti
 	override def price = Double.NaN
 	
 	override def display(isRedemption:Boolean):String = {
-	  val varname = VariableInfo.namejpn(variable)
-	  val vardisp = (v:Double) => VariableInfo.displayValue(variable, v)
+	  val varname = UnderlyingInfo.nameJpn(variable)
+	  val vardisp = (v:Double) => UnderlyingInfo.displayValue(variable, v)
 	  
 	  if (isRedemption) {
 	    "最終参照日の" + varname + "によって、下記の金額で償還されます。" + 
@@ -123,8 +123,8 @@ object LEPS1dPayoff {
 	  }
 	  
 	  else {
-	    val variable:String = formula.parseJsonString("variable")
-	    val description:String = formula.parseJsonString("description")
+	    val variable:String = formula.parseJsonString("variable").orNull
+	    val description:String = formula.parseJsonString("description").orNull
 	  
 	    val payoff:List[LEPS1dComponent] = formula.jsonNode match {
 	      case Some(node) => getLEPScomponents(node.get("payoff"))
@@ -137,13 +137,15 @@ object LEPS1dPayoff {
 
 	def apply(variable:String, payoff:JsonNode, description:String):LEPS1dPayoff = 
 	  LEPS1dPayoff(variable, getLEPScomponents(payoff), description)
+	
+	def getLEPScomponents(node:JsonNode):List[LEPS1dComponent] = node.parseList.map(LEPS1dComponent(_))
 	  
-	def getLEPScomponents(node:JsonNode):List[LEPS1dComponent] = node match {
-	  case null => List.empty
-	  case n if n.isArray => n.getElements.map(LEPS1dComponent(_)).toList
-  	  case n if n.isObject => List(LEPS1dComponent(n))
-  	  case _ => List.empty
-	}
+//	def getLEPScomponents(node:JsonNode):List[LEPS1dComponent] = node match {
+//	  case null => List.empty
+//	  case n if n.isArray => n.getElements.map(LEPS1dComponent(_)).toList
+//  	  case n if n.isObject => List(LEPS1dComponent(n))
+//  	  case _ => List.empty
+//	}
 
 }
 
@@ -177,10 +179,10 @@ case class LEPS1dComponent (coeff:Option[Double], constant:Option[Double], minRa
 object LEPS1dComponent {
 	
 	def apply(subnode:JsonNode):LEPS1dComponent = {
-	  val coeff:Option[Double] = Some(subnode.parseJsonDouble("mult").getOrElse(1.0))
-	  val constant:Option[Double] = subnode.parseJsonDouble("add")
-	  val minRange:Option[Double] = subnode.parseJsonDouble("minrange")
-	  val maxRange:Option[Double] = subnode.parseJsonDouble("maxrange")
+	  val coeff:Option[Double] = Some(subnode.parseDouble("mult").getOrElse(1.0))
+	  val constant:Option[Double] = subnode.parseDouble("add")
+	  val minRange:Option[Double] = subnode.parseDouble("minrange")
+	  val maxRange:Option[Double] = subnode.parseDouble("maxrange")
 	  LEPS1dComponent(coeff, constant, minRange, maxRange)
 	}
 }

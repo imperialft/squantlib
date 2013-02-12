@@ -3,7 +3,7 @@ package squantlib.payoff
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
-import squantlib.util.VariableInfo
+import squantlib.util.UnderlyingInfo
 
 /**
  * Interprets general formula as the sum of weighted variables + constant, with cap and floor.
@@ -51,17 +51,17 @@ case class GeneralPayoff(formula:Map[Set[String], Double], floor:Option[Double],
 	    formula.toList.sortBy{case (s, _) => s.size}.reverse.map{
 	      case (vars, coeff) if vars.size > 0 && coeff == 1.0 => 
 	        (vars.head match {
-	          case v if v.take(1) == "/" => " 1 / " + VariableInfo.namejpn(v drop 1)
-	          case v => VariableInfo.namejpn(v)
+	          case v if v.take(1) == "/" => " 1 / " + UnderlyingInfo.nameJpn(v drop 1)
+	          case v => UnderlyingInfo.nameJpn(v)
 	        }) + vars.tail.map{
-	          case v if v.take(1) == "/" => " / " + VariableInfo.namejpn(v drop 1)
-	          case v => " * " + VariableInfo.namejpn(v)
+	          case v if v.take(1) == "/" => " / " + UnderlyingInfo.nameJpn(v drop 1)
+	          case v => " * " + UnderlyingInfo.nameJpn(v)
 	        }.mkString("")
 	        
 	      case (vars, coeff) if vars.size > 0 => 
 	        coeff.asDouble + vars.map{ 
-	          case v if v.take(1) == "/" => " / " + VariableInfo.namejpn(v drop 1)
-	          case v => " * " + VariableInfo.namejpn(v)
+	          case v if v.take(1) == "/" => " / " + UnderlyingInfo.nameJpn(v drop 1)
+	          case v => " * " + UnderlyingInfo.nameJpn(v)
 	      }.mkString("")
 	    
 	      case (_, coeff) => coeff.asPercent
@@ -78,17 +78,17 @@ case class GeneralPayoff(formula:Map[Set[String], Double], floor:Option[Double],
 	    formula.toList.sortBy{case (s, _) => s.size}.reverse.map{
 	      case (vars, coeff) if vars.size > 0 && coeff == 1.0 => 
 	        (vars.head match {
-	          case v if v.take(1) == "/" => " 1 / " + VariableInfo.namejpn(v drop 1)
-	          case v => VariableInfo.namejpn(v)
+	          case v if v.take(1) == "/" => " 1 / " + UnderlyingInfo.nameJpn(v drop 1)
+	          case v => UnderlyingInfo.nameJpn(v)
 	        }) + vars.tail.map{
-	          case v if v.take(1) == "/" => " / " + VariableInfo.namejpn(v drop 1)
-	          case v => " * " + VariableInfo.namejpn(v)
+	          case v if v.take(1) == "/" => " / " + UnderlyingInfo.nameJpn(v drop 1)
+	          case v => " * " + UnderlyingInfo.nameJpn(v)
 	        }.mkString("")
 	        
 	      case (vars, coeff) if vars.size > 0 => 
 	        coeff.asDouble + vars.map{ 
-	          case v if v.take(1) == "/" => " / " + VariableInfo.namejpn(v drop 1)
-	          case v => " * " + VariableInfo.namejpn(v)
+	          case v if v.take(1) == "/" => " / " + UnderlyingInfo.nameJpn(v drop 1)
+	          case v => " * " + UnderlyingInfo.nameJpn(v)
 	      }.mkString("")
 	    
 	      case (_, coeff) => coeff.asPercent
@@ -113,18 +113,18 @@ object GeneralPayoff {
   
 	def apply(inputstring:String):Payoff = {
 
-	  val formula = if (inputstring.startsWith("{") && inputstring.parseJsonString("type") == "general") {
-	    var f = inputstring.parseJsonString("payoff") match { case null => ""; case n => n}
+	  val formula = if (inputstring.startsWith("{") && inputstring.parseJsonString("type") == Some("general")) {
+	    var f = inputstring.parseJsonString("payoff") match { case None => ""; case Some(n) => n}
 	    inputstring.jsonNode match {
 	      case Some(node) => 
 	        val fieldnames = node.getFieldNames.filter(n => !List("type", "description", "payoff", "variable").contains(n))
-	        fieldnames.foreach(n => f = f.replace(n, node.get(n).parseJsonDouble.getOrElse(Double.NaN).toString))
+	        fieldnames.foreach(n => f = f.replace(n, node.get(n).parseDouble.getOrElse(Double.NaN).toString))
 	      case None => {}
 	    }
 	    f
 	  } else inputstring
 	  
-	  val description =  if (inputstring.startsWith("{")) inputstring.parseJsonString("description") else null
+	  val description =  if (inputstring.startsWith("{")) inputstring.parseJsonString("description").orNull else null
 	  
 	  val (parsedformula, floor, cap) = FormulaParser.parse(formula)
 	  

@@ -9,7 +9,7 @@ import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.database.fixings.Fixings
-import squantlib.util.VariableInfo
+import squantlib.util.UnderlyingInfo
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -53,9 +53,9 @@ extends Payoff {
 	override def price = Double.NaN
 	
 	override def display(isRedemption:Boolean):String = {
- 	  val varnames = putVariables.map(VariableInfo.namejpn)
-	  val strikeMap = (putVariables, strike).zipped.map{case (v, k) => (VariableInfo.namejpn(v), VariableInfo.displayValue(v, k))}
-	  val triggerMap = (putVariables, trigger).zipped.map{case (v, t) => (VariableInfo.namejpn(v), VariableInfo.displayValue(v, t))}
+ 	  val varnames = putVariables.map(UnderlyingInfo.nameJpn)
+	  val strikeMap = (putVariables, strike).zipped.map{case (v, k) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, k))}
+	  val triggerMap = (putVariables, trigger).zipped.map{case (v, t) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, t))}
 	  val multiple = strike.size > 1
 	  
 	  if (isRedemption) {
@@ -100,35 +100,14 @@ extends Payoff {
 object PutDIAmericanPayoff {
   
 	def apply(node:String):PutDIAmericanPayoff = {
-	  val variable:List[String] = node.jsonNode("variable") match {
-	    case Some(n) if n isArray => n.map(s => s.asText).toList
-	    case Some(n) if n isTextual => List(n.asText)
-	    case _ => List.empty
-	  }
 	  
-	  val trigger:List[Double] = node.jsonNode("trigger") match {
-	    case Some(n) if n isArray => n.map(s => s.parseJsonDouble.getOrElse(Double.NaN)).toList
-	    case Some(n) if n isDouble => List(n.parseJsonDouble.getOrElse(Double.NaN))
-	    case _ => List.empty
-	  }
-
-	  val strike:List[Double] = node.jsonNode("strike") match {
-	    case Some(n) if n isArray => n.map(s => s.parseJsonDouble.getOrElse(Double.NaN)).toList
-	    case Some(n) if n isDouble => List(n.parseJsonDouble.getOrElse(Double.NaN))
-	    case _ => List.empty
-	  }
-	  
-	  val amount:Double = node.jsonNode("amount") match {
-	    case Some(n) if n isDouble => n.parseJsonDouble.getOrElse(Double.NaN)
-	    case _ => 1.0
-	  }
-	  
-	  val dateformat = new java.text.SimpleDateFormat("y/M/d")
-	  
-	  val refStart:qlDate = try{new qlDate(dateformat.parse(node.parseJsonString("refstart")))} catch {case _ => null}
-	  val refEnd:qlDate = try{new qlDate(dateformat.parse(node.parseJsonString("refend")))} catch {case _ => null}
-	  
-	  val description:String = node.parseJsonString("description")
+	  val variable:List[String] = node.parseJsonStringList("variable").map(_.orNull)
+	  val trigger:List[Double] = node.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
+	  val strike:List[Double] = node.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+	  val amount:Double = node.parseJsonDouble("amount").getOrElse(1.0)
+	  val refStart:qlDate = node.parseJsonDate("refstart").orNull
+	  val refEnd:qlDate = node.parseJsonDate("refend").orNull
+	  val description:String = node.parseJsonString("description").orNull
 	  
 	  val knockedIn:Boolean = 
 	    if (refStart == null || refEnd == null) false
