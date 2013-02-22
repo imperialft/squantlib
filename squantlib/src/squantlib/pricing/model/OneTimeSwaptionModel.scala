@@ -1,7 +1,7 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalcPeriod}
+import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod}
 import squantlib.model.Bond
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.model.rates.DiscountCurve
@@ -26,7 +26,7 @@ case class OneTimeSwaptionModel(ipayoffs:Payoffs, ischedule:Schedule, valueDate:
 	
 	override val optionValue:Option[Double] = Some(-swaptionPrice)
 	
-	val periods:List[CalcPeriod] = ischedule.toList
+	val periods:List[CalculationPeriod] = ischedule.toList
 	
 	val payoff:List[Payoff] = ipayoffs.toList
 }

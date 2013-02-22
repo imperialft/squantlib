@@ -1,7 +1,7 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalcPeriod}
+import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod}
 import squantlib.model.Bond
 import org.jquantlib.time.{Date => qlDate}
 import java.util.{Date => JavaDate}
@@ -14,7 +14,7 @@ case class JGBRModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 	
 	override def price:List[Double] = List.empty
 	
-	override val periods:List[CalcPeriod] = List.empty
+	override val periods:List[CalculationPeriod] = List.empty
 	
 	override val payoff:List[Payoff] = List.empty
 	
@@ -25,10 +25,10 @@ case class JGBRModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 	  else {
 	    if (storedPrice.isEmpty) {
 	      val accrued:Double = bond.accruedAmount.getOrElse(Double.NaN)
-	      val previous:Double = bond.spotFixedAmountAll.filter(_._1.paymentDate lt valueDate) match {
+	      val previous:Double = bond.spotFixedAmountAll.filter{case (payday, _) => payday lt valueDate} match {
 	      	case legs if legs.isEmpty => 0.0
 	      	case legs if legs.size == 1 => legs.head._2
-	      	case legs => (legs.sortBy(_._1.paymentDate) takeRight 2).map(_._2).sum
+	      	case legs => (legs.sortBy{case (payday, _) => payday} takeRight 2).map(_._2).sum
 	      	}
 	      storedPrice = Some(1.0 + accrued - previous)
 	    }

@@ -3,9 +3,11 @@ package squantlib.database.schemadefinitions
 import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
-import squantlib.setting.initializer.Calendars
-import org.jquantlib.time.Calendar
 import squantlib.util.JsonUtils._
+import squantlib.payoff.Schedule
+import squantlib.setting.initializer._
+import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
+import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._
 
 class Bond(@Column("ID")					var id: String,
@@ -46,55 +48,81 @@ class Bond(@Column("ID")					var id: String,
               @Column("IssuerID")			var issuerid: String,
               @Column("RISKTAGS") 			var risktags: String,
               @Column("SETTINGS") 			var settings: String,
+              @Column("FIRSTCOUPON")		var firstcoupon: Option[Double],
+              @Column("TARGETYIELD")		var targetyield: Option[Double],
               @Column("PRICETAG") 			var pricetag: Option[Int],
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends KeyedEntity[String] {
 
   
-  def calendar:Calendar = {
-    val cdrlist:Set[String] = calendar_str.split(",").map(_.trim).toSet
-    Calendars(cdrlist).getOrElse(Calendars(currencyid).get)
-  }
+  def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo")
   
-  private def getFieldMap: Map[String, Any] = {
-    val fieldsAsPairs = for (field <- this.getClass.getDeclaredFields) yield {
-      field.setAccessible(true)
-	  (field.getName, field.get(this))
-	  }
-	  Map(fieldsAsPairs :_*)
-	}
+  def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
-  private def emptyToNull(s:Any) = s match {
-    case x:String => if (x != null && x.trim.isEmpty) null else s
-    case x => x
-  }
+  def isSameContent(b:Bond):Boolean = compareObjects(this, b, autoUpdateFields)
   
-  private def objCompare(a:Any, b:Any) = emptyToNull(a) == emptyToNull(b)
+  def currency = Currencies(currencyid)
+		
+  def calendar:Calendar = if (calendar_str == null) Calendars(currencyid).get
+  						else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
   
-  private def compareMap(m1:Map[String, Any], m2:Map[String, Any]):Boolean = m1.forall{
-    case ("lastmodified", _) | ("created", _) | ("initialfx", _) | ("fixings", _)=> true
-    case (k, _) if k.head == '_' => true
-    case (k, v) => m2.get(k) match {
-      case Some(vv) => objCompare(v, vv)
-      case None => false
-      }
-    }
+  protected def updateFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
+  						
+  def fixedCoupon(fixings:Map[String, Any]):String = updateFixing(coupon, fixings)
   
-  def isSameContent(b:Bond):Boolean = {
-    compareMap(getFieldMap, b.getFieldMap)
-  }
+  def couponList:List[String] = stringList(coupon)
   
-  def couponList:List[String] = coupon.parseJsonStringList.map(_.orNull)
-  def underlyingList:List[String] = underlying.parseJsonStringList.map(_.orNull)
+  def couponList(fixings:Map[String, Any]):List[String] = stringList(updateFixing(coupon, fixings))
   
-  def bermudanList:List[Boolean] = call.parseJsonStringList.map(_.orNull == "berm")
+  def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(redemprice, fixings)
+  
+  def underlyingList:List[String] = stringList(underlying)
+  
+  def bermudanList:List[Boolean] = booleanList(call, "berm")
+  
   def triggerList:List[List[String]] = call.jsonArray.map(_.parseStringList.map(_.orNull))
   
   def fixingList:Map[String, Double] = fixings.parseJsonDoubleFields
+  
   def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
+  
   def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
   
+  def schedule:Option[Schedule] = try {
+    val period = (this.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
+    val issueDate = new qlDate(this.issuedate)
+    val maturity = new qlDate(this.maturity)
+    val daycount = Daycounters(this.daycount).getOrElse(new Actual365Fixed)
+    val calendarAdjust = DayAdjustments.getOrElse(this.daycount_adj, BusinessDayConvention.ModifiedFollowing)
+	val paymentAdjust = DayAdjustments.getOrElse(this.payment_adj, BusinessDayConvention.ModifiedFollowing)
+	val maturityAdjust = DayAdjustments.getOrElse(this.daycount_adj, BusinessDayConvention.ModifiedFollowing)
+	val calendar = this.calendar
+	val fixingInArrears = this.inarrears != Some(0)
+	val couponNotice:Int = this.cpnnotice.getOrElse(5)
+	val rule = DateGeneration.Rule.Backward
+	val issuer:String = this.issuerid
+	val redemnotice = this.redemnotice.getOrElse(couponNotice)
+	
+	Some(Schedule(issueDate, maturity, period, calendar, calendarAdjust, paymentAdjust, maturityAdjust, rule, 
+	    fixingInArrears, couponNotice, daycount, None, None, true, redemnotice))
+  }
+  catch { case _ => None}
+  
+  def bermudanList(fixings:Map[String, Any] = Map.empty, nbLegs:Int = schedule.size):List[Boolean] = updateFixing(call, fixings).jsonNode match {
+  	case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
+	case Some(b) if b isArray => List.fill(nbLegs - 2 - b.size)(false) ++ b.map(_.parseString == Some("berm")).toList ++ List(false, false)
+	case _ => List.fill(nbLegs)(false)
+  }
+
+  def triggerList(fixings:Map[String, Any] = Map.empty, nbLegs:Int = schedule.size):List[List[Option[Double]]] = updateFixing(call, fixings).jsonNode match {
+    case Some(b) if b.isArray && b.size == 1 => 
+      List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
+    case Some(b) if b isArray => 
+      List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
+    case _ => List.fill(nbLegs)(List.empty)
+  }
+
   def this() = this(
 		id = null,
 		ref_number = 0,
@@ -135,9 +163,13 @@ class Bond(@Column("ID")					var id: String,
 		risktags = null,
 		settings = null,
 		pricetag = Some(-9999),
+		firstcoupon = Some(-9999.99),
+		targetyield = Some(-9999.99),
 		created = None,
 		lastmodified  = None)
  
   override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
+
+  
   
 }

@@ -1,7 +1,7 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalcPeriod}
+import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod}
 import squantlib.pricing.mcengine._
 import squantlib.model.fx.FX
 import squantlib.model.Bond
@@ -43,12 +43,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	}
 	
 	def mcPrice(paths:Int):List[Double] = {
-	  try {
-		  generatePaths(paths).map(p => ipayoffs.price(p, trigger, trigAmounts)).transpose.map(_.sum / paths.toDouble)
-//		  generatePaths(paths)
-//		  .map(p => ipayoffs.price(List.tabulate(legs)(i => if (mcMap contains i) p(mcMap(i)) else 0.0), trigger, trigAmounts))
-//		  .transpose.map(_.sum / paths.toDouble)
-	  }
+	  try { generatePaths(paths).map(p => ipayoffs.price(p, trigger, trigAmounts)).transpose.map(_.sum / paths.toDouble) }
 	  catch {case e => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	

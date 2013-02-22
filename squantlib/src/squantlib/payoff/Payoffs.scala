@@ -127,16 +127,17 @@ object Payoffs {
 	
 	def empty:Payoffs = new Payoffs(List.empty)
 	
-	def apply(formula:String, legs:Int = 0):Payoffs =	{
+	def apply(formula:String, legs:Int = 0):Option[Payoffs] =	{
+	  if (formula == null || formula.trim.isEmpty) None
+	  else {
+	    val payofflist:List[Payoff] = formula.jsonNode match {
+	      case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f))).flatten
+	      case _ => formula.split(";").toList.map(getPayoff).flatten
+	    }
 	  
-	  val payofflist:List[Payoff] = formula.jsonNode match {
-	    case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f))).flatten
-	    case _ => formula.split(";").toList.map(getPayoff).flatten
-	  }
-	  
-	  val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(payofflist.head) ++ payofflist else payofflist
-	  Payoffs(fullpayoff)
-	}
+	  	val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(payofflist.head) ++ payofflist else payofflist
+	  	Some(Payoffs(fullpayoff))
+	}}
 	
 	def toJsonString(n:JsonNode):String = (new ObjectMapper).writeValueAsString(n)
 	

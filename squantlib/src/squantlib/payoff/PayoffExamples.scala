@@ -81,8 +81,8 @@ object PayoffExamples {
 			  	{"minrange" : 75, "maxrange" : 95, "mult" : -0.0249376558603491, "add" : "-100%"}]}]}
 	      """)
 
-	  val fixedleg = Payoff("0.5%")
-	  val linear1dleg = Payoff("12.5% * usdjpy / 80.2 - 10% > 0.5% < 3%")
+	  val fixedleg = Payoff("0.5%").orNull
+	  val linear1dleg = Payoff("12.5% * usdjpy / 80.2 - 10% > 0.5% < 3%").orNull
       val combileg = Payoffs(List(fixedleg, linear1dleg))
       
       val binary = Payoff("""

@@ -1,7 +1,7 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalcPeriod}
+import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod}
 import squantlib.model.Bond
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.model.rates.DiscountCurve
@@ -14,7 +14,7 @@ case class NoModel(ipayoffs:Payoffs, ischedule:Schedule) extends PricingModel {
 	
 	def price:List[Double] = ipayoffs.price
 	
-	val periods:List[CalcPeriod] = ischedule.toList
+	val periods:List[CalculationPeriod] = ischedule.toList
 	
 	val payoff:List[Payoff] = ipayoffs.toList
 }

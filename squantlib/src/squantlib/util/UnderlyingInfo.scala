@@ -4,6 +4,7 @@ import squantlib.database.DB
 import squantlib.database.schemadefinitions.Underlying
 import scala.collection.mutable.WeakHashMap
 import squantlib.util.JsonUtils._
+import squantlib.util.DisplayUtils._
 
 object UnderlyingInfo {
   
@@ -38,7 +39,7 @@ object UnderlyingInfo {
 	
 	def displayValue(id:String, d:Double):String = apply(id) match {
 	  case Some(v) => v.display(d)
-	  case None => id
+	  case None => d.asDouble
 	}
 	
 	def fixingInfo(textInfo:String, variables:List[String]) = {

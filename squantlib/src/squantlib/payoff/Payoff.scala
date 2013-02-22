@@ -10,6 +10,8 @@ trait Payoff{
 	
 	val variables:Set[String]
 	
+	def price(market:Market):Double = price(market.getFixings(variables))
+	
 	def price(fixings:Map[String, Double]):Double
 	
 	def price(fixing:Double) (implicit d:DummyImplicit):Double 
@@ -24,6 +26,8 @@ trait Payoff{
 	    val fixings = variables.map(v => Fixings.byDate(v, eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x).toMap
 	    applyFixing(fixings)
 	  }
+	
+	def applyFixing(market:Market):Payoff = applyFixing(market.getFixings(variables))
 	
 	def applyFixing(fixings:Map[String, Double]):Payoff = fixings match {
 	  case f if (f.isEmpty || variables.size == 0) => this
@@ -51,8 +55,9 @@ trait Payoff{
  
 object Payoff {
   
-	def apply(formula:String):Payoff =
-	  payoffType(formula) match {
+	def apply(formula:String):Option[Payoff] =
+	  if (formula == null || formula.trim.isEmpty) None
+	  else Some(payoffType(formula) match {
 	    case "fixed" => FixedPayoff(formula)
 		case "leps1d" => LEPS1dPayoff(formula)
 		case "linear1d" => Linear1dPayoff(formula)
@@ -63,7 +68,7 @@ object Payoff {
 	    case "binary" => BinaryPayoff(formula)
 	    case "general" => GeneralPayoff(formula)
 		case _ => GeneralPayoff(formula)
-	  }
+	  })
   
 	def payoffType(formula:String):String = formula match {
 	  case f if f.parseDouble.isDefined => "fixed"

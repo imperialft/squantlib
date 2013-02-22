@@ -1,6 +1,6 @@
 package squantlib.pricing.model
 
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalcPeriod}
+import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod}
 import squantlib.model.rates.DiscountCurve
 import scala.collection.mutable.Queue
 import squantlib.model.{Market, Bond}
@@ -10,7 +10,7 @@ trait PricingModel {
   
   val isPricedByLegs = true
 	
-  val periods:List[CalcPeriod]
+  val periods:List[CalculationPeriod]
 	
   val payoff:List[Payoff]
   
@@ -48,6 +48,11 @@ trait PricingModel {
   def discountedPrice(curve:Option[DiscountCurve]):Option[Double] = Some(discountedPriceLegs(curve).sum)
   
   def calibrate:PricingModel = this
+  
+  def getModel[T<:PricingModel]:Option[T] = this match {
+    case m:T => Some(m)
+    case _ => None
+  }
 }
 
 

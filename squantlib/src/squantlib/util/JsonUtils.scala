@@ -4,6 +4,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.JsonNode
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{Date => qlDate}
+import org.codehaus.jackson.`type`.TypeReference;
 
 
 object JsonUtils {
@@ -110,6 +111,8 @@ object JsonUtils {
 	  
 	  def jsonParser[T](f:JsonNode => Option[T]):Option[T] = jsonNode match { case Some(n) => f(n); case _ => None}
 	  def jsonParserOrElse[T](f:JsonNode => T, alternative:T):T = jsonNode match { case Some(n) => f(n); case _ => alternative}
+	  
+	  def parseJson[T] = (new ObjectMapper).readValue(formula, new TypeReference[T]{})
 	  
 	  def parseJsonInt:Option[Int] = jsonParser(_.parseInt)
 	  def parseJsonInt(name:String):Option[Int] = jsonParser(_.parseInt(name))

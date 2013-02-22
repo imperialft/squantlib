@@ -132,7 +132,8 @@ object GeneralPayoff {
 	  val constant = parsedformula.getOrElse(Set.empty, 0.0)
 	  
 	  variables.size match {
-	    case 0 => FixedPayoff(constant, description)
+	    case 0 if parsedformula contains Set.empty => FixedPayoff(constant, description)
+	    case 0 => NullPayoff(description, inputstring)
 	    case 1 => {
 	      val variable = variables.head
 	      Linear1dPayoff(variable, Some(parsedformula.getOrElse(Set(variable), 0.0)), Some(constant), floor, cap, description)

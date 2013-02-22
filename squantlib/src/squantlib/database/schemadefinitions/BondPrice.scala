@@ -44,6 +44,8 @@ class BondPrice(@Column("ID")			var id:String,
 			@Column("LastModified")		var lastmodified:Option[Date]
 			) extends KeyedEntity[String]{
   
+  def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
+  
   def this() = this(
 		id = null,
 		bondid = null,

@@ -1,11 +1,7 @@
 package squantlib.setting
 
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalcPeriod}
-import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.model._
-import scala.collection.mutable.Queue
 import squantlib.model.{Market, Bond}
-import squantlib.util.JsonUtils
 
 object DefaultBondSetting {
   

@@ -10,7 +10,7 @@ object Fixings {
   
 	val fixingcache = new scala.collection.mutable.WeakHashMap[String, Option[Map[qlDate, Double]]]
 	
-	val latestParamDate = new qlDate(DB.getLatestParamSet._2)
+	lazy val latestParamDate = new qlDate(DB.getLatestParamSet._2)
   
 	def apply(id:String):Option[Map[qlDate, Double]] = fixingcache.getOrElseUpdate(id, getHistorical(id))
 	
@@ -26,6 +26,8 @@ object Fixings {
 	  }
 	  
 	def latest(id:String):Option[(qlDate, Double)] = apply(id).collect{case p if !p.isEmpty => p.maxBy(_._1)}
+	
+	def latestList(ids:List[String]):Map[String, Double] = ids.map(id => (id, Fixings.latest(id))).collect{case (a, Some(b)) => (a, b._2)}.toMap
 	
 	def getHistorical(param:String, paramType:String = null):Option[Map[qlDate, Double]] = 
 	  if (param == null) None
