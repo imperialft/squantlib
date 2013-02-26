@@ -1,4 +1,4 @@
-package squantlib.pricing.randomgenerator
+package squantlib.math.random
 
 import scala.annotation.tailrec
 import scala.collection.mutable.SynchronizedQueue

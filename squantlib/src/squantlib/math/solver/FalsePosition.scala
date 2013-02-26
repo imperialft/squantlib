@@ -2,12 +2,9 @@ package squantlib.math.solver
 
 import annotation.tailrec
 
-object FalsePosition {
+object FalsePosition extends RangedRootFinder {
   
-   var defaultAccuracy = 0.00001
-   var defaultIteration = 20
-  
-   def solve(f:Double => Double, 
+   override def solve(f:Double => Double, 
        xmin:Double,
        xmax:Double,
        xAccuracy:Double = defaultAccuracy, 

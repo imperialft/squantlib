@@ -50,6 +50,14 @@ trait Underlying {
 	 */
 	def volatility(period:qlPeriod):Double = volatility(toDays(period))	
 	def volatility(period:qlPeriod, strike:Double):Double = volatility(toDays(period), strike)	
+	
+	/**
+	 * Returns the volatility corresponding to the given date represented in nb of years & strike.
+	 * @param observation date
+	 * @param observation date as the period from value date.
+	 */
+	def volatilityY(years:Double):Double = volatility(years * 365.25)
+	def volatilityY(years:Double, strike:Double):Double = volatility(years * 365.25, strike)
 	  
 	/**
 	 * Returns the forward price corresponding to the given date.

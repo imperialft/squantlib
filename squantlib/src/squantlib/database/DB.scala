@@ -52,6 +52,7 @@ object DB extends Schema {
     dataSource.setMinPoolSize(5)
     dataSource.setMaxPoolSize(10)
     dataSource.setCheckoutTimeout(10000)
+    dataSource.setMaxIdleTime(60 * 30)
     dataSource.setIdleConnectionTestPeriod(30)
     SessionFactory.concreteFactory = Some(() => {
       Session.create(dataSource.getConnection, new MySQLInnoDBAdapter {override def quoteIdentifier(s:String):String = "`" + s + "`"})
@@ -1114,6 +1115,7 @@ object DB extends Schema {
   }
   
   def updateStringEntity[T <: KeyedEntity[String]](data:T):Unit = transaction{
+	  Session.currentSession.setLogger(msg => println(msg))    
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.update(data)
       case _ => println("table not found")
@@ -1268,7 +1270,6 @@ object DB extends Schema {
 	      builder.append(attrToField.map(pair => quoteValue(clazz.getMethod(pair._1).invoke(obj))).mkString(","))
 	      builder.append("\n")
 	    }
-//	    val out = new BufferedWriter(new FileWriter(tempFile))
 	    val out = new java.io.OutputStreamWriter(new java.io.FileOutputStream(tempFile), "UTF-8")
 	    out.write(builder.toString)
 	    out.close()
@@ -1283,12 +1284,8 @@ object DB extends Schema {
         "(" + columnNames.map(n => "`" + n + "`").mkString(", ") + ")" + ";"
     )
     
+    
     List("START TRANSACTION;", "SET FOREIGN_KEY_CHECKS = 1;") ++ insertstatement ++ List("COMMIT;")
-//      "LOAD DATA LOCAL INFILE '" + tempFilePath.replaceAll("\\\\", "\\\\\\\\") + "' " +
-//        (if(overwrite) "REPLACE " else "") + "INTO TABLE " + tableName + " " +
-//        "FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '''' " +
-//        "IGNORE 1 LINES " +
-//        "(" + columnNames.mkString(", ") + ")" + ";",
   }
 
   /**

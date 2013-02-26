@@ -1,6 +1,6 @@
 package squantlib.model
 
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{HashMap, WeakHashMap}
 import scala.collection.JavaConversions
 import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
@@ -18,31 +18,39 @@ import org.jquantlib.termstructures.YieldTermStructure
  * 
  * @param Map CurrencyId => DiscountCurve
  */
-class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String, CDSCurve] = Map.empty, val fxparams:Map[String, FXparameter] = Map.empty, val paramset:String = null, val fixings:Map[String, Double]  = Map.empty) {
+class Market(
+    val curves:Map[String, DiscountableCurve], 
+    val cdscurves:Map[String, CDSCurve] = Map.empty, 
+    val fxparams:Map[String, FXparameter] = Map.empty, 
+    val paramset:String = null, 
+    val fixings:Map[String, Double]  = Map.empty) {
 
+	/** 
+	 * Market value date
+	 */ 
 	var valuedate:qlDate = curves.head._2.valuedate
+	
 	require(curves.forall(_._2.valuedate == valuedate))
 	
-	val FXbaseSpread = 0.0
-	val FXbaseCurrency = "USD"
+	/** 
+	 * Arbitrage-free discount currency for computing FX forward. 
+	 */ 
+	var FXbaseCurrency = "USD"
+	  
+	/** 
+	 * Arbitrage-free discount spread for computing FX forward. 
+	 */ 
+	var FXbaseSpread = 0.0
 	
 	/** 
-	 * USD
+	 * Pivot currency for basis swap
 	 */ 
 	val pivotCurrency:String = BasisSwapCurve.pivotcurrency.code
 	
 	/** 
-	 * Currencies
+	 * Registered currencies
 	 */
 	val currencies:Set[Currency] = curves.collect { case (k, v) => v.currency }.toSet
-	val curveList = curves.keySet
-	def contains(ccy:String) = curves.contains(ccy)
-
-	/** 
-	 * Issuers
-	 */
-	val cdsNames:Set[String] = cdscurves.keySet
-	def containsCDS(issuer:String) = cdscurves.contains(issuer)
 	
 	/** 
 	 * Discounting Curves
@@ -53,42 +61,38 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	 * Stores already calculated discount curves.
 	 * Assumption: for each key, value contains discount curve for both discount and pivot currency.
 	 */
-	var repository = new scala.collection.mutable.WeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]]
+	var repository = new WeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]]
 	
 	/**
 	 * Returns FX spot ccy1 / ccy2
-	 * @param currency code, 
 	 */
 	def fx(ccy1:String, ccy2:String):Option[Double] = 
-	  try {Some(curves(ccy2).fx / curves(ccy1).fx) } catch { case _ => None}
+	  try { Some(curves(ccy2).fx / curves(ccy1).fx) } 
+	  catch { case _ => None}
 
 	/**
-	 * Returns discount curve with "base" spread & currency.
-	 * @param currency code, spread
+	 * Returns discount curve with base spread & currency. (3m USDL flat)
 	 */
 	def getBaseDiscountCurve(ccy:String):Option[DiscountCurve] = getDiscountCurve(ccy, FXbaseCurrency, FXbaseSpread)
 	
 	def getBaseDiscountCurve(ccy:Currency):Option[DiscountCurve] = getBaseDiscountCurve(ccy.code)
 	  
 	/**
-	 * Returns discount curve. Discount currency is flat and same currency with given spread.
-	 * @param currency code, spread
+	 * Returns discount curve. Discounting currency is the same currency with given flat spread.
 	 */
 	def getDiscountCurve(ccy:String, spread:Double):Option[DiscountCurve] = getDiscountCurve(ccy, ccy, spread)
 	
 	def getDiscountCurve(ccy:Currency, spread:Double):Option[DiscountCurve] = getDiscountCurve(ccy.code, spread)
 	
 	/**
-	 * Returns discount curve, flat spread, using specific currency.
-	 * @param currency code, discounting currency name, spread
+	 * Returns discount curve using discounting currency with given flat spread.
 	 */
-	def getDiscountCurve(ccy:String, discountccy:String, spread:Double) : Option[DiscountCurve] = getDiscountCurve(ccy, discountccy, new FlatVector(valuedate, spread), null)
+	def getDiscountCurve(ccy:String, discountccy:String, spread:Double):Option[DiscountCurve] = getDiscountCurve(ccy, discountccy, new FlatVector(valuedate, spread), null)
 	  
-	def getDiscountCurve(ccy:Currency, discountccy:String, spread:Double) : Option[DiscountCurve] = getDiscountCurve(ccy.code, discountccy, spread)
+	def getDiscountCurve(ccy:Currency, discountccy:String, spread:Double):Option[DiscountCurve] = getDiscountCurve(ccy.code, discountccy, spread)
 
 	/**
 	 * Returns discount curve using spread of given cds curve.
-	 * @param currency code, cds id
 	 */
 	def getDiscountCurve(ccy:String, cdsid:String) : Option[DiscountCurve] = 
 	  if (cdscurves.contains(cdsid)) getDiscountCurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid)
@@ -268,6 +272,7 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	 * @param map with shift on each curve (multiplicative)
 	 */
 	def fxShifted(currency:String, shiftAmount:Double):Market = fxShifted(Map(currency -> shiftAmount))
+	
 	def fxShifted(fxShift:Map[String, Double]):Market = 
 	  new Market(curves.map{case (c, v) => if (fxShift contains c) (c, v.multFX(fxShift(c))) else (c, v)}.toMap, cdscurves, fxparams, paramset, fixings)
 
@@ -278,13 +283,19 @@ class Market(val curves:Map[String, DiscountableCurve], val cdscurves:Map[String
 	 * @param map with shift on each curve (additive)
 	 */
 	def fxVolShifted(fxpair:String, shiftAmount:Double):Market = fxVolShifted(Map(fxpair -> shiftAmount))
+	
 	def fxVolShifted(fxShift:Map[String, Double]):Market = 
-	  new Market(curves, cdscurves, fxparams.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}.toMap, paramset, fixings)
+	  new Market(curves, cdscurves, fxparams.map{
+	    case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)
+	    }.toMap, paramset, fixings)
 	
 	
 	private def isCcy(v:String):Boolean = curves.contains(v)
+	
 	private val cashPeriods = Set("M", "W", "D")
+	
 	private val swapPeriods = Set("Y")
+	
 	private def isNumber(v:String):Boolean = try {v.toInt; true} catch {case _ => false}
 	  
 	
@@ -324,6 +335,7 @@ object Market {
 	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = if (ratefxparams.isEmpty) None else apply(ratefxparams, cdsparams, new qlDate(ratefxparams.head.paramdate))
 	
 	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter], valuedate:qlDate):Option[Market] = {
+	  
 	  val liborCurves:Set[LiborDiscountCurve] = LiborDiscountCurve(ratefxparams, valuedate)
 	  val fxCurves:Set[FXDiscountCurve] = FXDiscountCurve(ratefxparams, valuedate)
 	  val ndsCurves:Set[NDSDiscountCurve] = liborCurves.find(_.currency.code == "USD") match {

@@ -1,4 +1,4 @@
-package squantlib.pricing.randomgenerator
+package squantlib.math.random
 
 /**
  * Lazy random number Generator using java.util.Random.

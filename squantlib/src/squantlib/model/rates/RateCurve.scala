@@ -32,7 +32,7 @@ trait RateCurve extends DiscountableCurve{
 //  override def toString():String = cash.currency.code + ":ratecurve"
 }
 
-trait AbstractCurve extends YieldParameter{
+trait AbstractCurve extends YieldParameter {
   val rate : YieldParameter
   def value(d:Double) = rate(d)
   var valuedate = rate.valuedate

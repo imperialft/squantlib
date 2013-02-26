@@ -1,4 +1,4 @@
-package squantlib.pricing.randomgenerator
+package squantlib.math.random
 
 /**
  * Abstract random number Generator class. Numbers are lazily generated to save memory.

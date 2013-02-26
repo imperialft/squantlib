@@ -83,7 +83,6 @@ object FXMontecarlo1f {
 	  } 
 	  apply(market, bond, paths, engineName, trig)
 	}
-
 	
 	def apply(market:Market, bond:Bond, paths:Int, engineName:String, triggers:List[Option[Double]]):Option[FXMontecarlo1f] = {
 	  val valuedate = market.valuedate
@@ -95,12 +94,10 @@ object FXMontecarlo1f {
 	  if (fx == null) {println(bond.id + " : invalid fx underlying - " + variable + " in market " + market.paramset); return None}
 	  if (fx.currencyDom != bond.currency) {println(bond.id + " : quanto model not supported - " + variable); return None}
 
-//	  val triggers = bond.liveTriggers(valuedate).map(t => if (t.isEmpty) None else t.head)
-	  
 	  val mcmodel:Montecarlo1f = (engineName match {
 	    case "FXzeroVol" => FXzeroVol1f(fx)
-	    case "FXBlackScholes1f" => FXBlackScholes1f(fx)
-	    case null => FXBlackScholes1f(fx) // default
+	    case "FXBlackScholes1f" => BlackScholes1f(fx)
+	    case null => BlackScholes1f(fx) // default
 	    case _ => None
 	  }).orNull
 	  if (mcmodel == null) {println(bond.id + " : model name not found or model calibration error"); return None}

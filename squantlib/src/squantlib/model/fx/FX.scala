@@ -9,9 +9,6 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
 
 /**
  * Basic FX framework providing spot, forward and volatility
- * 
- * @constructor stores each information
- * @param float index, daycount & payment frequency for fixed leg
  */
 trait FX extends Underlying {
   
@@ -36,11 +33,8 @@ trait FX extends Underlying {
 	 * @param days observation date as the number of calendar days after value date.
 	 * @param strike fx strike
 	 */
-	def volatility(days:Double):Double
-	def volatility(days:Double, strike:Double):Double
-	
-	def volatilityY(years:Double):Double = volatility(years * 365.25)
-	def volatilityY(years:Double, strike:Double):Double = volatility(years * 365.25, strike)
+	override def volatility(days:Double):Double
+	override def volatility(days:Double, strike:Double):Double
 	  
 	/**
 	 * Returns the value corresponding to the given date.
@@ -53,7 +47,7 @@ trait FX extends Underlying {
     def zcDom(date:qlDate) = curveDom(date)
     def zcDom(period:qlPeriod) = curveDom(period)
     def zcDom(dayfrac:Double, dayCounter:DayCounter) = curveDom(dayfrac, dayCounter)
-    def zcDomY(years:Double) = curveDom(years)
+    def zcDomY(years:Double) = curveDom(years * 365.25)
     
     def zcFor(days:Double) = curveFor(days)
     def zcFor(date:qlDate) = curveFor(date)

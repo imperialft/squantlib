@@ -18,12 +18,6 @@ import java.lang.UnsupportedOperationException
 
 case class DiscountCurve(currency:Currency, zc:YieldParameter, discountspread:YieldParameter, fx:Double, vol:Option[RateVolatility]) extends YieldParameter {
   
-//  	def toZCImpliedYieldTermStructure = new ZCImpliedYieldTermStructure(this)
-//  	def toZCImpliedYieldTermStructure(calendar:Calendar) = new ZCImpliedYieldTermStructure(this, calendar)
-  
-//  	def toDiscountBondEngine = new DiscountingBondEngine(toZCImpliedYieldTermStructure)
-//  	def toDiscountBondEngine(calendar:Calendar) = new DiscountingBondEngine(toZCImpliedYieldTermStructure(calendar))
-	
 	private var vd = zc.valuedate
   
 	/**
@@ -41,11 +35,13 @@ case class DiscountCurve(currency:Currency, zc:YieldParameter, discountspread:Yi
 	 * This point is the low boundary between interpolation & extrapolation.
 	 */
     val mindays : Double = zc.mindays
+    
 	/** 
 	 * Returns number of days between value date and final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
     val maxdays : Double = zc.maxdays
+    
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the number of calendar days after value date.

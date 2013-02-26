@@ -453,8 +453,15 @@ case class Bond(
 	}
 	
 	def fxFrontier(vd:qlDate):List[Option[Double]] = fxFrontier(1.00, 0.001, 20, vd)
-	
-    def fxFrontier(target:Double, accuracy:Double, maxIteration:Int, vd:qlDate, paths:Int = 0):List[Option[Double]] = 
+
+    def fxFrontier(target:Double, 
+        accuracy:Double, 
+        maxIteration:Int, 
+        vd:qlDate, 
+        paths:Int = 0, 
+        solver:RangedRootFinder = Bisection, 
+        highRange:Double = 10.0, 
+        lowRange:Double = 0.001):List[Option[Double]] = 
       
       if (market.isEmpty) List.fill(underlyings.size)(None)
       
@@ -473,12 +480,8 @@ case class Bond(
             }
             
             val priceformula = (y:Double) => (priceFromFXmult(y) - target)
-//              val mult = NewtonRaphson.solve(priceformula, 1.01, accuracy, 0.01, maxIteration, Some(0.0000001), Some(10.0))
-              val mult = Bisection.solve(priceformula, 0.01, 10.0, accuracy, maxIteration)
-//              val mult = FalsePosition.solve(priceformula, 0.01, 10.0, accuracy, maxIteration)
-//              val mult = Brent.solve(priceformula, 0.01, 10.0, accuracy, maxIteration)
-//              val mult = Illinois.solve(priceformula, 0.01, 10.0, accuracy, maxIteration)
-                mult.collect{case m => mkt.fx(ccy, "JPY").getOrElse(Double.NaN) / m}
+            val mult = solver.solve(priceformula, lowRange, highRange, accuracy, maxIteration)
+            mult.collect{case m => mkt.fx(ccy, "JPY").getOrElse(Double.NaN) / m}
           })
         }
     

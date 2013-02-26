@@ -4,12 +4,9 @@ import annotation.tailrec
 import org.apache.commons.math3.analysis.solvers.BrentSolver
 import org.apache.commons.math3.analysis.UnivariateFunction
 
-object Brent {
+object Brent extends RangedRootFinder {
   
-   var defaultAccuracy = 0.00001
-   var defaultIteration = 20
-  
-   def solve(f:Double => Double, 
+   override def solve(f:Double => Double, 
        xmin:Double,
        xmax:Double,
        xAccuracy:Double = defaultAccuracy, 

@@ -1,4 +1,4 @@
-package squantlib.pricing.randomgenerator
+package squantlib.math.random
 
 import java.lang.Math.{PI, tan, atan}
 

@@ -1,17 +1,21 @@
 package squantlib.pricing.mcengine
 
-import squantlib.pricing.randomgenerator.RandomGenerator
+import squantlib.math.random.RandomGenerator
 import squantlib.model.fx.FX
 
 /* Simple Black-Scholes montecarlo pricer for FX
  * FX volatility is constant over time without smile, No rates volatility
  * @param spot 		current underlying price
- * @param ratedom(t)	continuous compounding risk-free rate of domestic pricing currency at time t as number of years
- * @param ratefor(t)	continuous compounding risk-free rate of foreign currency at time t as number of years
+ * @param rate(t)	continuous compounding risk-free rate of pricing currency at time t as number of years
+ * @param dividendYield(t)	continuous compounding dividend yield at time t as number of years
  * @param sigma(t)	volatility of the underlying FX
  */
 
-case class FXzeroVol1f(var spot:Double, var zcDomF: Double => Double, var zcForF: Double => Double) extends Montecarlo1f {
+case class Forward1f(
+    var spot:Double, 
+    var rate: Double => Double, 
+    var dividendYield: Double => Double) 
+    extends Montecarlo1f {
   
   var randomGenerator:RandomGenerator = null
   def reset:Unit = {}
@@ -29,7 +33,7 @@ case class FXzeroVol1f(var spot:Double, var zcDomF: Double => Double, var zcForF
     require(!eventDates.isEmpty)
     
     val dates = eventDates.sorted
-    val apath = dates.map(d => spot * zcForF(d) / zcDomF(d))
+    val apath = dates.map(d => spot * dividendYield(d) / rate(d))
     (dates, List.fill(paths)(apath))
   }  
 
@@ -38,5 +42,5 @@ case class FXzeroVol1f(var spot:Double, var zcDomF: Double => Double, var zcForF
 
 object FXzeroVol1f {
   
-	def apply(fx:FX):Option[FXzeroVol1f] = Some(new FXzeroVol1f(fx.spot, fx.zcDomY, fx.zcForY))
+	def apply(fx:FX):Option[Forward1f] = Some(new Forward1f(fx.spot, fx.zcDomY, fx.zcForY))
 }
