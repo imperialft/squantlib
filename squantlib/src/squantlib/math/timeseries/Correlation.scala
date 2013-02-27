@@ -5,6 +5,7 @@ import scala.collection.SortedMap
 import org.jquantlib.time.{ Date => JDate }
 
 object Correlation {
+  
 	/**
 	 * Returns historical correlation between two time series. Size of these time series must match.
 	 */
@@ -12,7 +13,8 @@ object Correlation {
 		require (quotes1.size == quotes2.size)
 		val logset1 = LogReturn.calculate(quotes1)
 		val logset2 = LogReturn.calculate(quotes2)
-        Covariance.calculate(logset1, logset2) / StdDev.calculate(quotes1.toSet) / StdDev.calculate(quotes2.toSet)
+		if (logset1.forall(_ - 0.0 < 0.00000001) || logset2.forall(_ - 0.0 < 0.00000001)) 0.0 
+		else Covariance.calculate(logset1, logset2) / StdDev.calculate(quotes1.toSet) / StdDev.calculate(quotes2.toSet)
     }
     
 	/**
@@ -30,7 +32,9 @@ object Correlation {
 				val enddate = keys(i - 1)
 				val q1 = logset1.from(startdate).to(enddate).map(v => v._2).toArray
 				val q2 = logset2.from(startdate).to(enddate).map(v => v._2).toArray
-				(enddate, Covariance.calculate(q1, q2) / StdDev.calculate(q1.toSet) / StdDev.calculate(q2.toSet))}) :_*)
+				val v = if (q1.forall(_ - 0.0 < 0.00000001) || q2.forall(_ - 0.0 < 0.00000001)) 0.0 
+					else Covariance.calculate(q1, q2) / StdDev.calculate(q1.toSet) / StdDev.calculate(q2.toSet)
+				(enddate, v)}) :_*)
     }
     
 	/**
