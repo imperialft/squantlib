@@ -41,7 +41,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	    mcpaths.map(p => List.tabulate(legs)(i => if (mcMap contains i) p(mcMap(i)) else 0.0))
 	  else { println("invalid mc dates"); List.empty}
 	}
-	
+	 
 	def mcPrice(paths:Int):List[Double] = {
 	  try { generatePaths(paths).map(p => ipayoffs.price(p, trigger, trigAmounts)).transpose.map(_.sum / paths.toDouble) }
 	  catch {case e => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}

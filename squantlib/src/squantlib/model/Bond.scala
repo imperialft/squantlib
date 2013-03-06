@@ -728,6 +728,49 @@ case class Bond(
 	  
 	  case _ => None
 	} 
+
+	def toQuickBondPrice:Option[BondPrice] = (market, cleanPrice) match {
+	  case (Some(mkt), Some(p)) => Some(new BondPrice(
+	  		id = id + ":" + mkt.paramset + ":" + currency.code,
+			bondid = id,
+			currencyid = currency.code,
+			comment = null,
+			paramset = mkt.paramset,
+			paramdate = mkt.valuedate.longDate,
+			fxjpy = fxjpy.getOrElse(0),
+			pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN),
+			priceclean = cleanPrice.collect{case p => p * 100},
+			accrued = accruedAmount.collect{case p => p * 100},
+			pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100},
+			priceclean_jpy = cleanPriceJpy.collect{case p => p * 100},
+			accrued_jpy = accruedAmountJpy.collect{case p => p * 100},
+			yield_continuous = None,
+			yield_annual = None,
+			yield_semiannual = None,
+			yield_simple = None,
+			bpvalue = None,
+			irr = None,
+			currentrate = currentRate,
+			nextamount = nextPayment.collect{case (d, p) => p * 100},
+			nextdate = nextPayment.collect{case (d, p) => d.longDate},
+			dur_simple = None,
+			dur_modified = None,
+			dur_macauley = None,
+			yieldvaluebp = None,
+			convexity = None,
+			remaininglife = remainingLife,
+			parMtMYield = None,
+			parMtMfx = None,
+			rateDelta = null,
+			rateVega = null,
+			fxDelta = null,
+			fxDeltaJpy = null,
+			fxVega = null,
+			created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
+			lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))))
+	  
+	  case _ => None
+	} 
 	
 	val defaultMathContext = new JMC(34, RoundingMode.HALF_UP)
 	

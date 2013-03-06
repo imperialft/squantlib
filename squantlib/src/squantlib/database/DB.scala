@@ -268,7 +268,7 @@ object DB extends Schema {
     case s => Some(s.maxBy(_._2)) 
   }
   
-  def getPricedBondIDs:Set[String] = transaction {
+  def getPricedBondIDs():Set[String] = transaction {
       from(bondprices)(b => select(&(b.bondid))).distinct.toSet
     }
   
