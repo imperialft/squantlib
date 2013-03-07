@@ -67,7 +67,9 @@ class Market(
 	 * Returns FX spot ccy1 / ccy2
 	 */
 	def fx(ccy1:String, ccy2:String):Option[Double] = 
-	  try { Some(curves(ccy2).fx / curves(ccy1).fx) } 
+	  try { 
+	    val calc = curves(ccy2).fx / curves(ccy1).fx
+	    if (calc.isNaN) None else Some(calc)}
 	  catch { case _ => None}
 
 	/**

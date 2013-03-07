@@ -229,6 +229,10 @@ object DB extends Schema {
       from(bondprices)(b =>
         where(b.paramset === paramset) select(b)).toSet}
   
+  def getBondPriceIdByParamSet(paramset:String):Set[String] = transaction {
+      from(bondprices)(b =>
+        where(b.paramset === paramset) select(&(b.bondid))).toSet}
+  
   def getBondPriceByParamDate(paramdate:JavaDate):Set[BondPrice] = transaction {
       from(bondprices)(b =>
         where(b.paramdate === paramdate) select(b)).toSet} 
@@ -328,8 +332,9 @@ object DB extends Schema {
     }
   
   def removeOldCorrelations:Boolean = {
-    val latest = getLatestCorrelationDate.orNull
-    if (latest != null) {
+    val correldates = getCorrelationDates
+    if (correldates.size > 1) {
+      val latest = correldates.max
       transaction {correlations.deleteWhere(b => b.valuedate lt latest)}
       true
     }
@@ -365,8 +370,9 @@ object DB extends Schema {
   
   
   def removeOldForwardPrices:Boolean = {
-    val latest = getLatestForwardPriceDate.orNull
-    if (latest != null) {
+    val fwddates = getForwardPriceDates
+    if (fwddates.size > 1) {
+      val latest = fwddates.max
       transaction {forwardprices.deleteWhere(b => b.valuedate lt latest)}
       true
     }

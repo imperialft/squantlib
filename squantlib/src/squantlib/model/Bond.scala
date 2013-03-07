@@ -294,12 +294,14 @@ case class Bond(
 	
 //	def modelPrice:Option[Double] = priceLegs.collect{case legs => legs.sum}
 	
-	def europeanPrice:Option[Double] = model.flatMap(m => 
-	  if (m.isPricedByLegs) priceLegs.collect{case legs => legs.sum}
-	  else m.discountedPrice(discountCurve)
-	  )
+	def europeanPrice:Option[Double] = model.flatMap(m => {
+	  val price = if (m.isPricedByLegs) priceLegs.collect{case legs => legs.sum}
+	  	else m.discountedPrice(discountCurve)
+	  	
+	  price match {case Some(p) if !p.isNaN => price case _ => None}
+	})
 	  
-	def optionPrice:Option[Double] = model.flatMap{case m => m.optionValue}
+	def optionPrice:Option[Double] = model.flatMap{case m => m.optionValue} 
 	
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
@@ -311,7 +313,8 @@ case class Bond(
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)
 	 */
-	def cleanPrice:Option[Double] = (dirtyPrice, accruedAmount) match { case (Some(d), Some(a)) => Some(d - a) case _ => None}
+	def cleanPrice:Option[Double] = (dirtyPrice, accruedAmount) match { 
+	  case (Some(d), Some(a)) => Some(d - a) case _ => None}
 	
 	/*	
 	 * Returns accrued coupon.
@@ -540,8 +543,9 @@ case class Bond(
 	/*	
 	 * Returns Macauley duration defined as Sum {tV} / Sum{V}
 	 */
-    def macaulayDuration:Option[Double] = discountCurve.collect{case curve => 
-      Duration.macaulay(spotCashflowDayfrac(new Actual365Fixed), (d:Double) => curve(d * 365.25))
+    def macaulayDuration:Option[Double] = discountCurve.flatMap{case curve => 
+      val mac = Duration.macaulay(spotCashflowDayfrac(new Actual365Fixed), (d:Double) => curve(d * 365.25))
+      if (mac.isNaN) None else Some(mac)
     }
     
 	/*	
