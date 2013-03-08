@@ -13,6 +13,7 @@ import org.jquantlib.time.{Date => qlDate, Frequency, TimeSeries}
 import org.jquantlib.pricingengines.PricingEngine
 import org.jquantlib.termstructures.YieldTermStructure
 import java.lang.{Double => JavaDouble}
+import java.util.{Date => JavaDate}
 import squantlib.model.{Bond => sBond}
 import squantlib.setting.DefaultBondSetting
 
@@ -40,19 +41,19 @@ object QLDB {
 	}
 	
 	def getBonds(ids:Set[String]):Set[sBond] = DB.getBonds(ids).map(sBond(_)).collect{
-	  case Some(bond) => 
-	    DefaultBondSetting(bond)
-	    bond
+	  case Some(bond) => DefaultBondSetting(bond); bond
 	}
 	
-	def getBonds:Set[sBond] = {
+	def getBonds:Set[sBond] = getBonds(DB.getBonds)
+	
+	def getBonds(date:JavaDate):Set[sBond] = getBonds(DB.getBonds(date))
+	
+	def getBonds(bonds:Set[dbBond])(implicit d:DummyImplicit):Set[sBond] = {
 	  println("retrieve bonds..")
-	  DB.getBonds.map(b => sBond(b)).collect{
-	    case Some(bond) => 
-	      DefaultBondSetting(bond)
-	      bond
+	  bonds.map(b => sBond(b)).collect{
+	    case Some(bond) => DefaultBondSetting(bond); bond
 	      }
-	  }
+	}
 	
    /**
     * Returns time series for non-FX input parameters.

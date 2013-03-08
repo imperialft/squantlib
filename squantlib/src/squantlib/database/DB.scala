@@ -1121,7 +1121,7 @@ object DB extends Schema {
   }
   
   def updateStringEntity[T <: KeyedEntity[String]](data:T):Unit = transaction{
-	  Session.currentSession.setLogger(msg => println(msg))    
+//	  Session.currentSession.setLogger(msg => println(msg))    
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.update(data)
       case _ => println("table not found")
