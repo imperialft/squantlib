@@ -784,7 +784,7 @@ case class Bond(
 	  
 	  (0 to pos.size - 1).map(i => {
 	      val (s, p) = pos(i)
-	      val fixedrate = p match {case po:FixedPayoff => Some(po.payoff) case _ => None }
+	      val fixedrate = p match {case po:FixedPayoff if !po.payoff.isNaN => Some(po.payoff) case _ => None }
 	      val fixedamount = fixedrate.collect{case r => r * s.dayCount}
 	      val paytype = if (s isAbsolute) "REDEMPTION" else "COUPON"
 	      val spotrate = spot(i) match {case v if v.isNaN || fixedrate.isDefined => None case _ => Some(spot(i)) }

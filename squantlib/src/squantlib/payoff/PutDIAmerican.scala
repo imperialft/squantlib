@@ -57,15 +57,17 @@ extends Payoff {
 	  val strikeMap = (putVariables, strike).zipped.map{case (v, k) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, k))}
 	  val triggerMap = (putVariables, trigger).zipped.map{case (v, t) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, t))}
 	  val multiple = strike.size > 1
+	  val start = if (refStart == null) "" else "%tY年%<tm月%<td日".format(refStart.longDate)
+	  val end = if (refEnd == null) "" else "%tY年%<tm月%<td日".format(refEnd.longDate)
 	  
 	  if (isRedemption) {
-	    List("判定期間中の" + varnames.mkString("、") + "に応じて、最終参照日に決定されます。", 
+	      List("判定期間中の" + varnames.mkString("、") + "に応じて、最終参照日に決定されます。", 
 	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "が常にノックイン価格を上回った場合 ： " + (if (knockedIn) "(ノックイン済み）" else "額面 " + amount.asPercent),
 	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "が一度でもノックイン価格を下回った場合 ： ",
 	        "  " + strikeMap.map{case (v, k) => "額面 x " + v + " / " + k}.mkString("、") + (if(multiple) "の低いほう" else ""),
 	        "",
 	        "ノックイン価格 ： " + triggerMap.map{case (v, k) => v + " ＝ " + k}.mkString("、"),
-	        "判定期間 ： " + "%tY年%<tm月%<td日".format(refStart.longDate) + " ～ " + "%tY年%<tm月%<td日".format(refEnd.longDate))
+	        "判定期間 ： " + start + " ～ " + end)
 	        .mkString(sys.props("line.separator"))
 	  }
 	  
@@ -76,7 +78,7 @@ extends Payoff {
 	        "  " + strikeMap.map{case (v, k) => amount.asPercent + " x " + v + " / " + k + " （年率）"}.mkString("、") + (if(multiple) "の低いほう" else ""),
 	        "",
 	        "ノックイン価格 ： " + triggerMap.map{case (v, k) => v + " ＝ " + k}.mkString("、"),
-	        "判定期間 ： " + "%tY年%<tm月%<td日".format(refStart.longDate) + " ～ " + "%tY年%<tm月%<td日".format(refEnd.longDate))
+	        "判定期間 ： " + start + " ～ " + end)
 	        .mkString(sys.props("line.separator"))
 	  }
 	}

@@ -1225,6 +1225,7 @@ object DB extends Schema {
     session.close
     result
   }
+
   
   /**
    * Runs a SQL update statement.
