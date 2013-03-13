@@ -20,6 +20,8 @@ case class CDSCurve(val rate:YieldParameter, val currency:Currency, val issuerid
 }
 
 object CDSCurve{
+
+  	private def defaultccy = "USD"
   
 	/**
 	 * Constructs CDScurve from CDSParameter per each combination of issuerid, currency, paramset.
@@ -29,10 +31,12 @@ object CDSCurve{
   	def getAllCurves(params:Set[CDSParameter], valuedate:qlDate):Map[(String, String), CDSCurve] = {
   	  val cdsgroups = params.groupBy(p => (p.issuerid, p.currencyid))
   	   
-  	  cdsgroups.withFilter{case ((_, ccy), _) => Currencies.contains(ccy) }
-  	  	.map{ case ((issuer, ccy), v) => 
-  		  val cdscurve = curveConstructor(valuedate, TreeMap(v.toSeq.map(p => (new qlPeriod(p.maturity), p.spread / 10000.0)) :_*))
-  		  ((issuer, ccy), new CDSCurve(cdscurve, Currencies(ccy).get, issuer))
+  	  cdsgroups
+  	  .withFilter{case ((_, ccy), _) => Currencies.contains(ccy) }
+  	  .map{ case ((issuer, ccy), v) => 
+  	    val values = v.map(p => (new qlPeriod(p.maturity), p.spread / 10000.0)).toMap
+  	    val cdscurve = curveConstructor(valuedate, values)
+  	    ((issuer, ccy), new CDSCurve(cdscurve, Currencies(ccy).get, issuer))
   	  	}
   	}
   
@@ -51,17 +55,15 @@ object CDSCurve{
   	  val curves = getAllCurves(params, valuedate).groupBy(c => c._1._1)
   	  curves.map(c => c._2.getOrElse((c._1, defaultccy), c._2.head._2))
   	}
-  	
-  	private def defaultccy = "USD"
   	  
-	def curveConstructor(valuedate:qlDate, values:SortedMap[qlPeriod, Double]):YieldParameter
-		= (values.keySet.size) match {
-			case 1 => FlatVector(valuedate, values)
-			case _ => LinearNoExtrapolation(valuedate, values)
-			}
+	def curveConstructor(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter = (values.keySet.size) match {
+	  case 1 => FlatVector(valuedate, values)
+	  case _ => LinearNoExtrapolation(valuedate, values)}
   	 
   	def apply(params:Set[CDSParameter], valuedate:qlDate):Iterable[CDSCurve] = getCurves(params, valuedate)
   	
-  	def apply(params:Set[CDSParameter]):Iterable[CDSCurve] = if (params.isEmpty) Set.empty else apply(params, new qlDate(params.head.paramdate))
+  	def apply(params:Set[CDSParameter]):Iterable[CDSCurve] = 
+  	  if (params.isEmpty) Set.empty 
+  	  else apply(params, new qlDate(params.head.paramdate))
 
 }

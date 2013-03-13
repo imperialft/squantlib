@@ -1,9 +1,10 @@
-package squantlib.setting.rateconventions
+package squantlib.model.rates.convention
 
-import squantlib.setting.RateConvention
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
+import squantlib.model.rates.convention.RateConvention
+import org.jquantlib.time.{Period, Frequency}
 import org.jquantlib.daycounters.Actual360
 import org.jquantlib.indexes.ibor.USDLibor
+import org.jquantlib.currencies.Europe.TRYCurrency
 
 class TryRateConvention extends RateConvention{
   import org.jquantlib.currencies.Europe.TRYCurrency

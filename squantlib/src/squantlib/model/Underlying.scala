@@ -84,6 +84,12 @@ trait Underlying {
     def forward(period:qlPeriod):Double = forward(toDays(period))
     
 	/**
+	 * Returns the value corresponding to the given year.
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardY(years:Double):Double = forward(years * 365.25)
+    
+	/**
 	 * Returns the latest defined date.
 	 */
     def maxDays:Double

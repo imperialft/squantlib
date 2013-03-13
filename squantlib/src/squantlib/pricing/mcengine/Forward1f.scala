@@ -1,7 +1,7 @@
 package squantlib.pricing.mcengine
 
 import squantlib.math.random.RandomGenerator
-import squantlib.model.fx.FX
+import squantlib.model.Underlying
 
 /* Simple Black-Scholes montecarlo pricer for FX
  * FX volatility is constant over time without smile, No rates volatility
@@ -12,9 +12,7 @@ import squantlib.model.fx.FX
  */
 
 case class Forward1f(
-    var spot:Double, 
-    var rate: Double => Double, 
-    var dividendYield: Double => Double) 
+    var forward:Double => Double)
     extends Montecarlo1f {
   
   var randomGenerator:RandomGenerator = null
@@ -33,14 +31,21 @@ case class Forward1f(
     require(!eventDates.isEmpty)
     
     val dates = eventDates.sorted
-    val apath = dates.map(d => spot * dividendYield(d) / rate(d))
+    val apath = dates.map(forward)
     (dates, List.fill(paths)(apath))
   }  
 
 }
 
 
-object FXzeroVol1f {
+object Forward1f {
   
-	def apply(fx:FX):Option[Forward1f] = Some(new Forward1f(fx.spot, fx.zcDomY, fx.zcForY))
+	def apply(ul:Underlying):Option[Forward1f] = Some(new Forward1f(ul.forwardY))
+	
+	def apply(spot:Double, rate: Double => Double, dividendYield: Double => Double):Option[Forward1f] = {
+	  val fwdfunc = (y:Double) => spot * math.exp(rate(y) * y) / math.exp(dividendYield(y) * y) 
+	  Some(new Forward1f(fwdfunc))
+	}
+	
+	
 }

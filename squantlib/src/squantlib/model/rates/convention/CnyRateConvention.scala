@@ -1,13 +1,14 @@
-package squantlib.setting.rateconventions
+package squantlib.model.rates.convention
 
-import squantlib.setting.RateConvention
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
+import squantlib.model.rates.convention.RateConvention
+import org.jquantlib.time.Period
 import org.jquantlib.daycounters.Actual365Fixed
+import org.jquantlib.currencies.Asia.CNYCurrency
 
-class RubRateConvention extends RateConvention{
-  import org.jquantlib.currencies.Europe.RUBCurrency
+class CnyRateConvention extends RateConvention{
+  import org.jquantlib.currencies.Asia.CNYCurrency
   
-  	val currency = new RUBCurrency
+  	val currency = new CNYCurrency
 
   	val useRateDiscount = false
 	def iborindex(p:Period) = null
@@ -20,7 +21,6 @@ class RubRateConvention extends RateConvention{
 
 	override val useNDSdiscount = false
 	override val ndsFixDaycount = new Actual365Fixed
-
-
 }
+
 

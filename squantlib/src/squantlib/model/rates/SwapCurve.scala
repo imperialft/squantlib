@@ -5,7 +5,7 @@ import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.currencies.Currency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
-import squantlib.setting.RateConvention
+import squantlib.model.rates.convention.RateConvention
 
 /**
  * Swap rate curve

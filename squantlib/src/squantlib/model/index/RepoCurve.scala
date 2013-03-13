@@ -10,7 +10,7 @@ import squantlib.model.yieldparameter._
 /**
  * Stores continuous dividend yield information.
  */
-case class RepoCurve(rate:YieldParameter, name:String) extends YieldParameter {
+case class RepoCurve(rate:YieldParameter) extends YieldParameter {
   
   def value(d:Double) = rate(d)
   
@@ -20,8 +20,9 @@ case class RepoCurve(rate:YieldParameter, name:String) extends YieldParameter {
   
   val maxdays = rate.maxdays
   
-  override def shifted(v:(Double, Double) => Double):RepoCurve = RepoCurve(rate.shifted(v), name)
+  override def shifted(v:(Double, Double) => Double):RepoCurve = RepoCurve(rate.shifted(v))
 }
+
 
 object RepoCurve{
   
@@ -31,10 +32,12 @@ object RepoCurve{
 			case 2 => LinearNoExtrapolation(valuedate, values)
 			case _ => SplineNoExtrapolation(valuedate, values, 2) } 
 	
-	def apply(valuedate:qlDate, value:Double, name:String):Option[RepoCurve] 
-		= apply(valuedate, Map(new qlPeriod("1Y") -> value), name)
+	def apply(valuedate:qlDate, value:Double):Option[RepoCurve] 
+		= apply(valuedate, Map(new qlPeriod("1Y") -> value))
 		
-	def apply(valuedate:qlDate, values:Map[qlPeriod, Double], name:String):Option[RepoCurve] 
-		= Some(RepoCurve(buildCurve(valuedate, values), name))
+	def apply(valuedate:qlDate, values:Map[qlPeriod, Double]):Option[RepoCurve] 
+		= Some(RepoCurve(buildCurve(valuedate, values)))
+		
+	def zeroCurve(valuedate:qlDate):RepoCurve = RepoCurve(FlatVector(valuedate, 0.0))
 
 }

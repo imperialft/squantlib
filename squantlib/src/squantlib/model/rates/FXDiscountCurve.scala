@@ -6,7 +6,7 @@ import squantlib.model.yieldparameter.{YieldParameter, SplineEExtrapolation, Fla
 import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.Thirty360
 import squantlib.database.schemadefinitions.RateFXParameter
-import squantlib.setting.RateConvention
+import squantlib.model.rates.convention.RateConvention
 //import squantlib.setting.initializer.RateConventions
 
 

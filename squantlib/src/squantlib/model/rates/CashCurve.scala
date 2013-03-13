@@ -6,7 +6,7 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
 import squantlib.model.yieldparameter._
-import squantlib.setting.RateConvention
+import squantlib.model.rates.convention.RateConvention
 
 /**
  * Cash rate curve

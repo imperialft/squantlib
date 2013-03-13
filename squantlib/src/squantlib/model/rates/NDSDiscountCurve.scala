@@ -5,7 +5,7 @@ import squantlib.model.yieldparameter.{FlatVector, YieldParameter, SplineEExtrap
 import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.database.schemadefinitions.RateFXParameter
-import squantlib.setting.RateConvention
+import squantlib.model.rates.convention.RateConvention
 
  
   /**

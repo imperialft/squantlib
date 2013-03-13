@@ -101,10 +101,23 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
 
 object YieldParameter {
   
-	def apply(valuedate:qlDate, data:Map[Double, Double]):Option[YieldParameter] = data.size match {
-	    case s if s > 2 => Some(SplineNoExtrapolation(valuedate, data))
-	    case 2 => Some(LinearNoExtrapolation(valuedate, data))
-	    case 1 => Some(FlatVector(valuedate, data.head._1))
-	    case _ => None
-	}
+  def apply(valuedate:qlDate, data:Map[Double, Double]):Option[YieldParameter] = data.size match {
+    case s if s > 2 => Some(SplineNoExtrapolation(valuedate, data))
+    case 2 => Some(LinearNoExtrapolation(valuedate, data))
+    case 1 => Some(FlatVector(valuedate, data.head._1))
+    case _ => None
+  }
+  
+  def apply(valuedate:qlDate, data:Map[qlDate, Double])(implicit d:DummyImplicit):Option[YieldParameter] = {
+    val values = data.withFilter{case (d, v) => (d ge valuedate)}
+    			.map{case (k, v) => (k.serialNumber.toDouble - valuedate.serialNumber.toDouble, v)}.toMap
+    apply(valuedate, values)
+  }
+  
+  def apply(valuedate:qlDate, data:Map[qlPeriod, Double])(implicit d:DummyImplicit, e:DummyImplicit):Option[YieldParameter] = {
+    val values = data.map{case (k, v) => (k.days(valuedate).toDouble, v)}.toMap
+    apply(valuedate, values)
+  }
+	
+  def apply(valuedate:qlDate, value:Double):Option[YieldParameter] = Some(FlatVector(valuedate, value))
 }

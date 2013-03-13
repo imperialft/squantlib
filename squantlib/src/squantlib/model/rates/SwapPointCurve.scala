@@ -4,7 +4,7 @@ import squantlib.model.yieldparameter._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod }
-import squantlib.setting.RateConvention
+import squantlib.model.rates.convention.RateConvention
 
 /**
  * Swap point curve

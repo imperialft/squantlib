@@ -18,7 +18,7 @@ object FXnoSmile {
   
 	def apply(curveDom:DiscountCurve, curveFor:DiscountCurve, vol:Double => Double):Option[FXnoSmile] = Some(new FXnoSmile(curveDom, curveFor, vol))
 	
-	def apply(curveDom:DiscountCurve, curveFor:DiscountCurve, params:FXparameter):Option[FXnoSmile] = {
+	def apply(curveDom:DiscountCurve, curveFor:DiscountCurve, params:FXInitializer):Option[FXnoSmile] = {
 	  assert(curveDom.valuedate == curveFor.valuedate)
 	  
 	  val volYield = params.vol match {

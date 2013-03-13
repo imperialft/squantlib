@@ -5,12 +5,14 @@ import scala.collection.JavaConversions
 import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
 import squantlib.model.fx._
+import squantlib.model.index._
 import squantlib.database.schemadefinitions.{CDSParameter, RateFXParameter}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
 import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.termstructures.YieldTermStructure
+import squantlib.model.index.IndexInitializer
 
 /** 
  * Stores market information and initialize discount curves as requested.
@@ -19,10 +21,11 @@ import org.jquantlib.termstructures.YieldTermStructure
  * @param Map CurrencyId => DiscountCurve
  */
 class Market(
-    val curves:Map[String, DiscountableCurve], 
-    val cdscurves:Map[String, CDSCurve] = Map.empty, 
-    val fxparams:Map[String, FXparameter] = Map.empty, 
     val paramset:String = null, 
+    val curves:Map[String, DiscountableCurve] = Map.empty, 
+    val cdscurves:Map[String, CDSCurve] = Map.empty, 
+    val fxInitializers:Map[String, FXInitializer] = Map.empty,
+    val indexInitializers:Map[String, IndexInitializer] = Map.empty,
     val fixings:Map[String, Double]  = Map.empty) {
 
 	/** 
@@ -147,14 +150,14 @@ class Market(
 	 * @param currency code
 	 */
 	def getFX(ccyFor:String, ccyDom:String) : Option[FX] = {
-	    val curveDom = getBaseDiscountCurve(ccyDom)
-	    val curveFor = getBaseDiscountCurve(ccyFor)
-	    if ((curveDom isDefined) && (curveFor isDefined)) {
-	      if (fxparams.contains(ccyFor + ccyDom)) fxparams(ccyFor + ccyDom).getModel(curveDom.get, curveFor.get)
-	      else Some(FXzeroVol(curveDom.get, curveFor.get))
+	  val curveDom = getBaseDiscountCurve(ccyDom)
+	  val curveFor = getBaseDiscountCurve(ccyFor)
+	  if ((curveDom isDefined) && (curveFor isDefined)) {
+	    if (fxInitializers.contains(ccyFor + ccyDom)) fxInitializers(ccyFor + ccyDom).getModel(curveDom.get, curveFor.get)
+	    else Some(FXzeroVol(curveDom.get, curveFor.get))
 	    }
-	    else None
-	  }
+	  else None
+	}
 	
 	def getFX(fxpair:String):Option[FX] = {
 	  if (fxpair == null || fxpair.size != 6) None
@@ -167,9 +170,9 @@ class Market(
 	 * @param volatility (flat over timeline & strike)
 	 */
 	def getFX(ccyFor:String, ccyDom:String, vol:Double) : Option[FX] = {
-	    val curveDom = getBaseDiscountCurve(ccyDom)
-	    val curveFor = getBaseDiscountCurve(ccyFor)
-	    if ((curveDom isDefined) && (curveFor isDefined)) FXflatVol(curveDom.get, curveFor.get, vol) else None
+	  val curveDom = getBaseDiscountCurve(ccyDom)
+	  val curveFor = getBaseDiscountCurve(ccyFor)
+	  if ((curveDom isDefined) && (curveFor isDefined)) FXflatVol(curveDom.get, curveFor.get, vol) else None
 	}
 	
 	/**
@@ -178,9 +181,9 @@ class Market(
 	 * @param volatility as function of time t
 	 */
 	def getFX(ccyFor:String, ccyDom:String, vol:Double => Double) : Option[FX] = {
-	    val curveDom = getBaseDiscountCurve(ccyDom)
-	    val curveFor = getBaseDiscountCurve(ccyFor)
-	    if ((curveDom isDefined) && (curveFor isDefined)) FXnoSmile(curveDom.get, curveFor.get, vol) else None
+	  val curveDom = getBaseDiscountCurve(ccyDom)
+	  val curveFor = getBaseDiscountCurve(ccyFor)
+	  if ((curveDom isDefined) && (curveFor isDefined)) FXnoSmile(curveDom.get, curveFor.get, vol) else None
 	}
 
 	/**
@@ -189,9 +192,13 @@ class Market(
 	 * @param volatility as function of time t and strike k
 	 */
 	def getFX(ccyFor:String, ccyDom:String, vol:(Double, Double) => Double) : Option[FX] = {
-	    val curveDom = getBaseDiscountCurve(ccyDom)
-	    val curveFor = getBaseDiscountCurve(ccyFor)
-	    if ((curveDom isDefined) && (curveFor isDefined)) FXsmiled(curveDom.get, curveFor.get, vol) else None
+	  val curveDom = getBaseDiscountCurve(ccyDom)
+	  val curveFor = getBaseDiscountCurve(ccyFor)
+	  if ((curveDom isDefined) && (curveFor isDefined)) FXsmiled(curveDom.get, curveFor.get, vol) else None
+	}
+	
+	def getIndex(name:String) : Option[Index] = {
+	  indexInitializers.get(name).flatMap{case initializer => initializer.getModel(this)}
 	}
 	
 	/**
@@ -265,7 +272,11 @@ class Market(
 	  			      (k, (d:Double, r:Double) => r + v * mult * d / 365.0 * fx * zcf(d) * math.exp{rvector(d) * d/365.0})
 	  			  }}
 	  
-	  new Market(curves.map{case (c, v) => if (equivshift contains c) (c, v.shiftRate(equivshift(c))) else (c, v)}.toMap, cdscurves, fxparams, paramset, fixings)
+	  val newcurve = curves.map{case (c, v) => 
+	    if (equivshift contains c) (c, v.shiftRate(equivshift(c))) 
+	    else (c, v)}.toMap
+	    
+	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, fixings)
 	}
 	
 	/**
@@ -275,8 +286,13 @@ class Market(
 	 */
 	def fxShifted(currency:String, shiftAmount:Double):Market = fxShifted(Map(currency -> shiftAmount))
 	
-	def fxShifted(fxShift:Map[String, Double]):Market = 
-	  new Market(curves.map{case (c, v) => if (fxShift contains c) (c, v.multFX(fxShift(c))) else (c, v)}.toMap, cdscurves, fxparams, paramset, fixings)
+	def fxShifted(fxShift:Map[String, Double]):Market = {
+	  val newcurve = curves.map{case (c, v) => 
+	    if (fxShift contains c) (c, v.multFX(fxShift(c))) 
+	    else (c, v)}.toMap
+	    
+	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, fixings)
+	}
 
 	
 	/**
@@ -287,9 +303,13 @@ class Market(
 	def fxVolShifted(fxpair:String, shiftAmount:Double):Market = fxVolShifted(Map(fxpair -> shiftAmount))
 	
 	def fxVolShifted(fxShift:Map[String, Double]):Market = 
-	  new Market(curves, cdscurves, fxparams.map{
-	    case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)
-	    }.toMap, paramset, fixings)
+	  new Market(
+	      paramset, 
+	      curves, 
+	      cdscurves, 
+	      fxInitializers.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}.toMap, 
+	      indexInitializers, 
+	      fixings)
 	
 	
 	private def isCcy(v:String):Boolean = curves.contains(v)
@@ -339,27 +359,36 @@ object Market {
 	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter], valuedate:qlDate):Option[Market] = {
 	  
 	  val liborCurves:Set[LiborDiscountCurve] = LiborDiscountCurve(ratefxparams, valuedate)
+	  
 	  val fxCurves:Set[FXDiscountCurve] = FXDiscountCurve(ratefxparams, valuedate)
+	  
 	  val ndsCurves:Set[NDSDiscountCurve] = liborCurves.find(_.currency.code == "USD") match {
 	    case None => Set.empty
 	    case Some(curve) => NDSDiscountCurve(ratefxparams, curve.getZC(new FlatVector(curve.valuedate, 0.0)), curve.tenorbasis, valuedate)
 	  }
+	  
 	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
 	  if (discountcurves.forall(s => s.currency.code != "USD")) {return None}
 	  
 	  val cdscurves = CDSCurve(cdsparams, valuedate)
-	  val fxparams = FXparameter(ratefxparams)
+	  
+	  val fxparams = FXInitializer(ratefxparams)
+
+	  val indices = IndexInitializer.getInitializers(ratefxparams)
+	  
 	  val paramset = ratefxparams.head.paramset
+	  
 	  val fixingParams = Set("Fixing", "Index", "Equity")
 	  val fixingset:Map[String, Double] = ratefxparams.withFilter(p => fixingParams contains p.instrument)
 	  	.map(p => (p.asset + (if (p.maturity != null) p.maturity else "").trim, p.value)).toMap
 	  
 	  if (discountcurves.size == 0 || cdscurves.size == 0) None
 	  else Some(new Market(
+		    paramset,
 		    discountcurves.map(c => (c.currency.code, c)).toMap, 
 		    cdscurves.map(c => (c.issuerid, c)).toMap, 
 		    fxparams,
-		    paramset,
+		    indices, 
 		    fixingset))
 	}
   

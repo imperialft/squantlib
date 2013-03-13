@@ -373,7 +373,7 @@ object DB extends Schema {
     val fwddates = getForwardPriceDates
     if (fwddates.size > 1) {
       val latest = fwddates.max
-      transaction {forwardprices.deleteWhere(b => b.valuedate lt latest)}
+      transaction {forwardprices.deleteWhere(b => b.paramdate lt latest)}
       true
     }
   else false

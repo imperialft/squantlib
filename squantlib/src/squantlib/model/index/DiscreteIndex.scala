@@ -10,12 +10,13 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
  * Orthodox index with continuous dividend yield.
  */
 case class DiscreteIndex(
+    name:String,
 	var spot:Double,
     rateCurve:DiscountCurve, 
     dividend:Map[qlDate, Double], 
-    repoRate:RepoCurve, 
-    vol:(Double, Double) => Double,
-    name:String) extends Index {
+    repo:RepoCurve, 
+    vol:(Double, Double) => Double
+    ) extends Index {
   
 	override val valuedate = rateCurve.valuedate
 	
@@ -37,5 +38,11 @@ case class DiscreteIndex(
 	  // TO BE IMPLEMENTED
 	  Double.NaN
 	}
+	
+    override def repoRate(days:Double):Double = repo(days)
+    
+    val dividendMap:Map[Double, Double] = dividend.map{case (d, v) => (toDays(d), v)}.toMap
+    
+    val dividendMapY:Map[Double, Double] = dividend.map{case (d, v) => (toDays(d)/365.25, v)}.toMap
     
 } 

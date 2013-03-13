@@ -1,16 +1,11 @@
-package squantlib.setting
+package squantlib.model.rates.convention
 
-import squantlib.setting.rateconventions._
-import squantlib.model.yieldparameter.YieldParameter
+import org.jquantlib.currencies.Currency
+import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.currencies.Currency
-import org.jquantlib.daycounters.{ ActualActual, Thirty360, Actual365Fixed, Actual360, DayCounter }
-import org.jquantlib.time.{TimeUnit, Frequency, Date => qlDate, Period=>qlPeriod}
-import scala.collection.SortedMap
-import squantlib.model.yieldparameter.{SplineNoExtrapolation, FlatVector, LinearNoExtrapolation }
-import squantlib.model.rates.{ CashCurve, SwapCurve, BasisSwapCurve, TenorBasisSwapCurve, SwapPointCurve }
-import org.jquantlib.currencies.America.USDCurrency
+import org.jquantlib.daycounters.DayCounter
+import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
 
 
 /**

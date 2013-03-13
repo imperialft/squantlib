@@ -2,23 +2,25 @@ package squantlib.pricing.mcengine
 
 import squantlib.math.random.{RandomGenerator, MersenneTwister}
 import squantlib.math.statistical.NormSInv
-import squantlib.model.fx.FX
+import squantlib.model.index.Index
 
 
-/* Simple Black-Scholes montecarlo pricer.
+/* Black-Scholes montecarlo pricer with repo rate.
  * - Continuous dividend
  * - Volatility is constant over time without smile
  * - No rate & dividend volatility
  * @param spot 		current underlying price
  * @param rate(t)	continuous compounding risk-free rate of pricing currency at time t as number of years
  * @param dividendYield(t)	continuous compounding risk-free dividend yield at time t as number of years
- * @param sigma(t)	volatility of the underlying FX
+ * @param dividendYield(t)	repo rate at time t as number of years
+*  * @param sigma(t)	volatility of the underlying 
  */
 
-case class BlackScholes1f(
+case class BlackScholesWithRepo(
     var spot:Double, 
     var rate: Double => Double, 
     var dividendYield: Double => Double, 
+    var repoYield: Double => Double, 
     var volatility: Double => Double) 
     extends Montecarlo1f{
   
@@ -28,8 +30,8 @@ case class BlackScholes1f(
   
   override def reset = randomGenerator = new MersenneTwister(1)
 
-  /* Generates FX paths.
-   * @param eventdates	FX observation dates as number of years
+  /* Generates paths.
+   * @param eventdates	observation dates as number of years
    * @param paths 	Number of Montecarlo paths to be generated
    * @returns Montecarlo paths
    * 
@@ -47,7 +49,7 @@ case class BlackScholes1f(
     val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
 
     val ratedom = dates.map(rate)
-    val ratefor = dates.map(dividendYield)
+    val ratefor = dates.map(d => dividendYield(d) + repoYield(d))
     val sigma = dates.map(volatility)
     
     val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
@@ -81,10 +83,10 @@ case class BlackScholes1f(
 
 }
 
-object BlackScholes1f {
+object BlackScholesWithRepo {
   
-  def apply(fx:FX):Option[BlackScholes1f] = 
-	try { Some(new BlackScholes1f(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY)) } 
+  def apply(index:Index):Option[BlackScholesWithRepo] = 
+	try { Some(new BlackScholesWithRepo(index.spot, index.interestRate, index.dividendYield, index.repoRate, index.volatilityY)) } 
 	catch { case _ => None}
 	
 }

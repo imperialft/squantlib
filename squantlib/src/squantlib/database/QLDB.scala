@@ -5,8 +5,7 @@ import squantlib.model.rates._
 import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXParameter, CDSParameter}
 import squantlib.database.QLConstructors._
 import squantlib.math.timeseries.SeriesAnalysis._
-import squantlib.model.fx.FXparameter
-import squantlib.setting.PricingConvention
+import squantlib.model.fx.FXInitializer
 import org.squeryl.PrimitiveTypeMode._
 import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.time.{Date => qlDate, Frequency, TimeSeries}
@@ -48,11 +47,10 @@ object QLDB {
 	
 	def getBonds(date:JavaDate):Set[sBond] = getBonds(DB.getBonds(date))
 	
-	def getBonds(bonds:Set[dbBond])(implicit d:DummyImplicit):Set[sBond] = {
+	def getBonds(bonds:Set[dbBond], par:Boolean = false)(implicit d:DummyImplicit):Set[sBond] = {
 	  println("retrieve bonds..")
-	  bonds.map(b => sBond(b)).collect{
-	    case Some(bond) => DefaultBondSetting(bond); bond
-	      }
+	  val sbonds = (if (par) bonds.par else bonds).map(b => sBond(b)).seq
+	  sbonds.collect{case Some(bond) => DefaultBondSetting(bond); bond}.toSet
 	}
 	
    /**

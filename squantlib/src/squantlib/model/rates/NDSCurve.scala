@@ -7,7 +7,7 @@ import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.indexes.ibor.USDLibor
 import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
-import squantlib.setting.RateConvention
+import squantlib.model.rates.convention.RateConvention
 
 /**
  * NDS rate curve
