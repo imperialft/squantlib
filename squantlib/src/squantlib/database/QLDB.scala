@@ -88,35 +88,3 @@ object QLDB {
 	  
 }
 
-
-//   /**
-//    * Returns jquantlib Bond object. 
-//    * 
-//    * @param id Identifications of the target bonds
-//    * @param factory Optional. Providing discount curve factory would automatically set discounting bond engine as default pricing engine (where applicable)
-//    */
-//	def getQlBond(id:String):Option[qlBond] = getQlBonds(Set(id)).headOption
-//	
-//	def getQlBond(id:String, factory:Market):Option[qlBond] = getQlBonds(Set(id), factory).headOption
-//	
-//	def getQlBonds:Set[qlBond] = bondsConstructor(DB.getBonds, null)
-//	
-//	def getQlBonds(bonds:Set[dbBond]):Set[qlBond] = bondsConstructor(bonds, null)
-//	
-//	def getQlBonds(id:Traversable[String]):Set[qlBond] = bondsConstructor(DB.getBonds(id), null)
-//	
-//	def getQlBonds(factory:Market):Set[qlBond] = bondsConstructor(DB.getBonds, factory)
-//	
-//	def getQlBonds(id:Traversable[String], factory:Market):Set[qlBond] = bondsConstructor(DB.getBonds(id), factory)
-//	
-//	def getQlBonds(bonds:Set[dbBond], factory:Market):Set[qlBond] = bondsConstructor(bonds, factory)
-//	
-//	def getQlBonds(ids:Traversable[String], builder:dbBond => Option[qlBond], pricingengine:qlBond => PricingEngine, valuedate:qlDate):Set[qlBond] = {
-//		val qlbonds:Set[qlBond] = DB.getBonds(ids).map(builder).flatMap(b => b)
-//		qlbonds.foreach(b => b.setPricingEngine(pricingengine(b), valuedate))
-//		qlbonds
-//	}
-	
-//	def bondsConstructor(dbbonds:Set[dbBond], factory:Market):Set[qlBond] = 
-//	  dbbonds.map(b => PricingConvention.bondConstructor(b, factory)).flatMap(b => b)
-	

@@ -79,11 +79,11 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	/*
 	 * Select appropriate pricing functions depending on your needs.
 	 * Fixing information are provided as either;
-	 * 						mult variables		mult eventdates
-	 *  List[Double]		no					no
-	 *  List[Map]			yes					no
- 	 *  List[List[Double]]	no					yes
- 	 *  List[List[Map]]		yes					yes
+	 * 	format				>1 variables	>1 refdates
+	 *  List[Double]		no				no			
+	 *  List[Map]			yes				no
+ 	 *  List[List[Double]]	no				yes
+ 	 *  List[List[Map]]		yes				yes
  	 * 
 	 */
 	
@@ -165,20 +165,11 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
 	}
 	
-	
-	
 	/* 
 	 * Replaces already-fixed payoffs to fixed leg
 	 */
-	
 	def applyFixing(fixings:List[Map[String, Double]]):Payoffs = {
-	  assert(fixings.size == this.size)
-	  
-//	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Payoff]):List[Payoff] = {
-//	    if (paylist.isEmpty) acc
-//	    else fixingRec(paylist.tail, fixlist.tail, acc :+ paylist.head.applyFixing(fixlist.head))
-//	  }
-//	  
+	  assert(fixings.size == payoffs.size)
 	  Payoffs(fixingRec(payoffs, fixings, List.empty))
 	}
 	
@@ -186,14 +177,6 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  if (factors == 1) applyFixing(fixings.map{case None => Map.empty[String, Double] case Some(v) => Map(variables.head -> v)})
 	  else this
 	}
-	  
-//	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Option[Double]], acc:List[Payoff]):List[Payoff] = {
-//	    if (paylist.isEmpty) acc
-//	    else fixingRec(paylist.tail, fixlist.tail, acc :+ paylist.head.applyFixing(fixlist.head))
-//	  }
-//	  
-//	  Payoffs(fixingRec(payoffs, fixings, List.empty))
-//	}
 	
 	def ++(another:Payoffs) = new Payoffs(payoffs ++ another.payoffs)
 	
