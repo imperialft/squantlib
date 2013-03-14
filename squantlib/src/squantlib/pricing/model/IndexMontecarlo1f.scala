@@ -70,35 +70,39 @@ object IndexMontecarlo1f {
 	
 	var defaultPaths = 100000
 	
-	def apply(market:Market, bond:Bond, engineName:String, triggers:List[Option[Double]]):Option[IndexMontecarlo1f] = apply(market, bond, defaultPaths, engineName, triggers)
+	def apply(market:Market, bond:Bond, mcengine:Index => Option[Montecarlo1f]):Option[IndexMontecarlo1f] = apply(market, bond, mcengine, defaultPaths)
 	
-	def apply(market:Market, bond:Bond, engineName:String):Option[IndexMontecarlo1f] = apply(market, bond, defaultPaths, engineName)
-  
-	def apply(market:Market, bond:Bond, paths:Int, engineName:String):Option[IndexMontecarlo1f] = {
-	  val trig = bond.getCalibrationCache[List[Option[Double]]]("IndexMontecarlo1f") match {
-	    case Some(t) => t
-	    case _ => bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head)
-	  } 
-	  apply(market, bond, paths, engineName, trig)
-	}
-	
-	def apply(market:Market, bond:Bond, paths:Int, engineName:String, triggers:List[Option[Double]]):Option[IndexMontecarlo1f] = {
+	def apply(market:Market, bond:Bond, mcengine:Index => Option[Montecarlo1f], paths:Int):Option[IndexMontecarlo1f] = {
 	  val valuedate = market.valuedate
+	  
 	  val (schedule, payoffs) = bond.livePayoffs(valuedate)
-	  if (payoffs.variables.size != 1) { println(bond.id + " : payoff not compatible with IndexMC1d model"); return None}
+	  
+	  if (payoffs.variables.size != 1) {
+	    println(bond.id + " : payoff not compatible with IndexMC1d model")
+	    return None}
 	  
 	  val variable = payoffs.variables.head
 	  val index = market.getIndex(variable).orNull
-	  if (index == null) {println(bond.id + " : invalid index underlying - " + variable + " in market " + market.paramset); return None}
-	  if (index.currency != bond.currency) {println(bond.id + " : quanto model not supported - " + variable); return None}
+	  
+	  val triggers = bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head)
+	  
+	  if (index == null) {
+	    println(bond.id + " : invalid index underlying - " + variable + " in market " + market.paramset)
+	    return None}
+	  
+	  if (index.currency != bond.currency) {
+	    println(bond.id + " : quanto model not supported - " + variable)
+	    return None}
+	  
+	  if (!bond.bermudan.forall(!_)) {
+	    println(bond.id + " : bermudan callable for index not supported")
+	    return None}
 
-	  val mcmodel:Montecarlo1f = (engineName match {
-	    case "IndexzeroVol" => Forward1f(index)
-	    case "IndexBlackScholes1f" => BlackScholesWithRepo(index)
-	    case null => BlackScholesWithRepo(index) // default
-	    case _ => None
-	  }).orNull
-	  if (mcmodel == null) {println(bond.id + " : model name not found or model calibration error"); return None}
+	  val mcmodel:Montecarlo1f = mcengine(index).orNull
+	  
+	  if (mcmodel == null) {
+	    println(bond.id + " : model name not found or model calibration error")
+	    return None}
 	  
 	  Some(IndexMontecarlo1f(valuedate, mcmodel, payoffs, schedule, index, paths, triggers))
 	}

@@ -17,28 +17,60 @@ import squantlib.util.UnderlyingInfo
  *  {type:"putdiamerican", variable:[String], trigger:[Double], strike:[Double], refStart:Date, refEnd:Date, description:String}, 
  * No strike is considered as no low boundary
  */
-case class PutDIAmericanPayoff(putVariables:List[String], trigger:List[Double], strike:List[Double], refStart:qlDate, refEnd:qlDate, knockedIn:Boolean, amount:Double = 1.0, description:String = null) 
-extends Payoff {
+case class PutDIAmericanPayoff(
+    putVariables:List[String], 
+    trigger:List[Double], 
+    strike:List[Double], 
+    refStart:qlDate, 
+    refEnd:qlDate, 
+    knockedIn:Boolean, 
+    amount:Double = 1.0, 
+    description:String = null) extends Payoff {
   
 	val variables = putVariables.toSet
 	
+	var mcPeriod = 30
+	
+	override def eventDates(period:CalculationPeriod):List[qlDate] = {
+	  val basemod = refEnd.serialNumber % mcPeriod
+	  val dates = for (i <- (refStart.serialNumber to refEnd.serialNumber).toList if i % mcPeriod == basemod) yield new qlDate(i)
+	  if (dates.head == refStart) dates else refStart :: dates
+	}
+	
 	var barrierCoeff:() => Double = () => 1.0
   
-	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
+	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = {
 	  if (variables.toSet subsetOf fixings.keySet) 
 	    Some((0 to putVariables.size - 1).toList.map(i => fixings(putVariables(i))))
 	  else None
+	}
+	
+	def isKnockIn(fixings:Map[String, Double]):Boolean = getFixings(fixings) match {
+	  case Some(fixing) => (fixing, trigger).zipped.exists(_ <= _)
+	  case None => false
+	}
+	
+	def isKnockIn(fixings:List[Map[String, Double]]):Boolean = fixings.exists(isKnockIn(_))
+	
+	override def price(fixings:Map[String, Double]):Double = price(fixings, knockedIn)
+	
+	override def price(fixings:List[Map[String, Double]]):Double = fixings.size match {
+	  case 0 => price
+	  case 1 => price(fixings.head, knockedIn)
+	  case _ => price(fixings.last, knockedIn || isKnockIn(fixings.dropRight(1)))
+	}
 	    
-	override def price(fixings:Map[String, Double]):Double = 
+	def price(fixings:Map[String, Double], ki:Boolean):Double = 
 	  getFixings(fixings) match {
 	    case None => Double.NaN
-	    case Some(fixValues) if knockedIn => amount * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
+	    case Some(fixValues) if ki => amount * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
 	    case Some(fixValues) if barrierCoeff != null => val coeff = barrierCoeff()
 	    	amount * ((1.0 - coeff) * 1.0 + coeff * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min))
 	    case _ => Double.NaN
 	  }
+	
 	  
-	override def price(fixing:Double)(implicit d:DummyImplicit):Double =
+	override def price(fixing:Double):Double =
 	  if (variables.size != 1) Double.NaN
 	  else if (knockedIn) amount * math.min(1.0, fixing / strike.head)
 	  else if (barrierCoeff == null) Double.NaN
@@ -113,10 +145,9 @@ object PutDIAmericanPayoff {
 	  
 	  val knockedIn:Boolean = 
 	    if (refStart == null || refEnd == null) false
-	    else !(variable zip trigger).forall{case (v, trig) => 
-	    Fixings.getHistorical(v) match {
-	      case Some(h) => h.filter{case (d, _) => (d ge refStart) && (d le refEnd)}.forall{case (_, x) => x > trig}
-	      case None => true
+	    else (variable zip trigger).exists{case (v, trig) => Fixings.getHistorical(v, refStart, refEnd) match {
+	      case Some(h) => h.exists{case (_, x) => x <= trig}
+	      case None => false
 	    }}
 	  
 	  PutDIAmericanPayoff(variable, trigger, strike, refStart, refEnd, knockedIn, amount, description)

@@ -22,7 +22,7 @@ case class Linear1dPayoff(variable:String, payoff:Linear1dFormula, description:S
 	  if (fixings contains variable) payoff.price(fixings(variable))
 	  else Double.NaN
 	
-	override def price(fixing:Double)(implicit d:DummyImplicit) = payoff.price(fixing)
+	override def price(fixing:Double) = payoff.price(fixing)
 	
 	override def price = Double.NaN
 	

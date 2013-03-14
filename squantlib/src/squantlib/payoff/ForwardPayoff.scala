@@ -31,7 +31,7 @@ extends Payoff {
 	    case Some(fixValues) => (fixValues, strike).zipped.map((v, k) => v/k).min
 	  }
 	  
-	override def price(fixing:Double)(implicit d:DummyImplicit) =
+	override def price(fixing:Double) =
 	  if (variables.size != 1) Double.NaN
 	  else fixing / strike.head
 	

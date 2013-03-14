@@ -33,11 +33,11 @@ extends Payoff {
 	      else amount * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
 	  }
 	  
-	override def price(fixing:Double)(implicit d:DummyImplicit) =
+	override def price(fixing:Double) =
 	  if (variables.size != 1) Double.NaN
 	  else if (fixing >= trigger.head) amount
 	  else amount * math.min(1.00, fixing / strike.head)
-	
+	 
 	override def toString =
 	  amount.asPercent + " [" + trigger.mkString(",") + "] " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "]"
 	

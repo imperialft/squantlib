@@ -17,7 +17,7 @@ case class FixedPayoff(payoff:Double, description:String = null) extends Payoff 
 	val variables:Set[String] = Set.empty
 	 
 	override def price(fixings:Map[String, Double]) = payoff
-	override def price(fixing:Double)(implicit d:DummyImplicit) = payoff
+	override def price(fixing:Double) = payoff
 	override def price = payoff
 	
 	override def toString = payoff.asPercent

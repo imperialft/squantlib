@@ -3,10 +3,14 @@ package squantlib.payoff
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 import scala.collection.LinearSeq
-import scala.annotation.tailrec 
+import scala.annotation.tailrec
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import scala.collection.JavaConversions._
+import org.jquantlib.time.{Date => qlDate}
+import scala.Predef.{DummyImplicit => DI, _}
+import com.sun.beans.decoder.FalseElementHandler
+import com.sun.beans.decoder.FalseElementHandler
 
 case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
   
@@ -20,62 +24,148 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	
 	val factors:Int = variables.size
 	
-	def price(fixings:List[Map[String, Double]]):List[Double] = {
-	  assert(fixings.size == this.size)
-	  
-	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Double]):List[Double] = {
-	    if (paylist.isEmpty) acc
-	    else priceRec(paylist.tail, fixlist.tail, acc :+ paylist.head.price(fixlist.head))
-	  }
-	  
+	abstract class FixingInterpreter[T, U] {
+	  def price(fixing:T, payoff:Payoff):Double
+	  def triggered(fixing:T, trigger:Option[U]):Boolean
+	  def applyFixing(fixing:T, payoff:Payoff):Payoff}
+	
+	implicit object DoubleList extends FixingInterpreter[Double, Double] {
+	  def price(fixing:Double, payoff:Payoff) = payoff.price(fixing)
+	  def triggered(fixing:Double, trigger:Option[Double]) = trigger.isDefined && fixing > trigger.get
+	  def applyFixing(fixing:Double, payoff:Payoff) = payoff.applyFixing(fixing)}
+	
+	implicit object MapList extends FixingInterpreter[Map[String, Double], Map[String, Double]] {
+	  def price(fixing:Map[String, Double], payoff:Payoff) = payoff.price(fixing)
+	  def triggered(fixing:Map[String, Double], trigger:Option[Map[String, Double]]) = trigger match {
+	    case None => false
+	    case Some(t) if t isEmpty => false
+	    case Some(t) => t.forall{case (v, d) => d <= fixing(v)}}
+	  def applyFixing(fixing:Map[String, Double], payoff:Payoff) = payoff.applyFixing(fixing)}
+	
+	implicit object ListDoubleList extends FixingInterpreter[List[Double], Double] {
+	  def price(fixing:List[Double], payoff:Payoff) = payoff.price(fixing)
+	  def triggered(fixing:List[Double], trigger:Option[Double]) = trigger.isDefined && fixing.last > trigger.get
+	  def applyFixing(fixing:List[Double], payoff:Payoff) = payoff.applyFixing(fixing.last)}
+	
+	implicit object ListMapList extends FixingInterpreter[List[Map[String, Double]], Map[String, Double]] {
+	  def price(fixing:List[Map[String, Double]], p:Payoff) = p.price(fixing)
+	  def triggered(fixing:List[Map[String, Double]], trigger:Option[Map[String, Double]]) = trigger match {
+	    case None => false
+	    case Some(t) if t isEmpty => false
+	    case Some(t) => t.forall{case (v, d) => d <= fixing.last(v)}}
+	  def applyFixing(fixing:List[Map[String, Double]], payoff:Payoff) = payoff.applyFixing(fixing.last)}
+	
+	@tailrec private def priceRec[T](paylist:List[Payoff], fixlist:List[T], acc:List[Double])
+	(implicit fi:FixingInterpreter[T, _]):List[Double] = {
+	  if (paylist.isEmpty) acc
+	  else priceRec(paylist.tail, fixlist.tail, acc :+ fi.price(fixlist.head, paylist.head))
+	}
+	
+	@tailrec private def priceTrig[T, U](paylist:List[Payoff], fixlist:List[T], acc:List[Double], triglist:List[Option[U]], trigamt:List[Double], triggered:Boolean)
+	(implicit fi:FixingInterpreter[T, U]):List[Double] = {
+	  if (paylist.isEmpty) acc
+	  else if (triggered) priceTrig(paylist.tail, fixlist.tail, acc :+ 0.0, triglist.tail, trigamt.tail, true)
+	  else if (fi.triggered(fixlist.head, triglist.head)) priceTrig(paylist.tail, fixlist.tail, acc :+ (fi.price(fixlist.head, paylist.head) + trigamt.head), triglist.tail, trigamt.tail, true)
+	  else priceTrig(paylist.tail, fixlist.tail, acc :+ fi.price(fixlist.head, paylist.head), triglist.tail, trigamt.tail, false)
+	}
+	
+	@tailrec private def fixingRec[T](paylist:List[Payoff], fixlist:List[T], acc:List[Payoff])
+	(implicit fi:FixingInterpreter[T, _]):List[Payoff] = {
+	  if (paylist.isEmpty) acc
+	  else fixingRec(paylist.tail, fixlist.tail, acc :+ fi.applyFixing(fixlist.head, paylist.head))
+	}
+	
+	
+	/*
+	 * Select appropriate pricing functions depending on your needs.
+	 * Fixing information are provided as either;
+	 * 						mult variables		mult eventdates
+	 *  List[Double]		no					no
+	 *  List[Map]			yes					no
+ 	 *  List[List[Double]]	no					yes
+ 	 *  List[List[Map]]		yes					yes
+ 	 * 
+	 */
+	
+	/*
+	 * Returns price array, when there's no variable.
+	 */
+	def price:List[Double] = payoffs.map(_.price)
+	
+	/*
+	 * Returns price array, to be used when there's only one fixing dates per payoff, no trigger and only one variable.
+	 * @param fixings market parameter fixing value
+	 */
+	def price(fixings:List[Double]):List[Double] = {
+	  assert(fixings.size == payoffs.size && factors <= 1)
 	  priceRec(payoffs, fixings, List.empty)
 	}
 	
-	def price(fixings:List[Map[String, Double]], trigger:List[Map[String, Double]], trigAmount:List[Double]):List[Double] = {
-	  assert(fixings.size == this.size && fixings.size == trigger.size)
-	  assert(trigger.head.keySet subsetOf fixings.head.keySet)
-	  
-	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Double], triglist:List[Map[String, Double]], trigamt:List[Double], triggered:Boolean):List[Double] = {
-	    if (paylist.isEmpty) acc
-	    else if (triggered) priceRec(paylist.tail, fixlist.tail, acc :+ 0.0, triglist.tail, trigamt.tail, true)
-	    else if (triglist.head.forall{case (v, d) => d > fixlist.head(v)})
-	      priceRec(paylist.tail, fixlist.tail, acc :+ paylist.head.price(fixlist.head), triglist.tail, trigamt.tail, false)
-	    else priceRec(paylist.tail, fixlist.tail, acc :+ (paylist.head.price(fixlist.head) + trigamt.head), triglist.tail, trigamt, true)
-	  }
-	  
-	  priceRec(payoffs, fixings, List.empty, trigger, trigAmount, false)
-	}
-	
-	def price(fixings:List[Double]) (implicit d:DummyImplicit):List[Double] = {
-	  assert(fixings.size == this.size && factors <= 1)
-	  
-	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Double], acc:List[Double]):List[Double] = {
-	    if (paylist.isEmpty) acc
-	    else priceRec(paylist.tail, fixlist.tail, acc :+ paylist.head.price(fixlist.head))
-	  }
-	  
+	/*
+	 * Returns price array, to be used when there's only one fixing dates per payoff
+	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
+	 */
+	def price(fixings:List[Map[String, Double]])(implicit d:DI):List[Double] = {
+	  assert(fixings.size == payoffs.size)
 	  priceRec(payoffs, fixings, List.empty)
 	}
 	
-	def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = {
-	  if (fixings.size != this.size || fixings.size != trigger.size) println("fixingsize " + fixings.size + " thissize : " + this.size + " trigger size: " + trigger.size)
-	  assert(fixings.size == this.size && fixings.size == trigger.size)
-	  
-	  @tailrec def priceRec(paylist:List[Payoff], fixlist:List[Double], acc:List[Double], triglist:List[Option[Double]], trigamt:List[Double], triggered:Boolean):List[Double] = {
-	    if (paylist.isEmpty) acc
-	    else if (triggered) priceRec(paylist.tail, fixlist.tail, acc :+ 0.0, triglist.tail, trigamt.tail, true)
-	    else if (triglist.head.isEmpty || triglist.head.get > fixlist.head)
-	      priceRec(paylist.tail, fixlist.tail, acc :+ paylist.head.price(fixlist.head), triglist.tail, trigamt.tail, false)
-	    else priceRec(paylist.tail, fixlist.tail, acc :+ (paylist.head.price(fixlist.head) + trigamt.head), triglist.tail, trigamt.tail, true)
-	  }
-	  
-	  priceRec(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	/*
+	 * Returns price array, to be used when there's only one fixing dates per payoff, no trigger and one or more variables.
+	 * @param fixings market parameter fixing value
+	 */
+	def price(fixings:List[List[Double]])(implicit d:DI, d2:DI):List[Double] = {
+	  assert(fixings.size == payoffs.size && factors <= 1)
+	  priceRec(payoffs, fixings, List.empty)
 	}
-	  
-	def price:List[Double] = {
-	  assert(factors == 0)
-	  payoffs.map(_.price)
+	
+	/*
+	 * Returns price array, to be used when there's more than one fixing dates per payoff
+	 * @param fixings market parameters as Map(variable name -> value) in order of event dates, in order of payoff.
+	 */
+	def price(fixings:List[List[Map[String, Double]]])(implicit d:DI, d2:DI, d3:DI):List[Double] = {
+	  assert(fixings.size == payoffs.size)
+	  priceRec(payoffs, fixings, List.empty)
 	}
+	
+	/*
+	 * Returns price array, to be used when there's only one fixing dates per payoff, with trigger and only one variable.
+	 * @param fixings market parameter fixing value
+	 */
+	def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double]):List[Double] = {
+	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
+	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	}
+	
+	/*
+	 * Returns price array, to be used when there's only one fixing dates per payoff and with trigger.
+	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
+	 */
+	def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double])(implicit d1:DI):List[Double] = {
+	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
+	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	}
+	
+	/*
+	 * Returns price array, to be used when there's more than one fixing dates per payoff, with trigger and only one variable.
+	 * @param fixings market parameter fixing value
+	 */
+	def price(fixings:List[List[Double]], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d1:DI, d2:DI):List[Double] = {
+	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
+	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	}
+	
+	
+	/*
+	 * Returns price array, to be used when there's more than one fixing dates per payoff and with trigger.
+	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
+	 */
+	def price(fixings:List[List[Map[String, Double]]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double])(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
+	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
+	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	}
+	
+	
 	
 	/* 
 	 * Replaces already-fixed payoffs to fixed leg
@@ -84,35 +174,43 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	def applyFixing(fixings:List[Map[String, Double]]):Payoffs = {
 	  assert(fixings.size == this.size)
 	  
-	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Payoff]):List[Payoff] = {
-	    if (paylist.isEmpty) acc
-	    else fixingRec(paylist.tail, fixlist.tail, acc :+ paylist.head.applyFixing(fixlist.head))
-	  }
-	  
+//	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Map[String, Double]], acc:List[Payoff]):List[Payoff] = {
+//	    if (paylist.isEmpty) acc
+//	    else fixingRec(paylist.tail, fixlist.tail, acc :+ paylist.head.applyFixing(fixlist.head))
+//	  }
+//	  
 	  Payoffs(fixingRec(payoffs, fixings, List.empty))
 	}
 	
-	def applyFixing(fixings:List[Option[Double]]) (implicit d:DummyImplicit):Payoffs = {
-	  assert(fixings.size == this.size && factors <= 1)
-	  
-	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Option[Double]], acc:List[Payoff]):List[Payoff] = {
-	    if (paylist.isEmpty) acc
-	    else fixingRec(paylist.tail, fixlist.tail, acc :+ paylist.head.applyFixing(fixlist.head))
-	  }
-	  
-	  Payoffs(fixingRec(payoffs, fixings, List.empty))
+	def applyFixing(fixings:List[Option[Double]]) (implicit d:DI):Payoffs = {
+	  if (factors == 1) applyFixing(fixings.map{case None => Map.empty[String, Double] case Some(v) => Map(variables.head -> v)})
+	  else this
 	}
+	  
+//	  @tailrec def fixingRec(paylist:List[Payoff], fixlist:List[Option[Double]], acc:List[Payoff]):List[Payoff] = {
+//	    if (paylist.isEmpty) acc
+//	    else fixingRec(paylist.tail, fixlist.tail, acc :+ paylist.head.applyFixing(fixlist.head))
+//	  }
+//	  
+//	  Payoffs(fixingRec(payoffs, fixings, List.empty))
+//	}
 	
 	def ++(another:Payoffs) = new Payoffs(payoffs ++ another.payoffs)
+	
 	def :+(payoff:Payoff) = new Payoffs(payoffs :+ payoff)
 	
 	override def toString = payoffs.map(_.toString).mkString("\n")
 	
     def apply(i:Int):Payoff = payoffs(i)
+    
 	override def isEmpty:Boolean = payoffs.isEmpty
+	
 	override def head:Payoff = payoffs.head
+	
 	override def tail = payoffs.tail
+	
 	override def length = payoffs.length
+	
 	override def iterator:Iterator[Payoff] = payoffs.iterator
 	
 	override def toList:List[Payoff] = payoffs

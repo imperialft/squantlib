@@ -6,51 +6,95 @@ import squantlib.database.fixings.Fixings
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.model.Market
 
-trait Payoff{
+trait Payoff {
 	
+	/*
+	 * List of reference variables. 
+	 * Price fixings should be provided by map variable -> fixing value.
+	 */	
 	val variables:Set[String]
 	
+	/*
+	 * Price assuming all variables fixed at spot market.
+	 */	
 	def price(market:Market):Double = price(market.getFixings(variables))
 	
+	/*
+	 * Price given variable fixings, where set of necessary variables are provided by variables function.
+	 */	
 	def price(fixings:Map[String, Double]):Double
 	
-	def price(fixing:Double) (implicit d:DummyImplicit):Double 
+	/*
+	 * Returns price if there's only one variable. Returns NaN in case of >1 variables.
+	 */	
+	def price(fixing:Double):Double 
 	
+	/*
+	 * Returns price if there's no variable. Returns NaN in case of >0 variables.
+	 */	
 	def price:Double
 	
-	def toString:String
+	/*
+	 * Price in case of multiple event dates.
+	 * Only refers to the last variable by default but can be overridden.
+	 */	
+	def price(fixings:List[Map[String, Double]]):Double = if (fixings.isEmpty) price else price(fixings.last)
 	
+	/*
+	 * Price in case of multiple event dates with only one variable.
+	 * Only refers to the last variable by default but can be overridden.
+	 */	
+	def price[T:ClassManifest](fixings:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last)
+	
+
+	/*
+	 * Event dates, usually used in case of >1 fixing dates.
+	 */	
+	def eventDates(d:CalculationPeriod):List[qlDate] = List(d.eventDate)
+	
+	/*
+	 * Returns FixedPayoff if all variables fixing are available on given date. 
+	 * Returns this object if any variables are missing.
+	 */	
 	def applyFixing(eventDate:qlDate):Payoff = 
 	  if (variables.size == 0) this
 	  else {
-	    val fixings = variables.map(v => Fixings.byDate(v, eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x).toMap
+	    val fixings = variables.map(v => Fixings.byDate(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x).toMap
 	    applyFixing(fixings)
 	  }
 	
+	/*
+	 * Returns FixedPayoff if all variables fixing are available on given market. 
+	 * Returns this object if any variables are missing.
+	 */	
 	def applyFixing(market:Market):Payoff = applyFixing(market.getFixings(variables))
 	
+	/*
+	 * Returns FixedPayoff if all fixings are provided by the mapping.
+	 * Returns this object if any variables are missing.
+	 */	
 	def applyFixing(fixings:Map[String, Double]):Payoff = fixings match {
 	  case f if (f.isEmpty || variables.size == 0) => this
-	  case f if variables.forall(fixings.contains) => {
+	  case f if variables subsetOf fixings.keySet => {
 	    val comment = "{" + fixings.map{case (variable, v) => "\"" + variable + "\":" + v}.mkString(", ") + "}"
 	    FixedPayoff(price(fixings), comment)
 	  }
 	  case _ => this
 	}
 	
-	def applyFixing(fixing:Option[Double]):Payoff = fixing match {
-	  case None => this
-	  case Some(f) if variables.size == 1 => FixedPayoff(f, "{ \"ref\":" + fixing + "}")
-	  case _ => this
-	}
-	
-	def spotCoupon(mkt:Market):Double = price(mkt.getFixings(variables)) 
+	/*
+	 * Returns FixedPayoff if there is <= 1 variable and the value is provided. 
+	 * Returns this object otherwise.
+	 */	
+	def applyFixing(fixing:Double):Payoff = if (variables.size == 1) FixedPayoff(fixing, "{ \"ref\":" + fixing + "}") else this
 	
 	def description:String
 	
 	def display(isRedemption:Boolean):String
 	
 	def jsonString:String
+	
+	def toString:String
 }
  
 object Payoff {

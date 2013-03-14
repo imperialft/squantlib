@@ -26,7 +26,7 @@ case class LEPS1dPayoff(variable:String, payoff:List[LEPS1dComponent], descripti
 	  if (fixings contains variable) price(fixings(variable))
 	  else Double.NaN
 	
-	override def price(fixing:Double)(implicit d:DummyImplicit) = payoff.map(_.price(fixing)).sum
+	override def price(fixing:Double) = payoff.map(_.price(fixing)).sum
 	override def toString = payoff.map(p => p.toString(variable)).mkString(" ")
 	
 	override def price = Double.NaN

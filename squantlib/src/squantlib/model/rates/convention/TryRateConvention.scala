@@ -1,6 +1,5 @@
 package squantlib.model.rates.convention
 
-import squantlib.model.rates.convention.RateConvention
 import org.jquantlib.time.{Period, Frequency}
 import org.jquantlib.daycounters.Actual360
 import org.jquantlib.indexes.ibor.USDLibor

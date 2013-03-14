@@ -248,7 +248,7 @@ case class Bond(
 	 * Returns coupons fixed with current spot market (not forward!). 
 	 */
 	def spotFixedRates:List[(CalculationPeriod, Double)] = cpncache.getOrElseUpdate("SPOTFIXEDRATES",
-	    livePayoffLegs.map{case (d, p) => (d, market match { case Some(mkt) => p.spotCoupon(mkt) case None => Double.NaN})}
+	    livePayoffLegs.map{case (d, p) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})}
 	  )
 	def spotFixedRates(vd:qlDate):List[(CalculationPeriod, Double)] = spotFixedRates.filter{case (p, d) => (p.paymentDate gt vd)}
 	  
@@ -257,7 +257,7 @@ case class Bond(
 	def spotFixedAmount(vd:qlDate):List[(qlDate, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
 	  
 	def spotFixedRatesAll:List[(CalculationPeriod, Double)] = cpncache.getOrElseUpdate("SPOTFIXEDRATESALL",
-	    allPayoffLegs.map{case (d, p) => (d, market match { case Some(mkt) => p.spotCoupon(mkt) case None => Double.NaN})}
+	    allPayoffLegs.map{case (d, p) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})}
 	  )
 	def spotFixedAmountAll:List[(qlDate, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
 	
@@ -323,14 +323,14 @@ case class Bond(
 	  if (issueDate ge mkt.valuedate) Some(0.0)
 	  else livePayoffLegs.filter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)} match {
 	    case pos if pos.isEmpty => None
-	    case pos => Some(pos.map{case (d, p) => (d.accrued(mkt.valuedate)) * p.spotCoupon(mkt) }.sum)
+	    case pos => Some(pos.map{case (d, p) => (d.accrued(mkt.valuedate)) * p.price(mkt) }.sum)
 	  })
 
 	/*	
 	 * Returns current coupon rate.
 	 */
 	def currentRate:Option[Double] = market collect { case mkt => payoffLegs.withFilter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)}
-	  								.map{case (d, p) => p.spotCoupon(mkt) }.sum}
+	  								.map{case (d, p) => p.price(mkt) }.sum}
 
 	/*	
 	 * Returns next coupon payment date
@@ -338,7 +338,7 @@ case class Bond(
 	def nextPayment:Option[(qlDate, Double)] = market.flatMap{case mkt => 
 	  payoffLegs.filter{case (d, p) => ((d.paymentDate gt mkt.valuedate) && !d.isAbsolute)} match {
 	    case ds if ds.isEmpty => None
-	    case ds => ds.minBy{case (d, p) => d.paymentDate} match {case (d, p) => Some(d.paymentDate, d.dayCount * p.spotCoupon(mkt))}}
+	    case ds => ds.minBy{case (d, p) => d.paymentDate} match {case (d, p) => Some(d.paymentDate, d.dayCount * p.price(mkt))}}
 	}
 	
 	/*	

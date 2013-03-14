@@ -1,6 +1,5 @@
 package squantlib.model.rates.convention
 
-import squantlib.model.rates.convention.RateConvention
 import org.jquantlib.time.Period
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.America.MXNCurrency

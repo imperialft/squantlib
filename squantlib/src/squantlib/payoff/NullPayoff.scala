@@ -16,7 +16,9 @@ case class NullPayoff(description:String = null, inputString:String = null) exte
 	val variables:Set[String] = Set.empty
 	 
 	override def price(fixings:Map[String, Double]) = Double.NaN
-	override def price(fixing:Double)(implicit d:DummyImplicit) = Double.NaN
+	
+	override def price(fixing:Double) = Double.NaN
+	
 	override def price = Double.NaN
 	
 	override def toString = description

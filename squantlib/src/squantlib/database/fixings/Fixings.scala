@@ -29,25 +29,33 @@ object Fixings {
 	
 	def latestList(ids:List[String]):Map[String, Double] = ids.map(id => (id, Fixings.latest(id))).collect{case (a, Some(b)) => (a, b._2)}.toMap
 	
-	def getHistorical(param:String, paramType:String = null):Option[Map[qlDate, Double]] = 
+	def getHistorical(param:String):Option[Map[qlDate, Double]] = getHistorical(param, null)
+	  
+	def getHistorical(param:String, paramType:String):Option[Map[qlDate, Double]] = getHistorical(param, null, null, paramType)
+ 	
+	def getHistorical(param:String, startDate:qlDate, endDate:qlDate, paramType:String = null):Option[Map[qlDate, Double]] = {
+	  val start = if (startDate == null) null else startDate.longDate
+	  val end = if (endDate == null) null else endDate.longDate
+	  
 	  if (param == null) None
 	  else (param.trim match {
-	    case "CMT10" => Some(DB.getRateFXParams("Fixing", "JGBY", "10Y"))
-	    case "NKY" => Some(DB.getRateFXParams("Fixing", "NKY"))
-	    case p if p.head.isDigit => Some(DB.getRateFXParams("Equity", p))
-	    case p if paramType != null => Some(DB.getRateFXParams(paramType, p))
+	    case "CMT10" => Some(DB.getHistoricalRateFX("Fixing", "JGBY", "10Y", start, end))
+	    case "NKY" => Some(DB.getHistoricalRateFX("Fixing", "NKY", start, end))
+	    case p if p.head.isDigit => Some(DB.getHistoricalRateFX("Equity", p, start, end))
+	    case p if paramType != null => Some(DB.getHistoricalRateFX(paramType, p, start, end))
 	    case p if p.size <= 3 => None
 	    case p => (p take 3, p substring 3) match {
 	      case (ccy, _) if !isCcy(ccy) => None
-	      case (ccy1, "JPY") => Some(DB.getFXParams(ccy1))
-	      case ("JPY", ccy2) if isCcy(ccy2) => Some(DB.getFXParams(ccy2).collect{case (d, n) => (d, 1.0 / n)})
-	      case (ccy1, ccy2) if isCcy(ccy2) => Some(DB.getFXParams(ccy1, ccy2))
+	      case (ccy1, "JPY") => Some(DB.getFXParams(ccy1, start, end))
+	      case ("JPY", ccy2) if isCcy(ccy2) => Some(DB.getFXParams(ccy2, start, end).collect{case (d, n) => (d, 1.0 / n)})
+	      case (ccy1, ccy2) if isCcy(ccy2) => Some(DB.getFXParams(ccy1, ccy2, start, end))
 	      case (ccy, mat) if !isNumber(mat dropRight 1) => None
-	      case (ccy, mat) if cashPeriods contains (mat takeRight 1) => Some(DB.getRateFXParams("Cash", ccy, mat))
-	      case (ccy, mat) if swapPeriods contains (mat takeRight 1) => Some(DB.getRateFXParams("Swap", ccy, mat))
+	      case (ccy, mat) if cashPeriods contains (mat takeRight 1) => Some(DB.getHistoricalRateFX("Cash", ccy, mat, start, end))
+	      case (ccy, mat) if swapPeriods contains (mat takeRight 1) => Some(DB.getHistoricalRateFX("Swap", ccy, mat, start, end))
 	      case _ => None
 	  }
-	}).collect{case m:Map[JavaDate, Double] => m.map{case (d, v) => (new qlDate(d), v)}}
+	  }).collect{case m:Map[JavaDate, Double] => m.map{case (d, v) => (new qlDate(d), v)}}
+	}
  	  
   	val currencySet = Currencies.keySet
 	private def isCcy(v:String):Boolean = currencySet contains v

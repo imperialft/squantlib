@@ -11,11 +11,11 @@ import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.{KeyedEntity, Table}
 import squantlib.database.schemadefinitions._
 import scala.collection.mutable.{MutableList, StringBuilder}
-import org.jquantlib.time.{Date => JQuantDate}
 import java.io.{File, FileWriter, BufferedWriter, FileInputStream}
 import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID, Properties}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
+import com.sun.org.apache.xpath.internal.operations.And
 
 object DB extends Schema { 
 
@@ -548,9 +548,6 @@ object DB extends Schema {
       ).toSet
     }
   
-  def getRateFXParameters(on:JQuantDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = 
-    getRateFXParameters(on.longDate, instrument, asset, maturity)
-
   def getRateFXParameter(paramset:String, instrument:String, asset:String, maturity:String):Option[Double] = transaction {
       from(ratefxparameters)(ip =>
         where(
@@ -583,8 +580,23 @@ object DB extends Schema {
     case d => Some(d.unzip._2.max)
   }
   
-  def getRateFXParams(instrument:String, asset:String):Map[JavaDate, Double] = transaction {
-      from(ratefxparameters)(ip =>
+  def getHistoricalRateFX(instrument:String, asset:String):Map[JavaDate, Double] = getHistoricalRateFX(instrument, asset, null, null)
+  
+  def getHistoricalRateFX(instrument:String, asset:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = 
+    if (start != null && end != null)
+      transaction { 
+        from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          (ip.paramdate gte start) and
+          (ip.paramdate lte end)
+        )
+        select((&(ip.paramdate), &(ip.value)))).toMap
+    }
+    else
+      transaction { from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
           ip.instrument === instrument and
@@ -593,7 +605,24 @@ object DB extends Schema {
         select((&(ip.paramdate), &(ip.value)))).toMap
     }
   
-  def getRateFXParams(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = transaction {
+  def getHistoricalRateFX(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = getHistoricalRateFX(instrument, asset, maturity, null, null)
+  
+  def getHistoricalRateFX(instrument:String, asset:String, maturity:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = 
+    if (start != null && end != null)
+    transaction {
+      from(ratefxparameters)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.instrument === instrument and
+          ip.asset      === asset and
+          ip.maturity   === maturity and
+          (ip.paramdate gte start) and
+          (ip.paramdate lte end)
+        )
+        select((&(ip.paramdate), &(ip.value)))).toMap
+    }
+    else
+    transaction {
       from(ratefxparameters)(ip =>
         where(
           (ip.paramset like "%-000") and
@@ -766,12 +795,58 @@ object DB extends Schema {
   
   def getFXParams(ccy:String):Map[JavaDate, Double] = transaction {
       from(fxrates)(ip =>
+        where((ip.paramset like "%-000") and ip.currencyid === ccy)
+        select((&(ip.paramdate), &(ip.fxjpy)))).toMap
+    }
+  
+  def getFXParams(ccy:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = 
+    if (start != null && end != null) 
+      transaction {
+        from(fxrates)(ip =>
+        where(
+          (ip.paramset like "%-000") and
+          ip.currencyid === ccy and
+          (ip.paramdate gte start) and
+          (ip.paramdate lte end)
+        )
+        select((&(ip.paramdate), &(ip.fxjpy)))).toMap
+      }
+    else
+      transaction {
+        from(fxrates)(ip =>
         where(
           (ip.paramset like "%-000") and
           ip.currencyid === ccy
         )
         select((&(ip.paramdate), &(ip.fxjpy)))).toMap
-    }
+      }
+      
+  
+  def getFXParams(ccy1:String, ccy2:String):Map[JavaDate, Double] = getFXParams(ccy1, ccy2, null, null)
+  
+  def getFXParams(ccy1:String, ccy2:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = 
+    if (start != null && end != null) 
+      transaction{from(fxrates, fxrates)((fx1, fx2) =>
+        where(
+          (fx1.paramset like "%-000") and
+          (fx1.paramset === fx2.paramset) and
+          (fx1.currencyid === ccy1) and
+          (fx2.currencyid === ccy2) and
+          (fx1.paramdate gte start) and
+          (fx1.paramdate lte end)
+        )
+        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
+      }.map(d => (d._1, d._2/d._3)).toMap
+    else
+      transaction{from(fxrates, fxrates)((fx1, fx2) =>
+        where(
+          (fx1.paramset like "%-000") and
+          (fx1.paramset === fx2.paramset) and
+          (fx1.currencyid === ccy1) and
+          (fx2.currencyid === ccy2) 
+        )
+        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
+      }.map(d => (d._1, d._2/d._3)).toMap
   
   def getLatestFXParams(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
       from(fxrates)(ip =>
@@ -798,19 +873,6 @@ object DB extends Schema {
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
       }.map(d => (d._1, d._2/d._3))
       
-      
-  def getFXParams(ccy1:String, ccy2:String):Map[JavaDate, Double] = transaction{
-      from(fxrates, fxrates)((fx1, fx2) =>
-        where(
-          (fx1.paramset like "%-000") and
-//          weekday(fx1.paramdate) < 5 and
-          (fx1.paramset === fx2.paramset) and
-          (fx1.currencyid === ccy1) and
-          (fx2.currencyid === ccy2) 
-        )
-        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
-      }.map(d => (d._1, d._2/d._3)).toMap
-  
   def getFXParameter(ccy:String, paramset:String):Option[Double] = transaction {
       from(fxrates)(ip =>
         where(ip.paramset === paramset and ip.currencyid === ccy)

@@ -368,7 +368,7 @@ object Market {
 	  }
 	  
 	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
-	  if (discountcurves.forall(s => s.currency.code != "USD")) {return None}
+	  if (!discountcurves.exists(_.currency.code == "USD")) {return None}
 	  
 	  val cdscurves = CDSCurve(cdsparams, valuedate)
 	  

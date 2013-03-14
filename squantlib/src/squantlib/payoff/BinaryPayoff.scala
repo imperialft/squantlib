@@ -36,7 +36,7 @@ extends Payoff {
 	        case _ => 0.0}.max
 	  }
 	  
-	override def price(fixing:Double)(implicit d:DummyImplicit) =
+	override def price(fixing:Double) =
 	  if (payoff.isEmpty || variables.size != 1) Double.NaN
 	  else payoff.map{
 	    case (v, None) => v 

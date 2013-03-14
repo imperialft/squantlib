@@ -2,6 +2,9 @@ package squantlib.setting
 
 import squantlib.pricing.model._
 import squantlib.model.{Market, Bond}
+import squantlib.pricing.mcengine._
+import squantlib.model.fx.FX
+import squantlib.model.index.Index
 
 object DefaultBondSetting {
   
@@ -26,18 +29,25 @@ object DefaultBondSetting {
 	      bond.requiresCalibration = false
 	    
 	  case "DUAL" => 
-	      val engine = if (bond.settings has "mcengine") bond.settings.get("mcengine").asText else "FXBlackScholes1f"
+	      val engine = (fx:FX) => BlackScholes1f(fx)
 	      bond.defaultModel = (m:Market, b:Bond) => FXMontecarlo1f(m, b, engine)
 	      bond.forceModel = true
 	      bond.useCouponAsYield = false
 	      bond.requiresCalibration = false
 	    
 	  case "DCC" | "PRDC" => 
-	      val engine = if (bond.settings has "mcengine") bond.settings.get("mcengine").asText else "FXBlackScholes1f"
+	      val engine = (fx:FX) => BlackScholes1f(fx)
 	      bond.defaultModel = (m:Market, b:Bond) => FXMontecarlo1f(m, b, engine)
 	      bond.forceModel = true
 	      bond.useCouponAsYield = false
 	      bond.requiresCalibration = true
+//	      
+//	  case "NKY" | "INDEX" => 
+//	      val engine = (index:Index) => BlackScholesWithRepo(index)
+//	      bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine)
+//	      bond.forceModel = true
+//	      bond.useCouponAsYield = false
+//	      bond.requiresCalibration = true
 	    
 	  case _ => None
 	}
