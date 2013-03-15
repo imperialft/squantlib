@@ -1,8 +1,6 @@
 package squantlib.model.rates
 
-import scala.collection.immutable.{TreeMap, SortedSet}
-import scala.collection.mutable.{Map => MutableMap}
-import squantlib.model.yieldparameter.{FlatVector, YieldParameter, SplineEExtrapolation, SplineNoExtrapolation, LinearNoExtrapolation}
+import squantlib.model.yieldparameter._
 import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.database.schemadefinitions.RateFXParameter
@@ -41,24 +39,24 @@ extends RateCurve{
 	   */
 	  val maxmaturity = qlPeriod.months(swap.rate.maxperiod, valuedate).toInt
 	  
-	  val zcmonths:Seq[Int] = (for (m <- (List(0, 3, 6, 9) ++ (12 to maxmaturity by fixperiod))) yield m).sorted
+	  val zcmonths = (for (m <- (List(0, 3, 6, 9) ++ (12 to maxmaturity by fixperiod))) yield m).sorted
 	  
-	  val zcperiods = TreeMap(zcmonths.map(m => (m, new qlPeriod(m, TimeUnit.Months))) : _*) 
+	  val zcperiods = zcmonths.map(m => (m, new qlPeriod(m, TimeUnit.Months))).toMap
 	  
-	  val maturities = TreeMap(zcmonths.map(m => (m, valuedate.add(zcperiods(m)))) : _*) 
+	  val sortedperiods = zcperiods.toList.sortBy(_._1)
 	  
-	  val fixdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
-			  		.map(m => (m, swap.fixdaycount.yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
+	  val maturities = zcmonths.map(m => (m, valuedate.add(zcperiods(m)))).toMap
+	  
+	  val fixdaycounts = zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
+			  		.map(m => (m, swap.fixdaycount.yearFraction(maturities(m-fixperiod), maturities(m)))).toMap
 			  		
-	  val floatdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
-	  				.map(m => (m, swap.floatindex.dayCounter().yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
+	  val floatdaycounts = zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
+	  				.map(m => (m, swap.floatindex.dayCounter().yearFraction(maturities(m-fixperiod), maturities(m)))).toMap
 	  				
 	  /**
 	   * using cash rate to compute zero coupon < 12 months.
 	   */
 	  val swapstart = 12;				
-	  val cashrange = zcperiods.filter{case (m, p) => (m < swapstart && m > 0)}
-	  val swaprange = zcperiods.filter{case (m, p) => m >= swapstart}
 
 	  /**
 	   * 3m/6m basis swap calibration is valid in case float leg is semi annual (ccy basis always quarterly)
@@ -101,9 +99,8 @@ extends RateCurve{
 	      }
 	    }
 	    
-	    val zcvalues = zcRec(zcperiods.toList.sortBy(_._1), List.empty, 0.0)
-	    val zc:Map[qlPeriod, Double] = (zcperiods.unzip._2 zip zcvalues).toMap
-	    
+	    val zcvalues = zcRec(sortedperiods, List.empty, 0.0)
+	    val zc:Map[qlPeriod, Double] = (sortedperiods.unzip._2 zip zcvalues).toMap
 	    val ZCvector = SplineEExtrapolation(valuedate, zc, 1)
 	  
 	    DiscountCurve(currency, ZCvector, spread, fx, vol)
@@ -162,9 +159,10 @@ extends RateCurve{
 	      }
 	    }
 	    
-	    val (zcvalues, spdvalues) = zcRec(zcperiods.toList.sortBy(_._1), List.empty, List.empty, 0.0, 0.0)
-	    val zc:Map[qlPeriod, Double] = (zcperiods.unzip._2 zip zcvalues).toMap
-	    val spd:Map[qlPeriod, Double] = (zcperiods.unzip._2 zip spdvalues).toMap
+	    val (zcvalues, spdvalues) = zcRec(sortedperiods, List.empty, List.empty, 0.0, 0.0)
+	    val zc:Map[qlPeriod, Double] = (sortedperiods.unzip._2 zip zcvalues).toMap
+	    val spd:Map[qlPeriod, Double] = (sortedperiods.unzip._2 zip spdvalues).toMap
+	    
 	    val zcvector = SplineEExtrapolation(valuedate, zc, 1)
 		val spdvector = SplineNoExtrapolation(valuedate, spd, 2)
 	  
@@ -173,6 +171,7 @@ extends RateCurve{
 	  }
 	  
 	  override def shiftRate(shift: (Double, Double) => Double):LiborDiscountCurve = LiborDiscountCurve(cash.shifted(shift), swap.shifted(shift), basis, tenorbasis, fx, vol)
+	  
 	  override def multFX(v: Double):LiborDiscountCurve = LiborDiscountCurve(cash, swap, basis, tenorbasis, fx * v, vol)
 
 }

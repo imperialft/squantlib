@@ -776,7 +776,6 @@ object DB extends Schema {
 
   def getCDSParamSets:Set[(String, JavaDate)] = transaction {
     from(cdsparameters)(p => 
-//      where (weekday(p.paramdate) < 5)
       select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
 
@@ -1059,13 +1058,11 @@ object DB extends Schema {
           (bp.paramdate gte start) and
           (bp.paramdate lte end) and
           (bp.paramset like "%-000") and
-//          bp.instrument === "BONDPRICE" and
           bp.bondid      === bondid and
           bp.priceclean.isNotNull
         )
         select(&(bp.paramdate), &(bp.priceclean.get))
       ) toMap;
-//      SortedMap(qresult : _*)
   	}
 
   
@@ -1087,7 +1084,6 @@ object DB extends Schema {
           (bp.paramdate gte start) and
           (bp.paramdate lte end) and
           (bp.paramset like "%-000") and
-//          bp.instrument === "BONDPRICE" and
           bp.bondid      === bondid and
           bp.priceclean_jpy.isNotNull
         )
@@ -1115,7 +1111,6 @@ object DB extends Schema {
       else from(bondprices, fxrates)((bp, fx) =>
 	        where(
 	          bp.paramset like "%-000" and
-//	          bp.instrument === "BONDPRICE" and
 	          bp.bondid      === bondid and
 	          bp.priceclean.isNotNull and
 	          fx.currencyid === quoteccy and
@@ -1190,36 +1185,6 @@ object DB extends Schema {
     }
   }
   
-  /**
-   * Inserts bond prices to the database.
-   *
-   * @param objects A List of Squeryl model objects.
-   * @return Whether or not the statement ran successfully.
-   *          However, this does not guarantee whether every row has been inserted.
-   */
-  def insertOrUpdate[T <: KeyedEntity[String]](data:Traversable[T], overwrite:Boolean):Int = {
-    
-    if (data.isEmpty) return 0
-    
-//    val datatable:Table[_ <: KeyedEntity[String]] = data.head.getClass.getSimpleName.toString match {
-//      case "BondPrice" => bondprices
-//      case "Volatility" => volatilities
-//      case "Correlation" => correlations
-//      case "Coupon" => coupons
-//      case "ForwardPrice" => forwardprices
-//      case "ImpliedRate" => impliedrates
-//      case _ => null
-//    }
-    
-    dataTable(data.head.getClass.getSimpleName.toString) match {
-      case Some(t) => insertMany(data.toSet, overwrite)
-      case None => 0
-    }
-    
-//    if (datatable == null) return 0
-//    insertMany(data.toSet, overwrite)
-  }
-  
   def dataTable(name:String):Option[Table[_ <: KeyedEntity[String]]] = name match {
       case "BondPrice" => Some(bondprices)
       case "Volatility" => Some(volatilities)
@@ -1231,15 +1196,27 @@ object DB extends Schema {
       case _ => None
     }
   
-  def insertOrUpdate[T <: KeyedEntity[Int]](data:Traversable[T], overwrite:Boolean)(implicit d:DummyImplicit):Int = {
-    
+  /**
+   * Inserts bond prices to the database.
+   *
+   * @param objects A List of Squeryl model objects.
+   * @return Whether or not the statement ran successfully.
+   *          However, this does not guarantee whether every row has been inserted.
+   */
+  def insertOrUpdate[T <: KeyedEntity[String]](data:Traversable[T], overwrite:Boolean):Int = {
     if (data.isEmpty) return 0
-    
+    dataTable(data.head.getClass.getSimpleName.toString) match {
+      case Some(t) => insertMany(data.toSet, overwrite)
+      case None => 0
+    }
+  }
+  
+  def insertOrUpdate[T <: KeyedEntity[Int]](data:Traversable[T], overwrite:Boolean)(implicit d:DummyImplicit):Int = {
+    if (data.isEmpty) return 0
     val datatable = data.head.getClass.getSimpleName.toString match {
       case "InputParameter" => inputparameters
       case _ => null
     }
-    
     if (datatable == null) return 0
     insertMany(data.toSet, overwrite)
   }
