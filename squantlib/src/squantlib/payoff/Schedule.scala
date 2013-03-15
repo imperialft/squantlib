@@ -1,7 +1,7 @@
 package squantlib.payoff
 
 import scala.collection.mutable.MutableList
-import scala.collection.immutable.LinearSeq
+import scala.collection.LinearSeq
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.daycounters._
 import org.jquantlib.time.{Date => qlDate, _}
@@ -72,6 +72,8 @@ object Schedule{
 	def empty:Schedule = new Schedule(List.empty)
   
 	def apply(inputDates:List[CalculationPeriod]):Schedule = new Schedule(inputDates)
+	
+	def apply(dates:LinearSeq[CalculationPeriod]):Schedule = new Schedule(dates.toList)
 	
 	def apply(
 	    effectiveDate:qlDate,

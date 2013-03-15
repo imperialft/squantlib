@@ -208,6 +208,8 @@ object Payoffs {
 	
 	def empty:Payoffs = new Payoffs(List.empty)
 	
+	def apply(payoffs:LinearSeq[Payoff]) = new Payoffs(payoffs.toList)
+	
 	def apply(formula:String, legs:Int = 0):Option[Payoffs] =	{
 	  if (formula == null || formula.trim.isEmpty) None
 	  else {

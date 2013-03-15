@@ -23,7 +23,7 @@ case class NoModel(ipayoffs:Payoffs, ischedule:Schedule) extends PricingModel {
 object NoModel {
 	
 	def apply(market:Market, bond:Bond):Option[NoModel] = {
-	  val (schedule, payoffs) = bond.livePayoffs(market.valuedate)
+	  val (schedule, payoffs) = bond.livePayoffs(market.valuedate) match {case p => (p.schedule, p.payoffs)}
 	  if (payoffs.variables.size != 0) { return None }
 	  Some(new NoModel(payoffs, schedule))
 	}

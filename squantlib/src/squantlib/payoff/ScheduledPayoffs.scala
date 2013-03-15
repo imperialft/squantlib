@@ -9,9 +9,9 @@ import squantlib.util.JsonUtils._
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{Date => qlDate}
 
-case class ScheduledPayoffs(payoffs:Payoffs, schedule:Schedule) {
+case class ScheduledPayoffs(schedule:Schedule, payoffs:Payoffs) extends LinearSeq[(CalculationPeriod, Payoff)]{
   
-  val scheduledPayoffs = (schedule zip payoffs)
+  lazy val scheduledPayoffs = (schedule zip payoffs)
   
   val eventDateLegs:List[List[qlDate]] = scheduledPayoffs.map{case (d, p) => p.eventDates(d)}.toList
   
@@ -35,8 +35,32 @@ case class ScheduledPayoffs(payoffs:Payoffs, schedule:Schedule) {
   def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, trigAmount)
 
-    
+  def getAfter(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(filter{case (cp, _) => cp.paymentDate gt vd})
+  
+  override def apply(i:Int):(CalculationPeriod, Payoff) = scheduledPayoffs(i)
+  
+  override def toString = scheduledPayoffs.map{case (d, p) => d.toString + " " + p.toString}.mkString("\n")
+	
+  override def isEmpty:Boolean = scheduledPayoffs.isEmpty
+	
+  override def head:(CalculationPeriod, Payoff) = scheduledPayoffs.head
+	
+  override def tail = scheduledPayoffs.tail
+	
+  override def length = scheduledPayoffs.length
+	
+  override def iterator:Iterator[(CalculationPeriod, Payoff)] = scheduledPayoffs.iterator
+	
+  override def toList:List[(CalculationPeriod, Payoff)] = scheduledPayoffs.toList
 
 }
 
 
+object ScheduledPayoffs {
+  
+  def empty:ScheduledPayoffs = ScheduledPayoffs(Schedule.empty, Payoffs.empty)
+  
+  def apply(payoffshedule:LinearSeq[(CalculationPeriod, Payoff)]):ScheduledPayoffs = 
+    payoffshedule.unzip match { case (s, po) => ScheduledPayoffs(Schedule(s), Payoffs(po))}
+  
+}

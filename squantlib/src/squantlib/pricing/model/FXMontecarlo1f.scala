@@ -93,7 +93,7 @@ object FXMontecarlo1f {
 	  
 	  val valuedate = market.valuedate
 	  
-	  val (schedule, payoffs) = bond.livePayoffs(valuedate)
+	  val (schedule, payoffs) = bond.livePayoffs(valuedate) match {case p => (p.schedule, p.payoffs)}
 	  
 	  if (payoffs.variables.size != 1) { 
 	    println(bond.id + " : payoff not compatible with FX1d model")

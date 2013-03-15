@@ -35,7 +35,8 @@ case class OneTimeSwaptionModel(ipayoffs:Payoffs, ischedule:Schedule, valueDate:
 object OneTimeSwaptionModel {
 	
 	def apply(market:Market, bond:Bond):Option[PricingModel] = {
-	  val (schedule, payoffs) = bond.livePayoffs(market.valuedate)
+	  val valuedate = market.valuedate
+	  val (schedule, payoffs) = bond.livePayoffs(valuedate) match {case p => (p.schedule, p.payoffs)}
 	  if (payoffs.variables.size != 0) { return None }
 	  
 	  val maturity = bond.maturity
@@ -50,7 +51,7 @@ object OneTimeSwaptionModel {
 	  val strike = bond.nextRateFrontier.getOrElse(Double.NaN)
 	  if (strike isNaN) {return None}
 	  
-	  Some(OneTimeSwaptionModel(payoffs, schedule, market.valuedate, nextPayment, maturity, strike, curve))
+	  Some(OneTimeSwaptionModel(payoffs, schedule, valuedate, nextPayment, maturity, strike, curve))
 	}
 }
 

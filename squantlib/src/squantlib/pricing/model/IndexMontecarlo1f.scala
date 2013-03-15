@@ -75,7 +75,7 @@ object IndexMontecarlo1f {
 	def apply(market:Market, bond:Bond, mcengine:Index => Option[Montecarlo1f], paths:Int):Option[IndexMontecarlo1f] = {
 	  val valuedate = market.valuedate
 	  
-	  val (schedule, payoffs) = bond.livePayoffs(valuedate)
+	  val (schedule, payoffs) = bond.livePayoffs(valuedate) match {case p => (p.schedule, p.payoffs)}
 	  
 	  if (payoffs.variables.size != 1) {
 	    println(bond.id + " : payoff not compatible with IndexMC1d model")
@@ -94,8 +94,8 @@ object IndexMontecarlo1f {
 	    println(bond.id + " : quanto model not supported - " + variable)
 	    return None}
 	  
-	  if (!bond.bermudan.forall(!_)) {
-	    println(bond.id + " : bermudan callable for index not supported")
+	  if (bond.bermudan.exists(_ == true)) {
+	    println(bond.id + " : index callable not supported")
 	    return None}
 
 	  val mcmodel:Montecarlo1f = mcengine(index).orNull
