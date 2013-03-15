@@ -13,13 +13,23 @@ case class ScheduledPayoffs(schedule:Schedule, payoffs:Payoffs) extends LinearSe
   
   lazy val scheduledPayoffs = (schedule zip payoffs)
   
-  val eventDateLegs:List[List[qlDate]] = scheduledPayoffs.map{case (d, p) => p.eventDates(d)}.toList
+  val variables:Set[String] = payoffs.variables
+  
+  val eventDateLegs:List[List[qlDate]] = scheduledPayoffs.map{
+    case (d, p) if p.variables.isEmpty => List.empty
+    case (d, p) => p.eventDates(d)}.toList
   
   val eventDate:List[qlDate] = eventDateLegs.flatten.toSet.toList.sorted
   
   val dateMapper:List[List[Int]] = eventDateLegs.map(_.map(eventDate.indexOf(_)))
   
-  def priceMapper[T](fixings:List[T]):List[List[T]] = dateMapper.map(_.map(fixings))
+  abstract class withDefault[T] { def defaultValue:T }
+  implicit object mapValue extends withDefault[Map[String, Double]] { def defaultValue = Map.empty[String, Double]}
+  implicit object doubleValue extends withDefault[Double] { def defaultValue = Double.NaN}
+  
+  def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = dateMapper.map(d => {
+    if (d.isEmpty) List(defclass.defaultValue) else d.map(fixings)
+  })
   
   def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = {
     val f:List[List[Double]] = priceMapper(fixings)

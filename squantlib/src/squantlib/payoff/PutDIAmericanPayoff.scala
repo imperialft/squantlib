@@ -29,6 +29,10 @@ case class PutDIAmericanPayoff(
   
 	val variables = putVariables.toSet
 	
+	val strikeMap = (putVariables zip strike).toMap
+ 	
+	val triggerMap = (putVariables zip trigger).toMap
+	
 	var mcPeriod = 30
 	
 	override def eventDates(period:CalculationPeriod):List[qlDate] = {
@@ -37,52 +41,48 @@ case class PutDIAmericanPayoff(
 	  if (dates.head == refStart) dates else refStart :: dates
 	}
 	
-	var barrierCoeff:() => Double = () => 1.0
-  
-	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = {
-	  if (variables.toSet subsetOf fixings.keySet) 
-	    Some((0 to putVariables.size - 1).toList.map(i => fixings(putVariables(i))))
-	  else None
-	}
-	
-	def isKnockIn(fixings:Map[String, Double]):Boolean = getFixings(fixings) match {
-	  case Some(fixing) => (fixing, trigger).zipped.exists(_ <= _)
-	  case None => false
-	}
-	
-	def isKnockIn(fixings:List[Map[String, Double]]):Boolean = fixings.exists(isKnockIn(_))
-	
-	override def price(fixings:Map[String, Double]):Double = price(fixings, knockedIn)
-	
-	override def price(fixings:List[Map[String, Double]]):Double = fixings.size match {
-	  case 0 => price
-	  case 1 => price(fixings.head, knockedIn)
-	  case _ => price(fixings.last, knockedIn || isKnockIn(fixings.dropRight(1)))
-	}
-	    
-	def price(fixings:Map[String, Double], ki:Boolean):Double = 
-	  getFixings(fixings) match {
-	    case None => Double.NaN
-	    case Some(fixValues) if ki => amount * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
-	    case Some(fixValues) if barrierCoeff != null => val coeff = barrierCoeff()
-	    	amount * ((1.0 - coeff) * 1.0 + coeff * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min))
-	    case _ => Double.NaN
-	  }
-	
+	trait FixingInterpreter[T] {
+	  def isKnockIn(fixings:T):Boolean // Method to be implemented
+	  def price(fixings:T, isKnockedIn:Boolean):Double // Method to be implemented
 	  
-	override def price(fixing:Double):Double =
-	  if (variables.size != 1) Double.NaN
-	  else if (knockedIn) amount * math.min(1.0, fixing / strike.head)
-	  else if (barrierCoeff == null) Double.NaN
-	  else {
-	    val coeff = barrierCoeff()
-	    amount * ((1.0 - coeff) * 1.0 + coeff * math.min(1.00, fixing / strike.head))
+	  def isKnockIn(fixings:List[T]):Boolean = fixings.exists(isKnockIn(_))
+	  def price(fixings:T):Double = price(fixings, false)
+	  def price(fixings:List[T]):Double = price(fixings.last, isKnockIn(fixings))
+	}
+	
+	implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
+	  override def isKnockIn(fixings:Map[String, Double]):Boolean = 
+	    variables.exists(p => fixings.get(p) match { case Some(v) => v <= triggerMap(p) case None => false})
+	  
+	  override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
+	    if (variables subsetOf fixings.keySet) {
+	      if (isKnockedIn) amount * math.min(1.00, variables.map(v => fixings(v) / strikeMap(v)).min)
+	      else amount
+	    } else Double.NaN
+	}}
+	
+	implicit object DoubleInterpreter extends FixingInterpreter[Double] {
+	  override def isKnockIn(fixing:Double):Boolean = fixing <= trigger.head
+	  override def price(fixing:Double, isKnockedIn:Boolean):Double = 
+	    if (isKnockedIn) amount * math.min(1.0, fixing / strike.head)
+	    else amount
 	  }
+	
+	def price[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
+	def price[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
+	
+	override def price(fixings:List[Map[String, Double]]):Double = price(fixings)
+
+	override def price(fixings:Map[String, Double]):Double = price(fixings)
+	
+	override def price[T:ClassManifest](fixings:List[Double]):Double = price(fixings)
+	
+	override def price(fixings:Double):Double = price(fixings)
+	
+	override def price = Double.NaN
 	
 	override def toString =
 	  amount.asPercent + " [" + trigger.mkString(",") + "](Amer) " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "]"
-	
-	override def price = Double.NaN
 	
 	override def display(isRedemption:Boolean):String = {
  	  val varnames = putVariables.map(UnderlyingInfo.nameJpn)

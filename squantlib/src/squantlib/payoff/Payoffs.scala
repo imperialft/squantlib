@@ -30,12 +30,12 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  def applyFixing(fixing:T, payoff:Payoff):Payoff}
 	
 	implicit object DoubleList extends FixingInterpreter[Double, Double] {
-	  def price(fixing:Double, payoff:Payoff) = payoff.price(fixing)
+	  def price(fixing:Double, payoff:Payoff) = if (fixing.isNaN) payoff.price else payoff.price(fixing)
 	  def triggered(fixing:Double, trigger:Option[Double]) = trigger.isDefined && fixing > trigger.get
 	  def applyFixing(fixing:Double, payoff:Payoff) = payoff.applyFixing(fixing)}
 	
 	implicit object MapList extends FixingInterpreter[Map[String, Double], Map[String, Double]] {
-	  def price(fixing:Map[String, Double], payoff:Payoff) = payoff.price(fixing)
+	  def price(fixing:Map[String, Double], payoff:Payoff) = if (fixing.isEmpty) payoff.price else payoff.price(fixing)
 	  def triggered(fixing:Map[String, Double], trigger:Option[Map[String, Double]]) = trigger match {
 	    case None => false
 	    case Some(t) if t isEmpty => false
@@ -43,12 +43,12 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  def applyFixing(fixing:Map[String, Double], payoff:Payoff) = payoff.applyFixing(fixing)}
 	
 	implicit object ListDoubleList extends FixingInterpreter[List[Double], Double] {
-	  def price(fixing:List[Double], payoff:Payoff) = payoff.price(fixing)
+	  def price(fixing:List[Double], payoff:Payoff) = if (fixing.isEmpty) payoff.price else payoff.price(fixing)
 	  def triggered(fixing:List[Double], trigger:Option[Double]) = trigger.isDefined && fixing.last > trigger.get
 	  def applyFixing(fixing:List[Double], payoff:Payoff) = payoff.applyFixing(fixing.last)}
 	
 	implicit object ListMapList extends FixingInterpreter[List[Map[String, Double]], Map[String, Double]] {
-	  def price(fixing:List[Map[String, Double]], p:Payoff) = p.price(fixing)
+	  def price(fixing:List[Map[String, Double]], p:Payoff) = if (fixing.isEmpty) p.price else p.price(fixing)
 	  def triggered(fixing:List[Map[String, Double]], trigger:Option[Map[String, Double]]) = trigger match {
 	    case None => false
 	    case Some(t) if t isEmpty => false

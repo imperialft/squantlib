@@ -15,8 +15,12 @@ import squantlib.util.UnderlyingInfo
  *  {type:"putdi", variable:[String], trigger:[Double], strike:[Double], description:String}, 
  * No strike is considered as no low boundary
  */
-case class PutDIPayoff(putVariables:List[String], trigger:List[Double], strike:List[Double], amount:Double = 1.0, description:String = null) 
-extends Payoff {
+case class PutDIPayoff(
+    putVariables:List[String], 
+    trigger:List[Double], 
+    strike:List[Double], 
+    amount:Double = 1.0, 
+    description:String = null) extends Payoff {
   
 	val variables = putVariables.toSet
   

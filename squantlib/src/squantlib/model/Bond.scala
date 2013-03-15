@@ -823,6 +823,7 @@ case class Bond(
 	    disp("currency", currency.code)
 	    disp("model", model match { case None => "Not defined" case Some(m) => m.getClass.getName})
 	    disp("market", market match { case None => "Not defined" case Some(m) => m.paramset})
+	    disp("underlyings", underlyings.mkString(" "))
 	    
 	    if (market isDefined) {
 	      println("Live payoffs:") 
