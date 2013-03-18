@@ -14,9 +14,10 @@ class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationP
  
 	def sort:Schedule = if (isEmpty) this else Schedule(dates.sortBy(_.eventDate))
 
-	def sortWith[A](obj:LinearSeq[A]):(Schedule, LinearSeq[A]) = (dates zip obj).sortBy(_._1.eventDate).unzip match {
-	  case (datelist, objlist) => (Schedule(datelist), objlist)
-	}
+	def sortWith[A](obj:LinearSeq[A]):LinearSeq[(CalculationPeriod, A)] = (dates zip obj).sortBy(_._1.eventDate)
+	
+	def sortWith[A, B](obj1:LinearSeq[A], obj2:LinearSeq[B]):LinearSeq[(CalculationPeriod, A, B)] =
+	  (dates, obj1, obj2).zip.sortBy(_._1.eventDate)
 	
     def apply(i:Int):CalculationPeriod = dates(i)
 	override def isEmpty:Boolean = dates.isEmpty

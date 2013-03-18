@@ -9,10 +9,16 @@ import squantlib.util.JsonUtils._
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{Date => qlDate}
 
-case class ScheduledPayoffs(schedule:Schedule, payoffs:Payoffs, calls:Callabilities) 
+case class ScheduledPayoffs(scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)]) 
 extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   
-  val scheduledPayoffs = (schedule, payoffs, calls).zip
+  lazy val (schedule, payoffs, calls) = scheduledPayoffs.unzip3  match {
+    case (s, p, c) => (Schedule(s), Payoffs(p), Callabilities(c))
+  }
+  
+  lazy val coupon = Payoffs(payoffs.dropRight(1))
+  
+  lazy val redemption = payoffs.last
 
   val variables:Set[String] = payoffs.variables
   
@@ -27,7 +33,9 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   val dateMapper:List[List[Int]] = eventDateLegs.map(_.map(eventDates.indexOf(_)))
   
   abstract class withDefault[T] { def defaultValue:T }
+    
   implicit object mapValue extends withDefault[Map[String, Double]] { def defaultValue = Map.empty[String, Double]}
+  
   implicit object doubleValue extends withDefault[Double] { def defaultValue = Double.NaN}
   
   def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = dateMapper.map(d => {
@@ -70,10 +78,16 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
 
 
 object ScheduledPayoffs {
-  
+
   def empty:ScheduledPayoffs = ScheduledPayoffs(Schedule.empty, Payoffs.empty, Callabilities.empty)
   
-  def apply(payoffschedule:LinearSeq[(CalculationPeriod, Payoff, Callability)]):ScheduledPayoffs = 
-    payoffschedule.unzip3 match { case (s, po, c) => ScheduledPayoffs(Schedule(s), Payoffs(po), Callabilities(c))}
+  def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = 
+    ScheduledPayoffs((schedule, payoffs, calls).zip)
+    
+  def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = 
+    ScheduledPayoffs(schedule.sortWith(payoffs, calls))
+  
+//  def apply(payoffschedule:LinearSeq[(CalculationPeriod, Payoff, Callability)]):ScheduledPayoffs = 
+//    payoffschedule.unzip3 match { case (s, po, c) => ScheduledPayoffs(Schedule(s), Payoffs(po), Callabilities(c))}
   
 }

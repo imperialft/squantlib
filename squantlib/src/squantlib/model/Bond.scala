@@ -30,10 +30,10 @@ import scala.collection.LinearSeq
 case class Bond(
 		db:dbBond, 
 		inputSchedule:Schedule,
-		coupon:Payoffs,	
+		inputCoupon:Payoffs,	
 		redemption:Payoff,
 		underlyings:List[String],
-		calls:Callabilities,
+		callabilities:Callabilities,
 		var defaultModel:(Market, Bond) => Option[PricingModel] = null,
 		var forceModel:Boolean = false,
 		var useCouponAsYield:Boolean = false,
@@ -43,14 +43,29 @@ case class Bond(
 		var model:Option[PricingModel] = None
 		) {
 	
+	/*	
+	 * Returns full bond schedule
+	 */
+	val scheduledPayoffs:ScheduledPayoffs = {
+	  ScheduledPayoffs.sorted(inputSchedule, inputCoupon :+ redemption, callabilities.fill(inputSchedule.size))
+	}
+	
+	val schedule = scheduledPayoffs.schedule
+	
+	val payoffs = scheduledPayoffs.payoffs
+	
+	val calls = scheduledPayoffs.calls
+	
+	val coupon = scheduledPayoffs.coupon
+  
 	/*
 	 * Standard bond parameters
 	 */
 	val id = db.id
 	
-	val issueDate:qlDate = inputSchedule.head.startDate
+	val issueDate:qlDate = schedule.head.startDate
 	
-	val maturity:qlDate = inputSchedule.last.endDate
+	val maturity:qlDate = schedule.last.endDate
 	
 	val bermudan = calls.bermudans
 	
@@ -76,30 +91,28 @@ case class Bond(
 	
 	val settings:JsonNode = db.settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
 	
-	val isFixedRateBond = coupon.variables.size == 0
+	val isFixedRateBond = payoffs.variables.size == 0
 	
 	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
 	
 	override def clone:Bond = {
-	  val bond = new Bond(db, inputSchedule, coupon, redemption, underlyings, calls, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model) 
+	  val bond = new Bond(db, schedule, coupon, redemption, underlyings, calls, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model) 
 	  calibrationCache.foreach{case (a, b) => bond.calibrationCache.update(a, b)}
 	  bond
 	}
 	
-	def dateShifted(shift:Int):Bond = {
-	  val bond = new Bond(db, inputSchedule.shifted(shift), coupon, redemption, underlyings, calls, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
-	  bond
-	} 
+	def dateShifted(shift:Int):Bond = 
+	  new Bond(db, schedule.shifted(shift), coupon, redemption, underlyings, calls, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
 
-	def triggerShifted(trig:List[List[Option[Double]]]):Bond = {
-	  val bond = new Bond(db, inputSchedule, coupon, redemption, underlyings, Callabilities(bermudan, trig, underlyings), defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
-	  bond
-	} 
+	def triggerShifted(trig:List[List[Option[Double]]]):Bond = 
+	  new Bond(db, schedule, coupon, redemption, underlyings, Callabilities(bermudan, trig, underlyings), defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
 	
 	
 	def market:Option[Market] = _market
 	def market_= (newMarket:Market) = {
-	  val recalib = market match {case Some(m) => !m.valuedate.eq(newMarket.valuedate) case None => true}
+	  val recalib = market match {
+	    case Some(m) => !m.valuedate.eq(newMarket.valuedate) 
+	    case None => true}
 	  _market = Some(newMarket)
 	  initializeModel(recalib)
 	}
@@ -112,6 +125,7 @@ case class Bond(
 	 */
 	def initializeModel(reCalibrate:Boolean = false) = {
 	  if (reCalibrate) {calibrationCache.clear; modelCalibrated = false}
+	  
 	  model = market match {
 	    case (Some(mkt)) => livePayoffs match {
 	    	case po if !po.isEmpty && !forceModel && po.payoffs.variables.size == 0 => Some(NoModel(po.payoffs, po.schedule))
@@ -151,18 +165,6 @@ case class Bond(
 	
 	def valueDate:Option[qlDate] = market.collect{case mkt => mkt.valuedate}
 	
-	/*
-	 * Returns full bond schedule
-	 * @returns full bond payment schedule (date only)
-	 * @returns full bond payoff (no dates)
-	 */
-	val (schedule, payoffs):(Schedule, Payoffs) = inputSchedule.sortWith(coupon.toList :+ redemption) match { case (s, p) => (s, Payoffs(p.toList))}
-
-	/*	
-	 * Returns full bond schedule
-	 * @returns list of calculation period & payoff
-	 */
-	val scheduledPayoffs:ScheduledPayoffs = ScheduledPayoffs(schedule, payoffs, calls)
 	
 	/*	
 	 * Returns "live" schedules
@@ -198,17 +200,17 @@ case class Bond(
 	 * Returns "live" triggers
 	 * 	@returns list of remaining triggers
 	 */
-	def liveTriggers:List[List[Option[Double]]] = trigger takeRight liveSchedule.size
+	def liveTriggers:List[List[Option[Double]]] = livePayoffs.calls.triggers
 	
-	def liveTriggers(vd:qlDate):List[List[Option[Double]]] = trigger takeRight liveSchedule(vd).size
+	def liveTriggers(vd:qlDate):List[List[Option[Double]]] = livePayoffs(vd).calls.triggers
 	
 	/*	
 	 * Returns "live" bermudan call options
 	 * 	@returns list of remaining bermudan calls
 	 */
-	def liveBermudans:List[Boolean] = bermudan takeRight liveSchedule.size
-	
-	def liveBermudans(vd:qlDate):List[Boolean] = bermudan takeRight liveSchedule(vd).size
+	def liveBermudans:List[Boolean] = livePayoffs.calls.bermudans
+		
+	def liveBermudans(vd:qlDate):List[Boolean] = livePayoffs(vd).calls.bermudans
 	
 	/*	
 	 * Returns discount curve.
@@ -277,8 +279,6 @@ case class Bond(
 	  case (Some(curve), Some(fwd)) if !fwd.isEmpty => Some(fwd.map{ case (d, p) => d.coefficient(curve) * p})
 	  case _ => None
 	}
-	
-//	def modelPrice:Option[Double] = priceLegs.collect{case legs => legs.sum}
 	
 	def europeanPrice:Option[Double] = model.flatMap(m => {
 	  val price = if (m.isPricedByLegs) priceLegs.collect{case legs => legs.sum}
@@ -456,7 +456,13 @@ case class Bond(
       
       else {
         val mkt = market.get
+        val shift = this.valueDate.get.sub(vd).toInt
+//        println("current bond")
+//        this.show
+//        println("create date shifted clone => shift by " + shift + " to " + vd)
         val bond = this.dateShifted(this.valueDate.get.sub(vd).toInt)
+//        println("clone done : " + bond.livePayoffs.size + " legs")
+//        bond.show
         
         underlyings.map(ul => {
           if (ul.size != 6 || ul.takeRight(3) == "JPY") None
@@ -485,13 +491,12 @@ case class Bond(
       			.toList
       			.sortBy{case (date, _) => date}
       			.reverse
-      			
+      
       val tempTrigger = scala.collection.mutable.ArrayBuffer(liveTriggers:_*)
       println("FX frontiers : " + id)
       
       valuedates.foreach{case (vd, index) => 
         val tempBond = triggerShifted(tempTrigger.toList)
-        
         if (liveTriggers(index).isEmpty) {
           tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
           println(index + " : " + tempTrigger(index).mkString(","))

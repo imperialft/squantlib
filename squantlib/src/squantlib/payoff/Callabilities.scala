@@ -13,6 +13,11 @@ case class Callability(bermudan:Boolean, triggers:List[Option[Double]], variable
   
 }
 
+object Callability {
+  
+  val empty = Callability(false, List.empty, List.empty, 0.0)
+}
+
 case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] {
   
 	val variables:Set[String] = calls.map(_.variables).flatten.toSet
@@ -26,6 +31,13 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	  .map(t => if (t.isEmpty) None else Some(t.toMap))
 	
 	val bonus:List[Double] = calls.map(_.bonus)
+	
+	def fill(legs:Int) = size match {
+	  case l if l > legs => Callabilities(this.takeRight(legs))
+	  case l if l == legs => Callabilities(this)
+	  case l if l < legs => Callabilities(List.fill(legs - l)(Callability.empty) ++ this)
+	}
+				
 	
 	def ++(another:Callabilities) = new Callabilities(calls ++ another.calls)
 	
