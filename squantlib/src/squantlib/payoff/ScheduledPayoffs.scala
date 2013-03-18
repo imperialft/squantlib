@@ -22,6 +22,14 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
 
   val variables:Set[String] = payoffs.variables
   
+  lazy val bonusCoeff = schedule.map(_.dayCount)
+  
+  lazy val bonusAmount = calls.map(_.bonus + 1.0).toList
+  
+  def amountToRate(amount:List[Double]) = (amount, bonusCoeff).zipped.map(_ / _)
+  
+  lazy val bonusRate = amountToRate(bonusAmount)
+  
   val eventDateLegs:List[List[qlDate]] = scheduledPayoffs.map{
     case (d, p, t) if p.variables.isEmpty && t.isEmpty => List.empty
     case (d, p, t) if p.variables.isEmpty => List(p.eventDates(d).last)
@@ -39,21 +47,30 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   implicit object doubleValue extends withDefault[Double] { def defaultValue = Double.NaN}
   
   def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = dateMapper.map(d => {
-    if (d.isEmpty) List(defclass.defaultValue) else d.map(fixings)
-  })
-  
+    if (d.isEmpty) List(defclass.defaultValue) else d.map(fixings) })
+    
   def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = 
-    payoffs.price(priceMapper(fixings))
+    if (calls.isTrigger) {
+      val trig = calls.toList.map(_.triggers.headOption.getOrElse(None))
+      payoffs.price(priceMapper(fixings), trig, bonusRate)
+    } 
+    else payoffs.price(priceMapper(fixings))
 
   def price(fixings:List[Map[String, Double]]):List[Double] = 
-    if (calls.isTrigger) payoffs.price(priceMapper(fixings), calls.triggerMap, calls.bonus)
+    if (calls.isTrigger) payoffs.price(priceMapper(fixings), calls.triggerMap, bonusRate)
     else payoffs.price(priceMapper(fixings))
     
+  def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]]):List[Double] = 
+    payoffs.price(priceMapper(fixings), trigger, bonusRate)
+    
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double]):List[Double] = 
-    payoffs.price(priceMapper(fixings), trigger, trigAmount)
+    payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
+    
+  def price(fixings:List[Double], trigger:List[Option[Double]])(implicit d:DummyImplicit):List[Double] = 
+    payoffs.price(priceMapper(fixings), trigger, bonusRate)
     
   def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = 
-    payoffs.price(priceMapper(fixings), trigger, trigAmount)
+    payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
 
   def getAfter(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(filter{case (cp, _, _) => cp.paymentDate gt vd})
   

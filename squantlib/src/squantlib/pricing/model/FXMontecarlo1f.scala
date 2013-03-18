@@ -32,7 +32,8 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	val mcYears = Schedule(mcindex.map(i => ischedule(i)).toList).eventYears(valuedate)
 	val mcMap = mcindex.zipWithIndex.toMap
 	val legs = ischedule.size
-	val trigAmounts = ischedule.dayCounts.map(1.0 / _)
+	val redemamt = scheduledPayoffs.calls.bonus.takeRight(trigger.size).map(_ + 1.0)
+	val redemrate = (redemamt, ischedule.dayCounts).zipped.map(_ / _)
 
 	def generatePaths(paths:Int):List[List[Double]] = {
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths)
@@ -42,7 +43,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	}
 	 
 	def mcPrice(paths:Int):List[Double] = {
-	  try { generatePaths(paths).map(p => ipayoffs.price(p, trigger, trigAmounts)).transpose.map(_.sum / paths.toDouble) }
+	  try { generatePaths(paths).map(p => ipayoffs.price(p, trigger, redemrate)).transpose.map(_.sum / paths.toDouble) }
 	  catch {case e => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	

@@ -64,8 +64,10 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	@tailrec private def priceTrig[T, U](paylist:List[Payoff], fixlist:List[T], acc:List[Double], triglist:List[Option[U]], trigamt:List[Double], triggered:Boolean)
 	(implicit fi:FixingInterpreter[T, U]):List[Double] = {
 	  if (paylist.isEmpty) acc
-	  else if (triggered) priceTrig(paylist.tail, fixlist.tail, acc :+ 0.0, triglist.tail, trigamt.tail, true)
-	  else if (fi.triggered(fixlist.head, triglist.head)) priceTrig(paylist.tail, fixlist.tail, acc :+ (fi.price(fixlist.head, paylist.head) + trigamt.head), triglist.tail, trigamt.tail, true)
+//	  else if (triggered) priceTrig(paylist.tail, fixlist.tail, acc :+ 0.0, triglist.tail, trigamt.tail, true)
+	  else if (triggered) acc ++ List.fill(paylist.tail.size)(0.0)
+//	  else if (fi.triggered(fixlist.head, triglist.head)) priceTrig(paylist.tail, fixlist.tail, acc :+ (fi.price(fixlist.head, paylist.head) + trigamt.head), triglist.tail, trigamt.tail, true)
+	  else if (fi.triggered(fixlist.head, triglist.head)) (acc :+ (fi.price(fixlist.head, paylist.head) + trigamt.head)) ++ List.fill(paylist.tail.size)(0.0)
 	  else priceTrig(paylist.tail, fixlist.tail, acc :+ fi.price(fixlist.head, paylist.head), triglist.tail, trigamt.tail, false)
 	}
 	
