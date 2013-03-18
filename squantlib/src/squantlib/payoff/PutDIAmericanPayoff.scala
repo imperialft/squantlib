@@ -68,16 +68,16 @@ case class PutDIAmericanPayoff(
 	    else amount
 	  }
 	
-	def price[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
-	def price[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
+	def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
+	def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
 	
-	override def price(fixings:List[Map[String, Double]]):Double = price(fixings)
+	override def price(fixings:List[Map[String, Double]]):Double = priceList(fixings)
 
-	override def price(fixings:Map[String, Double]):Double = price(fixings)
+	override def price(fixings:Map[String, Double]):Double = priceSingle(fixings)
 	
-	override def price[T:ClassManifest](fixings:List[Double]):Double = price(fixings)
+	override def price[T:ClassManifest](fixings:List[Double]):Double = priceList(fixings)
 	
-	override def price(fixings:Double):Double = price(fixings)
+	override def price(fixings:Double):Double = priceSingle(fixings)
 	
 	override def price = Double.NaN
 	

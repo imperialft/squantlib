@@ -53,7 +53,7 @@ class Market(
 	/** 
 	 * Registered currencies
 	 */
-	val currencies:Set[Currency] = curves.collect { case (k, v) => v.currency }.toSet
+	val currencies:Set[Currency] = curves.collect { case (_, v) => v.currency }.toSet
 	
 	/** 
 	 * Discounting Curves
@@ -100,7 +100,7 @@ class Market(
 	 * Returns discount curve using spread of given cds curve.
 	 */
 	def getDiscountCurve(ccy:String, cdsid:String) : Option[DiscountCurve] = 
-	  if (cdscurves.contains(cdsid)) getDiscountCurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid)
+	  if (cdscurves contains cdsid) getDiscountCurve(ccy, cdscurves(cdsid).currency.code, cdscurves(cdsid).rate, cdsid)
 	  else None
 	  
 	def getDiscountCurve(ccy:Currency, cdsid:String) : Option[DiscountCurve] = getDiscountCurve(ccy.code, cdsid)
@@ -121,23 +121,16 @@ class Market(
 	  else if (contains(ccy, cdsid)) Some(repository(cdsid)(ccy))
 	  else {
 	    val newcurve = ccy match {
-		    case `discountccy` => { curves(ccy).getZC(spread) }
-		    					
-		    case `pivotCurrency` => { 
-			    val zccurve = getDiscountCurve(discountccy, discountccy, spread, cdsid).get
+		    case `discountccy` => curves(ccy).getZC(spread)
+		    case `pivotCurrency` => val zccurve = getDiscountCurve(discountccy, discountccy, spread, cdsid).get
 			    curves(ccy).getZC(ratecurve(discountccy), zccurve)
-			    }
-		      
-		    case _ => { 
-			    val pivotZC = getDiscountCurve(pivotCurrency, discountccy, spread, cdsid).get
+		    case _ => val pivotZC = getDiscountCurve(pivotCurrency, discountccy, spread, cdsid).get
 			    curves(ccy).getZC(ratecurve(pivotCurrency), pivotZC)
-			    }
     	}
 	    
 	    if (cdsid != null) {
 		    if (!repository.contains(cdsid)) repository += (cdsid -> scala.collection.mutable.Map(ccy -> newcurve))
 		    else repository(cdsid) += (ccy -> newcurve)}
-	    
 	    Some(newcurve)
 	  }
 	

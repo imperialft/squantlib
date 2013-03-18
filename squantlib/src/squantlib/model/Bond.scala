@@ -1,11 +1,11 @@
 package squantlib.model
 
 import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, _}
+import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule => qlSchedule, _}
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
 import squantlib.database.schemadefinitions.{Bond => dbBond, BondPrice, Coupon => dbCoupon, ForwardPrice}
-import squantlib.payoff.{Payoffs, Schedule, ScheduledPayoffs, Payoff, CalculationPeriod, FixedPayoff}
+import squantlib.payoff._
 import squantlib.model.rates.DiscountCurve
 import squantlib.setting.initializer.{DayAdjustments, Currencies, Daycounters}
 import squantlib.util.JsonUtils._
@@ -33,8 +33,7 @@ case class Bond(
 		coupon:Payoffs,	
 		redemption:Payoff,
 		underlyings:List[String],
-		bermudan:List[Boolean],
-		trigger:List[List[Option[Double]]],
+		calls:Callabilities,
 		var defaultModel:(Market, Bond) => Option[PricingModel] = null,
 		var forceModel:Boolean = false,
 		var useCouponAsYield:Boolean = false,
@@ -52,6 +51,10 @@ case class Bond(
 	val issueDate:qlDate = inputSchedule.head.startDate
 	
 	val maturity:qlDate = inputSchedule.last.endDate
+	
+	val bermudan = calls.bermudans
+	
+	val trigger = calls.triggers
 	
 	val nominal:Option[Double] = db.nominal
 	
@@ -78,18 +81,18 @@ case class Bond(
 	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
 	
 	override def clone:Bond = {
-	  val bond = new Bond(db, inputSchedule, coupon, redemption, underlyings, bermudan, trigger, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model) 
+	  val bond = new Bond(db, inputSchedule, coupon, redemption, underlyings, calls, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model) 
 	  calibrationCache.foreach{case (a, b) => bond.calibrationCache.update(a, b)}
 	  bond
 	}
 	
 	def dateShifted(shift:Int):Bond = {
-	  val bond = new Bond(db, inputSchedule.shifted(shift), coupon, redemption, underlyings, bermudan, trigger, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
+	  val bond = new Bond(db, inputSchedule.shifted(shift), coupon, redemption, underlyings, calls, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
 	  bond
 	} 
 
 	def triggerShifted(trig:List[List[Option[Double]]]):Bond = {
-	  val bond = new Bond(db, inputSchedule, coupon, redemption, underlyings, bermudan, trig, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
+	  val bond = new Bond(db, inputSchedule, coupon, redemption, underlyings, Callabilities(bermudan, trig, underlyings), defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
 	  bond
 	} 
 	
@@ -159,7 +162,7 @@ case class Bond(
 	 * Returns full bond schedule
 	 * @returns list of calculation period & payoff
 	 */
-	val scheduledPayoffs:ScheduledPayoffs = ScheduledPayoffs(schedule, payoffs)
+	val scheduledPayoffs:ScheduledPayoffs = ScheduledPayoffs(schedule, payoffs, calls)
 	
 	/*	
 	 * Returns "live" schedules
@@ -183,11 +186,11 @@ case class Bond(
 	
 	def getFixedPayoffs(payoffSchedule:ScheduledPayoffs, vd:qlDate = null):ScheduledPayoffs = ScheduledPayoffs(
 	    payoffSchedule.map{
-	      case (period, payoff) if payoff.variables.size == 0 => (period, payoff)
-	      case (period, payoff) if ((vd != null) && (period.eventDate gt vd)) => (period, payoff)
-	      case (period, payoff) => {
+	      case (period, payoff, call) if payoff.variables.size == 0 => (period, payoff, call)
+	      case (period, payoff, call) if ((vd != null) && (period.eventDate gt vd)) => (period, payoff, call)
+	      case (period, payoff, call) => {
 	        val fixings = payoff.variables.map(v => Fixings.byDate(v, period.eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x).toMap
-    	    (period, payoff.applyFixing(fixings))
+    	    (period, payoff.applyFixing(fixings), call)
     	  }
     	})
 	
@@ -232,7 +235,7 @@ case class Bond(
 	 * Returns coupons fixed with current spot market (not forward!). 
 	 */
 	def spotFixedRates:List[(CalculationPeriod, Double)] = cpncache.getOrElseUpdate("SPOTFIXEDRATES",
-	    livePayoffs.toList.map{case (d, p) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})}
+	    livePayoffs.toList.map{case (d, p, _) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})}
 	  )
 	def spotFixedRates(vd:qlDate):List[(CalculationPeriod, Double)] = spotFixedRates.filter{case (p, d) => (p.paymentDate gt vd)}
 	  
@@ -241,7 +244,7 @@ case class Bond(
 	def spotFixedAmount(vd:qlDate):List[(qlDate, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
 	  
 	def spotFixedRatesAll:List[(CalculationPeriod, Double)] = cpncache.getOrElseUpdate("SPOTFIXEDRATESALL",
-	    allPayoffs.toList.map{case (d, p) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})}
+	    allPayoffs.toList.map{case (d, p, _) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})}
 	  )
 	def spotFixedAmountAll:List[(qlDate, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
 	
@@ -304,24 +307,24 @@ case class Bond(
 	 */
 	def accruedAmount:Option[Double] = market.flatMap(mkt => 
 	  if (issueDate ge mkt.valuedate) Some(0.0)
-	  else livePayoffs.filter{case (d, p) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)} match {
+	  else livePayoffs.filter{case (d, p, _) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)} match {
 	    case pos if pos.isEmpty => None
-	    case pos => Some(pos.map{case (d, p) => (d.accrued(mkt.valuedate)) * p.price(mkt) }.sum)
+	    case pos => Some(pos.map{case (d, p, _) => (d.accrued(mkt.valuedate)) * p.price(mkt) }.sum)
 	  })
 
 	/*	
 	 * Returns current coupon rate.
 	 */
-	def currentRate:Option[Double] = market collect { case mkt => scheduledPayoffs.withFilter{case (d, _) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)}
-	  								.map{case (d, p) => p.price(mkt) }.sum}
+	def currentRate:Option[Double] = market collect { case mkt => scheduledPayoffs.withFilter{case (d, _, _) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)}
+	  								.map{case (d, p, _) => p.price(mkt) }.sum}
 
 	/*	
 	 * Returns next coupon payment date
 	 */
 	def nextPayment:Option[(qlDate, Double)] = market.flatMap{case mkt => 
-	  scheduledPayoffs.filter{case (d, p) => ((d.paymentDate gt mkt.valuedate) && !d.isAbsolute)} match {
+	  scheduledPayoffs.filter{case (d, p, _) => ((d.paymentDate gt mkt.valuedate) && !d.isAbsolute)} match {
 	    case ds if ds.isEmpty => None
-	    case ds => ds.minBy{case (d, p) => d.paymentDate} match {case (d, p) => Some(d.paymentDate, d.dayCount * p.price(mkt))}}
+	    case ds => ds.minBy{case (d, p, _) => d.paymentDate} match {case (d, p, _) => Some(d.paymentDate, d.dayCount * p.price(mkt))}}
 	}
 	
 	/*	
@@ -766,7 +769,7 @@ case class Bond(
 	  val spot:List[Double] = spotFixedRatesAll.unzip._2
 	  
 	  (0 to pos.size - 1).map(i => {
-	      val (s, p) = pos(i)
+	      val (s, p, t) = pos(i)
 	      val fixedrate = p match {case po:FixedPayoff if !po.payoff.isNaN => Some(po.payoff) case _ => None }
 	      val fixedamount = fixedrate.collect{case r => r * s.dayCount}
 	      val paytype = if (s isAbsolute) "REDEMPTION" else "COUPON"
@@ -827,13 +830,13 @@ case class Bond(
 	    
 	    if (market isDefined) {
 	      println("Live payoffs:") 
-	      livePayoffs.foreach{case (s, po) => disp(s.toString, po)}
+	      livePayoffs.foreach{case (s, po, _) => disp(s.toString, po)}
 	      disp("triggers", liveTriggers.mkString(","))
 	      disp("bermudans", liveBermudans.mkString(","))
 	    }
 	    else {
 	      println("Full schedule:")
-		  scheduledPayoffs.foreach{case (s, po) => disp(s.toString, po)}
+		  scheduledPayoffs.foreach{case (s, po, _) => disp(s.toString, po)}
 	      disp("triggers", trigger.mkString(","))
 	      disp("bermudans", bermudan.mkString(","))
 	    }
@@ -875,9 +878,11 @@ object Bond {
 	  val bermudan = db.bermudanList(fixings, schedule.size)
 		
 	  val trigger = db.triggerList(fixings, schedule.size)
+	  
+	  val calls = Callabilities(bermudan, trigger, underlyings)
 		
 	  if (List(db, schedule, coupon, redemption, underlyings, bermudan, trigger).forall(_ != null) && (coupon.size + 1 == schedule.size))
-		  Some(Bond(db, schedule, coupon, redemption, underlyings, bermudan, trigger))
+		  Some(Bond(db, schedule, coupon, redemption, underlyings, calls))
 	  else None
 	  
 	}

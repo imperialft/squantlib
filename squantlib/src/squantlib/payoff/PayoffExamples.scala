@@ -111,6 +111,16 @@ object PayoffExamples {
 	    "description" : "Forward"
 	    }""")
 	    
+	  val putdiamerican = Payoff("""
+	      {type:"putdiamerican", 
+	      variable:["usdjpy", "NKY"], 
+	      trigger:[70, 7000], 
+	      strike:[100, 10000], 
+	      refStart:"2014/01/01", 
+	      refEnd:"2014/12/31", 
+	      description:"Put DI American"
+	      }""")
+	    
       val general_json = Payoff("""{"type":"general", "payoff":"24.00%*AUDJPY/strike-20.00% > 1% < 6%", "strike":"80.2"}""")
       val general = Payoff("""24.00%*AUDJPY/80.2-20.00% > 1% < 6%""")
       
