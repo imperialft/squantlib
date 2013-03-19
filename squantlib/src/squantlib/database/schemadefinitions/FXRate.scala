@@ -10,7 +10,8 @@ class FXRate(@Column("ID")					var id:Int,
               @Column("PARAMSET")			var paramset:String,
               @Column("CurrencyID")			var currencyid:String,
               @Column("FXRATE_JPY")			var fxjpy:Double,
-              @Column("LastModified")		var lastmodified:Option[Date]
+              @Column("LastModified")		var lastmodified:Option[Date],
+              @Column("COMMENT")			var comment:String
               ) extends KeyedEntity[Int] {
   
   def this() = this(
@@ -19,7 +20,8 @@ class FXRate(@Column("ID")					var id:Int,
       paramset = null,
       currencyid = null, 
       fxjpy = -99999.0, 
-      lastmodified = None)
+      lastmodified = None,
+      comment = null)
 
-  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramset, currencyid, fxjpy)
+  override def toString():String = format("%-5s %-15s %-15s %-15s %-15s", id, paramset, currencyid, fxjpy, comment)
 }

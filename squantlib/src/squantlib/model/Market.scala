@@ -351,6 +351,10 @@ object Market {
 	
 	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter], valuedate:qlDate):Option[Market] = {
 	  
+	  if (ratefxparams.filter(_.instrument == "FX").size == 0){
+	    println("Error creating market : FX spot not found")
+	    return None}
+	  
 	  val liborCurves:Set[LiborDiscountCurve] = LiborDiscountCurve(ratefxparams, valuedate)
 	  
 	  val fxCurves:Set[FXDiscountCurve] = FXDiscountCurve(ratefxparams, valuedate)
@@ -361,7 +365,9 @@ object Market {
 	  }
 	  
 	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
-	  if (!discountcurves.exists(_.currency.code == "USD")) {return None}
+	  if (!discountcurves.exists(_.currency.code == "USD")) {
+	    println("Error creating market : USD curve not found")
+	    return None}
 	  
 	  val cdscurves = CDSCurve(cdsparams, valuedate)
 	  
@@ -375,7 +381,10 @@ object Market {
 	  val fixingset:Map[String, Double] = ratefxparams.withFilter(p => fixingParams contains p.instrument)
 	  	.map(p => (p.asset + (if (p.maturity != null) p.maturity else "").trim, p.value)).toMap
 	  
-	  if (discountcurves.size == 0 || cdscurves.size == 0) None
+	  if (discountcurves.size == 0 || cdscurves.size == 0) {
+	    println("Error creating market from " + discountcurves.size + " discount curve + " + cdscurves.size + " cds curves")
+	    None}
+	  
 	  else Some(new Market(
 		    paramset,
 		    discountcurves.map(c => (c.currency.code, c)).toMap, 

@@ -37,7 +37,6 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	  case l if l == legs => Callabilities(this)
 	  case l if l < legs => Callabilities(List.fill(legs - l)(Callability.empty) ++ this)
 	}
-				
 	
 	def ++(another:Callabilities) = new Callabilities(calls ++ another.calls)
 	

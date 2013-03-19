@@ -61,7 +61,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	
 	override def calibrate:FXMontecarlo1f = {
 	  val frontier = frontierFunction()
-	  parameterRepository(frontier)
+	  parameterRepository(frontier)  
 	  FXMontecarlo1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository)
 	}
 	

@@ -87,26 +87,6 @@ object OpenExchangeRates {
 	
 	def getHistorical(currency:String, date:JavaDate):Option[BigDecimal] = getHistorical(currency, DateToCalendar(date))
 		
-	def buildDbObject(appid:String, year:Int, month:Int, day:Int):Set[FXRate] = {
-		OpenExchangeRates.appid = appid
-		val calendar = new GregorianCalendar(year, month-1, day)
-		val rates = OpenExchangeRates.getHistorical(calendar)
-		val date = calendar.getTime
-		def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)		
-		
-		rates match {
-		  case None => Set.empty
-		  case Some(r) => r.map{ case (ccy, rate) => 
-		    new FXRate(
-			    id = 0,
-			    paramdate = date,
-	            paramset = "%tY%<tm%<td".format(date) + "-000",
-	            currencyid = ccy,
-	            fxjpy = rate.toDouble,
-	            lastmodified = Some(date))}.toSet
-		}
-	}
-		
 	private def DateToCalendar(date:JavaDate):Calendar = {
 	  val cal = Calendar.getInstance
 	  cal.setTime(date)

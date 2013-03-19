@@ -485,7 +485,14 @@ object DB extends Schema {
    * @param fromDate: A starting point of Date. Range includes this date.
    * @param toDate: A ending point of Date. Range does includes this date.
   **/
-  def getParamSets:Set[(String, JavaDate)] = getRateFXParamSets & getCDSParamSets & getFXParamSets
+  def getParamSets:Set[(String, JavaDate)] = {
+    val params = Map(
+        "ratefx" -> getRateFXParamSets,
+        "cds" -> getCDSParamSets,
+        "fx" -> getFXParamSets)
+    params.foreach{case (n, v) => println(n + " : " + (if(v.isEmpty) "not found" else v.maxBy(_._2)))}
+    params.values.reduce(_ & _)
+  }
   
   def getParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     getParamSets.filter{case (pset, pdate) => (pdate >= fromDate && pdate <= toDate)}
@@ -791,6 +798,11 @@ object DB extends Schema {
   def getFXParamSets:Set[(String, JavaDate)] = transaction {
     from(fxrates)(p => select(&(p.paramset), &(p.paramdate))).distinct.toSet
     }
+  
+  def getLatestFXParamSet:Option[(String, JavaDate)] = getFXParamSets match {
+    case s if s.isEmpty => None
+    case s => Some(s.maxBy(_._2))
+  }
   
   def getFXParams(ccy:String):Map[JavaDate, Double] = transaction {
       from(fxrates)(ip =>
@@ -1215,6 +1227,7 @@ object DB extends Schema {
     if (data.isEmpty) return 0
     val datatable = data.head.getClass.getSimpleName.toString match {
       case "InputParameter" => inputparameters
+      case "FXRate" => fxrates
       case _ => null
     }
     if (datatable == null) return 0
