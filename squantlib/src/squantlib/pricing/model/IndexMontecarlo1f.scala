@@ -50,15 +50,15 @@ case class IndexMontecarlo1f(valuedate:qlDate,
 
 object IndexMontecarlo1f {
 	
-	var defaultPaths = 100000
+	var defaultPaths = 50000
 	
-	def apply(market:Market, bond:Bond, mcengine:Index => Option[Montecarlo1f]):Option[IndexMontecarlo1f] = apply(market, bond, defaultPaths, mcengine)
+	def apply(market:Market, bond:Bond, mcengine:Index => Option[Montecarlo1f]):Option[IndexMontecarlo1f] = apply(market, bond, mcengine, defaultPaths)
 	
 	def apply(
 	    market:Market, 
 	    bond:Bond, 
-	    paths:Int, 
-	    mcengine:Index => Option[Montecarlo1f]):Option[IndexMontecarlo1f] = {
+	    mcengine:Index => Option[Montecarlo1f], 
+	    paths:Int):Option[IndexMontecarlo1f] = {
 	  
 	  val valuedate = market.valuedate
 	  
@@ -66,6 +66,10 @@ object IndexMontecarlo1f {
 	  
 	  if (scheduledPayoffs.variables.size != 1) { 
 	    println(bond.id + " : payoff not compatible with Index1d model")
+	    return None}
+	  
+	  if (scheduledPayoffs.calls.isBermuda) { 
+	    println(bond.id + " : callability not supported on Index1d model")
 	    return None}
 	  
 	  val variable = scheduledPayoffs.variables.head
@@ -85,7 +89,6 @@ object IndexMontecarlo1f {
 	  if (mcmodel == null) {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
-	  
 	  
 	  Some(IndexMontecarlo1f(valuedate, mcmodel, scheduledPayoffs, index, paths))
 	}

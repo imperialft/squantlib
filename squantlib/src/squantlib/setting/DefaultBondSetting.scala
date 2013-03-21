@@ -30,24 +30,24 @@ object DefaultBondSetting {
 	    
 	  case "DUAL" => 
 	      val engine = (fx:FX) => BlackScholes1f(fx)
-	      bond.defaultModel = (m:Market, b:Bond) => FXMontecarlo1f(m, b, engine)
+	      bond.defaultModel = (m:Market, b:Bond) => FXMontecarlo1f(m, b, engine, 100000)
 	      bond.forceModel = true
 	      bond.useCouponAsYield = false
 	      bond.requiresCalibration = false
 	    
 	  case "DCC" | "PRDC" => 
 	      val engine = (fx:FX) => BlackScholes1f(fx)
-	      bond.defaultModel = (m:Market, b:Bond) => FXMontecarlo1f(m, b, engine)
+	      bond.defaultModel = (m:Market, b:Bond) => FXMontecarlo1f(m, b, engine, 100000)
 	      bond.forceModel = true
 	      bond.useCouponAsYield = false
 	      bond.requiresCalibration = true
-//	      
-//	  case "NKY" | "INDEX" => 
-//	      val engine = (index:Index) => BlackScholesWithRepo(index)
-//	      bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine)
-//	      bond.forceModel = true
-//	      bond.useCouponAsYield = false
-//	      bond.requiresCalibration = true
+	      
+	  case "NKY" => 
+	      val engine = (index:Index) => BlackScholesWithRepo(index)
+	      bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine, 30000)
+	      bond.forceModel = true
+	      bond.useCouponAsYield = false
+	      bond.requiresCalibration = true
 	    
 	  case _ => None
 	}

@@ -123,11 +123,11 @@ case class Bond(
 	/* 
 	 * Reset model
 	 */
-	def initializeModel(reCalibrate:Boolean = false) = {
+	def initializeModel(reCalibrate:Boolean = false):Unit = {
 	  if (reCalibrate) {calibrationCache.clear; modelCalibrated = false}
 	  
 	  model = market match {
-	    case (Some(mkt)) => livePayoffs match {
+	    case (Some(mkt)) if mkt.valuedate lt maturity => livePayoffs match {
 	    	case po if !po.isEmpty && !forceModel && po.payoffs.variables.size == 0 => Some(NoModel(po.payoffs, po.schedule))
 	    	case _ => if (defaultModel == null) None else defaultModel(mkt, this)
 	    }

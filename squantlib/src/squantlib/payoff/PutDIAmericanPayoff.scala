@@ -33,11 +33,18 @@ case class PutDIAmericanPayoff(
  	
 	val triggerMap = (putVariables zip trigger).toMap
 	
-	var mcPeriod = 30
+	var mcPeriod6m = 30
+	var mcPeriod1y = 90
+	var mcPeriodbefore = 180
 	
 	override def eventDates(period:CalculationPeriod):List[qlDate] = {
-	  val basemod = refEnd.serialNumber % mcPeriod
-	  val dates = for (i <- (refStart.serialNumber to refEnd.serialNumber).toList if i % mcPeriod == basemod) yield new qlDate(i)
+	  val basemod = refEnd.serialNumber % mcPeriod6m
+	  val start = refStart.serialNumber
+	  val end = refEnd.serialNumber
+	  val dates = (for (i <- (start to end) 
+	      if (i >= end - 180 && i % mcPeriod6m == basemod)
+	      || (i >= end - 360 && i % mcPeriod1y == basemod)
+	      || (i % mcPeriodbefore == basemod)) yield new qlDate(i)).toList
 	  if (dates.head == refStart) dates else refStart :: dates
 	}
 	

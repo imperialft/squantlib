@@ -63,23 +63,23 @@ object FXMontecarlo1f {
 	var defaultPaths = 100000
 	var frontierPaths = 10000
 	
-	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FXMontecarlo1f] = apply(market, bond, defaultPaths, mcengine, triggers)
-	
-	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f]):Option[FXMontecarlo1f] = apply(market, bond, defaultPaths, mcengine)
+	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f]):Option[FXMontecarlo1f] = apply(market, bond, mcengine, defaultPaths)
   
-	def apply(market:Market, bond:Bond, paths:Int, mcengine:FX => Option[Montecarlo1f]):Option[FXMontecarlo1f] = {
+	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FXMontecarlo1f] = apply(market, bond, mcengine, defaultPaths, triggers)
+	
+	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], paths:Int):Option[FXMontecarlo1f] = {
 	  val trig = bond.getCalibrationCache[List[Option[Double]]]("FXMontecarlo1f") match {
 	    case Some(t) => t
 	    case _ => bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head)
 	  } 
-	  apply(market, bond, paths, mcengine, trig)
+	  apply(market, bond, mcengine, paths, trig)
 	}
 	
 	def apply(
 	    market:Market, 
 	    bond:Bond, 
-	    paths:Int, 
 	    mcengine:FX => Option[Montecarlo1f], 
+	    paths:Int, 
 	    triggers:List[Option[Double]]):Option[FXMontecarlo1f] = {
 	  
 	  val valuedate = market.valuedate

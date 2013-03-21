@@ -40,7 +40,7 @@ object Fixings {
 	  if (param == null) None
 	  else (param.trim match {
 	    case "CMT10" => Some(DB.getHistoricalRateFX("Fixing", "JGBY", "10Y", start, end))
-	    case "NKY" => Some(DB.getHistoricalRateFX("Fixing", "NKY", start, end))
+	    case "NKY" => Some(DB.getHistoricalRateFX("Index", "NKY", start, end))
 	    case p if p.head.isDigit => Some(DB.getHistoricalRateFX("Equity", p, start, end))
 	    case p if paramType != null => Some(DB.getHistoricalRateFX(paramType, p, start, end))
 	    case p if p.size <= 3 => None
