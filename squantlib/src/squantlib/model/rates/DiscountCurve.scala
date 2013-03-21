@@ -48,8 +48,8 @@ case class DiscountCurve(currency:Currency, zc:YieldParameter, discountspread:Yi
 	 */
     def value(days : Double) : Double = zc(days)
     
-    def impliedRate(days:Double):Double = -math.log(value(days)) / (days / 365.25)
-    def impliedRate(days:Long):Double = -math.log(value(days.toDouble)) / (days / 365.25)
+    def impliedRate(days:Double):Double = -math.log(value(days)) / (math.max(days, 1.0) / 365.25)
+    def impliedRate(days:Long):Double = -math.log(value(days.toDouble)) / (math.max(days, 1.0) / 365.25)
     def impliedRate(dayfrac:Double, dayCounter:DayCounter):Double = impliedRate((dayfrac * 365.25 / dayCounter.annualDayCount))
     def impliedRate(date:qlDate):Double = impliedRate(date.serialNumber - valuedate.serialNumber)
     def impliedRate(period:qlPeriod):Double = impliedRate(period.days(valuedate))

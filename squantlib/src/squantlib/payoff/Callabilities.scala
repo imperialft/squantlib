@@ -11,6 +11,10 @@ case class Callability(bermudan:Boolean, triggers:List[Option[Double]], variable
   
   def isEmpty:Boolean = !bermudan && (triggers.isEmpty || triggers.forall(_.isEmpty))
   
+  override def toString:String = 
+    (if (bermudan) "call " else "") + 
+    (if (isTrigger) "trig:" + triggers.mkString(" ") else "") + 
+    (if (bonus != 0.0) " bonus:" + bonus else "")
 }
 
 object Callability {

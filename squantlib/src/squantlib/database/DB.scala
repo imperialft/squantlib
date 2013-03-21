@@ -243,29 +243,18 @@ object DB extends Schema {
   def getPricedParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
     getPricedParamSets.filter{case (pset, pdate) => (pdate >= fromDate && pdate <= toDate)}
   
-//  def getNonPricedParamSets:Set[(String, JavaDate)] = transaction {
-//      val pricedsets = from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).distinct.toSet
-//      val fullparamset = 
-//  }
-
-  def getLatestBondPrices:Option[(String, JavaDate, Set[BondPrice])] = transaction {
-      val params:Set[(String, JavaDate)] = from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).toSet
-      params match {
-        case p if p.isEmpty => None
-        case p => val (maxparam, maxdate) = params.maxBy(_._2)
-        		  val prices:Set[BondPrice] = from(bondprices)(b => where(b.paramset === maxparam) select(b)).toSet
-        		  Some(maxparam, maxdate, prices)
-        }
-      }
+  def getBondPriceCount:Map[String, Int] = transaction {
+      from(bondprices)(b =>
+        groupBy(b.bondid) compute(count(b.id))).map(c => (c.key, c.measures.toInt)).toMap
+  }
   
   def getLatestBondPriceIDs:Set[String] = transaction {
-      val params:Set[(String, JavaDate)] = from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).toSet
-      params match {
-        case p if p.isEmpty => Set.empty
-        case p => val (maxparam, maxdate) = params.maxBy(_._2)
-        		  from(bondprices)(b => where(b.paramset === maxparam) select(&(b.bondid))).toSet
-        }
-      }
+    val maxparam:Option[JavaDate] = from(bondprices) (b => compute(max(b.paramdate)))
+    maxparam match {
+      case None => Set.empty
+      case Some(d) => from (bondprices) (b => where(b.paramdate === d) select (&(b.bondid))).toSet
+    }
+  }
   
   def getLatestBondPriceParam:Option[(String, JavaDate)] = getPricedParamSets match {
     case s if s.isEmpty => None

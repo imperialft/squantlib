@@ -8,8 +8,11 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{Date => qlDate}
+import org.jquantlib.daycounters.Actual365Fixed
 
-case class ScheduledPayoffs(scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)]) 
+case class ScheduledPayoffs(
+    scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],
+    valuedate:Option[qlDate] = None) 
 extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   
   lazy val (schedule, payoffs, calls) = scheduledPayoffs.unzip3  match {
@@ -31,12 +34,17 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   lazy val bonusRate = amountToRate(bonusAmount)
   
   val eventDateLegs:List[List[qlDate]] = scheduledPayoffs.map{
+    case (d, p, t) if valuedate.isDefined && (d.eventDate le valuedate.get) => List.empty
     case (d, p, t) if p.variables.isEmpty && t.isEmpty => List.empty
     case (d, p, t) if p.variables.isEmpty => List(p.eventDates(d).last)
     case (d, p, t) => p.eventDates(d)
     }.toList
   
   val eventDates:List[qlDate] = eventDateLegs.flatten.toSet.toList.sorted
+  
+  var defaultDaycounter = new Actual365Fixed
+  
+  def eventDateYears(basedate:qlDate):List[Double] = eventDates.map(d => defaultDaycounter.yearFraction(basedate, d))
   
   val dateMapper:List[List[Int]] = eventDateLegs.map(_.map(eventDates.indexOf(_)))
   
@@ -72,12 +80,12 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
 
-  def getAfter(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(filter{case (cp, _, _) => cp.paymentDate gt vd})
+  def withValueDate(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(filter{case (cp, _, _) => cp.paymentDate gt vd}, Some(vd))
   
   
   override def apply(i:Int):(CalculationPeriod, Payoff, Callability) = scheduledPayoffs(i)
   
-  override def toString = scheduledPayoffs.map{case (d, p, c) => d.toString + " " + p.toString}.mkString("\n")
+  override def toString = scheduledPayoffs.map{case (d, p, c) => d.toString + " " + p.toString + " " + c.toString}.mkString("\n")
 	
   override def isEmpty:Boolean = scheduledPayoffs.isEmpty
 	

@@ -182,19 +182,19 @@ case class Bond(
 	 */
 	def livePayoffs:ScheduledPayoffs = valueDate.collect {case d => livePayoffs(d)}.getOrElse(ScheduledPayoffs.empty)
 
-	def livePayoffs(vd:qlDate):ScheduledPayoffs = getFixedPayoffs(scheduledPayoffs.getAfter(vd), vd)
+	def livePayoffs(vd:qlDate):ScheduledPayoffs = getFixedPayoffs(scheduledPayoffs.withValueDate(vd), Some(vd))
 		
 	def allPayoffs:ScheduledPayoffs = getFixedPayoffs(scheduledPayoffs)
 	
-	def getFixedPayoffs(payoffSchedule:ScheduledPayoffs, vd:qlDate = null):ScheduledPayoffs = ScheduledPayoffs(
+	def getFixedPayoffs(payoffSchedule:ScheduledPayoffs, vd:Option[qlDate] = None):ScheduledPayoffs = ScheduledPayoffs(
 	    payoffSchedule.map{
 	      case (period, payoff, call) if payoff.variables.size == 0 => (period, payoff, call)
-	      case (period, payoff, call) if ((vd != null) && (period.eventDate gt vd)) => (period, payoff, call)
+	      case (period, payoff, call) if (vd.isDefined && (period.eventDate gt vd.get)) => (period, payoff, call)
 	      case (period, payoff, call) => {
 	        val fixings = payoff.variables.map(v => Fixings.byDate(v, period.eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x).toMap
     	    (period, payoff.applyFixing(fixings), call)
     	  }
-    	})
+    	}, vd)
 	
 	/*	
 	 * Returns "live" triggers
@@ -369,12 +369,14 @@ case class Bond(
 	
 	def getYield(comp:Compounding, freq:Frequency):Option[Double] = getYield(comp, freq, new Actual365Fixed, 0.00001, 20)
 	
-    def getYield(comp:Compounding, freq:Frequency, dc:DayCounter, accuracy:Double, maxIteration:Int):Option[Double] = 
-      if (useCouponAsYield) {
+    def getYield(comp:Compounding, freq:Frequency, dc:DayCounter, accuracy:Double, maxIteration:Int):Option[Double] = {
+      val result = if (useCouponAsYield) {
         val cashflows = spotCashflowDayfrac(dc)
         accruedAmount.collect{case acc => (cashflows.unzip._2.sum - acc - 1.0) / cashflows.unzip._1.max}
-      }
-      else dirtyPrice.flatMap{case p => getYield(p, dc, comp, freq, accuracy, maxIteration)}
+      } else dirtyPrice.flatMap{case p => getYield(p, dc, comp, freq, accuracy, maxIteration)}
+      
+      if (result == Some(Double.NaN)) None else result
+	}
 	
     def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = 
       valueDate.flatMap{ case vd => getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)}
@@ -835,9 +837,10 @@ case class Bond(
 	    
 	    if (market isDefined) {
 	      println("Live payoffs:") 
-	      livePayoffs.foreach{case (s, po, _) => disp(s.toString, po)}
-	      disp("triggers", liveTriggers.mkString(","))
-	      disp("bermudans", liveBermudans.mkString(","))
+//	      livePayoffs.foreach{case (s, po, _) => disp(s.toString, po)}
+//	      disp("triggers", liveTriggers.mkString(","))
+//	      disp("bermudans", liveBermudans.mkString(","))
+	      println(livePayoffs.toString)
 	    }
 	    else {
 	      println("Full schedule:")

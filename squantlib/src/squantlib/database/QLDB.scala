@@ -25,9 +25,19 @@ object QLDB {
     * Returns discount curve factory.
     */
   
-	def getMarket:Option[Market] = getMarket(DB.getLatestParamSet._1)
+	def getMarket:Option[Market] = {
+	  val paramset = DB.getLatestParamSet._1
+	  println("initialize market with paramset " + paramset)
+	  getMarket(paramset)
+	}
   
-	def getMarket(paramset:String):Option[Market] = Market(DB.getRateFXParameters(paramset), DB.getCDSParameters(paramset))
+	def getMarket(paramset:String):Option[Market] = {
+	  println("access db for market param")
+	  val ratefx = DB.getRateFXParameters(paramset)
+	  val cds = DB.getCDSParameters(paramset)
+	  println("initialize market with " + ratefx.size + " ratefx params & " + cds.size + " cds params")
+	  Market(ratefx, cds)
+	}
 	
 	def getMarket(paramset:String, valueDate:qlDate):Option[Market] = Market(DB.getRateFXParameters(paramset), DB.getCDSParameters(paramset), valueDate)
 	
@@ -46,8 +56,9 @@ object QLDB {
 	def getBonds(date:JavaDate):Set[sBond] = getBonds(DB.getBonds(date))
 	
 	def getBonds(bonds:Set[dbBond], par:Boolean = false)(implicit d:DummyImplicit):Set[sBond] = {
-	  println("retrieve bonds..")
+	  println("retrieve bonds from db..")
 	  val sbonds = (if (par) bonds.par else bonds).map(b => sBond(b)).seq
+	  println(sbonds.size + " bonds retrieved - initializing")
 	  sbonds.collect{case Some(bond) => DefaultBondSetting(bond); bond}.toSet
 	}
 	  
