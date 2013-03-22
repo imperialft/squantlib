@@ -16,18 +16,22 @@ SquantLib
 
 ###FX
 * Building volatility surfaces
-* Computing forward prices
+* Compute forward
 * Price exotic FX options using BS and Montecarlo
 * Computing historical volatilities and correlations.
-* Pricing FX linked bonds (dual currency, callable dual currency, prdc)
+* Pricing FX linked bonds with trigger using Black-Scholes MC
+* Pricing FX linked bonds with callability through equivalent trigger approximation 
 
 ###Bond
-* Building flexible cashflows. (fix, binary, linear sums, put, cap, floor, etc)
+* Building various cashflows. (fix, binary, linear sums, put, cap, floor, etc)
 * Pricing bonds with specific pricing mechanisms.
-* Risk analysis - delta (rate & fx), vega (rate & fx), yield, durations, convexity, etc..
+* Greeks - delta (rate & fx), vega (rate & fx), yield, durations, convexity, etc..
+
+###Indices
+* Pricing index linked bond with trigger
 
 ###To Do (maybe)
-* Equity and index linked products
+* Equity linked products
 * Support for bonds with published prices
 * More sophisticated montecarlo model (smile, multi-factor)
 * Proper Bermudan swaptions
