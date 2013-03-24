@@ -24,7 +24,7 @@ object Fixings {
 	      case mp => Some(mp.maxBy(_._1))
 	    }
 	  }
-	  
+		  
 	def latest(id:String):Option[(qlDate, Double)] = apply(id).collect{case p if !p.isEmpty => p.maxBy(_._1)}
 	
 	def latestList(ids:List[String]):Map[String, Double] = ids.map(id => (id, Fixings.latest(id))).collect{case (a, Some(b)) => (a, b._2)}.toMap

@@ -28,7 +28,7 @@ object DB extends Schema {
    * @param uri A connection string such as mysql://your.mysql.server:3128/database_name
    * @param username A username to MySQL
    * @param password Password for the user above
-   *
+   * 
    */
   def setup(propertiesPath:String):Unit = {
     properties.load(new FileInputStream(propertiesPath))
@@ -89,7 +89,7 @@ object DB extends Schema {
   val forwardprices = table[ForwardPrice]("ForwardPrices")
   val impliedrates = table[ImpliedRate]("ImpliedRates")
   val underlyings = table[Underlying]("Underlyings")
-  
+  val jsdaprices = table[JsdaPrice]("JSDAPrice")
   
   private def getKeyedEntity[A<:KeyedEntity[String]](t:Table[A]):Set[A] = transaction {
       from(t)(p => select(p)).toSet}
@@ -599,7 +599,7 @@ object DB extends Schema {
           ip.asset      === asset
         )
         select((&(ip.paramdate), &(ip.value)))).toMap
-    }
+    }  
   
   def getHistoricalRateFX(instrument:String, asset:String, maturity:String):Map[JavaDate, Double] = getHistoricalRateFX(instrument, asset, maturity, null, null)
   
@@ -1156,6 +1156,24 @@ object DB extends Schema {
 	        select(&(bp.paramdate), &(bp.priceclean.get), &(fx.fxjpy))
 	      ).map(v => (v._1, v._2 * v._3 / basefx)).toMap
   	}
+  
+  def getHistoricalJsdaPrice(bondid:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = 
+    if (start != null && end != null)
+      transaction { 
+        from(jsdaprices)(p =>
+        where(
+          p.bondid === bondid and
+          (p.paramdate gte start) and
+          (p.paramdate lte end)
+        )
+        select((&(p.paramdate), &(p.price)))).toMap
+    }
+    else
+      transaction { from(jsdaprices)(p =>
+        where(p.bondid === bondid)
+        select((&(p.paramdate), &(p.price)))).toMap
+    }
+  
   
   def insertStringEntity[T <: KeyedEntity[String]](data:T):Unit = transaction{
     dataTable(data.getClass.getSimpleName.toString) match {

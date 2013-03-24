@@ -4,11 +4,10 @@ import squantlib.model.Market
 import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod}
 import squantlib.model.Bond
 import org.jquantlib.time.{Date => qlDate}
-import java.util.{Date => JavaDate}
-import squantlib.database.DB
+import squantlib.database.fixings.Fixings
 import squantlib.model.rates.DiscountCurve
 
-case class JGBRModel(bond:Bond, valueDate:qlDate) extends PricingModel {
+case class JGBMModel(bond:Bond, valueDate:qlDate) extends PricingModel {
   
 	override val isPricedByLegs = false
 	
@@ -24,13 +23,8 @@ case class JGBRModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 	  if (valueDate ge bond.maturity) None
 	  else {
 	    if (storedPrice.isEmpty) {
-	      val accrued:Double = bond.accruedAmount.getOrElse(Double.NaN)
-	      val previous:Double = bond.spotFixedAmountAll.filter{case (payday, _) => payday lt valueDate} match {
-	      	case legs if legs.isEmpty => 0.0
-	      	case legs if legs.size == 1 => legs.head._2
-	      	case legs => (legs.sortBy{case (payday, _) => payday} takeRight 2).map(_._2).sum
-	      	}
-	      storedPrice = Some(1.0 + accrued - previous)
+	      val dbPrice = Fixings.byDate(bond.id, valueDate)
+	      storedPrice = dbPrice.flatMap{case (d, p) => if(d == valueDate) Some(p) else None} 
 	    }
 	    storedPrice
 	  }
@@ -38,10 +32,9 @@ case class JGBRModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 }
 	
 
-
-object JGBRModel {
+object JGBMModel {
 	
-	def apply(market:Market, bond:Bond):Option[JGBRModel] = Some(JGBRModel(bond, market.valuedate))
+	def apply(market:Market, bond:Bond):Option[JGBMModel] = Some(JGBMModel(bond, market.valuedate))
 	
 }
 

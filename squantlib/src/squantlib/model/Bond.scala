@@ -315,14 +315,19 @@ case class Bond(
 	/*	
 	 * Returns current coupon rate.
 	 */
-	def currentRate:Option[Double] = market collect { case mkt => scheduledPayoffs.withFilter{case (d, _, _) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)}
-	  								.map{case (d, p, _) => p.price(mkt) }.sum}
+//	def currentRate:Option[Double] = market collect { case mkt => scheduledPayoffs.withFilter{case (d, _, _) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)}
+//	  								.map{case (d, p, _) => p.price(mkt) }.sum}
+	def currentRate:Option[Double] = market.flatMap{case mkt => 
+	  scheduledPayoffs.filter{case (d, _, _) => ((d.paymentDate gt mkt.valuedate) && !d.isAbsolute)} match {
+	    case ds if ds.isEmpty => None
+	    case ds => ds.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => Some(p.price(mkt))}}
+	}
 
 	/*	
 	 * Returns next coupon payment date
 	 */
 	def nextPayment:Option[(qlDate, Double)] = market.flatMap{case mkt => 
-	  scheduledPayoffs.filter{case (d, p, _) => ((d.paymentDate gt mkt.valuedate) && !d.isAbsolute)} match {
+	  scheduledPayoffs.filter{case (d, _, _) => ((d.paymentDate gt mkt.valuedate) && !d.isAbsolute)} match {
 	    case ds if ds.isEmpty => None
 	    case ds => ds.minBy{case (d, p, _) => d.paymentDate} match {case (d, p, _) => Some(d.paymentDate, d.dayCount * p.price(mkt))}}
 	}
