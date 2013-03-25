@@ -6,9 +6,10 @@ import org.squeryl.KeyedEntity
 
 
 class JsdaPrice(@Column("ID")				var id: String,
+			  @Column("BONDID")				var bondid:String,
               @Column("PARAMDATE")			var paramdate: Date,
               @Column("JADAID")				var jsdaid: String,
-              @Column("BONDID")				var bondid: String,
+              @Column("BONDNAME")			var bondname: String,
               @Column("PRICE")				var price: Double,
               @Column("COUPON")				var coupon: Double,
               @Column("COMPOUNDYIELD")		var compoundyield: Double,
@@ -20,9 +21,10 @@ class JsdaPrice(@Column("ID")				var id: String,
 
   def this() = this(
       id = null, 
+      bondid = null,
       paramdate = new Date, 
       jsdaid = null,
-      bondid = null,
+      bondname = null,
       price = -99999,
       coupon = -99999,
       compoundyield = -99999,

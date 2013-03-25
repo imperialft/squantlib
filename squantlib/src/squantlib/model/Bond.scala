@@ -281,9 +281,7 @@ case class Bond(
 	}
 	
 	def europeanPrice:Option[Double] = model.flatMap(m => {
-	  val price = if (m.isPricedByLegs) priceLegs.collect{case legs => legs.sum}
-	  	else m.discountedPrice(discountCurve)
-	  	
+	  val price = if (m.isPricedByLegs) priceLegs.collect{case legs => legs.sum} else m.discountedPrice(discountCurve)
 	  price match {case Some(p) if !p.isNaN => price case _ => None}
 	})
 	  
@@ -311,6 +309,13 @@ case class Bond(
 	    case pos if pos.isEmpty => None
 	    case pos => Some(pos.map{case (d, p, _) => (d.accrued(mkt.valuedate)) * p.price(mkt) }.sum)
 	  })
+	  
+	/*	
+	 * Returns model price of the bond, different from dirty price if there's officially published price different from model valuation.
+	 */
+	def modelPrice:Option[Double] = europeanPrice.collect{
+	  case p => p + optionPrice.getOrElse(0.0)
+	}
 
 	/*	
 	 * Returns current coupon rate.

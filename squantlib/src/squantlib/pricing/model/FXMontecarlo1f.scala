@@ -41,7 +41,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	  
 	private val cachedPrice = scala.collection.mutable.WeakHashMap[String, List[Double]]()
 	
-	def price:List[Double] = price(mcPaths)
+	override def price:List[Double] = price(mcPaths)
 	
 	def price(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", mcPrice(paths))
 	

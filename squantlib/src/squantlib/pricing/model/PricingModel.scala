@@ -11,7 +11,7 @@ trait PricingModel {
   val isPricedByLegs = true
 	
   val periods:List[CalculationPeriod]
-	
+
   val payoff:List[Payoff]
   
   val optionValue:Option[Double] = None
@@ -30,7 +30,6 @@ trait PricingModel {
 
   def priceLegs:List[Double] = {
     val result = price
-	  
 	val pricelegs = (schedule.toList, result).zipped
 	def rnd(v:Double):Double = math.round(v * 1000000.0) / 1000000.0
 	message += currenttime.toString
@@ -46,6 +45,8 @@ trait PricingModel {
   }
 	
   def discountedPrice(curve:Option[DiscountCurve]):Option[Double] = Some(discountedPriceLegs(curve).sum)
+  
+  def modelPrice(curve:Option[DiscountCurve]):Option[Double] = discountedPrice(curve)
   
   def calibrate:PricingModel = this
   
