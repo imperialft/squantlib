@@ -25,7 +25,7 @@ object DefaultBondSetting {
 	  case "JGBM10" | "JGBM5" | "JGBM2" => 
 	      bond.defaultModel = (m:Market, b:Bond) => JGBMModel(m, b)
 	      bond.forceModel = true
-	      bond.useCouponAsYield = true
+	      bond.useCouponAsYield = false
 	      bond.requiresCalibration = false
 
 	  case "CALLABLE" | "SUC" => 

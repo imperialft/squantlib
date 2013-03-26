@@ -9,9 +9,9 @@ import squantlib.model.rates.DiscountCurve
 
 case class JGBMModel(bond:Bond, valueDate:qlDate) extends PricingModel {
   
-	override def calculatePrice:List[Double] = List.empty
+	override val scheduledPayoffs:ScheduledPayoffs = bond.scheduledPayoffs
 	
-	override val scheduledPayoffs:ScheduledPayoffs = ScheduledPayoffs.empty
+	override def calculatePrice:List[Double] = scheduledPayoffs.price
 	
 	var storedPrice:Option[Double] = None
 	
