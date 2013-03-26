@@ -53,7 +53,7 @@ object DefaultBondSetting {
 	      bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine, 30000)
 	      bond.forceModel = true
 	      bond.useCouponAsYield = false
-	      bond.requiresCalibration = true
+	      bond.requiresCalibration = false
 	    
 	  case _ => None
 	}

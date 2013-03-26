@@ -25,26 +25,28 @@ trait PricingModel {
   /*	
    * Pricing function to be overridden. Result is annual rate without discount.
    */
-  def price:List[Double]
+  def calculatePrice:List[Double]
 
   /*	
    * Returns forward value of each coupon. Result is annual rate without discount.
    */
-  def forwardLegs:List[(CalculationPeriod, Double)] = schedule.toList zip price
+  def forwardLegs:List[(CalculationPeriod, Double)] = schedule.toList zip calculatePrice
 
   /*	
    * Returns price per payment legs.
    */
-  def discountedPriceLegs(curve:DiscountCurve):List[(CalculationPeriod, Double)] = (price zip schedule).map{case (p, c) => (c, p * c.coefficient(curve))}
+  def discountedPriceLegs(curve:DiscountCurve):List[(CalculationPeriod, Double)] = forwardLegs.map{case (c, p) => (c, p * c.coefficient(curve))}
 	
   /*
    * Returns present value of the future cashflow.
    * Override this function if the price is different from model calculated price. (eg. published price)
    */
-  def discountedPrice(curve:DiscountCurve):Option[Double] = {
-    val result = discountedPriceLegs(curve).unzip._2.sum
+  def price(curve:DiscountCurve):Option[Double] = {
+    val result = discountedPriceLegs(curve).unzip._2.sum + optionPrice.getOrElse(0.0)
     if (result.isNaN) None else Some(result)
   }
+  
+  def modelPrice(curve:DiscountCurve):Option[Double] = price(curve)
   
   /*
    * Returns the model after pre-calibration.

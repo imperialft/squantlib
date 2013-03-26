@@ -9,7 +9,7 @@ import squantlib.model.rates.DiscountCurve
 
 case class NoModel(scheduledPayoffs:ScheduledPayoffs) extends PricingModel {
   
-	def price:List[Double] = scheduledPayoffs.price
+	def calculatePrice:List[Double] = scheduledPayoffs.price
 	
 }
 

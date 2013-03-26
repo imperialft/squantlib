@@ -96,6 +96,12 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   override def tail = scheduledPayoffs.tail
 	
   override def length = scheduledPayoffs.size
+  
+  def filtered(filterFunction:((CalculationPeriod, Payoff, Callability)) => Boolean):ScheduledPayoffs = 
+    ScheduledPayoffs(scheduledPayoffs.filter(filterFunction), valuedate)
+    
+  def mapped(mapFunction:((CalculationPeriod, Payoff, Callability)) => (CalculationPeriod, Payoff, Callability)):ScheduledPayoffs = 
+    ScheduledPayoffs(scheduledPayoffs.map(mapFunction), valuedate)
 	
 //  override def iterator:Iterator[(CalculationPeriod, Payoff, Callability)] = scheduledPayoffs.
 	

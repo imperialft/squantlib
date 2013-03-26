@@ -37,9 +37,9 @@ case class IndexMontecarlo1f(valuedate:qlDate,
 	  
 	private val cachedPrice = scala.collection.mutable.WeakHashMap[String, List[Double]]()
 	
-	def price:List[Double] = price(mcPaths)
+	def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
-	def price(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", mcPrice(paths))
+	def calculatePrice(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", mcPrice(paths))
 	
 	val payoff:List[Payoff] = scheduledPayoffs.payoffs.toList
 	

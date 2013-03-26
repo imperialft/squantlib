@@ -19,7 +19,7 @@ case class OneTimeSwaptionModel(scheduledPayoffs:ScheduledPayoffs, valueDate:qlD
 	  SwaptionFormula.price(exp, mat, fwdRate, strike, vol, discount,false)
 	}
 	
-	def price:List[Double] = scheduledPayoffs.price
+	def calculatePrice:List[Double] = scheduledPayoffs.price
 	
 	override val optionPrice:Option[Double] = Some(-swaptionPrice)
 }

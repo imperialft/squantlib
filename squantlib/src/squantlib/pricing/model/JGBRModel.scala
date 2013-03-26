@@ -10,13 +10,13 @@ import squantlib.model.rates.DiscountCurve
 
 case class JGBRModel(bond:Bond, valueDate:qlDate) extends PricingModel {
   
-	override def price:List[Double] = List.empty
+	override def calculatePrice:List[Double] = List.empty
 	
 	override val scheduledPayoffs:ScheduledPayoffs = ScheduledPayoffs.empty
 	
 	var storedPrice:Option[Double] = None
 	
-	override def discountedPrice(curve:DiscountCurve):Option[Double] = {
+	override def price(curve:DiscountCurve):Option[Double] = {
 	  if (valueDate ge bond.maturity) None
 	  else {
 	    if (storedPrice.isEmpty) {

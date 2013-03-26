@@ -100,8 +100,8 @@ object DB extends Schema {
   private def getAKeyedEntity[A<:KeyedEntity[String]](t:Table[A], id:String):Option[A] = transaction {
       from(t)(p => where(p.id === id) select(p)).headOption }
   
-//  private def weekday(b: TypedExpression[java.util.Date,TDate])
-//  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
+  private def weekday(b: TypedExpression[java.util.Date,TDate])
+  (implicit f: TypedExpressionFactory[Int,TInt]) = f.convert(new FunctionNode("WEEKDAY", Seq(b)))
   
   private implicit def dateToComparableDate(d:JavaDate):comparableDate = new comparableDate(d)
   class comparableDate(val date:JavaDate) extends JavaDate {
@@ -306,6 +306,17 @@ object DB extends Schema {
     
   def getVolatilityFXUnderlyings:Set[String] = 
     getVolatilityUnderlyings.withFilter(_.substring(0, 3) == "FX:").map(_.substring(3))
+    
+  def removeOldVolatilities(nbDays:Int):Boolean = {
+    val voldates = getVolatilityDates.toList.sorted
+    if (voldates.size > nbDays) {
+      val startdate = voldates.takeRight(nbDays).min
+      transaction {volatilities.deleteWhere(b => b.valuedate lt startdate)}
+      true
+    }
+    else false
+  }
+    
   
   /**
    * Returns a Set of Correlation objects identified by a Set of ID.
