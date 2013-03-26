@@ -128,7 +128,7 @@ case class Bond(
 	  
 	  model = market match {
 	    case (Some(mkt)) if mkt.valuedate lt maturity => livePayoffs match {
-	    	case po if !po.isEmpty && !forceModel && po.payoffs.variables.size == 0 => Some(NoModel(po.payoffs, po.schedule))
+	    	case po if !po.isEmpty && !forceModel && po.payoffs.variables.size == 0 => Some(NoModel(po))
 	    	case _ => if (defaultModel == null) None else defaultModel(mkt, this)
 	    }
 	    case _ => None
@@ -252,40 +252,68 @@ case class Bond(
 	
     def spotCashflowDayfrac(dc:DayCounter):List[(Double, Double)] = spotFixedAmount.map{
       case (payday, amount) => (dc.yearFraction(valueDate.get, payday), amount)}
-	
+    
+//--------------
+//	/*	
+//	 * Returns forward value of each coupon (not discounted)
+//	 */
+//	def forwardLegs:Option[List[(CalculationPeriod, Double)]] = 
+//	 if (cpncache.contains("FORWARDLEGS")) Some(cpncache("FORWARDLEGS"))
+//	 else {
+//	  val result = valueDate.flatMap { case d => 
+//	    model match {
+//	      case None => println(id + " : model calibration error"); None
+//	      case Some(mdl) => Some((livePayoffs(d).schedule zip mdl.priceLegs).toList)
+//	    }}
+//	  
+//	    result match {
+//	      case Some(r) if r.forall{case (_, p) => !p.isNaN} => cpncache("FORWARDLEGS") = r
+//	      case _ => {}
+//	    }
+//	    result
+//	 }    
+//	
+//	/*	
+//	 * Returns price legs of the bond. (including accrued interest)
+//	 */
+//	def priceLegs:Option[List[Double]] = (discountCurve, forwardLegs) match {
+//	  case (Some(curve), Some(fwd)) if !fwd.isEmpty => Some(fwd.map{ case (d, p) => d.coefficient(curve) * p})
+//	  case _ => None
+//	}
+//	
+//	def europeanPrice:Option[Double] = model.flatMap(m => {
+//	  val price = if (m.isPricedByLegs) priceLegs.collect{case legs => legs.sum} else m.discountedPrice(discountCurve.get)
+//	  price match {case Some(p) if !p.isNaN => price case _ => None}
+//	})
+//	  
+//	def optionPrice:Option[Double] = model.flatMap{case m => m.optionPrice} 
+//    
+//---------------------------
+    
+    
+    
 	/*	
 	 * Returns forward value of each coupon (not discounted)
 	 */
-	def forwardLegs:Option[List[(CalculationPeriod, Double)]] = if (cpncache.contains("FORWARDLEGS")) Some(cpncache("FORWARDLEGS"))
-	 else {
-	  val result = valueDate.flatMap { case d => 
-	    model match {
-	      case None => println(id + " : model calibration error"); None
-	      case Some(mdl) => Some((livePayoffs(d).schedule zip mdl.priceLegs).toList)
-	    }}
-	  
-	    result match {
-	      case Some(r) if r.forall{case (_, p) => !p.isNaN} => cpncache("FORWARDLEGS") = r
-	      case _ => {}
-	    }
-	    result
+    def forwardLegs:Option[List[(CalculationPeriod, Double)]] = 
+	 if (cpncache.contains("FORWARDLEGS")) Some(cpncache("FORWARDLEGS"))
+	 else model match {
+	   case None => println(id + " : pricing model not found"); None
+	   case Some(mdl) => val fwd = mdl.forwardLegs
+	     if (fwd.forall{case (_, p) => !p.isNaN}) {cpncache("FORWARDLEGS") = fwd; Some(fwd)}
+	     else None
 	 }
-	    
-	
+
 	/*	
 	 * Returns price legs of the bond. (including accrued interest)
 	 */
-	def priceLegs:Option[List[Double]] = (discountCurve, forwardLegs) match {
-	  case (Some(curve), Some(fwd)) if !fwd.isEmpty => Some(fwd.map{ case (d, p) => d.coefficient(curve) * p})
-	  case _ => None
-	}
+	def priceLegs:Option[List[Double]] = model.collect{case m => m.price}
 	
-	def europeanPrice:Option[Double] = model.flatMap(m => {
-	  val price = if (m.isPricedByLegs) priceLegs.collect{case legs => legs.sum} else m.discountedPrice(discountCurve)
-	  price match {case Some(p) if !p.isNaN => price case _ => None}
-	})
+	def europeanPrice:Option[Double] = (model, discountCurve) match {
+	  case (Some(m), Some(c)) => m.discountedPrice(c)
+	  case _ => None}
 	  
-	def optionPrice:Option[Double] = model.flatMap{case m => m.optionValue} 
+	def optionPrice:Option[Double] = model.flatMap{case m => m.optionPrice} 
 	
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
@@ -868,10 +896,6 @@ case class Bond(
 	    case None => {}
 	  }
 	}
-	
-	/*	Returns message returned by pricing model.
-	 */
-	def modelmsg:Unit = model match { case None => {} case Some(m) => m.message.foreach(println) }
 	
 } 
 

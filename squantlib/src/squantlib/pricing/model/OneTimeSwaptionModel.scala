@@ -1,18 +1,15 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod}
+import squantlib.payoff.ScheduledPayoffs
 import squantlib.model.Bond
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.mcengine.SwaptionFormula
 
 
-case class OneTimeSwaptionModel(ipayoffs:Payoffs, ischedule:Schedule, valueDate:qlDate, optionDate:qlDate, maturity:qlDate, strike:Double, curve:DiscountCurve) extends PricingModel {
+case class OneTimeSwaptionModel(scheduledPayoffs:ScheduledPayoffs, valueDate:qlDate, optionDate:qlDate, maturity:qlDate, strike:Double, curve:DiscountCurve) extends PricingModel {
   
-	assert (ipayoffs.size == ischedule.size, "assertion failed : payoffsize=" + ipayoffs.size + " vs schedule.size=" + ischedule.size)
-	assert (ipayoffs.variables.size == 0, "assertion failed : variables=" + ipayoffs.variables.size)
-	
 	val swaptionPrice = {
 	  val exp = (optionDate.serialNumber.toDouble - valueDate.serialNumber.toDouble) / 365.0
 	  val mat = (maturity.serialNumber.toDouble - optionDate.serialNumber.toDouble) / 365.0
@@ -22,22 +19,17 @@ case class OneTimeSwaptionModel(ipayoffs:Payoffs, ischedule:Schedule, valueDate:
 	  SwaptionFormula.price(exp, mat, fwdRate, strike, vol, discount,false)
 	}
 	
-	def price:List[Double] = ipayoffs.price
+	def price:List[Double] = scheduledPayoffs.price
 	
-	override val optionValue:Option[Double] = Some(-swaptionPrice)
-	
-	val periods:List[CalculationPeriod] = ischedule.toList
-	
-	val payoff:List[Payoff] = ipayoffs.toList
+	override val optionPrice:Option[Double] = Some(-swaptionPrice)
 }
-
 
 object OneTimeSwaptionModel {
 	
 	def apply(market:Market, bond:Bond):Option[PricingModel] = {
 	  val valuedate = market.valuedate
-	  val (schedule, payoffs) = bond.livePayoffs(valuedate) match {case p => (p.schedule, p.payoffs)}
-	  if (payoffs.variables.size != 0) { return None }
+	  val scheduledPayoffs = bond.livePayoffs(valuedate)
+	  if (scheduledPayoffs.variables.size != 0) { return None }
 	  
 	  val maturity = bond.maturity
 	  
@@ -51,7 +43,7 @@ object OneTimeSwaptionModel {
 	  val strike = bond.nextRateFrontier.getOrElse(Double.NaN)
 	  if (strike isNaN) {return None}
 	  
-	  Some(OneTimeSwaptionModel(payoffs, schedule, valuedate, nextPayment, maturity, strike, curve))
+	  Some(OneTimeSwaptionModel(scheduledPayoffs, valuedate, nextPayment, maturity, strike, curve))
 	}
 }
 

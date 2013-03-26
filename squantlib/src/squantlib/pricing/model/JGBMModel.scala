@@ -1,7 +1,7 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod}
+import squantlib.payoff.ScheduledPayoffs
 import squantlib.model.Bond
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.database.fixings.Fixings
@@ -9,19 +9,15 @@ import squantlib.model.rates.DiscountCurve
 
 case class JGBMModel(bond:Bond, valueDate:qlDate) extends PricingModel {
   
-	override val isPricedByLegs = false
-	
 	override def price:List[Double] = List.empty
 	
-	override val periods:List[CalculationPeriod] = List.empty
-	
-	override val payoff:List[Payoff] = List.empty
+	override val scheduledPayoffs:ScheduledPayoffs = ScheduledPayoffs.empty
 	
 	var storedPrice:Option[Double] = None
 	
-	override def modelPrice(curve:Option[DiscountCurve]) = Some(discountedPriceLegs(curve).sum)
+	def modelPrice(curve:DiscountCurve) = Some(discountedPriceLegs(curve).unzip._2.sum)
 	
-	override def discountedPrice(curve:Option[DiscountCurve]):Option[Double] = {
+	override def discountedPrice(curve:DiscountCurve):Option[Double] = {
 	  if (valueDate ge bond.maturity) None
 	  else if (valueDate lt bond.issueDate) bond.issuePrice.collect{case p => p / 100.0}
 	  else {

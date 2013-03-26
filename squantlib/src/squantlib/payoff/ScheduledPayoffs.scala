@@ -79,6 +79,8 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
     
   def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
+  
+  def price:List[Double] = payoffs.price
 
   def withValueDate(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(filter{case (cp, _, _) => cp.paymentDate gt vd}, Some(vd))
   
