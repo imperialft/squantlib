@@ -8,7 +8,7 @@ import squantlib.util.DisplayUtils._
 object FormulaParser {
 
   	def parseList(cashflow:String):List[(Map[Set[String], Double], Option[Double], Option[Double])] = 
-	  cashflow.split(",").map(parse).toList
+	  cashflow.split(",").map(parse) (collection.breakOut)
   	
   /** 
    * Parse a linear formula string into sum of named variables

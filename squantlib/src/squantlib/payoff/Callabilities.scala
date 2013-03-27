@@ -1,15 +1,21 @@
 package squantlib.payoff
 
 import scala.collection.LinearSeq
-import scala.annotation.tailrec 
+import scala.annotation.tailrec
+import scala.collection.immutable.ListMap
+import scala.collection.breakOut
 
-case class Callability(bermudan:Boolean, triggers:List[Option[Double]], variables:List[String], bonus:Double) {
+case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Double) {
   
   def isBermuda:Boolean = bermudan
   
-  def isTrigger:Boolean = !triggers.isEmpty && triggers.exists(_.isDefined)
+  def underlyings:List[String] = triggers.keys.toList
   
-  def isEmpty:Boolean = !bermudan && (triggers.isEmpty || triggers.forall(_.isEmpty))
+  def triggerValues(underlyings:List[String]):List[Option[Double]] = underlyings.map(triggers.get)
+  
+  def isTrigger:Boolean = !triggers.isEmpty
+  
+  def isEmpty:Boolean = !bermudan && triggers.isEmpty
   
   override def toString:String = 
     (if (bermudan) "call " else "") + 
@@ -19,20 +25,18 @@ case class Callability(bermudan:Boolean, triggers:List[Option[Double]], variable
 
 object Callability {
   
-  val empty = Callability(false, List.empty, List.empty, 0.0)
+  val empty = Callability(false, ListMap.empty, 0.0)
 }
 
 case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] {
   
-	val variables:Set[String] = calls.map(_.variables).flatten.toSet
+	val underlyings:Set[String] = calls.map(_.underlyings).flatten.toSet
 	
-	val bermudans:List[Boolean] = calls.map(_.bermudan)
+	def bermudans:List[Boolean] = calls.map(_.bermudan)
 	
-	val triggers:List[List[Option[Double]]] = calls.map(_.triggers)
+	def triggers:List[Option[Map[String, Double]]] = calls.map(c => if (c isTrigger) Some(c.triggers) else None)
 	
-	val triggerMap:List[Option[Map[String, Double]]] = calls.map(t => 
-	  (t.variables, t.triggers).zipped.collect{case (k, Some(v)) => (k, v)})
-	  .map(t => if (t.isEmpty) None else Some(t.toMap))
+	def triggerValues(variables:List[String]):List[List[Option[Double]]] = calls.map(_.triggerValues(variables))
 	
 	val bonus:List[Double] = calls.map(_.bonus)
 	
@@ -66,7 +70,7 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	
 	override def toList:List[Callability] = calls
 	
-	def reorder(order:List[Int]) = new Callabilities((0 to calls.size-1).toList.map(i => calls(order(i))))
+	def reorder(order:List[Int]) = new Callabilities((0 to calls.size-1).map(i => calls(order(i))) (collection.breakOut)) 
 	
 }
 
@@ -77,10 +81,17 @@ object Callabilities {
 	
 	def apply(calls:LinearSeq[Callability]):Callabilities = new Callabilities(calls.toList)
 	
-	def apply(bermudans:List[Boolean], triggers:List[List[Option[Double]]], variables:List[String], bonus:List[Double]):Callabilities = 
-	  Callabilities((bermudans, triggers, bonus).zipped.map{case (b, t, n) => Callability(b, t, variables, n)})
+	def apply(bermudans:List[Boolean], triggers:List[List[Option[Double]]], underlyings:List[String], bonus:List[Double]):Callabilities = {
+	  val trigmap = triggers.map(trigs => {
+	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(breakOut); t})
+	  Callabilities((bermudans, trigmap, bonus).zipped.map{case (b, t, n) => Callability(b, t, n)}
+	  )
+	}
 	  
-	def apply(bermudans:List[Boolean], triggers:List[List[Option[Double]]], variables:List[String]):Callabilities = 
-	  Callabilities((bermudans, triggers).zipped.map{case (b, t) => Callability(b, t, variables, 0.0)})
+	def apply(bermudans:List[Boolean], triggers:List[List[Option[Double]]], underlyings:List[String]):Callabilities = {
+	  val trigmap = triggers.map(trigs => {
+	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(breakOut); t})
+	  Callabilities((bermudans, trigmap).zipped.map{case (b, t) => Callability(b, t, 0.0)})
+	}
 	
 }

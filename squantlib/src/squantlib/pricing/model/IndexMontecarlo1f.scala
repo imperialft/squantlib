@@ -21,7 +21,7 @@ case class IndexMontecarlo1f(valuedate:qlDate,
   
 	mcPaths = defaultPaths
 
-	def generatePaths(paths:Int):List[List[Double]] = {
+	override def modelPaths(paths:Int):List[List[Double]] = {
 	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths)
 	  if (mcdates.sameElements(mcYears)) mcpaths
@@ -29,22 +29,17 @@ case class IndexMontecarlo1f(valuedate:qlDate,
 	}
 	 
 	def mcPrice(paths:Int):List[Double] = {
-	  try { generatePaths(paths).map(p => scheduledPayoffs.price(p)).transpose.map(_.sum / paths.toDouble) }
+	  try { modelPaths(paths).map(p => scheduledPayoffs.price(p)).transpose.map(_.sum / paths.toDouble) }
 	  catch {case e => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
-	def modelForward(paths:Int):List[Double] = generatePaths(paths).transpose.map(_.sum).map(_ / paths)
-	  
-	private val cachedPrice = scala.collection.mutable.WeakHashMap[String, List[Double]]()
+	val cachedPrice = scala.collection.mutable.WeakHashMap[String, List[Double]]()
 	
-	def calculatePrice:List[Double] = calculatePrice(mcPaths)
+	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
 	def calculatePrice(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", mcPrice(paths))
 	
-	val payoff:List[Payoff] = scheduledPayoffs.payoffs.toList
-	
-	val periods = scheduledPayoffs.schedule.toList
-	
+	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
 }
 
 
@@ -64,7 +59,7 @@ object IndexMontecarlo1f {
 	  
 	  val scheduledPayoffs = bond.livePayoffs(valuedate)
 	  
-	  if (scheduledPayoffs.variables.size != 1) { 
+	  if (scheduledPayoffs.underlyings.size != 1) { 
 	    println(bond.id + " : payoff not compatible with Index1d model")
 	    return None}
 	  
@@ -72,7 +67,7 @@ object IndexMontecarlo1f {
 	    println(bond.id + " : callability not supported on Index1d model")
 	    return None}
 	  
-	  val variable = scheduledPayoffs.variables.head
+	  val variable = scheduledPayoffs.underlyings.head
 	  
 	  val index = market.getIndex(variable).orNull
 	  

@@ -17,13 +17,6 @@ object Linear1dPayoffSeries {
   
 	def apply(formula:String):List[Linear1dPayoff] = {
 	  val variable = formula.parseJsonString("variable").orNull
-	  
 	  formula.jsonArray("payoff").map(_.parseObject(Linear1dPayoff(variable, _))).flatMap(s => s)
-	  
-//	  formula.jsonNode("payoff") match {
-//	    case Some(n) if n.isArray => n.getElements.map(Linear1dPayoff(variable, _)).toList
-//		case Some(n) if n.isObject => List(Linear1dPayoff(variable, n))
-//		case _ => List.empty
-//	  }
 	}
 }

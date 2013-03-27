@@ -41,8 +41,8 @@ case class DiscreteIndex(
 	
     override def repoRate(days:Double):Double = repo(days)
     
-    val dividendMap:Map[Double, Double] = dividend.map{case (d, v) => (toDays(d), v)}.toMap
+    val dividendMap:Map[Double, Double] = dividend.map{case (d, v) => (toDays(d), v)}
     
-    val dividendMapY:Map[Double, Double] = dividend.map{case (d, v) => (toDays(d)/365.25, v)}.toMap
+    val dividendMapY:Map[Double, Double] = dividend.map{case (d, v) => (toDays(d)/365.25, v)}
     
 } 

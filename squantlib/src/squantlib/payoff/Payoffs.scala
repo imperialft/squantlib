@@ -14,7 +14,7 @@ import com.sun.beans.decoder.FalseElementHandler
 
 case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
   
-	val variables:Set[String] = {
+	val underlyings:Set[String] = {
 	  @tailrec def variablesRec(paylist:List[Payoff], acc:Set[String]):Set[String] = {
 		if (paylist.isEmpty) acc
 		else variablesRec(paylist.tail, paylist.head.variables ++ acc)
@@ -22,7 +22,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  variablesRec(payoffs, Set.empty)
 	}
 	
-	val factors:Int = variables.size
+	val factors:Int = underlyings.size
 	
 	abstract class FixingInterpreter[T, U] {
 	  def price(fixing:T, payoff:Payoff):Double
@@ -176,7 +176,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	}
 	
 	def applyFixing(fixings:List[Option[Double]]) (implicit d:DI):Payoffs = {
-	  if (factors == 1) applyFixing(fixings.map{case None => Map.empty[String, Double] case Some(v) => Map(variables.head -> v)})
+	  if (factors == 1) applyFixing(fixings.map{case None => Map.empty[String, Double] case Some(v) => Map(underlyings.head -> v)})
 	  else this
 	}
 	

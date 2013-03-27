@@ -59,7 +59,7 @@ trait Payoff {
 	def applyFixing(eventDate:qlDate):Payoff = 
 	  if (variables.size == 0) this
 	  else {
-	    val fixings = variables.map(v => Fixings.byDate(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x).toMap
+	    val fixings:Map[String, Double] = variables.map(v => Fixings.byDate(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x) (collection.breakOut)
 	    applyFixing(fixings)
 	  }
 	

@@ -52,28 +52,19 @@ case class BlackScholes1f(
     val ratefor = dates.map(dividendYield)
     val sigma = dates.map(volatility)
     
-    val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
+    val fratedom:List[Double] = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
         (if (stepsize(i) <= smallvalue) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
     
-    val fratefor = ratefor.head :: (for (i <- (1 to steps-1).toList) yield 
+    val fratefor:List[Double] = ratefor.head :: (for (i <- (1 to steps-1).toList) yield 
         (if (stepsize(i) <= smallvalue) 0.0 else (ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
     
-    val fsigma = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
+    val fsigma:List[Double] = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
         (if (stepsize(i) <= smallvalue) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
     
-	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+	val drift:IndexedSeq[Double] = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
 	
 	val sigt = for (i <- 0 to steps-1) yield fsigma(i) * scala.math.sqrt(stepsize(i))
 	
-//	println("ratedom " + ratedom)
-//	println("ratefor " + ratefor)
-//	println("sigma " + sigma)
-//	println("fratedom " + fratedom)
-//	println("fratefor " + fratefor)
-//	println("fsigma " + fsigma)
-//	println("drift " + drift)
-//	println("sigt " + sigt)
-//	
     val genpaths = for (path <- (0 to paths-1).toList) yield {
       var spotprice = spot
       for (d <- (0 to steps-1).toList) yield {

@@ -32,13 +32,13 @@ case class LinearNoExtrapolation(var valuedate : qlDate, values:Map[Double, Doub
     override def interpolation(v : Double) = linearfunction.value(v)
     
     override def shifted(shift:(Double, Double) => Double):LinearNoExtrapolation = 
-      new LinearNoExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k, v))}.toMap)
+      new LinearNoExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k, v))})
 }
 
 
 object LinearNoExtrapolation {
   
 	def apply(valuedate : qlDate, values: => Map[qlPeriod, Double]):LinearNoExtrapolation = 
-	  LinearNoExtrapolation(valuedate, values.map{case (d, v) => (d.days(valuedate).toDouble, v)}.toMap)
+	  LinearNoExtrapolation(valuedate, values.map{case (d, v) => (d.days(valuedate).toDouble, v)})
   
 }

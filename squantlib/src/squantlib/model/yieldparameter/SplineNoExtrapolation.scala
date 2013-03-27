@@ -47,7 +47,7 @@ case class SplineNoExtrapolation(var valuedate : qlDate, values:Map[Double, Doub
     }    
 
     def shifted(shift:(Double, Double) => Double):SplineEExtrapolation = {
-      new SplineEExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k, v))}.toMap, extrapoints)
+      new SplineEExtrapolation(valuedate, values.map{case (k, v) => (k, shift(k, v))}, extrapoints)
     }
     
 }
@@ -56,7 +56,7 @@ case class SplineNoExtrapolation(var valuedate : qlDate, values:Map[Double, Doub
 object SplineNoExtrapolation{
   
   def apply(valuedate:qlDate, values: => Map[qlPeriod, Double], extrapoints:Int):SplineNoExtrapolation = 
-    SplineNoExtrapolation(valuedate, values.map{case (d, v) => (d.days(valuedate).toDouble, v)}.toMap, extrapoints)
+    SplineNoExtrapolation(valuedate, values.map{case (d, v) => (d.days(valuedate).toDouble, v)}, extrapoints)
     
   def apply(valuedate:qlDate, values:Map[qlPeriod, Double]):SplineNoExtrapolation = apply(valuedate, values)
   

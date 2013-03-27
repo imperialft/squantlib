@@ -2,7 +2,7 @@ package squantlib.math.timeseries
 
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.TreeMap
-import org.jquantlib.time.{Date => JDate}
+import org.jquantlib.time.{Date => qlDate}
 
 object Covariance{
   	/**
@@ -20,7 +20,7 @@ object Covariance{
   	/**
 	 * Returns historical covariance between two time series. Size and keys of these time series must match.
 	 */
-	def calculate(quotes1:SortedMap[JDate, Double], quotes2:SortedMap[JDate, Double], nbData:Int):SortedMap[JDate, Double] = {
+	def calculate(quotes1:SortedMap[qlDate, Double], quotes2:SortedMap[qlDate, Double], nbData:Int):SortedMap[qlDate, Double] = {
 		require (quotes1.size == quotes2.size && quotes1.forall(q => quotes2.keySet contains q._1))
 		val keys = quotes1.keySet.toIndexedSeq
 		TreeMap((nbData to quotes1.size).map( i => { 

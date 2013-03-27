@@ -19,7 +19,7 @@ case class OneTimeSwaptionModel(scheduledPayoffs:ScheduledPayoffs, valueDate:qlD
 	  SwaptionFormula.price(exp, mat, fwdRate, strike, vol, discount,false)
 	}
 	
-	def calculatePrice:List[Double] = scheduledPayoffs.price
+	override def calculatePrice:List[Double] = scheduledPayoffs.price
 	
 	override val optionPrice:Option[Double] = Some(-swaptionPrice)
 }
@@ -29,7 +29,7 @@ object OneTimeSwaptionModel {
 	def apply(market:Market, bond:Bond):Option[PricingModel] = {
 	  val valuedate = market.valuedate
 	  val scheduledPayoffs = bond.livePayoffs(valuedate)
-	  if (scheduledPayoffs.variables.size != 0) { return None }
+	  if (scheduledPayoffs.underlyings.size != 0) { return None }
 	  
 	  val maturity = bond.maturity
 	  

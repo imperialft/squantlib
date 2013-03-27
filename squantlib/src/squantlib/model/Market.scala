@@ -1,7 +1,7 @@
 package squantlib.model
 
 import scala.collection.mutable.{HashMap, WeakHashMap}
-import scala.collection.JavaConversions
+import scala.collection.breakOut
 import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
 import squantlib.model.fx._
@@ -225,7 +225,7 @@ class Market(
 	def getSwapPoint(ccy:String, maturity:qlPeriod):Option[Double] = 
 	  getFXCurve(ccy).flatMap(c => try {Some(c.swappoint(maturity))} catch { case _ => None })
 	
-	def getFixings(params:Set[String]):Map[String, Double] = params.map(p => (p, getFixing(p))).collect{case (n, Some(p)) => (n, p)}.toMap
+	def getFixings(params:Set[String]):Map[String, Double] = params.map(p => (p, getFixing(p))).collect{case (n, Some(p)) => (n, p)} (breakOut)
 	
 	def getFixing(param:String):Option[Double] = 
 	  if (param == null) None
@@ -265,9 +265,9 @@ class Market(
 	  			      (k, (d:Double, r:Double) => r + v * mult * d / 365.0 * fx * zcf(d) * math.exp{rvector(d) * d/365.0})
 	  			  }}
 	  
-	  val newcurve = curves.map{case (c, v) => 
+	  val newcurve:Map[String, DiscountableCurve] = curves.map{case (c, v) => 
 	    if (equivshift contains c) (c, v.shiftRate(equivshift(c))) 
-	    else (c, v)}.toMap
+	    else (c, v)} 
 	    
 	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, fixings)
 	}
@@ -280,9 +280,9 @@ class Market(
 	def fxShifted(currency:String, shiftAmount:Double):Market = fxShifted(Map(currency -> shiftAmount))
 	
 	def fxShifted(fxShift:Map[String, Double]):Market = {
-	  val newcurve = curves.map{case (c, v) => 
+	  val newcurve:Map[String, DiscountableCurve] = curves.map{case (c, v) => 
 	    if (fxShift contains c) (c, v.multFX(fxShift(c))) 
-	    else (c, v)}.toMap
+	    else (c, v)}
 	    
 	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, fixings)
 	}
@@ -300,7 +300,7 @@ class Market(
 	      paramset, 
 	      curves, 
 	      cdscurves, 
-	      fxInitializers.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}.toMap, 
+	      fxInitializers.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}, 
 	      indexInitializers, 
 	      fixings)
 	
@@ -379,7 +379,7 @@ object Market {
 	  
 	  val fixingParams = Set("Fixing", "Index", "Equity")
 	  val fixingset:Map[String, Double] = ratefxparams.withFilter(p => fixingParams contains p.instrument)
-	  	.map(p => (p.asset + (if (p.maturity != null) p.maturity else "").trim, p.value)).toMap
+	  	.map(p => (p.asset + (if (p.maturity != null) p.maturity else "").trim, p.value)) (breakOut)
 	  
 	  if (discountcurves.size == 0 || cdscurves.size == 0) {
 	    println("Error creating market from " + discountcurves.size + " discount curve + " + cdscurves.size + " cds curves")
@@ -387,8 +387,8 @@ object Market {
 	  
 	  else Some(new Market(
 		    paramset,
-		    discountcurves.map(c => (c.currency.code, c)).toMap, 
-		    cdscurves.map(c => (c.issuerid, c)).toMap, 
+		    discountcurves.map(c => (c.currency.code, c)) (breakOut), 
+		    cdscurves.map(c => (c.issuerid, c)) (breakOut), 
 		    fxparams,
 		    indices, 
 		    fixingset))

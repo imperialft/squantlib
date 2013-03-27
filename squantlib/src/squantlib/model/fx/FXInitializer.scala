@@ -45,6 +45,6 @@ object FXInitializer {
 	  }).collect{case (name, Some(param)) => (name, param)}
 	
 	private def createMap(params:Set[RateFXParameter]):Map[qlPeriod, Double] = 
-	  params.map(p => (new qlPeriod(p.maturity), p.value)).toMap
+	  params.map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
 }
 

@@ -46,7 +46,7 @@ case class IndexATMContinuous(
     if (!params.contains(yieldid) || !params.contains(spotid)) {return None}
     
     val valuedate = market.valuedate
-    val yldparam = params(yieldid).map(p => (new qlPeriod(p.maturity), p.value)).toMap
+    val yldparam:Map[qlPeriod, Double] = params(yieldid).map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
     val dividend = DividendCurve(valuedate, yldparam).orNull
     if (dividend == null) {return None}
     
@@ -57,7 +57,7 @@ case class IndexATMContinuous(
     
     val repo = (params.get(repoid) match {
       case Some(rs) => 
-        val repoparam = rs.map(p => (new qlPeriod(p.maturity), p.value)).toMap
+        val repoparam:Map[qlPeriod, Double] = rs.map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
         RepoCurve(valuedate, repoparam)
       case None => None
     }).getOrElse(RepoCurve.zeroCurve(valuedate))

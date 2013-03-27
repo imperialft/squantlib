@@ -34,7 +34,7 @@ object CDSCurve{
   	  cdsgroups
   	  .withFilter{case ((_, ccy), _) => Currencies.contains(ccy) }
   	  .map{ case ((issuer, ccy), v) => 
-  	    val values = v.map(p => (new qlPeriod(p.maturity), p.spread / 10000.0)).toMap
+  	    val values:Map[qlPeriod, Double] = v.map(p => (new qlPeriod(p.maturity), p.spread / 10000.0)) (collection.breakOut)
   	    val cdscurve = curveConstructor(valuedate, values)
   	    ((issuer, ccy), new CDSCurve(cdscurve, Currencies(ccy).get, issuer))
   	  	}

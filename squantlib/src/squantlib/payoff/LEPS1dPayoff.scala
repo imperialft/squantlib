@@ -140,13 +140,6 @@ object LEPS1dPayoff {
 	
 	def getLEPScomponents(node:JsonNode):List[LEPS1dComponent] = node.parseList.map(LEPS1dComponent(_))
 	  
-//	def getLEPScomponents(node:JsonNode):List[LEPS1dComponent] = node match {
-//	  case null => List.empty
-//	  case n if n.isArray => n.getElements.map(LEPS1dComponent(_)).toList
-//  	  case n if n.isObject => List(LEPS1dComponent(n))
-//  	  case _ => List.empty
-//	}
-
 }
 
 

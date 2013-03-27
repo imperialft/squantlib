@@ -41,7 +41,7 @@ extends DiscountableCurve {
 	   */
 	  val maxmaturity = qlPeriod.months(nds.rate.maxperiod, valuedate).toInt
 	  
-	  val zcmonths:Seq[Int] = (for (m <- ((0 to maxmaturity by fixperiod).toList)) yield m).sorted
+	  val zcmonths:List[Int] = (for (m <- ((0 to maxmaturity by fixperiod).toList)) yield m).sorted
 	  
 	  val zcperiods = TreeMap(zcmonths.map(m => (m, new qlPeriod(m, TimeUnit.Months))) : _*) 
 	  

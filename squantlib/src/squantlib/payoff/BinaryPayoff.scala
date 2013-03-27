@@ -22,7 +22,7 @@ extends Payoff {
   
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
-	    Some((0 to binaryVariables.size - 1).toList.map(i => fixings(binaryVariables(i))))
+	    Some((0 to binaryVariables.size - 1).map(i => fixings(binaryVariables(i)))(collection.breakOut))
 	  else None
 	    
 	override def price(fixings:Map[String, Double]) = 
@@ -71,7 +71,7 @@ extends Payoff {
 	}	
 	    
 	override def display(isRedemption:Boolean):String = {
-	  val varnames = binaryVariables.map(v => (v, UnderlyingInfo.nameJpn(v))).toMap
+	  val varnames:Map[String, String] = binaryVariables.map(v => (v, UnderlyingInfo.nameJpn(v))) (collection.breakOut)
 	  val dispValue = (v:String, s:Double) => UnderlyingInfo.displayValue(v, s)
 	  
 	  if (isRedemption)
@@ -103,9 +103,9 @@ object BinaryPayoff {
 	      val amount = n.parseDouble("amount").getOrElse(Double.NaN)
 	      if (n.get("strike") == null) (amount, None)
 	      else (amount, Some(n.get("strike").map(s => s.parseDouble.getOrElse(Double.NaN)).toList))
-	    })
+	    }) (collection.breakOut)
 	    case _ => List.empty
-	  }).toList
+	  })
 	  
 	  val description:String = node.parseJsonString("description").orNull
 	  BinaryPayoff(variable, payoff, description)

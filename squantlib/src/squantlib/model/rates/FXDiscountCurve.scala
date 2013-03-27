@@ -6,7 +6,7 @@ import org.jquantlib.daycounters.Thirty360
 import squantlib.database.schemadefinitions.RateFXParameter
 import squantlib.model.rates.convention.RateConvention
 import scala.annotation.tailrec
-
+import scala.collection.breakOut
 
 case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
   
@@ -20,7 +20,7 @@ case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
 	val maxmaturity = qlPeriod.months(swappoint.points.maxperiod, valuedate).toInt
 	val zcfreq = 3
 	val zcmonths = (for (m <- 0 to maxmaturity if m % zcfreq == 0) yield m).sorted
-	val zcperiods = zcmonths.map(m => (m, new qlPeriod(m, TimeUnit.Months))).toMap
+	val zcperiods:Map[Int, qlPeriod] = zcmonths.map(m => (m, new qlPeriod(m, TimeUnit.Months))) (breakOut)
 	val sortedperiods = zcperiods.toList.sortBy(_._1)
 	val swapptperiods = zcperiods.filter(_._1 > 0)
 	  
@@ -40,8 +40,8 @@ case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
 	def getZC(refincurve:RateCurve, refinZC:DiscountCurve) : DiscountCurve = {
 	  require(refincurve != null && refinZC != null && refincurve.currency == swappoint.pivotcurrency)
 	  
-	 val refinZCvector = swapptperiods.mapValues(refinZC.zc(_)).toMap
-	 val fwdfxvector = swapptperiods.mapValues(swappoint.value(_, fx)).toMap
+	 val refinZCvector:Map[Int, Double] = swapptperiods.mapValues(refinZC.zc(_))
+	 val fwdfxvector = swapptperiods.mapValues(swappoint.value(_, fx))
 		  
 	  @tailrec def zcRec(dates:List[(Int, qlPeriod)], zc:List[Double]):List[Double] = {
 	    if (dates.isEmpty) zc
@@ -52,7 +52,7 @@ case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
 	  }
 	    
 	  val zcvalues = zcRec(sortedperiods, List.empty)
-	  val zc:Map[qlPeriod, Double] = (sortedperiods.unzip._2 zip zcvalues).toMap
+	  val zc:Map[qlPeriod, Double] = (sortedperiods.unzip._2 zip zcvalues) (breakOut)
 	  val ZCvector = SplineEExtrapolation(valuedate, zc, 1)
 	  
 	  DiscountCurve(currency, ZCvector, fx)

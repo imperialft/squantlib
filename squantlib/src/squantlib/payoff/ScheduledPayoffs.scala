@@ -13,7 +13,7 @@ import org.jquantlib.daycounters.Actual365Fixed
 case class ScheduledPayoffs(
     scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],
     valuedate:Option[qlDate] = None) 
-extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
+    extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   
   lazy val (schedule, payoffs, calls) = scheduledPayoffs.unzip3  match {
     case (s, p, c) => (Schedule(s), Payoffs(p), Callabilities(c))
@@ -23,7 +23,7 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   
   lazy val redemption = payoffs.last
 
-  val variables:Set[String] = payoffs.variables
+  val underlyings:Set[String] = payoffs.underlyings ++ calls.underlyings
   
   lazy val bonusCoeff = schedule.map(_.dayCount)
   
@@ -59,14 +59,15 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
     
   def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = 
     if (calls.isTrigger) {
-      val trig = calls.toList.map(_.triggers.headOption.getOrElse(None))
+      val trig:List[Option[Double]] = calls.toList.map(_.triggers.values.headOption)
       payoffs.price(priceMapper(fixings), trig, bonusRate)
     } 
     else payoffs.price(priceMapper(fixings))
 
-  def price(fixings:List[Map[String, Double]]):List[Double] = 
-    if (calls.isTrigger) payoffs.price(priceMapper(fixings), calls.triggerMap, bonusRate)
+  def price(fixings:List[Map[String, Double]]):List[Double] = {
+    if (calls.isTrigger) payoffs.price(priceMapper(fixings), calls.triggers, bonusRate)
     else payoffs.price(priceMapper(fixings))
+    }
     
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]]):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, bonusRate)
@@ -103,8 +104,8 @@ extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   def mapped(mapFunction:((CalculationPeriod, Payoff, Callability)) => (CalculationPeriod, Payoff, Callability)):ScheduledPayoffs = 
     ScheduledPayoffs(scheduledPayoffs.map(mapFunction), valuedate)
 	
-//  override def iterator:Iterator[(CalculationPeriod, Payoff, Callability)] = scheduledPayoffs.
-	
+  def shifted(days:Int):ScheduledPayoffs = ScheduledPayoffs(schedule.shifted(days), payoffs, calls)
+    
   override def toList:List[(CalculationPeriod, Payoff, Callability)] = scheduledPayoffs.toList
   
   }
@@ -114,11 +115,15 @@ object ScheduledPayoffs {
 
   def empty:ScheduledPayoffs = ScheduledPayoffs(Schedule.empty, Payoffs.empty, Callabilities.empty)
   
-  def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = 
+  def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
+    require (schedule.size == payoffs.size && schedule.size == calls.size)
     ScheduledPayoffs((schedule, payoffs, calls).zip)
+  }
     
-  def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = 
+  def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
+    require (schedule.size == payoffs.size && schedule.size == calls.size)
     ScheduledPayoffs(schedule.sortWith(payoffs, calls))
+  }
   
 //  def apply(payoffschedule:LinearSeq[(CalculationPeriod, Payoff, Callability)]):ScheduledPayoffs = 
 //    payoffschedule.unzip3 match { case (s, po, c) => ScheduledPayoffs(Schedule(s), Payoffs(po), Callabilities(c))}

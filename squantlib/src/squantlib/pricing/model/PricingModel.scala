@@ -12,15 +12,22 @@ trait PricingModel {
    * Number of Montecarlo paths
    */
   var mcPaths:Int = 100000
+  
+  /*	
+   * Returns montecarlo paths
+   */
+  def modelPaths(paths:Int = mcPaths):List[List[Double]] = List.empty
+  
+  /*	
+   * Returns forward underlyings
+   */
+  def modelForward(paths:Int = mcPaths):List[Double] = List.empty
+  
 
   /*	
    * Target payoffs
    */
   val scheduledPayoffs:ScheduledPayoffs
-  
-  def schedule:Schedule = scheduledPayoffs.schedule
-	
-  def payoffs:Payoffs = scheduledPayoffs.payoffs
   
   /*	
    * Pricing function to be overridden. Result is annual rate without discount.
@@ -30,7 +37,7 @@ trait PricingModel {
   /*	
    * Returns forward value of each coupon. Result is annual rate without discount.
    */
-  def forwardLegs:List[(CalculationPeriod, Double)] = schedule.toList zip calculatePrice
+  def forwardLegs:List[(CalculationPeriod, Double)] = scheduledPayoffs.schedule.toList zip calculatePrice
 
   /*	
    * Returns price per payment legs.

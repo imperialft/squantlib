@@ -28,7 +28,7 @@ case class GeneralPayoff(formula:Map[Set[String], Double], floor:Option[Double],
 	  
 	  var rate = formula.map{
       	case (vs, c) if vs.isEmpty => c
-      	case (vs, c) => vs.toList.map(x => fixings(x)).product * c}.sum
+      	case (vs, c) => vs.toList.map(fixings).product * c}.sum
     
       if (floor.isDefined) rate = rate.max(floor.get)
       if (cap.isDefined) rate = rate.min(cap.get)

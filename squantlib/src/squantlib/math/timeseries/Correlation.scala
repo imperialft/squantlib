@@ -1,8 +1,7 @@
 package squantlib.math.timeseries
 
 import scala.collection.SortedMap
-//import scala.collection.immutable.TreeMap
-import org.jquantlib.time.{ Date => JDate }
+import org.jquantlib.time.{ Date => qlDate }
 
 object Correlation {
   
@@ -20,7 +19,7 @@ object Correlation {
 	/**
 	 * Returns historical correlation between two series of log returns over given days for the data period. Size and keys of these time series must match.
 	 */
-    def calculate(quotes1:SortedMap[JDate, Double], quotes2:SortedMap[JDate, Double], nbData:Int) : SortedMap[JDate, Double] = {
+    def calculate(quotes1:SortedMap[qlDate, Double], quotes2:SortedMap[qlDate, Double], nbData:Int) : SortedMap[qlDate, Double] = {
 		require (quotes1.size == quotes2.size && quotes1.forall(q => quotes2.keySet contains q._1))
 		val logset1 = LogReturn.calculate(quotes1)
 		val logset2 = LogReturn.calculate(quotes2)
@@ -40,6 +39,6 @@ object Correlation {
 	/**
 	 * Returns historical correlation between two series of log returns for the data period. Size and keys of these time series must match.
 	 */
-    def calculate(quotes1:SortedMap[JDate, Double], quotes2:SortedMap[JDate, Double]) : SortedMap[JDate, Double] = calculate(quotes1, quotes2, quotes1.size)
+    def calculate(quotes1:SortedMap[qlDate, Double], quotes2:SortedMap[qlDate, Double]) : SortedMap[qlDate, Double] = calculate(quotes1, quotes2, quotes1.size)
 }
 

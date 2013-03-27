@@ -9,7 +9,7 @@ import squantlib.model.rates.DiscountCurve
 
 case class NoModel(scheduledPayoffs:ScheduledPayoffs) extends PricingModel {
   
-	def calculatePrice:List[Double] = scheduledPayoffs.price
+	override def calculatePrice:List[Double] = scheduledPayoffs.price
 	
 }
 
@@ -18,7 +18,7 @@ object NoModel {
 	
 	def apply(market:Market, bond:Bond):Option[NoModel] = {
 	  val scheduledPayoffs = bond.livePayoffs(market.valuedate) 
-	  if (scheduledPayoffs.variables.size != 0) { return None }
+	  if (scheduledPayoffs.underlyings.size != 0) { return None }
 	  Some(new NoModel(scheduledPayoffs))
 	}
 }

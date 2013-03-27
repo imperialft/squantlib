@@ -19,7 +19,7 @@ object UnderlyingInfo {
 	
 	def jsonNames(jsonstring:String):String = jsonstring.jsonArray match {
 	  case s if s.isEmpty => null
-	  case s => val vmap = s.map(p => (p.asText, name(p.asText))).toMap
+	  case s => val vmap:Map[String, String] = s.map(p => (p.asText, name(p.asText)))(collection.breakOut)
 	  			jsonString(vmap)
 	}
 	
@@ -30,12 +30,6 @@ object UnderlyingInfo {
 	}
 	
 	def jsonJpnNames(jsonstring:String):List[String] = jsonstring.parseJsonStringList.map(s => nameJpn(s.orNull))
-	
-//	def jsonJpnNames(jsonstring:String):Array[String] = jsonstring.jsonArray match {
-//	  case s if s.isEmpty => Array.empty
-//	  case s => s.map(p => nameJpn(p.getTextValue))
-//	}
-	
 	
 	def displayValue(id:String, d:Double):String = apply(id) match {
 	  case Some(v) => v.display(d)

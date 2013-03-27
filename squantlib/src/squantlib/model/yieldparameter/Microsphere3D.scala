@@ -29,7 +29,7 @@ case class Microsphere3D(var valuedate:qlDate, values:Map[(Double, Double), Doub
     }    
 
     def shifted(shift:(Double, Double, Double) => Double):Microsphere3D = {
-      new Microsphere3D(valuedate, values.map{case ((k1, k2), v) => ((k1, k2), shift(k1, k2, v))}.toMap)
+      new Microsphere3D(valuedate, values.map{case ((k1, k2), v) => ((k1, k2), shift(k1, k2, v))})
     }
     
 }
@@ -38,7 +38,7 @@ case class Microsphere3D(var valuedate:qlDate, values:Map[(Double, Double), Doub
 object Microsphere3D{
   
   def apply(valuedate:qlDate, values: => Map[(qlPeriod, qlPeriod), Double]):Microsphere3D = 
-    new Microsphere3D(valuedate, values.map{case ((d1, d2), v) => ((d1.days(valuedate).toDouble, d2.days(valuedate).toDouble), v)}.toMap)
+    new Microsphere3D(valuedate, values.map{case ((d1, d2), v) => ((d1.days(valuedate).toDouble, d2.days(valuedate).toDouble), v)})
     
 //  def apply(valuedate:qlDate, values:Map[(qlPeriod, qlPeriod), Double]):Microsphere3D = apply(valuedate, values)
   

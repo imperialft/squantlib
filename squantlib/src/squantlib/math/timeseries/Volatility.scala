@@ -2,10 +2,8 @@ package squantlib.math.timeseries
 
 import scala.collection.JavaConversions._
 import scala.collection.SortedMap
-import scala.collection.immutable.TreeMap
+import org.jquantlib.time.{Date => qlDate, Period => qlPeriod }
 
-import org.jquantlib.time.{TimeSeries, Date => qlDate, Period => qlPeriod }
-import java.lang.{ Double => JDouble }
 
 object Volatility {
 	val defaultannualdays = 260

@@ -29,9 +29,9 @@ case class PutDIAmericanPayoff(
   
 	val variables = putVariables.toSet
 	
-	val strikeMap = (putVariables zip strike).toMap
+	val strikeMap:Map[String, Double] = (putVariables zip strike) (collection.breakOut)
  	
-	val triggerMap = (putVariables zip trigger).toMap
+	val triggerMap:Map[String, Double] = (putVariables zip trigger) (collection.breakOut)
 	
 	var mcPeriod6m = 30
 	var mcPeriod1y = 90
@@ -41,10 +41,10 @@ case class PutDIAmericanPayoff(
 	  val basemod = refEnd.serialNumber % mcPeriod6m
 	  val start = refStart.serialNumber
 	  val end = refEnd.serialNumber
-	  val dates = (for (i <- (start to end) 
+	  val dates:List[qlDate] = (for (i <- (start to end) 
 	      if (i >= end - 180 && i % mcPeriod6m == basemod)
 	      || (i >= end - 360 && i % mcPeriod1y == basemod)
-	      || (i % mcPeriodbefore == basemod)) yield new qlDate(i)).toList
+	      || (i % mcPeriodbefore == basemod)) yield new qlDate(i)) (collection.breakOut)
 	  if (dates.head == refStart) dates else refStart :: dates
 	}
 	

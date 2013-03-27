@@ -66,6 +66,7 @@ object JsonUtils {
 		    case n if n.isTextual => n.parseString
 		    case n => n.parseString
 		  })).collect{case (a, Some(b)) => (a, b)}.toMap
+		  
 	  def parseValueFields(name:String):Map[String, Any] = if (hasName(name)) node.get(name).parseValueFields else Map.empty
 	  
 	  def parseDoubleFields:Map[String, Double] = if (node == null) Map.empty
