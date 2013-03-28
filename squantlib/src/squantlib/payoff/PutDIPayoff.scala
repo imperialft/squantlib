@@ -43,7 +43,7 @@ case class PutDIPayoff(
 	  else amount * math.min(1.00, fixing / strike.head)
 	 
 	override def toString =
-	  amount.asPercent + " [" + trigger.mkString(",") + "] " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "]"
+	  amount.asPercent + " [" + trigger.mkString(",") + "] " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])"
 	
 	override def price = Double.NaN
 	

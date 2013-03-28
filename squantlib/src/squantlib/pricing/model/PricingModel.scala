@@ -46,13 +46,22 @@ trait PricingModel {
 	
   /*
    * Returns present value of the future cashflow.
-   * Override this function if the price is different from model calculated price. (eg. published price)
+   * Override this function if the price is different from model calculated price.
    */
   def price(curve:DiscountCurve):Option[Double] = {
     val result = discountedPriceLegs(curve).unzip._2.sum + optionPrice.getOrElse(0.0)
     if (result.isNaN) None else Some(result)
   }
   
+  /*
+   * Returns present value of the future cashflow.
+   * Override this function if the price is different from model calculated price, and where discount curve is not necessary (eg. published price)
+   */
+  def price:Option[Double] = None
+  
+  /*
+   * Price used for greeks calculation.
+   */
   def modelPrice(curve:DiscountCurve):Option[Double] = price(curve)
   
   /*

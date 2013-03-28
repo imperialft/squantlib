@@ -23,6 +23,7 @@ case class IndexMontecarlo1f(valuedate:qlDate,
 
 	override def modelPaths(paths:Int):List[List[Double]] = {
 	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
+	  if (mcYears.exists(_ < 0.0)) {println("MC paths : cannot compute past dates"); List.empty}
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths)
 	  if (mcdates.sameElements(mcYears)) mcpaths
 	  else { println("invalid mc dates"); List.empty}

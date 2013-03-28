@@ -19,6 +19,8 @@ case class BinaryPayoff(binaryVariables:List[String], payoff:List[(Double, Optio
 extends Payoff {
   
 	val variables = binaryVariables.toSet
+	
+	val isInvalid:Boolean = payoff.collect{case (v, Some(lst)) => lst}.flatten.exists(_.isNaN)
   
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
@@ -26,7 +28,7 @@ extends Payoff {
 	  else None
 	    
 	override def price(fixings:Map[String, Double]) = 
-	  if (payoff.isEmpty) Double.NaN
+	  if (payoff.isEmpty || isInvalid) Double.NaN
 	  else getFixings(fixings) match {
 	    case None => Double.NaN
 	    case Some(fixValues) => 
@@ -37,7 +39,7 @@ extends Payoff {
 	  }
 	  
 	override def price(fixing:Double) =
-	  if (payoff.isEmpty || variables.size != 1) Double.NaN
+	  if (payoff.isEmpty || isInvalid || variables.size != 1) Double.NaN
 	  else payoff.map{
 	    case (v, None) => v 
 	    case (v, Some(l)) if fixing > l.head => v
@@ -46,8 +48,8 @@ extends Payoff {
 	override def toString =
 	  if (payoff.isEmpty) description
 	  else payoff.map{
-	      case (v, None) => v.asPercent + " [Const]"
-	      case (v, Some(s)) => v.asPercent + " [" + s.mkString(",") + "]"
+	      case (v, None) => v.asPercent
+	      case (v, Some(s)) => " [" + s.map(_.asDouble).mkString(",") + "]" + v.asPercent
 	    }.mkString(" ")
 	
 	override def price = Double.NaN

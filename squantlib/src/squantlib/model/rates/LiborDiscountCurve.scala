@@ -236,7 +236,7 @@ object LiborDiscountCurve {
   		  
   		  LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, fxvalue, swaptionCurve)
   		  
-  	  	}.toSet
+  	  	} (collection.breakOut)
   	}
 	
 	def apply(cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, vol:Option[RateVolatility]):Set[LiborDiscountCurve] = 

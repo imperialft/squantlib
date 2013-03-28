@@ -41,9 +41,9 @@ case class Linear1dPayoff(variable:String, payoff:Linear1dFormula, description:S
 	      case Linear1dFormula(None, Some(const), _, _, _) => "額面 " + const.asPercent
 	      case Linear1dFormula(Some(coeff), Some(const), _, _, _) => "額面 に対して " + coeff.asDouble + " * " + varname + (if(const < 0) " - " else " + ") + math.abs(const).asPercent
 	    }) + sys.props("line.separator") + " " + (payoff match {
-	      case Linear1dFormula(_, _, Some(c), None, _) => "ただし" + c.asPercent + "を上回りません。"
-	      case Linear1dFormula(_, _, None, Some(f), _) => "ただし" + f.asPercent + "を下回りません。"
-	      case Linear1dFormula(_, _, Some(c), Some(f), _) => "ただし" + c.asPercent + "を上回らず、" + f.asPercent + "を下回りません。"
+	      case Linear1dFormula(_, _, Some(f), None, _) => "ただし" + f.asPercent + "を下回りません。"
+	      case Linear1dFormula(_, _, None, Some(c), _) => "ただし" + c.asPercent + "を上回りません。"
+	      case Linear1dFormula(_, _, Some(f), Some(c), _) => "ただし" + c.asPercent + "を上回らず、" + f.asPercent + "を下回りません。"
 	      case Linear1dFormula(_, _, None, None, _) => ""
 	    })
 	  }
@@ -57,9 +57,9 @@ case class Linear1dPayoff(variable:String, payoff:Linear1dFormula, description:S
 	      case Linear1dFormula(None, Some(const), _, _, _) => const.asPercent
 	      case Linear1dFormula(Some(coeff), Some(const), _, _, _) => coeff.asDouble + " * " + varname + (if(const < 0) " - " else " + ") + math.abs(const).asPercent
 	    }) + " （年率）" + sys.props("line.separator") + " " + (payoff match {
-	      case Linear1dFormula(_, _, Some(c), None, _) => "ただし" + c.asPercent + "を上回りません。"
-	      case Linear1dFormula(_, _, None, Some(f), _) => "ただし" + f.asPercent + "を下回りません。"
-	      case Linear1dFormula(_, _, Some(c), Some(f), _) => "ただし" + c.asPercent + "を上回らず、" + f.asPercent + "を下回りません。"
+	      case Linear1dFormula(_, _, Some(f), None, _) => "ただし" + f.asPercent + "を下回りません。"
+	      case Linear1dFormula(_, _, None, Some(c), _) => "ただし" + c.asPercent + "を上回りません。"
+	      case Linear1dFormula(_, _, Some(f), Some(c), _) => "ただし" + c.asPercent + "を上回らず、" + f.asPercent + "を下回りません。"
 	      case Linear1dFormula(_, _, None, None, _) => ""
 	    })
 	  }
@@ -86,18 +86,10 @@ object Linear1dPayoff {
   
 	def apply(formula:String):Linear1dPayoff = {
 	  val variable:String = formula.parseJsonString("variable").orNull
-	  
 	  val payoff:Linear1dFormula = formula.parseJsonObject("payoff", Linear1dFormula(_)).orNull
-	  
-//	  val payoff:Linear1dFormula = formula.jsonNode("payoff") match {
-//		  case Some(n) => Linear1dFormula(n)
-//		  case None => null
-//		} 
-	  
 	  Linear1dPayoff(variable, payoff, null)
 	}
 	
-//	def apply(variable:String, payoff:JsonNode):Linear1dPayoff = Linear1dPayoff(variable, Linear1dFormula(payoff), null)
 	def apply(variable:String, payoff:Map[String, Any]):Linear1dPayoff = Linear1dPayoff(variable, Linear1dFormula(payoff), null)
 	
 	
@@ -126,16 +118,6 @@ case class Linear1dFormula (val coeff:Option[Double], val constant:Option[Double
 }
 
 object Linear1dFormula {
-  
-//	def apply(subnode:JsonNode):Linear1dFormula = {
-//		val minValue:Option[Double] = subnode.parseDouble("min")
-//		val maxValue:Option[Double] = subnode.parseDouble("max")
-//		val coeff:Option[Double] = Some(subnode.parseDouble("mult").getOrElse(1.0))
-//		val constant:Option[Double] = subnode.parseDouble("add")
-//		val description:String = subnode.parseString("description").orNull
-//		Linear1dFormula(coeff, constant, minValue, maxValue, description)
-//	}
-	
 	def apply(parameters:Map[String, Any]):Linear1dFormula = {
 		val minValue:Option[Double] = parameters.getDouble("min")
 		val maxValue:Option[Double] = parameters.getDouble("max")

@@ -31,14 +31,19 @@ case class ScheduledPayoffs(
   
   def amountToRate(amount:List[Double]) = (amount, bonusCoeff).zipped.map(_ / _)
   
+  def currentPayoffs(vd:qlDate):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd)}.map(_._2) (collection.breakOut)
+  
+  def currentCoupons(vd:qlDate):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd) && !d.isAbsolute}.map(_._2) (collection.breakOut)
+  
   lazy val bonusRate = amountToRate(bonusAmount)
   
   val eventDateLegs:List[List[qlDate]] = scheduledPayoffs.map{
-    case (d, p, t) if valuedate.isDefined && (d.eventDate le valuedate.get) => List.empty
     case (d, p, t) if p.variables.isEmpty && t.isEmpty => List.empty
+    case (d, p, t) if p.variables.isEmpty && valuedate.isDefined => List(p.eventDates(d).last).filter(_ gt valuedate.get)
     case (d, p, t) if p.variables.isEmpty => List(p.eventDates(d).last)
+    case (d, p, t) if valuedate.isDefined => p.eventDates(d).filter(_ gt valuedate.get)
     case (d, p, t) => p.eventDates(d)
-    }.toList
+    } (collection.breakOut)
   
   val eventDates:List[qlDate] = eventDateLegs.flatten.toSet.toList.sorted
   
@@ -124,8 +129,5 @@ object ScheduledPayoffs {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     ScheduledPayoffs(schedule.sortWith(payoffs, calls))
   }
-  
-//  def apply(payoffschedule:LinearSeq[(CalculationPeriod, Payoff, Callability)]):ScheduledPayoffs = 
-//    payoffschedule.unzip3 match { case (s, po, c) => ScheduledPayoffs(Schedule(s), Payoffs(po), Callabilities(c))}
   
 }

@@ -264,6 +264,7 @@ case class Bond(
 	 */
 	def dirtyPrice:Option[Double] = (model, discountCurve) match {
 	  case (Some(m), Some(c)) => m.price(c)
+	  case (Some(m), None) => m.price
 	  case _ => None}
 	  
 	/*	

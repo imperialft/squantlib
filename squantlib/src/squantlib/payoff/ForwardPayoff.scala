@@ -75,11 +75,6 @@ extends Payoff {
 	    
 	}
 	
-//	override def display:String =
-//	  (fwdVariables, strike).zipped.map{case (v, k) => 
-//	    "額面 * 参照日における" + UnderlyingInfo.namejpn(v) + " / " + UnderlyingInfo.displayValue(v, k)}.mkString(sys.props("line.separator")) + 
-//	    (if (fwdVariables.size > 1) sys.props("line.separator") + "の低いほう" else "")
-	
 }
 
 object ForwardPayoff {

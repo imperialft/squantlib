@@ -17,7 +17,9 @@ case class JGBMModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 	
 	override def modelPrice(curve:DiscountCurve) = Some(discountedPriceLegs(curve).unzip._2.sum)
 	
-	override def price(curve:DiscountCurve):Option[Double] = {
+	override def price(curve:DiscountCurve):Option[Double] = price
+	  
+	override def price:Option[Double] = {
 	  if (valueDate ge bond.maturity) None
 	  else if (valueDate lt bond.issueDate) bond.issuePrice.collect{case p => p / 100.0}
 	  else {
