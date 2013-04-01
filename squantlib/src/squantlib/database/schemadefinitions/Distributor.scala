@@ -4,7 +4,7 @@ import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
-class Distributor(@Column("ID")				var id: String,
+class Distributor(@Column("ID")				override var id: String,
               @Column("NAME_JPN")			var name_jpn: String,
               @Column("NAME_JPN_SHORT")		var name_jpn_short: String,
               @Column("NAME_ENG")			var name_eng: String,
@@ -24,7 +24,7 @@ class Distributor(@Column("ID")				var id: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
   
   def this() = this(
 	id = null,

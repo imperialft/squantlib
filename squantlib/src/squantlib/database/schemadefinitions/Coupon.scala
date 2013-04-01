@@ -8,7 +8,7 @@ import org.jquantlib.time.{Date => qlDate}
 import squantlib.setting.initializer.Daycounters
 
 
-class Coupon(@Column("ID")				var id:String,
+class Coupon(@Column("ID")				override var id:String,
 			@Column("BondID")			var bondid:String,
 			@Column("CurrencyID")		var currency:String,
 			@Column("Rate")				var rate:String,
@@ -26,7 +26,7 @@ class Coupon(@Column("ID")				var id:String,
 			@Column("Daycount")			var daycount:String,
 			@Column("PaymentType")		var paymenttype:String,
 			@Column("LastModified")		var lastmodified:Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
   
   
   def this() = this(

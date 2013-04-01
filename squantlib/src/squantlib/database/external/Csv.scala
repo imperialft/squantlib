@@ -35,15 +35,15 @@ case class Csv(data:List[List[String]]) {
     case _ => None
   }
   
-  private def tryParseDouble(s:String):Option[Double] = try{Some(s.toDouble)} catch {case _ => None}
-  private def tryParseInt(s:String):Option[Int] = try{Some(s.toInt)} catch {case _ => None}
+  private def tryParseDouble(s:String):Option[Double] = try{Some(s.toDouble)} catch {case _:Throwable => None}
+  private def tryParseInt(s:String):Option[Int] = try{Some(s.toInt)} catch {case _:Throwable => None}
   
   def getDouble(row:String, column:String):Option[Double] = apply(row, column).flatMap{case c => tryParseDouble(c)}
   def getInt(row:String, column:String):Option[Int] = apply(row, column).flatMap{case c => tryParseInt(c)}
   
   private def tryParseDate(s:String):Option[JavaDate] = 
     try{ Some((new SimpleDateFormat("MM/dd/yyyy")).parse(s))} 
-  	catch {case _ => try{ Some((new SimpleDateFormat("yyyy/MM/dd")).parse(s))} catch {case _ => None }}
+  	catch {case _:Throwable => try{ Some((new SimpleDateFormat("yyyy/MM/dd")).parse(s))} catch {case _:Throwable => None }}
   
   def getDate(row:String, column:String):Option[JavaDate] = apply(row, column).flatMap{case c => tryParseDate(c)}
   
@@ -57,7 +57,7 @@ object Csv {
   implicit def codec = Codec(encoding).onUnmappableCharacter(REPLACE)    
   
   def using[A <% { def close():Unit }, B](s: A)(f: A=>Option[B]):Option[B] = {
-	try f(s) catch {case _ => None} finally s.close()
+	try f(s) catch {case _:Throwable => None} finally s.close()
   }
   
   def fromFile(location:String, blankRows:Int, blankColumns:Int):Option[Csv] = {

@@ -34,7 +34,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	def mcPrice(paths:Int):List[Double] = {
 	  val redemamt = scheduledPayoffs.bonusAmount.takeRight(trigger.size)
 	  try { modelPaths(paths).map(p => scheduledPayoffs.price(p, trigger, redemamt)).transpose.map(_.sum / paths.toDouble) }
-	  catch {case e => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
+	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
 	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
@@ -64,8 +64,8 @@ object FXMontecarlo1f {
 	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FXMontecarlo1f] = apply(market, bond, mcengine, defaultPaths, triggers)
 	
 	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], paths:Int):Option[FXMontecarlo1f] = {
-	  val trig = bond.getCalibrationCache[List[Option[Double]]]("FXMontecarlo1f") match {
-	    case Some(t) => t
+	  val trig = bond.getCalibrationCache("FXMontecarlo1f") match {
+	    case Some(t:List[Option[Double]]) => t
 	    case _ => bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head)
 	  } 
 	  apply(market, bond, mcengine, paths, trig)

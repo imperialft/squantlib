@@ -5,7 +5,7 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class RateFXParameter(@Column("ID")			var id: String,
+class RateFXParameter(@Column("ID")			override var id: String,
               @Column("PARAMSET")			var paramset: String,
               @Column("PARAMDATE")			var paramdate: Date,
               @Column("INSTRUMENT")			var instrument: String,
@@ -15,7 +15,7 @@ class RateFXParameter(@Column("ID")			var id: String,
               @Column("OPTION")				var option: String,
               @Column("COMMENT")			var comment: String,
               @Column("Created")			var created: Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
   
   def this() = this(
       id = null, 

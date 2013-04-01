@@ -10,7 +10,7 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
 import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._
 
-class Bond(@Column("ID")					var id: String,
+class Bond(@Column("ID")					override var id: String,
               @Column("REF_NUMBER")			var ref_number: Int,
               @Column("FILING")				var filing: Date,
               @Column("ISSUEDATE")			var issuedate: Date,
@@ -54,7 +54,7 @@ class Bond(@Column("ID")					var id: String,
               @Column("PRICETAG") 			var pricetag: Option[Int],
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
 
   
   def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo")
@@ -108,7 +108,7 @@ class Bond(@Column("ID")					var id: String,
 	Some(Schedule(issueDate, maturity, period, calendar, calendarAdjust, paymentAdjust, maturityAdjust, rule, 
 	    fixingInArrears, couponNotice, daycount, None, None, true, redemnotice))
   }
-  catch { case _ => None}
+  catch { case _:Throwable => None}
   
   def bermudanList(fixings:Map[String, Any] = Map.empty, nbLegs:Int = schedule.size):List[Boolean] = updateFixing(call, fixings).jsonNode match {
   	case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)

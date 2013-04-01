@@ -5,13 +5,13 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class Underlying(@Column("ID")				var id:String,
+class Underlying(@Column("ID")				override var id:String,
               @Column("NAME")				var name:String,
               @Column("NAME_JPN")			var namejpn:String,
               @Column("MULTIPLE")			var multiple:Int,
               @Column("FORMAT")				var stringformat:String,
               @Column("UNIT")				var unit:String
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
   
   def this() = this(
       id = null, 

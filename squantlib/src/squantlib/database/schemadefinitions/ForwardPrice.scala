@@ -5,7 +5,7 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class ForwardPrice(@Column("ID")			var id: String,
+class ForwardPrice(@Column("ID")			override var id: String,
               @Column("PARAMSET")			var paramset: String,
               @Column("PARAMDATE")			var paramdate: Date,
               @Column("ValueDate")			var valuedate: Date,
@@ -13,7 +13,7 @@ class ForwardPrice(@Column("ID")			var id: String,
               @Column("VALUE")				var value: Double,
               @Column("VALUEJPY")			var valuejpy: Option[Double],
               @Column("Created")			var created: Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
   
   def this() = this(
       id = null, 

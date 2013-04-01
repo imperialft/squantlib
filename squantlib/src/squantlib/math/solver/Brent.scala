@@ -15,6 +15,6 @@ object Brent extends RangedRootFinder {
      
 	   val func = new UnivariateFunction {def value(v:Double) = f(v)}
 	   val solver = new BrentSolver(xAccuracy)
-	   try {Some(solver.solve(maxIteration, func, xmin, xmax))} catch {case _ => None}
+	   try {Some(solver.solve(maxIteration, func, xmin, xmax))} catch {case _:Throwable => None}
    }
 }

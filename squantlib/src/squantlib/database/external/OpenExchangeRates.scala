@@ -62,7 +62,7 @@ object OpenExchangeRates {
 			
 			Some(javatime, rates)
 		}
-		catch { case _=> None  }
+		catch { case _:Throwable => None  }
 	}
 
 	/**

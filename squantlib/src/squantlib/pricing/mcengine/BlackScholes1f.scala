@@ -87,7 +87,7 @@ object BlackScholes1f {
   
   def apply(fx:FX):Option[BlackScholes1f] = 
 	try { Some(new BlackScholes1f(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY)) } 
-	catch { case _ => None}
+	catch { case _:Throwable => None}
 	
 }
 

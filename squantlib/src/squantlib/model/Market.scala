@@ -73,7 +73,7 @@ class Market(
 	  try { 
 	    val calc = curves(ccy2).fx / curves(ccy1).fx
 	    if (calc.isNaN) None else Some(calc)}
-	  catch { case _ => None}
+	  catch { case _:Throwable => None}
 
 	/**
 	 * Returns discount curve with base spread & currency. (3m USDL flat)
@@ -203,16 +203,16 @@ class Market(
 	  curves.get(ccy).flatMap(_ match { case c:RateCurve => Some(c); case _ => None})
 	
 	def getCash(ccy:String, maturity:qlPeriod):Option[Double] = 
-	  getRateCurve(ccy).flatMap(c => try {Some(c.cash(maturity))} catch { case _ => None })
+	  getRateCurve(ccy).flatMap(c => try {Some(c.cash(maturity))} catch { case _:Throwable => None })
 	
 	def getSwap(ccy:String, maturity:qlPeriod):Option[Double] = 
-	  getRateCurve(ccy).flatMap(c => try {Some(c.swap(maturity))} catch { case _ => None })
+	  getRateCurve(ccy).flatMap(c => try {Some(c.swap(maturity))} catch { case _:Throwable => None })
 	
 	def getBasis(ccy:String, maturity:qlPeriod):Option[Double] = 
-	  getRateCurve(ccy).flatMap(c => try {Some(c.basis(maturity))} catch { case _ => None })
+	  getRateCurve(ccy).flatMap(c => try {Some(c.basis(maturity))} catch { case _:Throwable => None })
 	
 	def get3M6M(ccy:String, maturity:qlPeriod):Option[Double] = 
-	  getRateCurve(ccy).flatMap(c => try {Some(c.tenorbasis(maturity))} catch { case _ => None })
+	  getRateCurve(ccy).flatMap(c => try {Some(c.tenorbasis(maturity))} catch { case _:Throwable => None })
 	  
 	/**
 	 * Returns FX curve for the given currency.
@@ -223,7 +223,7 @@ class Market(
 	  curves.get(ccy).flatMap(_ match { case c:FXCurve => Some(c); case _ => None})
 	  
 	def getSwapPoint(ccy:String, maturity:qlPeriod):Option[Double] = 
-	  getFXCurve(ccy).flatMap(c => try {Some(c.swappoint(maturity))} catch { case _ => None })
+	  getFXCurve(ccy).flatMap(c => try {Some(c.swappoint(maturity))} catch { case _:Throwable => None })
 	
 	def getFixings(params:Set[String]):Map[String, Double] = params.map(p => (p, getFixing(p))).collect{case (n, Some(p)) => (n, p)} (breakOut)
 	
@@ -311,7 +311,7 @@ class Market(
 	
 	private val swapPeriods = Set("Y")
 	
-	private def isNumber(v:String):Boolean = try {v.toInt; true} catch {case _ => false}
+	private def isNumber(v:String):Boolean = try {v.toInt; true} catch {case _:Throwable => false}
 	  
 	
 	/** 

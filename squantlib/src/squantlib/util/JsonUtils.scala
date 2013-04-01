@@ -35,8 +35,8 @@ object JsonUtils {
 	  def parseString:Option[String] = Some(node.asText)
 	  def parseString(name:String):Option[String] = if (hasName(name)) node.get(name).parseString else None
 
-	  def parseDate:Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString.orNull)))} catch {case _ => None}
-	  def parseDate(name:String):Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString(name).orNull)))} catch {case _ => None}
+	  def parseDate:Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString.orNull)))} catch {case _:Throwable => None}
+	  def parseDate(name:String):Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString(name).orNull)))} catch {case _:Throwable => None}
 	  
 	  def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))
 	  def parseObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = if (hasName(name)) Some(constructor(node.get(name).parseValueFields)) else None
@@ -91,12 +91,12 @@ object JsonUtils {
 	  
 	  val mapper = new ObjectMapper
 	  
-	  def jsonNode:Option[JsonNode] = try { Some(mapper.readTree(formula)) } catch { case _ => None }
+	  def jsonNode:Option[JsonNode] = try { Some(mapper.readTree(formula)) } catch { case _:Throwable => None }
 	  
 	  def jsonNode(name:String):Option[JsonNode] = try { 
 	    val node = mapper.readTree(formula).get(name)
 	    if (node == null) None else Some(node)
-	    } catch { case _ => None }
+	    } catch { case _:Throwable => None }
 	    
 	  def jsonArray:List[JsonNode] = jsonNode match {
 	    case Some(n) if n isArray => n.getElements.toList

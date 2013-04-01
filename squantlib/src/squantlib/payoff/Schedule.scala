@@ -17,7 +17,7 @@ class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationP
 	def sortWith[A](obj:LinearSeq[A]):LinearSeq[(CalculationPeriod, A)] = (dates zip obj).sortBy{case (d, _) => (d.paymentDate, d.dayCount)}
 	
 	def sortWith[A, B](obj1:LinearSeq[A], obj2:LinearSeq[B]):LinearSeq[(CalculationPeriod, A, B)] =
-	  (dates, obj1, obj2).zip.sortBy{case (d, _, _) => (d.paymentDate, d.dayCount)}
+	  (dates, obj1, obj2).zipped.toList.sortBy{case (d, _, _) => (d.paymentDate, d.dayCount)}
 	
     def apply(i:Int):CalculationPeriod = dates(i)
 	override def isEmpty:Boolean = dates.isEmpty

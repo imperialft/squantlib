@@ -5,7 +5,7 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class BondPrice(@Column("ID")			var id:String, 
+class BondPrice(@Column("ID")			override var id:String, 
 			@Column("BondID")			var bondid:String,
 			@Column("CurrencyID")		var currencyid:String,
 			@Column("COMMENT")			var comment:String,
@@ -42,7 +42,7 @@ class BondPrice(@Column("ID")			var id:String,
 			@Column("FXVEGA")			var fxVega:String, 
 			@Column("Created")			var created:Option[Date],
 			@Column("LastModified")		var lastmodified:Option[Date]
-			) extends KeyedEntity[String]{
+			) extends StringEntity {
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   

@@ -1,17 +1,8 @@
 package squantlib.database
 
 import squantlib.model.Market
-//import squantlib.model.rates._
 import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXParameter, CDSParameter}
-//import squantlib.database.QLConstructors._
-//import squantlib.math.timeseries.SeriesAnalysis._
-//import squantlib.model.fx.FXInitializer
-//import org.squeryl.PrimitiveTypeMode._
-//import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.time.{Date => qlDate, Frequency, TimeSeries}
-//import org.jquantlib.pricingengines.PricingEngine
-//import org.jquantlib.termstructures.YieldTermStructure
-//import java.lang.{Double => JavaDouble}
 import java.util.{Date => JavaDate}
 import squantlib.model.{Bond => sBond}
 import squantlib.setting.DefaultBondSetting

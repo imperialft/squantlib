@@ -157,11 +157,7 @@ case class Bond(
 	
 	val calibrationCache = new WeakHashMap[String, Any]
 	
-	def getCalibrationCache[A](k:String):Option[A] = 
-	  if (calibrationCache contains k) calibrationCache(k) match {
-	    case obj:A => Some(obj)
-	    case _ => None}
-	  else None
+	def getCalibrationCache(k:String):Option[Any] = calibrationCache.get(k)
 	
 	
 	/*	
@@ -289,132 +285,7 @@ case class Bond(
 	def modelPrice:Option[Double] = (model, discountCurve) match {
 	  case (Some(m), Some(c)) => m.modelPrice(c)
 	  case _ => None}
-	  
-	def modelPriceJpy:Option[Double] = (modelPrice, fxjpy, db.initialfx) match { 
-	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
-	  case _ => None
-	}
-	
-	/*	
-	 * Returns current coupon rate.
-	 */
-	def currentRate:Option[Double] = 
-	  if (liveCoupons.isEmpty || market.isEmpty) None
-	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (_, p, _) => Some(p.price(market.get))}
 
-	/*	
-	 * Returns next coupon payment date
-	 */
-	def nextPayment:Option[(qlDate, Double)] = 
-	  if (liveCoupons.isEmpty || market.isEmpty) None
-	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => Some(d.paymentDate, d.dayCount * p.price(market.get))}
-	
-	/*	
-	 * Returns spot FX rate against JPY
-	 */
-	def fxjpy:Option[Double] = market.flatMap (mkt => mkt.fx(currency.code, "JPY"))
-	
-	/*	
-	 * Returns JPY dirty price defined as price x FX/FX0, where FX0 = FX as of issue date.
-	 */
-	def dirtyPriceJpy:Option[Double] = (dirtyPrice, fxjpy, db.initialfx) match { 
-	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
-	  case _ => None
-	}
-	
-	/*	
-	 * Returns JPY clean price defined as price x FX/FX0, where FX0 = FX as of issue date.
-	 */
-	def cleanPriceJpy:Option[Double] = (cleanPrice, fxjpy, db.initialfx) match { 
-	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
-	  case _ => None
-	}
-	
-	/*	
-	 * Returns JPY accrued amount defined as accrued x FX/FX0, where FX0 = FX as of issue date.
-	 */
-	def accruedAmountJpy:Option[Double] = (accruedAmount, fxjpy, db.initialfx) match { 
-	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
-	  case _ => None
-	}
-	
-	/*	
-	 * Returns bond yield.
-	 * @param comp Compounding rate, as one of the following
-	 * 		"None" => Discounting is not taken into account : ZC = 1.0
-	 * 		"Simple" => No compounding : ZC = 1 / rt
-	 * 		"Compounded" => Standard compounding: ZC = 1 / (1+r/f)^tf 
-	 * 		"Continuous" => 
-	 */
-	
-	def getYield(comp:Compounding):Option[Double] = getYield(comp, Frequency.Annual)
-	
-	def getYield(comp:Compounding, freq:Frequency):Option[Double] = getYield(comp, freq, new Actual365Fixed, 0.00001, 20)
-	
-    def getYield(comp:Compounding, freq:Frequency, dc:DayCounter, accuracy:Double, maxIteration:Int):Option[Double] = {
-      val result = if (useCouponAsYield) {
-          val cashflows = spotCashflowDayfrac(dc)
-          accruedAmount.collect{case acc => (cashflows.unzip._2.sum - acc - 1.0) / cashflows.unzip._1.max}} 
-        else dirtyPrice.flatMap{case p => getYield(p, dc, comp, freq, accuracy, maxIteration)}
-      
-      if (result == Some(Double.NaN)) None else result
-	}
-	
-    def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = 
-      valueDate.flatMap{ case vd => getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)}
-	
-    def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = 
-      getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)
-      
-    def getYield(price:Double, cashflows:List[(Double, Double)], comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = 
-      if (cashflows isEmpty) None
-      else if (useCouponAsYield) accruedAmount.collect{case acc => BondYield.asAverageCoupon(cashflows, acc)}
-	  else comp match {
-        case Compounding.Simple => BondYield.solveNoCompounding(price, cashflows, accuracy, maxIteration)
-	    case Compounding.Compounded | Compounding.SimpleThenCompounded => BondYield.solveCompounded(price, cashflows, freq.toInteger, accuracy, maxIteration)
-	    case Compounding.Continuous => BondYield.solveContinuous(price, cashflows, accuracy, maxIteration)
-	    case Compounding.None => accruedAmount.collect{case acc => BondYield.solveNoRate(price, cashflows, acc)}
-	    case _ => None
-      }
-    
-	/*	Returns each bond yield.
-	 */
-	def yieldNoCompounding:Option[Double] = getYield(Compounding.Simple)
-	
-	def yieldContinuous:Option[Double] = getYield(Compounding.Continuous)
-	
-	def yieldSemiannual:Option[Double] = getYield(Compounding.Compounded, Frequency.Semiannual)
-	
-	def yieldAnnual:Option[Double] = getYield(Compounding.Compounded, Frequency.Annual)
-	
-	def yieldSimple:Option[Double] = getYield(Compounding.None, Frequency.Annual)
-	
-	/*	
-	 * Returns next bermudan callable date.
-	 */
-	def nextBermudan:Option[qlDate] = {
-	  val bermdates = liveBermudans.filter{case (d, c) => c}.map{case (d, c) => d.paymentDate}
-	  if (bermdates.isEmpty) None else Some(bermdates.min)
-	}
-	
-	/*	Returns yield at which bond price becomes 100% (if any)
-	 * @param comp Compounding rate, as one of the following
-	 * 		"None" => Not applicable
-	 * 		"Simple" => No compounding : ZC = 1 / rt
-	 * 		"Compounded" => Standard compounding: ZC = 1 / (1+r/f)^tf 	
-	 * 		"Continuous" => 
-	 */
-	def parMtMYield:Option[Double] = getYield(1.0, new Actual365Fixed, Compounding.Continuous, null, 0.00001, 20)
-	
-	/*	
-	 * Continuous rate at which MtM exceeds 100% at next call date.
-	 */
-	def nextRateFrontier:Option[Double] = nextBermudan.flatMap{ case d => getYield(1.0, new Actual365Fixed, Compounding.Continuous, null, 0.00001, 20, d) }
-	
-	/*	
-	 * Returns FX at which JPY dirty bond price becomes 100% (if any)
-	 */
-	def parMtMfx:Option[Double] = if (currency.code == "JPY") None else dirtyPrice.collect{case p => db.initialfx / p }
 	
 	/*	
 	 * Returns FX at which JPY dirty bond price becomes 100% at any given date
@@ -480,6 +351,135 @@ case class Bond(
     }
 	
 	/*	
+	 * Returns next bermudan callable date.
+	 */
+	def nextBermudan:Option[qlDate] = {
+	  val bermdates = liveBermudans.filter{case (d, c) => c}.map{case (d, c) => d.paymentDate}
+	  if (bermdates.isEmpty) None else Some(bermdates.min)
+	}
+	
+	/*	
+	 * Returns next coupon payment date
+	 */
+	def nextPayment:Option[(qlDate, Double)] = 
+	  if (liveCoupons.isEmpty || market.isEmpty) None
+	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => Some(d.paymentDate, d.dayCount * p.price(market.get))}
+	
+	/*	
+	 * Continuous rate at which MtM exceeds 100% at next call date.
+	 */
+	def nextRateFrontier:Option[Double] = nextBermudan.flatMap{ case d => getYield(1.0, new Actual365Fixed, Compounding.Continuous, null, 0.00001, 20, d) }
+
+	/*	
+	 * Returns bond yield.
+	 * @param comp Compounding rate, as one of the following
+	 * 		"None" => Discounting is not taken into account : ZC = 1.0
+	 * 		"Simple" => No compounding : ZC = 1 / rt
+	 * 		"Compounded" => Standard compounding: ZC = 1 / (1+r/f)^tf 
+	 * 		"Continuous" => 
+	 */
+	def getYield(comp:Compounding):Option[Double] = getYield(comp, Frequency.Annual)
+	
+	def getYield(comp:Compounding, freq:Frequency):Option[Double] = getYield(comp, freq, new Actual365Fixed, 0.00001, 20)
+	
+    def getYield(comp:Compounding, freq:Frequency, dc:DayCounter, accuracy:Double, maxIteration:Int):Option[Double] = {
+      val result = if (useCouponAsYield) {
+          val cashflows = spotCashflowDayfrac(dc)
+          accruedAmount.collect{case acc => (cashflows.unzip._2.sum - acc - 1.0) / cashflows.unzip._1.max}} 
+        else dirtyPrice.flatMap{case p => getYield(p, dc, comp, freq, accuracy, maxIteration)}
+      
+      if (result == Some(Double.NaN)) None else result
+	}
+	
+    def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = 
+      valueDate.flatMap{ case vd => getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)}
+	
+    def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = 
+      getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)
+      
+    def getYield(price:Double, cashflows:List[(Double, Double)], comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = 
+      if (cashflows isEmpty) None
+      else if (useCouponAsYield) accruedAmount.collect{case acc => BondYield.asAverageCoupon(cashflows, acc)}
+	  else comp match {
+        case Compounding.Simple => BondYield.solveNoCompounding(price, cashflows, accuracy, maxIteration)
+	    case Compounding.Compounded | Compounding.SimpleThenCompounded => BondYield.solveCompounded(price, cashflows, freq.toInteger, accuracy, maxIteration)
+	    case Compounding.Continuous => BondYield.solveContinuous(price, cashflows, accuracy, maxIteration)
+	    case Compounding.None => accruedAmount.collect{case acc => BondYield.solveNoRate(price, cashflows, acc)}
+	    case _ => None
+      }
+	
+	
+	def modelPriceJpy:Option[Double] = (modelPrice, fxjpy, db.initialfx) match { 
+	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+	  case _ => None
+	}
+	
+	/*	
+	 * Returns current coupon rate.
+	 */
+	def currentRate:Option[Double] = 
+	  if (liveCoupons.isEmpty || market.isEmpty) None
+	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (_, p, _) => Some(p.price(market.get))}
+
+	
+	/*	
+	 * Returns spot FX rate against JPY
+	 */
+	def fxjpy:Option[Double] = market.flatMap (mkt => mkt.fx(currency.code, "JPY"))
+	
+	/*	
+	 * Returns JPY dirty price defined as price x FX/FX0, where FX0 = FX as of issue date.
+	 */
+	def dirtyPriceJpy:Option[Double] = (dirtyPrice, fxjpy, db.initialfx) match { 
+	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+	  case _ => None
+	}
+	
+	/*	
+	 * Returns JPY clean price defined as price x FX/FX0, where FX0 = FX as of issue date.
+	 */
+	def cleanPriceJpy:Option[Double] = (cleanPrice, fxjpy, db.initialfx) match { 
+	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+	  case _ => None
+	}
+	
+	/*	
+	 * Returns JPY accrued amount defined as accrued x FX/FX0, where FX0 = FX as of issue date.
+	 */
+	def accruedAmountJpy:Option[Double] = (accruedAmount, fxjpy, db.initialfx) match { 
+	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+	  case _ => None
+	}
+	
+    
+	/*	Returns each bond yield.
+	 */
+	def yieldNoCompounding:Option[Double] = getYield(Compounding.Simple)
+	
+	def yieldContinuous:Option[Double] = getYield(Compounding.Continuous)
+	
+	def yieldSemiannual:Option[Double] = getYield(Compounding.Compounded, Frequency.Semiannual)
+	
+	def yieldAnnual:Option[Double] = getYield(Compounding.Compounded, Frequency.Annual)
+	
+	def yieldSimple:Option[Double] = getYield(Compounding.None, Frequency.Annual)
+	
+	/*	Returns yield at which bond price becomes 100% (if any)
+	 * @param comp Compounding rate, as one of the following
+	 * 		"None" => Not applicable
+	 * 		"Simple" => No compounding : ZC = 1 / rt
+	 * 		"Compounded" => Standard compounding: ZC = 1 / (1+r/f)^tf 	
+	 * 		"Continuous" => 
+	 */
+	def parMtMYield:Option[Double] = getYield(1.0, new Actual365Fixed, Compounding.Continuous, null, 0.00001, 20)
+	
+	/*	
+	 * Returns FX at which JPY dirty bond price becomes 100% (if any)
+	 */
+	def parMtMfx:Option[Double] = if (currency.code == "JPY") None else dirtyPrice.collect{case p => db.initialfx / p }
+	
+	
+	/*	
 	 * Returns present value of adding 1 basis point of coupon for the remainder of the bond.
 	 */
 	def bpvalue:Option[Double] = (valueDate, discountCurve) match {
@@ -521,7 +521,7 @@ case class Bond(
 	    comp match {
 	      case Compounding.Continuous => Some(dur)
 	      case Compounding.Compounded | Compounding.SimpleThenCompounded => getYield(comp, freq).collect{case y => dur / (1.0 + y / freq.toInteger.toDouble)}
-	      case Compounding.Simple => None
+	      case _ => None
 	  }
 	}
 	
@@ -867,7 +867,6 @@ object Bond {
 	  if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {return None}
 		
 	  Some(Bond(db, scheduledPayoffs, underlyings))
-	  
 	}
   
 }

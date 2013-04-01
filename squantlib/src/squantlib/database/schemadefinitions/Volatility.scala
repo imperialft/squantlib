@@ -5,14 +5,14 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class Volatility(@Column("ID")				var id:String,
+class Volatility(@Column("ID")				override var id:String,
               @Column("UnderlyingID")		var underlying:String,
               @Column("ValueDate")			var valuedate:Date,
               @Column("Periodicity")		var periodicity:Int,
               @Column("NbDays")				var nbdays:Int,
               @Column("Value")				var value:Double,
               @Column("LastModified")		var lastmodified:Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
   
   def this() = this(
       id = null, 

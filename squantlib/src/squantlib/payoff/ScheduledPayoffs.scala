@@ -122,7 +122,7 @@ object ScheduledPayoffs {
   
   def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
-    ScheduledPayoffs((schedule, payoffs, calls).zip)
+    ScheduledPayoffs((schedule, payoffs, calls).zipped.toList)
   }
     
   def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {

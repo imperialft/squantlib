@@ -3,12 +3,12 @@ package squantlib.database
 import java.sql.{Timestamp, Time, DriverManager}
 import com.mysql.jdbc.Driver
 import com.mchange.v2.c3p0._
-import org.squeryl.dsl.{TypedExpression, TDate, TInt, TypedExpressionFactory}
+import org.squeryl.dsl.{TypedExpression, TDate, TInt, TypedExpressionFactory, QueryDsl}
 import org.squeryl.dsl.ast.FunctionNode
 import org.squeryl.adapters._
 import org.squeryl.{Session, SessionFactory, Schema, Table}
 import org.squeryl.PrimitiveTypeMode._
-import org.squeryl.{KeyedEntity, Table}
+import org.squeryl.{KeyedEntityDef, KeyedEntity, Table}
 import squantlib.database.schemadefinitions._
 import scala.collection.mutable.{MutableList, StringBuilder}
 import java.io.{File, FileWriter, BufferedWriter, FileInputStream}
@@ -91,13 +91,13 @@ object DB extends Schema {
   val underlyings = table[Underlying]("Underlyings")
   val jsdaprices = table[JsdaPrice]("JSDAPrice")
   
-  private def getKeyedEntity[A<:KeyedEntity[String]](t:Table[A]):Set[A] = transaction {
+  private def getKeyedEntity[A<:StringEntity](t:Table[A]):Set[A] = transaction {
       from(t)(p => select(p)).toSet}
   
-  private def getKeyedEntity[A<:KeyedEntity[String]](t:Table[A], ids:Traversable[String]):Set[A] = transaction {
+  private def getKeyedEntity[A<:StringEntity](t:Table[A], ids:Traversable[String]):Set[A] = transaction {
       from(t)(p => where(p.id in ids) select(p)).toSet }
   
-  private def getAKeyedEntity[A<:KeyedEntity[String]](t:Table[A], id:String):Option[A] = transaction {
+  private def getAKeyedEntity[A<:StringEntity](t:Table[A], id:String):Option[A] = transaction {
       from(t)(p => where(p.id === id) select(p)).headOption }
   
   private def weekday(b: TypedExpression[java.util.Date,TDate])
@@ -1186,28 +1186,34 @@ object DB extends Schema {
     }
   
   
-  def insertStringEntity[T <: KeyedEntity[String]](data:T):Unit = transaction{
+ implicit object StringDataKED extends KeyedEntityDef[StringEntity, String] {
+   def getId(a: StringEntity) = a.id
+   def isPersisted(a: StringEntity) = a.id != null
+   def idPropertyName = "id"
+ }  
+  
+  def insertStringEntity[T <: StringEntity](data:T):Unit = transaction{
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.insert(data)
       case _ => println("table not found")
     }
   }
   
-  def insertStringEntity[T <: KeyedEntity[String]](data:Set[T]):Unit = transaction{
+  def insertStringEntity[T <: StringEntity](data:Set[T]):Unit = transaction{
     dataTable(data.head.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.insert(data)
       case _ => println("table not found")
     }
   }
   
-  def updateStringEntity[T <: KeyedEntity[String]](data:Set[T]):Unit = transaction{
+  def updateStringEntity[T<:StringEntity](data:Set[T]):Unit = transaction{
     dataTable(data.head.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.update(data)
       case _ => println("table not found")
     }
   }
   
-  def updateStringEntity[T <: KeyedEntity[String]](data:T):Unit = transaction{
+  def updateStringEntity[T<:StringEntity](data:T):Unit = transaction{
 //	  Session.currentSession.setLogger(msg => println(msg))    
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.update(data)
@@ -1215,7 +1221,7 @@ object DB extends Schema {
     }
   }
   
-  def dataTable(name:String):Option[Table[_ <: KeyedEntity[String]]] = name match {
+  def dataTable(name:String):Option[Table[_ <: StringEntity]] = name match {
       case "BondPrice" => Some(bondprices)
       case "Volatility" => Some(volatilities)
       case "Correlation" => Some(correlations)
@@ -1233,7 +1239,7 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def insertOrUpdate[T <: KeyedEntity[String]](data:Traversable[T], overwrite:Boolean):Int = {
+  def insertOrUpdate[T <: StringEntity](data:Traversable[T], overwrite:Boolean):Int = {
     if (data.isEmpty) return 0
     dataTable(data.head.getClass.getSimpleName.toString) match {
       case Some(t) => insertMany(data.toSet, overwrite)
@@ -1241,7 +1247,7 @@ object DB extends Schema {
     }
   }
   
-  def insertOrUpdate[T <: KeyedEntity[Int]](data:Traversable[T], overwrite:Boolean)(implicit d:DummyImplicit):Int = {
+  def insertOrUpdate[T <: IntEntity](data:Traversable[T], overwrite:Boolean)(implicit d:DummyImplicit):Int = {
     if (data.isEmpty) return 0
     val datatable = data.head.getClass.getSimpleName.toString match {
       case "InputParameter" => inputparameters
@@ -1259,7 +1265,7 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def empty[T <: KeyedEntity[String]](table:Table[T]):Boolean = {
+  def empty[T <: StringEntity](table:Table[T]):Boolean = {
     val tablename = table.name
     runSQLStatement("TRUNCATE TABLE " + tablename)
     true

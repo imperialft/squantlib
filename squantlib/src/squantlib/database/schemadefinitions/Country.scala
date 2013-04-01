@@ -4,7 +4,7 @@ import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
-class Country(@Column("ID")				var id: String,
+class Country(@Column("ID")				override var id: String,
               @Column("CurrencyID")		var currencyid: String,
               @Column("NAME_JPN")		var name_jpn: String,
               @Column("NAME_ENG")		var name_eng: String,
@@ -16,7 +16,7 @@ class Country(@Column("ID")				var id: String,
               @Column("RISKTAGS") 		var risktags: String,
               @Column("Created")		var created: Option[Date],
               @Column("LastModified")	var lastmodified: Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
 
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   

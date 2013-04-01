@@ -89,7 +89,7 @@ object BlackScholesDiscreteDividends {
   
   def apply(index:DiscreteIndex):Option[BlackScholesDiscreteDividends] = 
 	try { Some(new BlackScholesDiscreteDividends(index.spot, index.interestRate, index.dividendMapY, index.repoRate, index.volatilityY)) } 
-	catch { case _ => None}
+	catch { case _ :Throwable=> None}
 	
 }
 

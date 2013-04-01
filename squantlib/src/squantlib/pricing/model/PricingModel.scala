@@ -74,10 +74,6 @@ trait PricingModel {
    */
   val optionPrice:Option[Double] = None
   
-  def getModel[T<:PricingModel]:Option[T] = this match {
-    case m:T => Some(m)
-    case _ => None
-  }
 }
 
 

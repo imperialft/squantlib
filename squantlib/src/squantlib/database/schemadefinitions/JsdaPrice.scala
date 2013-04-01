@@ -5,7 +5,7 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class JsdaPrice(@Column("ID")				var id: String,
+class JsdaPrice(@Column("ID")				override var id: String,
 			  @Column("BONDID")				var bondid:String,
               @Column("PARAMDATE")			var paramdate: Date,
               @Column("JADAID")				var jsdaid: String,
@@ -17,7 +17,7 @@ class JsdaPrice(@Column("ID")				var id: String,
               @Column("MATURITY")			var maturity: Date,
               @Column("reports_count")		var reportscount: Int,
               @Column("Created")			var created: Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
 
   def this() = this(
       id = null, 

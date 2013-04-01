@@ -31,7 +31,7 @@ case class IndexMontecarlo1f(valuedate:qlDate,
 	 
 	def mcPrice(paths:Int):List[Double] = {
 	  try { modelPaths(paths).map(p => scheduledPayoffs.price(p)).transpose.map(_.sum / paths.toDouble) }
-	  catch {case e => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
+	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
 	val cachedPrice = scala.collection.mutable.WeakHashMap[String, List[Double]]()

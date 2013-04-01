@@ -5,7 +5,7 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class InputParameter(@Column("ID")			var id: Int,
+class InputParameter(@Column("ID")			override var id: Int,
               @Column("PARAMSET")			var paramset: String,
               @Column("PARAMDATE")			var paramdate: Date,
               @Column("INSTRUMENT")			var instrument: String,
@@ -15,7 +15,7 @@ class InputParameter(@Column("ID")			var id: Int,
               @Column("OPTION")				var option: String,
               @Column("COMMENT")			var comment: String,
               @Column("Created")			var created: Option[Date]
-              ) extends KeyedEntity[Int] {
+              ) extends IntEntity {
   
   def this() = this(
       id = -99999, 

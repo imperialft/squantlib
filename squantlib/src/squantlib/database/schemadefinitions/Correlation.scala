@@ -4,7 +4,7 @@ import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
-class Correlation(@Column("ID")				var id:String,
+class Correlation(@Column("ID")				override var id:String,
               @Column("UnderlyingID")		var underlying1:String,
               @Column("Underlying2ID")		var underlying2:String,
               @Column("ValueDate")			var valuedate:Date,
@@ -12,7 +12,7 @@ class Correlation(@Column("ID")				var id:String,
               @Column("NbDays")				var nbdays:Int,
               @Column("Value")				var value:Double,
               @Column("LastModified")		var lastmodified:Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
   
   def this() = this(
       id = null, 

@@ -5,7 +5,7 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class Issuer(@Column("ID")					var id: String,
+class Issuer(@Column("ID")					override var id: String,
               @Column("NAME")				var name: String,
               @Column("NAME_JPN")			var name_jpn: String,
               @Column("NAME_JPN_DISPLAY")	var name_jpn_display: String,
@@ -31,7 +31,7 @@ class Issuer(@Column("ID")					var id: String,
               @Column("RISKTAGS") 			var risktags: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
-              ) extends KeyedEntity[String] {
+              ) extends StringEntity {
   
   def this() = this(
 		id = null,
