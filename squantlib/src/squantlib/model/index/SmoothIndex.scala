@@ -10,7 +10,7 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
  * Orthodox index with continuous dividend yield.
  */
 case class SmoothIndex(
-    name:String, 
+    id:String, 
 	var spot:Double,
     rateCurve:DiscountCurve, 
     dividend:DividendCurve, 

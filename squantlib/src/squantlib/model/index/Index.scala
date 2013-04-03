@@ -15,9 +15,11 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
  */
 trait Index extends Underlying {
   
+	val assetID = "INDEX"
+  
 	override val valuedate:qlDate
 	
-	val name:String
+	val id:String
 	
 	val rateCurve:DiscountCurve
 	

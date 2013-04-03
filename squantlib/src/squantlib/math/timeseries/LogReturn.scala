@@ -10,7 +10,7 @@ object LogReturn {
 	 * Returns daily log return for given period.
 	 * @return array of size n-1 containing ln(Xn / Xn-1)
 	 */
-	def calculate(values:Array[Double]) : Array[Double] = {
+	def calculate(values:IndexedSeq[Double]) : Array[Double] = {
 	  (1 to (values.size-1)) map (i => math.log(values(i) / values(i-1))) toArray
 	}
   

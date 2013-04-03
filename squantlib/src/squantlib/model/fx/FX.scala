@@ -3,6 +3,8 @@ package squantlib.model.fx
 import squantlib.model.Underlying
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.yieldparameter.YieldParameter
+import squantlib.database.DB
+import squantlib.math.timeseries.TimeSeries
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
@@ -12,6 +14,8 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
  */
 trait FX extends Underlying {
   
+	val assetID = "FX"
+	
 	val curveDom:DiscountCurve
 	val curveFor:DiscountCurve 
 	
@@ -21,7 +25,7 @@ trait FX extends Underlying {
 	require (curveDom.valuedate eq curveFor.valuedate)
 	val valuedate = curveDom.valuedate
 	
-	val name = currencyFor.code + currencyDom.code
+	val id = currencyFor.code + currencyDom.code
 	
 	/**
 	 * Returns FX spot rate
@@ -68,4 +72,5 @@ trait FX extends Underlying {
     def rateForY(years:Double) = curveFor.impliedRate(years * 365)
     
     val maxDays = curveDom.maxdays.min(curveFor.maxdays)
+    
 } 

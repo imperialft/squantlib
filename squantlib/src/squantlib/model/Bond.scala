@@ -4,6 +4,7 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule => qlSchedule, _}
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
+import squantlib.database.DB
 import squantlib.database.schemadefinitions.{Bond => dbBond, BondPrice, Coupon => dbCoupon, ForwardPrice}
 import squantlib.payoff._
 import squantlib.model.rates.DiscountCurve
@@ -13,6 +14,7 @@ import squantlib.database.fixings.Fixings
 import squantlib.pricing.model.{PricingModel, NoModel}
 import squantlib.math.solver._
 import squantlib.math.financial.{BondYield, Duration}
+import squantlib.math.timeseries.TimeSeries
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.node.{JsonNodeFactory, ObjectNode, ArrayNode}
 import org.codehaus.jackson.map.ObjectMapper
@@ -38,7 +40,7 @@ case class Bond(
 		var modelCalibrated:Boolean = false,
 		var _market:Option[Market] = None,
 		var model:Option[PricingModel] = None
-		) {
+		) extends Asset {
 	
 	/*
 	 * Basic access functions
@@ -52,6 +54,8 @@ case class Bond(
 	val coupon = scheduledPayoffs.coupon
   
 	val id = db.id
+	
+	val assetID = "PRICE"
 	
 	val issueDate:qlDate = schedule.head.startDate
 	
@@ -262,6 +266,8 @@ case class Bond(
 	  case (Some(m), Some(c)) => m.price(c)
 	  case (Some(m), None) => m.price
 	  case _ => None}
+	
+	def spot = dirtyPrice.getOrElse(Double.NaN)
 	  
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)
@@ -801,6 +807,11 @@ case class Bond(
 	  case s:Option[Any] => s.getOrElse("None")
 	  case s => s.toString
 	}))
+	
+	override def getHistoricalPrice = {
+	  val fx = if (initialFX > 0.0) initialFX else 1.0
+	  DB.getJPYPriceTimeSeries(id, fx).map{case (k, v) => (new qlDate(k), v)}
+	}
 	
 	def show:Unit = {
 	    disp("id", id)

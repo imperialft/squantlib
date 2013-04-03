@@ -46,7 +46,7 @@ object DB extends Schema {
   def setup(uri:String, username:String, password:String):Unit = {
 
     dataSource.setDriverClass("com.mysql.jdbc.Driver")
-    dataSource.setJdbcUrl("jdbc:" + uri + "?characterEncoding=utf-8")
+    dataSource.setJdbcUrl((if(uri.take(4) == "jdbc") "" else "jdbc:") + uri + "?characterEncoding=utf-8")
     dataSource.setUser(username)
     dataSource.setPassword(password)
     dataSource.setMinPoolSize(5)
@@ -62,6 +62,13 @@ object DB extends Schema {
   def reconnect:Unit = {
     setup(properties.get("uri").toString, properties.get("username").toString, properties.get("password").toString)
   }
+
+ implicit object StringDataKED extends KeyedEntityDef[StringEntity, String] {
+   def getId(a: StringEntity) = a.id
+   def isPersisted(a: StringEntity) = a.id != null
+   def idPropertyName = "id"
+ }  
+  
   
   /** 
    * Attach schema definitions to the tables.
@@ -525,8 +532,8 @@ object DB extends Schema {
   def getRateFXParameters(fromDate:JavaDate, toDate:JavaDate, instrument:String, asset:String, maturity:String):Set[RateFXParameter] = transaction {
       from(ratefxparameters)(ip =>
         where(
-          (ip.paramdate  gte fromDate) and
-          (ip.paramdate  lte  toDate) and
+          (ip.paramdate gte fromDate) and
+          (ip.paramdate lte toDate) and
           ip.instrument === instrument and
           ip.asset      === asset and
           ip.maturity   === maturity
@@ -1044,11 +1051,10 @@ object DB extends Schema {
    * @param toDate A ending point of Date. Range includes this date.
    * @return bondid Bond id. eg. "ADB-00001"
    */
-  def getPriceTimeSeries(bondid:String):Map[JavaDate, Double] = transaction {
+  def getBondPriceTimeSeries(bondid:String):Map[JavaDate, Double] = transaction {
       from(bondprices)(bp =>
         where(
           (bp.paramset like "%-000") and
-//          bp.instrument === "BONDPRICE" and
           bp.bondid      === bondid and
           bp.priceclean.isNotNull
         )
@@ -1186,12 +1192,6 @@ object DB extends Schema {
     }
   
   
- implicit object StringDataKED extends KeyedEntityDef[StringEntity, String] {
-   def getId(a: StringEntity) = a.id
-   def isPersisted(a: StringEntity) = a.id != null
-   def idPropertyName = "id"
- }  
-  
   def insertStringEntity[T <: StringEntity](data:T):Unit = transaction{
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.insert(data)
@@ -1297,7 +1297,6 @@ object DB extends Schema {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement(statement)
     val result = preparedStatement.execute
- //   if (dataSource.getNumBusyConnections > 1) session.close
     session.close
     result
   }
@@ -1313,7 +1312,6 @@ object DB extends Schema {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement(statement)
     val result = preparedStatement.executeUpdate
-//    if (dataSource.getNumBusyConnections > 2) session.close
     session.close
     result
   }
@@ -1322,7 +1320,6 @@ object DB extends Schema {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement("COMMIT;")
     val result = preparedStatement.executeUpdate
-//    if (dataSource.getNumBusyConnections > 2) session.close
     session.close
     result
   }

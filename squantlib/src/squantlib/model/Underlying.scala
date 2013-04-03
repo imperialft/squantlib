@@ -1,5 +1,6 @@
 package squantlib.model
 
+import squantlib.database.fixings.Fixings
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
@@ -8,27 +9,29 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
 /**
  * Underlying to be used for pricing models.
  */
-trait Underlying {
+trait Underlying extends Asset {
   
 	val valuedate:qlDate
-	val name:String
+	
+	val id:String
+	
 	var spot:Double  // TO BE DEFINED IN SUBCLASS
 	
 	/**
-	 * Returns the atm volatility corresponding to the given date.
+	 * Returns the atm implied volatility corresponding to the given date.
 	 * @param days observation date as the number of calendar days after value date.
 	 */
 	def volatility(days:Double):Double // TO BE DEFINED IN SUBCLASS
 	
 	/**
-	 * Returns the volatility corresponding to the given date & strike.
+	 * Returns the implied volatility corresponding to the given date & strike.
 	 * @param days observation date as the number of calendar days after value date.
 	 * @param strike 
 	 */
 	def volatility(days:Double, strike:Double):Double // TO BE DEFINED IN SUBCLASS
 	
 	/**
-	 * Returns the volatility corresponding to the given date & strike.
+	 * Returns the implied volatility corresponding to the given date & strike.
 	 * @param observation date as day count fraction and its day count method.
 	 * @param strike
 	 */
@@ -36,7 +39,7 @@ trait Underlying {
 	def volatility(dayfrac:Double, dayCounter:DayCounter, strike:Double):Double = volatility(toDays(dayfrac, dayCounter), strike)	
 	
 	/**
-	 * Returns the volatility corresponding to the given date & strike.
+	 * Returns the implied volatility corresponding to the given date & strike.
 	 * @param observation date
 	 * @param strike
 	 */
@@ -44,7 +47,7 @@ trait Underlying {
 	def volatility(date:qlDate, strike:Double):Double = volatility(toDays(date), strike)	
 	
 	/**
-	 * Returns the volatility corresponding to the given date & strike.
+	 * Returns the implied volatility corresponding to the given date & strike.
 	 * @param observation date
 	 * @param observation date as the period from value date.
 	 */
@@ -52,7 +55,7 @@ trait Underlying {
 	def volatility(period:qlPeriod, strike:Double):Double = volatility(toDays(period), strike)	
 	
 	/**
-	 * Returns the volatility corresponding to the given date represented in nb of years & strike.
+	 * Returns the implied volatility corresponding to the given date represented in nb of years & strike.
 	 * @param observation date
 	 * @param observation date as the period from value date.
 	 */
@@ -101,5 +104,7 @@ trait Underlying {
     protected def toDays(dayfrac:Double, dayCounter:DayCounter) = (dayfrac * 365.25 / dayCounter.annualDayCount)
     protected def toDays(date:qlDate) = (date.serialNumber() - valuedate.serialNumber()).toDouble
     protected def toDays(period:qlPeriod) = period.days(valuedate).toDouble
+    
+    override def getHistoricalPrice = Fixings.getHistorical(id).getOrElse(Map.empty)
     
 } 

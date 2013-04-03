@@ -65,7 +65,10 @@ object FXMontecarlo1f {
 	
 	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], paths:Int):Option[FXMontecarlo1f] = {
 	  val trig = bond.getCalibrationCache("FXMontecarlo1f") match {
-	    case Some(t:List[Option[Double]]) => t
+	    case Some(t:List[Any]) => t.map{
+	      case Some(v:Double) => Some(v)
+	      case _ => None
+	    }.toList
 	    case _ => bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head)
 	  } 
 	  apply(market, bond, mcengine, paths, trig)

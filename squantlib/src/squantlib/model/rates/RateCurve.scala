@@ -29,7 +29,6 @@ trait RateCurve extends DiscountableCurve{
       (if (cash != null) " cash" else "") + (if (swap != null) " swap" else "") +
       (if (basis != null) " basis" else "") + (if (tenorbasis != null) " bs3m6m" else ""))
   
-//  override def toString():String = cash.currency.code + ":ratecurve"
 }
 
 trait AbstractCurve extends YieldParameter {

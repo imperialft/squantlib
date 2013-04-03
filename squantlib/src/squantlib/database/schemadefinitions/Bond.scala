@@ -55,7 +55,6 @@ class Bond(@Column("ID")					override var id: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends StringEntity {
-
   
   def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo")
   
