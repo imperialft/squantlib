@@ -9,7 +9,7 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
 /**
  * Underlying to be used for pricing models.
  */
-trait Underlying extends Asset {
+trait Underlying extends StaticAsset {
   
 	val valuedate:qlDate
 	

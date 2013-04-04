@@ -40,7 +40,7 @@ case class Bond(
 		var modelCalibrated:Boolean = false,
 		var _market:Option[Market] = None,
 		var model:Option[PricingModel] = None
-		) extends Asset {
+		) extends StaticAsset {
 	
 	/*
 	 * Basic access functions
@@ -267,8 +267,6 @@ case class Bond(
 	  case (Some(m), None) => m.price
 	  case _ => None}
 	
-	def spot = dirtyPrice.getOrElse(Double.NaN)
-	  
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)
 	 */
@@ -396,6 +394,9 @@ case class Bond(
       
       if (result == Some(Double.NaN)) None else result
 	}
+	
+    def getYield(price:Double, comp:Compounding, freq:Frequency, vd:qlDate):Option[Double] = 
+      getYield(price, new Actual365Fixed, comp, freq, 0.0001, 20, vd)
 	
     def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = 
       valueDate.flatMap{ case vd => getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)}
@@ -812,6 +813,14 @@ case class Bond(
 	  val fx = if (initialFX > 0.0) initialFX else 1.0
 	  DB.getJPYPriceTimeSeries(id, fx).map{case (k, v) => (new qlDate(k), v)}
 	}
+	
+	lazy val latestPriceParam:Option[BondPrice] = DB.getLatestBondPrice(this.id)
+	
+	override def latestPrice =latestPriceParam.flatMap(p => p.pricedirty_jpy.collect{case s => s/100.0})
+	
+	override def expectedYield:Option[Double] = latestPriceParam.flatMap(p => p.yield_continuous)
+  
+    override def expectedCoupon:Option[Double] = latestPriceParam.flatMap(p => p.currentrate)
 	
 	def show:Unit = {
 	    disp("id", id)

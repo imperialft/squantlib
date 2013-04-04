@@ -22,6 +22,8 @@ case class DiscreteIndex(
 	
 	override val discontinousDates = dividend.keySet
 	
+	override val latestPrice = Some(spot)
+	
 	/**
 	 * Returns the volatility corresponding to the given date & strike.
 	 * @param days observation date as the number of calendar days after value date.
@@ -44,5 +46,14 @@ case class DiscreteIndex(
     val dividendMap:Map[Double, Double] = dividend.map{case (d, v) => (toDays(d), v)}
     
     val dividendMapY:Map[Double, Double] = dividend.map{case (d, v) => (toDays(d)/365.25, v)}
+
+    override def expectedYield:Option[Double] = {
+	  // TO BE IMPLEMENTED
+      None
+    }
     
+    override def expectedCoupon:Option[Double] = {
+	  // TO BE IMPLEMENTED
+      expectedYield    
+    }
 } 

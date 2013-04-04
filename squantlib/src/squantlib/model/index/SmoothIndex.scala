@@ -21,6 +21,8 @@ case class SmoothIndex(
 	
 	override val discontinousDates = Set.empty[qlDate]
 	
+	override val latestPrice = Some(spot)
+	
 	/**
 	 * Returns the volatility corresponding to the given date & strike.
 	 * @param days observation date as the number of calendar days after value date.
@@ -38,6 +40,11 @@ case class SmoothIndex(
     override def repoRate(days:Double):Double = repo(days)
     
     override def dividendYield(days:Double):Double = dividend(days)
+    
+    override def expectedYield:Option[Double] = Some(dividendYield(360) - repoRate(360))
+    
+    override def expectedCoupon:Option[Double] = expectedYield
+    
     
 } 
 

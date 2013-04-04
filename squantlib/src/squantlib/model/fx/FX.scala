@@ -27,10 +27,16 @@ trait FX extends Underlying {
 	
 	val id = currencyFor.code + currencyDom.code
 	
+    override def expectedYield:Option[Double] = Some(curveFor.impliedRate(360) - curveDom.impliedRate(360))
+    
+    override def expectedCoupon:Option[Double] = expectedYield
+	
 	/**
 	 * Returns FX spot rate
 	 */
 	var spot:Double = curveDom.fx / curveFor.fx
+	
+	override val latestPrice = Some(spot)
 	
 	/**
 	 * Returns the volatility corresponding to the given date & strike.

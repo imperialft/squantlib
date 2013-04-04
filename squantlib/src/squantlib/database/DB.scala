@@ -263,6 +263,14 @@ object DB extends Schema {
     }
   }
   
+  def getLatestBondPrice(bondid:String):Option[BondPrice] = transaction {
+    from (bondprices) (b => 
+      where (b.bondid === bondid) 
+      select(b)
+      orderBy(b.paramdate desc)
+      ).headOption
+  }
+  
   def getLatestBondPriceParam:Option[(String, JavaDate)] = getPricedParamSets match {
     case s if s.isEmpty => None
     case s => Some(s.maxBy(_._2)) 
@@ -382,8 +390,7 @@ object DB extends Schema {
       val latest = fwddates.max
       transaction {forwardprices.deleteWhere(b => b.paramdate lt latest)}
       true
-    }
-  else false
+    } else false
    }
   
   /**

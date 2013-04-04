@@ -6,19 +6,7 @@ import java.util.{Date => JavaDate}
 
 case class TimeSeries(ts:SortedMap[qlDate, Double]) extends SortedMap[qlDate, Double] {
   
-//  val sorted = SortedMap(ts.toSeq:_*)
-  
   implicit def sortedMapToTS(smap:SortedMap[qlDate, Double]) = TimeSeries(ts)
-	  
-  def correlation(series:TimeSeries, nbdays:Int = -1):TimeSeries = 
-    Correlation.calculate(ts, series, nbdays)
-
-  def volatility(nbdays:Int = -1, annualdays:Double = 260.0):TimeSeries = 
-    Volatility.calculate(ts, if (nbdays > 0) nbdays else ts.size, annualdays)
-	  
-  def variance(nbDays:Int):TimeSeries = Variance.calculate(ts, nbDays)
-	
-  def movingaverage(nbDays:Int):TimeSeries = MovingAverage.calculate(ts, nbDays)
 		
   def show = ts.foreach(t => println(t._1.shortDate.toString + "\t" + t._2))
   
