@@ -52,6 +52,7 @@ class Bond(@Column("ID")					override var id: String,
               @Column("CURRENTCOUPON")		var currentcoupon:Option[Double],
               @Column("TARGETYIELD")		var targetyield: Option[Double],
               @Column("PRICETAG") 			var pricetag: Option[Int],
+              @Column("COMMENT") 			var comment: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends StringEntity {
@@ -166,6 +167,7 @@ class Bond(@Column("ID")					override var id: String,
 		firstcoupon = Some(-9999.99),
 		currentcoupon = Some(-9999.99),
 		targetyield = Some(-9999.99),
+		comment = null,
 		created = None,
 		lastmodified  = None)
  

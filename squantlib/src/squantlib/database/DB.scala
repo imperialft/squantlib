@@ -263,6 +263,14 @@ object DB extends Schema {
     }
   }
   
+  def getLatestBondPrices:Set[BondPrice] = transaction {
+    val maxparam:Option[JavaDate] = from(bondprices) (b => compute(max(b.paramdate)))
+    maxparam match {
+      case None => Set.empty
+      case Some(d) => from (bondprices) (b => where(b.paramdate === d) select (b)).toSet
+    }
+  }
+  
   def getLatestBondPrice(bondid:String):Option[BondPrice] = transaction {
     from (bondprices) (b => 
       where (b.bondid === bondid) 
