@@ -57,7 +57,7 @@ class Bond(@Column("ID")					override var id: String,
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends StringEntity {
   
-  def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo")
+  def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo", "comment")
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   

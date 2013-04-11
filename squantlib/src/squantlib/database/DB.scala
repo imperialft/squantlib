@@ -18,51 +18,7 @@ import org.apache.commons.lang3.StringEscapeUtils
 import com.sun.org.apache.xpath.internal.operations.And
 
 object DB extends Schema { 
-
-  private val properties = new Properties
-  val dataSource = new ComboPooledDataSource
-
-  /**
-   * Sets up the DB connection for current thread from properties file
-   * 
-   * @param uri A connection string such as mysql://your.mysql.server:3128/database_name
-   * @param username A username to MySQL
-   * @param password Password for the user above
-   * 
-   */
-  def setup(propertiesPath:String):Unit = {
-    properties.load(new FileInputStream(propertiesPath))
-    setup(properties.get("uri").toString, properties.get("username").toString, properties.get("password").toString)
-  }
   
-  /**
-   * Sets up the DB connection for current thread.
-   * 
-   * @param uri A connection string such as mysql://your.mysql.server:3128/database_name
-   * @param username A username to MySQL
-   * @param password Password for the user above
-   *
-   */
-  def setup(uri:String, username:String, password:String):Unit = {
-
-    dataSource.setDriverClass("com.mysql.jdbc.Driver")
-    dataSource.setJdbcUrl((if(uri.take(4) == "jdbc") "" else "jdbc:") + uri + "?characterEncoding=utf-8")
-    dataSource.setUser(username)
-    dataSource.setPassword(password)
-    dataSource.setMinPoolSize(5)
-    dataSource.setMaxPoolSize(10)
-    dataSource.setCheckoutTimeout(10000)
-    dataSource.setMaxIdleTime(60 * 30)
-    dataSource.setIdleConnectionTestPeriod(30)
-    SessionFactory.concreteFactory = Some(() => {
-      Session.create(dataSource.getConnection, new MySQLInnoDBAdapter {override def quoteIdentifier(s:String):String = "`" + s + "`"})
-    })
-  }
-
-  def reconnect:Unit = {
-    setup(properties.get("uri").toString, properties.get("username").toString, properties.get("password").toString)
-  }
-
  implicit object StringDataKED extends KeyedEntityDef[StringEntity, String] {
    def getId(a: StringEntity) = a.id
    def isPersisted(a: StringEntity) = a.id != null
@@ -253,6 +209,10 @@ object DB extends Schema {
   def getBondPriceCount:Map[String, Int] = transaction {
       from(bondprices)(b =>
         groupBy(b.bondid) compute(count(b.id))).map(c => (c.key, c.measures.toInt)).toMap
+  }
+  
+  def removeHistoricalPrice(bondid:String) = transaction {
+    bondprices.deleteWhere(b => b.bondid === bondid)
   }
   
   def getLatestBondPriceIDs:Set[String] = transaction {

@@ -26,8 +26,8 @@ package object schemadefinitions {
     case (k, _) if ignoredFields contains k => true
     case (k, _) if k.head == '_' => true
     case (k, v) => m2.get(k) match {
-      case Some(vv) => compareValues(v, vv)
-      case None => false
+      case Some(vv) => if (compareValues(v, vv)) true else {println("field " + k + " changed"); false}
+      case None => println("field " + k + " changed"); false
       }
     }
   
