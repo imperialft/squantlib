@@ -1291,6 +1291,15 @@ object DB extends Schema {
     result
   }
   
+  def runSQLStatements(statements:List[String]):Array[Int] = {
+    val session           = SessionFactory.concreteFactory.get()
+    val statement = session.connection.createStatement
+    statements.foreach(s => statement.addBatch(s))
+    val result = statement.executeBatch
+    session.close
+    result
+  }
+  
   def runSQLCommitStatement:Int = {
     val session           = SessionFactory.concreteFactory.get()
     val preparedStatement = session.connection.prepareStatement("COMMIT;")
