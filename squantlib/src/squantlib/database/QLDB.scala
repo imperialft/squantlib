@@ -1,7 +1,7 @@
 package squantlib.database
 
 import squantlib.model.Market
-import squantlib.database.schemadefinitions.{ Bond => dbBond, BondPrice, RateFXParameter, CDSParameter}
+import squantlib.database.schemadefinitions.{ Bond => dbBond, RateFXParameter, CDSParameter}
 import org.jquantlib.time.{Date => qlDate, Frequency, TimeSeries}
 import java.util.{Date => JavaDate}
 import squantlib.model.{Bond => sBond}

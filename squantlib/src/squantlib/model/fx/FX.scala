@@ -52,7 +52,6 @@ trait FX extends Underlying {
 	 */
     override def forward(days : Double) : Double = spot * curveFor(days) / curveDom(days)
     
-    
     def zcDom(days:Double) = curveDom(days)
     def zcDom(date:qlDate) = curveDom(date)
     def zcDom(period:qlPeriod) = curveDom(period)

@@ -3,6 +3,7 @@ package squantlib.portfolio
 import squantlib.model.StaticAsset
 import collection.mutable.{Map => MutableMap, WeakHashMap}
 import squantlib.util.DisplayUtils._
+import squantlib.math.timeseries.TimeSeries
 
 case class Portfolio(assets:Map[StaticAsset, Double]) extends Map[StaticAsset, Double] {
 
@@ -24,6 +25,10 @@ case class Portfolio(assets:Map[StaticAsset, Double]) extends Map[StaticAsset, D
   override def iterator = assets.iterator
   
   override def contains(b:StaticAsset):Boolean = assets.contains(b)
+  
+//  def forward:TimeSeries = {
+//    val dates = assets.foldLeft((a, b) => (a.forwad ))
+//  }
   
   val correlationCache = WeakHashMap.empty[Int, SymmetricMatrix[StaticAsset]]
   

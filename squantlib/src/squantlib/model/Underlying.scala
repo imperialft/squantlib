@@ -1,10 +1,12 @@
 package squantlib.model
 
 import squantlib.database.fixings.Fixings
+import squantlib.database.DB
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
+import java.util.{Date => JavaDate}
 
 /**
  * Underlying to be used for pricing models.
@@ -106,5 +108,7 @@ trait Underlying extends StaticAsset {
     protected def toDays(period:qlPeriod) = period.days(valuedate).toDouble
     
     override def getHistoricalPrice = Fixings.getHistorical(id).getOrElse(Map.empty)
+    
+    override protected def getDbForwardPrice:Map[qlDate, Double] = DB.getForwardPricesTimeSeries(assetID, id).map{case (k, v) => (new qlDate(k), v)}
     
 } 

@@ -23,6 +23,10 @@ trait StaticAsset {
   def expectedYield:Option[Double]
   
   def expectedCoupon:Option[Double]
+  
+  protected def getDbForwardPrice:Map[qlDate, Double]
+  
+  def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice.filter{case (d, _) => isWeekday(d)}))
 	
   protected def getHistoricalPrice:Map[qlDate, Double]
   
@@ -36,13 +40,22 @@ trait StaticAsset {
     Volatility.calculate(source, nbDays, annualDays)
   }
   
+  private def getAsset(assetID:String) = assetID match {
+    case "FX" => "Currency"
+    case "BOND" | "PRICE" => "Bond"
+    case a => a
+  }
+  
   def volatilities(nbDays:Int, annualDays:Int = 260, nbResult:Int = 0):Set[dbVolatility] = {
     val currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
     val volarray = historicalVol(nbDays, annualDays, nbResult)
     volarray.map { case (d, v) =>
       new dbVolatility(
           id = (assetID + ":" + id + ":" + ("%tY%<tm%<td" format d.longDate) + ":" + 1 + ":" + nbDays),
-	      underlying = id,
+	      underlying = assetID + ":" + id,
+	      underlyingasset = getAsset(assetID),
+	      underlyingtype = assetID,
+	      underlyingname = id,
 	      valuedate = d.longDate,
 	      periodicity = 1,
 	      nbdays = nbDays,
@@ -71,7 +84,13 @@ trait StaticAsset {
       new dbCorrelation(
           id = (underlying1 + ":" + underlying2 + ":" + ("%tY%<tm%<td" format d.longDate) + ":" + 1 + ":" + nbDays),
 	      underlying1 = underlying1,
+	      underlying1asset = getAsset(assetID),
+	      underlying1type = assetID,
+	      underlying1name = id,
 	      underlying2 = underlying2,
+	      underlying2asset = getAsset(asset.assetID),
+	      underlying2type = asset.assetID,
+	      underlying2name = asset.id,
 	      valuedate = d.longDate,
 	      periodicity = 1,
 	      nbdays = nbDays,

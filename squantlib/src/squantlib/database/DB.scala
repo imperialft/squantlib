@@ -314,11 +314,11 @@ object DB extends Schema {
       from(correlations)(b => select(&(b.valuedate))).distinct.toSet
     }
   
-  def removeOldCorrelations:Boolean = {
-    val correldates = getCorrelationDates
-    if (correldates.size > 1) {
-      val latest = correldates.max
-      transaction {correlations.deleteWhere(b => b.valuedate lt latest)}
+  def removeOldCorrelations(nbDays:Int):Boolean = {
+    val correldates = getCorrelationDates.toList.sorted
+    if (correldates.size > nbDays) {
+      val startdate = correldates.takeRight(nbDays).min
+      transaction {volatilities.deleteWhere(b => b.valuedate lt startdate)}
       true
     }
     else false
@@ -840,8 +840,18 @@ object DB extends Schema {
         )
         select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
       }.map(d => (d._1, d._2/d._3)).toMap
+      
+  def getLatestFX(ccy:String):Option[(JavaDate, Double)] = transaction {
+        val maxdate = from (fxrates)(fx => 
+          where((fx.paramset like "%-000") and (fx.currencyid === "AUD")) 
+          compute(max(fx.paramdate)))
+          
+        from (fxrates)(fx => 
+          where((fx.paramset like "%-000") and (fx.currencyid === "AUD") and (fx.paramdate === maxdate)) 
+          select ((&(fx.paramdate), &(fx.fxjpy))))}.headOption
+
   
-  def getLatestFXParams(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
+  def getLatestFX(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
       from(fxrates)(ip =>
         where(
           (ip.paramset like "%-000") and
@@ -852,12 +862,11 @@ object DB extends Schema {
         .reduceOption((p1, p2) => if (p1._1 after p2._1) p1 else p2)
     }
   
-  def getLatestFXParams(ccy1:String, ccy2:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction{
+  def getLatestFX(ccy1:String, ccy2:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction{
       from(fxrates, fxrates)((fx1, fx2) =>
         where(
           (fx1.paramset like "%-000") and
           (fx1.paramdate lte valuedate) and
-//          weekday(fx1.paramdate) < 5 and
           (fx1.paramset === fx2.paramset) and
           (fx1.currencyid === ccy1) and
           (fx2.currencyid === ccy2) 
@@ -1036,6 +1045,30 @@ object DB extends Schema {
         select(&(bp.paramdate), &(bp.priceclean.get))
       ) toMap;
   	}
+  
+  /**
+   * Returns forward price of an asset, quoted in issue currency.
+   */
+  def getForwardPricesTimeSeries(underlyingtype:String, underlyingname:String):Map[JavaDate, Double] = transaction {
+      from(forwardprices)(fp =>
+        where(
+          fp.underlyingtype === underlyingtype and
+          fp.underlyingname === underlyingname
+        )
+        select(&(fp.valuedate), &(fp.price))
+      ) toMap;
+  	}
+  
+  def getForwardPrices(underlyingtype:String, underlyingname:String):Set[ForwardPrice] = transaction {
+      from(forwardprices)(fp =>
+        where(
+          fp.underlyingtype === underlyingtype and
+          fp.underlyingname === underlyingname
+        )
+        select(fp)
+      ) toSet;
+  	}
+  
 
   /**
    * Returns historical price of a bond, quoted in issue currency.
@@ -1094,23 +1127,46 @@ object DB extends Schema {
    * @param fx	
    * @return bondid Bond id. eg. "ADB-00001"
    */
+  def getJPYPriceTimeSeries(bondid:String):Map[JavaDate, Double] = {
+    val bond = getBond(bondid).orNull
+    
+    if (bond == null) Map.empty
+
+    else {
+      
+      val results = transaction{from(bondprices)(bp =>
+        where(
+          bp.paramset like "%-000" and
+	      bp.bondid      === bondid and
+	      bp.priceclean.isNotNull
+	    )
+	    select(&(bp.paramdate), &(bp.priceclean.get), &(bp.fxjpy))
+	  ).toSet}
+	  
+	  val basefx = if (bond.initialfx > 0) bond.initialfx else results.maxBy{case (d, p, f) => d}._3
+	  
+	  results.map(v => (v._1, v._2 * v._3 / basefx)).toMap
+  }}
+  
+  /**
+   * Returns historical price of a bond, quoted as JPY percentage value from given fx fixing.
+   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
+   * It returns prices for dates which price in original currency is defined.
+   *
+   * @param bondid target bond id
+   * @param defaultfx default fx value in case JPY price is not available for all currencies
+   * @param fx	
+   * @return bondid Bond id. eg. "ADB-00001"
+   */
   def getJPYPriceTimeSeries(bondid:String, basefx:Double):Map[JavaDate, Double] = transaction {
-      val quoteccy = from(bonds)(b => 
-        where (b.id === bondid)
-        select (&(b.currencyid))
-        ).singleOption.orNull
-        
-      if (quoteccy == null) Map.empty
-      else from(bondprices, fxrates)((bp, fx) =>
-	        where(
-	          bp.paramset like "%-000" and
-	          bp.bondid      === bondid and
-	          bp.priceclean.isNotNull and
-	          fx.currencyid === quoteccy and
-	          bp.paramset === fx.paramset
-	        )
-	        select(&(bp.paramdate), &(bp.priceclean.get), &(fx.fxjpy))
-	      ).map(v => (v._1, v._2 * v._3 / basefx)).toMap
+    from(bondprices)(bp =>
+      where(
+          bp.paramset like "%-000" and
+	      bp.bondid      === bondid and
+	      bp.priceclean.isNotNull
+	      )
+	  select(&(bp.paramdate), &(bp.priceclean.get), &(bp.fxjpy))
+	  ).map(v => (v._1, v._2 * v._3 / basefx)).toMap
   	}
   
   
@@ -1137,7 +1193,6 @@ object DB extends Schema {
       else from(bondprices, fxrates)((bp, fx) =>
 	        where(
 	          bp.paramset like "%-000" and
-//	          bp.instrument === "BONDPRICE" and
 	          (bp.paramdate gte start) and
 	          (bp.paramdate lte end) and
 	          bp.bondid      === bondid and

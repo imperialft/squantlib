@@ -679,13 +679,13 @@ case class Bond(
 			pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100},
 			priceclean_jpy = cleanPriceJpy.collect{case p => p * 100},
 			accrued_jpy = accruedAmountJpy.collect{case p => p * 100},
-			yield_continuous = yieldContinuous,
-			yield_annual = yieldAnnual,
-			yield_semiannual = yieldSemiannual,
-			yield_simple = yieldSimple,
-			bpvalue = bpvalue.collect{case p => p * 100},
-			irr = irr,
-			currentrate = currentRate,
+			yield_continuous = yieldContinuous.collect{case p => p * 100},
+			yield_annual = yieldAnnual.collect{case p => p * 100},
+			yield_semiannual = yieldSemiannual.collect{case p => p * 100},
+			yield_simple = yieldSimple.collect{case p => p * 100},
+			bpvalue = bpvalue.collect{case p => p * 10000},
+			irr = irr.collect{case p => p * 100},
+			currentrate = currentRate.collect{case p => p * 100},
 			nextamount = nextPayment.collect{case (d, p) => p * 100},
 			nextdate = nextPayment.collect{case (d, p) => d.longDate},
 			dur_simple = effectiveDuration,
@@ -728,7 +728,7 @@ case class Bond(
 			yield_simple = None,
 			bpvalue = None,
 			irr = None,
-			currentrate = currentRate,
+			currentrate = currentRate.collect{case p => p * 100},
 			nextamount = nextPayment.collect{case (d, p) => p * 100},
 			nextdate = nextPayment.collect{case (d, p) => d.longDate},
 			dur_simple = None,
@@ -794,8 +794,12 @@ case class Bond(
 	      paramdate = vd.longDate,
 	      valuedate = mkt.valuedate.longDate,
 	      underlying = "BOND:" + id,
+	      underlyingasset = "Bond",
+	      underlyingtype = "BOND",
+	      underlyingname = id,
 	      value = cp,
 	      valuejpy = if (db.initialfx == 0 || fwdfx == 0) None else Some(cp * fwdfx / db.initialfx),
+	      price = if (db.initialfx == 0 || fwdfx == 0) cp else cp * fwdfx / db.initialfx,
 	      created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
 	      ))
 	  case _ => None
@@ -821,6 +825,8 @@ case class Bond(
 	override def expectedYield:Option[Double] = latestPriceParam.flatMap(p => p.yield_continuous)
   
     override def expectedCoupon:Option[Double] = latestPriceParam.flatMap(p => p.currentrate)
+    
+    override protected def getDbForwardPrice = DB.getForwardPricesTimeSeries("BOND", id).map{case (k, v) => (new qlDate(k), v)}
 	
 	def show:Unit = {
 	    disp("id", id)
