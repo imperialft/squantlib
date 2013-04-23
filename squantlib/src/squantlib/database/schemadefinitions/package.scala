@@ -40,6 +40,7 @@ package object schemadefinitions {
   def booleanList(s:String, compareTo:String):List[Boolean] = s.parseJsonStringList.map(_.orNull == compareTo)
   
   def multipleReplace(v:String, replacements:Map[String, Any]):String = {
+	  if (v == null) {return null}
 	  var result = v
 	  replacements.foreach{case (k, d) => result = result.replace(k, d.toString)}
 	  result
