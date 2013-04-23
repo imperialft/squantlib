@@ -33,8 +33,8 @@ object DisplayUtils {
 	  def asPercent:String = "%.4f".format(d * 100.0).trimZeros + "%"
 	  def asPercent(decimals:Int):String = ("%." + decimals + "f").format(d * 100.0).trimZeros + "%"
 	  
-	  def asDouble:String = "%.4f".format(d).trimZeros
-	  def asDouble(decimals:Int):String = ("%." + decimals + "f").format(d).trimZeros
+	  def asDouble:String = "%,.4f".format(d).trimZeros
+	  def asDouble(decimals:Int):String = ("%,." + decimals + "f").format(d).trimZeros
 	}
 	
 	implicit def doubleToExtendedDoubleOpt(d:Option[Double]) = ExtendedDoubleOpt(d)
@@ -48,7 +48,7 @@ object DisplayUtils {
 	  def asPercent = asPercentOr("")
 	  
 	  def asDoubleOr(alternative:String, prefix:String, suffix:String):String = d match {
-	    case Some(r) => prefix + "%.4f".format(r).trimZeros + suffix
+	    case Some(r) => prefix + "%,.4f".format(r).trimZeros + suffix
 	    case None => alternative
 	  }
 	  def asDoubleOr(alternative:String):String = asDoubleOr(alternative, "", "")

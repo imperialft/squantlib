@@ -61,14 +61,14 @@ object Csv {
   }
   
   def fromFile(location:String, blankRows:Int, blankColumns:Int):Option[Csv] = {
-    using(Source.fromFile(location)) { source => {
+    using(Source.fromFile(location)(codec)) { source => {
       val parseResult = CsvParser.parseAll(CsvParser.csvFile, source.getLines.drop(blankRows).mkString("\n") + "\n")
       if (parseResult.isEmpty) None else Some(Csv(parseResult.get.map(l => l.drop(blankColumns))))
     }}
   }
   
   def fromURL(url:String, blankRows:Int, blankColumns:Int):Option[Csv] = {
-    using(Source.fromURL(url)) { source => {
+    using(Source.fromURL(url)(codec)) { source => {
       val parseResult = CsvParser.parseAll(CsvParser.csvFile, source.getLines.drop(blankRows).mkString("\n") + "\n")
       if (parseResult.isEmpty) None else Some(Csv(parseResult.get.map(_.drop(blankColumns))))
     }}
