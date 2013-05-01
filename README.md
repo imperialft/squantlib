@@ -26,15 +26,15 @@ SquantLib
 * Building various cashflows. (fix, binary, linear sums, put, cap, floor, etc)
 * Pricing bonds with specific pricing mechanisms.
 * Greeks - delta (rate & fx), vega (rate & fx), yield, durations, convexity, etc..
+* Consolidate bonds with published prices
 
 ###Indices
 * Pricing index linked bond with trigger
 
 ###To Do (maybe)
 * Equity linked products
-* Support for bonds with published prices
 * More sophisticated montecarlo model (smile, multi-factor)
-* Proper Bermudan swaptions
+* Bermudan swaptions
 
 ## What is this for?
 * Main pricing backbone behind PFOL.IO project (http://pfol.io)
