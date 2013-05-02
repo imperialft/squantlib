@@ -95,6 +95,34 @@ trait Underlying extends StaticAsset {
     def forwardY(years:Double):Double = forward(years * 365.25)
     
 	/**
+	 * Returns forward atm volatility
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardVol(valuedate:Double, maturity:Double):Double = 
+      math.sqrt((maturity * math.pow(volatility(maturity), 2.0) - valuedate * math.pow(volatility(valuedate), 2.0)) / (maturity - valuedate))    
+      
+	/**
+	 * Returns forward volatility with strike
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardVol(valuedate:Double, maturity:Double, strike:Double):Double = 
+      math.sqrt((maturity * math.pow(volatility(maturity, strike), 2.0) - valuedate * math.pow(volatility(valuedate, strike), 2.0)) / (maturity - valuedate))    
+      
+	/**
+	 * Returns forward atm volatility
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardVol(valuedate:qlDate, maturity:qlDate):Double = 
+      math.sqrt((toDays(maturity) * math.pow(volatility(maturity), 2.0) - toDays(valuedate) * math.pow(volatility(valuedate), 2.0)) / (toDays(maturity) - toDays(valuedate)))    
+      
+	/**
+	 * Returns forward volatility with strike
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardVol(valuedate:qlDate, maturity:qlDate, strike:Double):Double = 
+      math.sqrt((toDays(maturity) * math.pow(volatility(maturity, strike), 2.0) - toDays(valuedate) * math.pow(volatility(valuedate, strike), 2.0)) / (toDays(maturity) - toDays(valuedate))) 
+    
+	/**
 	 * Returns the latest defined date.
 	 */
     def maxDays:Double

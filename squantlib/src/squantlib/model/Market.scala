@@ -6,6 +6,7 @@ import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
 import squantlib.model.fx._
 import squantlib.model.index._
+import squantlib.model.equity._
 import squantlib.database.schemadefinitions.{CDSParameter, RateFXParameter}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
@@ -26,6 +27,7 @@ class Market(
     val cdscurves:Map[String, CDSCurve] = Map.empty, 
     val fxInitializers:Map[String, FXInitializer] = Map.empty,
     val indexInitializers:Map[String, IndexInitializer] = Map.empty,
+    val equityInitializers:Map[String, EquityInitializer] = Map.empty,
     val fixings:Map[String, Double]  = Map.empty) {
 
 	/** 
@@ -192,6 +194,10 @@ class Market(
 	
 	def getIndex(name:String) : Option[Index] = {
 	  indexInitializers.get(name).flatMap{case initializer => initializer.getModel(this)}
+	}
+	
+	def getEquity(name:String) : Option[Equity] = {
+	  null
 	}
 	
 	/**
@@ -374,6 +380,7 @@ object Market {
 	  val fxparams = FXInitializer(ratefxparams)
 
 	  val indices = IndexInitializer.getInitializers(ratefxparams)
+	  
 	  
 	  val paramset = ratefxparams.head.paramset
 	  

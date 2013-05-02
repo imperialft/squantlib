@@ -42,6 +42,7 @@ object DB extends Schema {
   val issuers = table[Issuer]("Issuers")
   val products = table[Product]("Products")
   val bonds = table[Bond]("Bonds")
+  val equities = table[Equity]("Equities")
   val ratefxparameters = table[RateFXParameter]("RateFXParameters")
   val inputparameters = table[InputParameter]("InputParameters")
   val cdsparameters = table[CDSParameter]("CDSParameters")
@@ -83,7 +84,18 @@ object DB extends Schema {
    */
   def getCountries:Set[Country] = getKeyedEntity(countries)
   def getCountries(ids:Traversable[String]):Set[Country] = getKeyedEntity(countries, ids)
+  def getCountry(id:String):Option[Country] = getAKeyedEntity(countries, id)
 
+  /**
+   * Returns a Set of equity description objects identified by a List of ID.
+   * 
+   * @param ids A List of unique IDs.
+   * @return A Set of Equity objects.
+   */
+  def getEquities:Set[Equity] = getKeyedEntity(equities)
+  def getEquities(ids:Traversable[String]):Set[Equity] = getKeyedEntity(equities, ids)
+  def getEquity(id:String):Option[Equity] = getAKeyedEntity(equities, id)
+  
   /**
    * Returns a Set of Currencies objects identified by a Set of ID.
    * 
@@ -92,6 +104,7 @@ object DB extends Schema {
    */
   def getCurrencies:Set[Currency] = getKeyedEntity(currencies)
   def getCurrencies(ids:Traversable[String]):Set[Currency] = getKeyedEntity(currencies, ids)
+  def getCurrency(id:String):Option[Currency] = getAKeyedEntity(currencies, id)
   
   def getCurrencyShortJNames:Map[String, String] = transaction {
       from(currencies)(c => select((&(c.id), &(c.name_jpn_short)))).toMap}
@@ -107,6 +120,7 @@ object DB extends Schema {
    */
   def getDistributors:Set[Distributor] = getKeyedEntity(distributors)
   def getDistributors(ids:Traversable[String]):Set[Distributor] = getKeyedEntity(distributors, ids)
+  def getDistributor(id:String):Option[Distributor] = getAKeyedEntity(distributors, id)
 
   /**
    * Returns a Set of Issuer objects identified by a Set of ID.
@@ -116,6 +130,7 @@ object DB extends Schema {
    */
   def getIssuers:Set[Issuer] = getKeyedEntity(issuers)
   def getIssuers(ids:Traversable[String]):Set[Issuer] = getKeyedEntity(issuers, ids)
+  def getIssuer(id:String):Option[Issuer] = getAKeyedEntity(issuers, id)
   
   /**
    * Returns Underlying information
@@ -132,6 +147,7 @@ object DB extends Schema {
    */
   def getProducts:Set[Product] = getKeyedEntity(products)
   def getProducts(ids:Traversable[String]):Set[Product] = getKeyedEntity(products, ids)
+  def getProduct(id:String):Option[Product] = getAKeyedEntity(products, id)
   
   /**
    * Returns a Set of Bond objects identified by a Set of ID.
@@ -140,12 +156,9 @@ object DB extends Schema {
    * @return A Set of Bond objects.
    */
 
-  def getBond(id:String):Option[Bond] = getBonds(Set(id)) match {
-    case b if b.isEmpty => None
-    case b => Some(b.head)}
-  
   def getBonds:Set[Bond] = getKeyedEntity(bonds)
   def getBonds(ids:Traversable[String]):Set[Bond] = getKeyedEntity(bonds, ids)
+  def getBond(id:String):Option[Bond] = getAKeyedEntity(bonds, id)
   
   def getBonds(valuedate:JavaDate):Set[Bond] = transaction {
       from(bonds)(bond => where(bond.maturity gt valuedate) select(bond)).toSet}
