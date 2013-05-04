@@ -16,5 +16,6 @@
 	<classpathentry kind="lib" path="lib/mchange-commons-java-0.2.3.3.jar"/>
 	<classpathentry kind="lib" path="lib/squeryl_2.10-0.9.6-SNAPSHOT.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/jquantlib"/>
+	<classpathentry kind="lib" path="lib/jquantlib.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

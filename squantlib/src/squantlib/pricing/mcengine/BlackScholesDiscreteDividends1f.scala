@@ -95,10 +95,10 @@ case class BlackScholesDiscreteDividends1f(
 
 }
 
-object BlackScholesDiscreteDividends {
+object BlackScholesDiscreteDividends1f {
   
   def apply(equity:Equity):Option[BlackScholesDiscreteDividends1f] = 
-	try { Some(new BlackScholesDiscreteDividends1f(equity.spot, equity.interestRate, equity.dividendDays, equity.repoRate, equity.volatilityY)) } 
+	try { Some(new BlackScholesDiscreteDividends1f(equity.spot, equity.interestRateY, equity.dividendYears, equity.repoRateY, equity.volatilityY)) } 
 	catch { case _ :Throwable=> None}
 	
 }

@@ -86,7 +86,7 @@ case class BlackScholesWithRepo(
 object BlackScholesWithRepo {
   
   def apply(index:Index):Option[BlackScholesWithRepo] = 
-	try { Some(new BlackScholesWithRepo(index.spot, index.interestRate, index.dividendYield, index.repoRate, index.volatilityY)) } 
+	try { Some(new BlackScholesWithRepo(index.spot, index.interestRateY, index.dividendYieldY, index.repoRateY, index.volatilityY)) } 
 	catch { case _:Throwable => None}
 	
 }

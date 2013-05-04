@@ -25,9 +25,9 @@ trait Equity extends Underlying {
 	
 	val currency:Currency = rateCurve.currency
 	
-	val dividend:Map[qlDate, Double]
+	val dividends:Map[qlDate, Double]
 	
-    lazy val dividendDays:Map[Double, Double] = dividend.filter{case (d, _) => d ge valuedate}.map{case (d, v) => (toDays(d), v)}
+    lazy val dividendDays:Map[Double, Double] = dividends.filter{case (d, _) => d ge valuedate}.map{case (d, v) => (toDays(d), v)}
     lazy val dividendDaysList:List[(Double, Double)] = dividendDays.toList.sortBy(_._1)
     
     def dividendYears:Map[Double, Double] = dividendDays.map{case (d, v) => (d/365.25, v)}

@@ -197,7 +197,7 @@ class Market(
 	}
 	
 	def getEquity(name:String) : Option[Equity] = {
-	  null
+	  equityInitializers.get(name).flatMap{case initializer => initializer.getModel(this)}
 	}
 	
 	/**
@@ -275,7 +275,7 @@ class Market(
 	    if (equivshift contains c) (c, v.shiftRate(equivshift(c))) 
 	    else (c, v)} 
 	    
-	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, fixings)
+	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, equityInitializers, fixings)
 	}
 	
 	/**
@@ -290,7 +290,7 @@ class Market(
 	    if (fxShift contains c) (c, v.multFX(fxShift(c))) 
 	    else (c, v)}
 	    
-	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, fixings)
+	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, equityInitializers, fixings)
 	}
 
 	
@@ -308,6 +308,7 @@ class Market(
 	      cdscurves, 
 	      fxInitializers.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}, 
 	      indexInitializers, 
+	      equityInitializers, 
 	      fixings)
 	
 	
@@ -381,6 +382,7 @@ object Market {
 
 	  val indices = IndexInitializer.getInitializers(ratefxparams)
 	  
+	  val equities = EquityInitializer.getInitializers(ratefxparams)
 	  
 	  val paramset = ratefxparams.head.paramset
 	  
@@ -398,6 +400,7 @@ object Market {
 		    cdscurves.map(c => (c.issuerid, c)) (breakOut), 
 		    fxparams,
 		    indices, 
+		    equities,
 		    fixingset))
 	}
   

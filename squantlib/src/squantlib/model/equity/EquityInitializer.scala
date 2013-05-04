@@ -64,7 +64,7 @@ case class EquityFlatDivATM(
     val dividends:Map[qlDate, Double] = constractDividend(baseDivDate, lastDivDate, annualdiv, divfreq, Set(ccy))
     if (dividends == null || dividends.isEmpty) {return None}
     
-    val ratecurve = market.getBaseDiscountCurve(ccy).orNull
+    val ratecurve = market.getDiscountCurve(ccy, discountCurve, discountSpread).orNull
     if (ratecurve == null) {return None}
     
     val repo = (params.get(repoid) match {

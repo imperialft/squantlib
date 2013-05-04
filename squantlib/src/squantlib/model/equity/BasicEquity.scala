@@ -13,7 +13,7 @@ case class BasicEquity(
     override val id:String,
 	override var spot:Double,
     override val rateCurve:DiscountCurve, 
-    override val dividend:Map[qlDate, Double], 
+    override val dividends:Map[qlDate, Double], 
     repo:RepoCurve, 
     vol:(Double, Double) => Double
     ) extends Equity {
@@ -36,13 +36,13 @@ case class BasicEquity(
 	 */ 
     override def forward(days:Double):Double = {
 	  val divList = dividendDaysList.filter(d => d._1 > 0 && d._1 <= days).toList.sortBy(_._1)
-	  val periods = if (divList.last._1 == days) divList else divList :+ (days, 0.0)
+	  val periods = if (!divList.isEmpty && divList.last._1 == days) divList else divList :+ (days, 0.0)
 	  var s = spot
 	  var lastd = 0.0
 	  
 	  periods.foreach{case (d, div) =>
-	    val dt = d - lastd
-	    s = s * math.exp((fwdInterestRate(lastd, d) - fwdRepoRate(lastd, d)) * (d - lastd)) - div
+	    val dt = (d - lastd) / 365.25
+	    s = s * math.exp((fwdInterestRate(lastd, d) - fwdRepoRate(lastd, d)) * dt) - div
 	    lastd = d
 	  }
 	  
