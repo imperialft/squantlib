@@ -5,6 +5,7 @@ import squantlib.model.{Market, Bond}
 import squantlib.pricing.mcengine._
 import squantlib.model.fx.FX
 import squantlib.model.index.Index
+import squantlib.model.equity.Equity
 
 object DefaultBondSetting {
   
@@ -50,7 +51,14 @@ object DefaultBondSetting {
 	      
 	  case "NKY" => 
 	      val engine = (index:Index) => BlackScholesWithRepo(index)
-	      bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine, 30000)
+	      bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine, 80000)
+	      bond.forceModel = true
+	      bond.useCouponAsYield = false
+	      bond.requiresCalibration = false
+	      
+	  case "EB" => 
+	      val engine = (equity:Equity) => BlackScholesDiscreteDividends1f(equity)
+	      bond.defaultModel = (m:Market, b:Bond) => EquityMontecarlo1f(m, b, engine, 80000)
 	      bond.forceModel = true
 	      bond.useCouponAsYield = false
 	      bond.requiresCalibration = false

@@ -5,6 +5,7 @@ import squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
+import scala.annotation.tailrec
 
 /**
  * Orthodox index with continuous dividend yield.
@@ -35,32 +36,31 @@ case class BasicEquity(
 	 * @param observation date as the number of calendar days after value date.
 	 */ 
     override def forward(days:Double):Double = {
-	  val divList = dividendDaysList.filter(d => d._1 > 0 && d._1 <= days).toList.sortBy(_._1)
+	  val divList = dividendDaysList.filter(_._1 <= days).toList.sortBy(_._1)
 	  val periods = if (!divList.isEmpty && divList.last._1 == days) divList else divList :+ (days, 0.0)
-	  var s = spot
-	  var lastd = 0.0
 	  
-	  periods.foreach{case (d, div) =>
-	    val dt = (d - lastd) / 365.25
-	    s = s * math.exp((fwdInterestRate(lastd, d) - fwdRepoRate(lastd, d)) * dt) - div
-	    lastd = d
+	  @tailrec def fwdRec(s:Double, lastd:Double, dates:List[(Double, Double)]):Double = {
+	    if (dates.isEmpty) s
+	    else {
+	      val (d, div) = dates.head
+	      val newspot = s * math.exp((fwdInterestRate(lastd, d) - fwdRepoRate(lastd, d)) * (d - lastd) / 365.25) - div
+	      fwdRec(newspot, d, dates.tail)
+	    }
 	  }
 	  
-	  s
+	  fwdRec(spot, 0.0, periods)
 	}
 	
     override def repoRate(days:Double):Double = repo(days)
     
 
-    override def expectedYield:Option[Double] = {
-	  // TO BE IMPLEMENTED
-      None
-    }
+    override def expectedYield:Option[Double] = 
+      if (rateCurve == null) None else Some(rateCurve.impliedRate(365.0))
     
-    override def expectedCoupon:Option[Double] = {
-	  // TO BE IMPLEMENTED
-      expectedYield    
-    }
+    override def expectedCoupon:Option[Double] = 
+      if (dividendDaysList.isEmpty) None
+      else Some(dividendDaysList.filter(_._1 <= 365).map(_._2).sum / spot)
+      
 } 
 
 object BasicEquity {

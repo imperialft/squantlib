@@ -74,8 +74,6 @@ case class BlackScholesDiscreteDividends1f(
 	
 	val sigt = for (i <- 0 to steps-1) yield fsigma(i) * scala.math.sqrt(stepsize(i))
 	
-	println("start generate paths for " + steps + " steps")
-	
     val genpaths = for (path <- (0 to paths-1).toList) yield {
       var spotprice = spot
       val apath = for (d <- (0 to steps-1).toList) yield {
@@ -90,7 +88,7 @@ case class BlackScholesDiscreteDividends1f(
       pathmapper.map(apath)
     }
     
-    (dates, genpaths)
+    (sortedEventDates, genpaths)
   }
 
 }
