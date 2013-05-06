@@ -89,6 +89,12 @@ case class Bond(
 	
 	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
 	
+	def lastPeriod:Option[CalculationPeriod] = scheduledPayoffs.triggeredDate
+	
+	def terminationDate:Option[qlDate] = lastPeriod.collect{case p => p.paymentDate}
+	
+	def isTerminated:Boolean = terminationDate.isDefined
+	
 	/*
 	 * Creates clone of the same bond (shallow copy)
 	 */
@@ -262,10 +268,12 @@ case class Bond(
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
 	 */
-	def dirtyPrice:Option[Double] = (model, discountCurve) match {
-	  case (Some(m), Some(c)) => m.price(c)
-	  case (Some(m), None) => m.price
-	  case _ => None}
+	def dirtyPrice:Option[Double] = 
+	  if (isTerminated) None
+	  else (model, discountCurve) match {
+	    case (Some(m), Some(c)) => m.price(c)
+		case (Some(m), None) => m.price
+		case _ => None}
 	
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)
@@ -834,6 +842,9 @@ case class Bond(
 	    disp("model", model match { case None => "Not defined" case Some(m) => m.getClass.getName})
 	    disp("market", market match { case None => "Not defined" case Some(m) => m.paramset})
 	    disp("underlyings", underlyings.mkString(" "))
+	    disp("initial", underlyings.map(u => u + " -> " + db.fixingMap.getOrElse(u, "not fixed")).mkString(" "))
+	    disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse(u, "not fixed")).mkString(" ")}.getOrElse("no market"))
+	    disp("termination", terminationDate.getOrElse("not terminated"))
 	    
 	    if (market isDefined) {
 	      println("Live payoffs:") 
@@ -841,9 +852,7 @@ case class Bond(
 	    }
 	    else {
 	      println("Full schedule:")
-		  scheduledPayoffs.foreach{case (s, po, _) => disp(s.toString, po)}
-	      disp("triggers", trigger.mkString(","))
-	      disp("bermudans", bermudan.mkString(","))
+	      println(scheduledPayoffs.toString)
 	    }
 	  }
 	
@@ -866,7 +875,7 @@ object Bond {
 	  val schedule = db.schedule.orNull
 	  if (schedule == null) {return None}
 		
-	  val fixings:Map[String, Double] = if (!db.fixingList.isEmpty) db.fixingList
+	  val fixings:Map[String, Double] = if (!db.fixingMap.isEmpty) db.fixingMap
 			  else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)
 			  else Map.empty
 

@@ -38,6 +38,7 @@ case class PutDIAmericanPayoff(
 	var mcPeriodbefore = 180
 	
 	override def eventDates(period:CalculationPeriod):List[qlDate] = {
+	  if (refStart == null || refEnd == null) {return List(period.endDate)}
 	  val basemod = refEnd.serialNumber % mcPeriod6m
 	  val start = refStart.serialNumber
 	  val end = refEnd.serialNumber
@@ -62,7 +63,7 @@ case class PutDIAmericanPayoff(
 	    variables.exists(p => fixings.get(p) match { case Some(v) => v <= triggerMap(p) case None => false})
 	  
 	  override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
-	    if (variables subsetOf fixings.keySet) {
+	    if ((variables subsetOf fixings.keySet) && refStart != null && refEnd != null) {
 	      if (isKnockedIn) amount * math.min(1.00, variables.map(v => fixings(v) / strikeMap(v)).min)
 	      else amount
 	    } else Double.NaN

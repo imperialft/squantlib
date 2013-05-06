@@ -17,6 +17,10 @@ case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Dou
   
   def isEmpty:Boolean = !bermudan && triggers.isEmpty
   
+  def isTriggered(fixings:Map[String, Double]):Boolean = 
+    if (!triggers.isEmpty && (triggers.keySet subsetOf fixings.keySet)) triggers.forall{case (k, v) => v <= fixings(k)}
+    else false
+  
   override def toString:String = 
     (if (bermudan) "call " else "") + 
     (if (isTrigger) "trig:" + triggers.mkString(" ") else "") + 
@@ -58,6 +62,8 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
     
     def isTrigger = calls.exists(_.isTrigger)
     
+	def triggerCheck(fixings:List[Map[String, Double]]):List[Boolean] = (fixings, calls).zipped.map{case (f, c) => c.isTriggered(f)}
+	
 	override def isEmpty:Boolean = calls.isEmpty || calls.forall(_.isEmpty)
 	
 	override def head:Callability = calls.head

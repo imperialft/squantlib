@@ -51,14 +51,14 @@ object DefaultBondSetting {
 	      
 	  case "NKY" => 
 	      val engine = (index:Index) => BlackScholesWithRepo(index)
-	      bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine, 80000)
+	      bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine, 50000)
 	      bond.forceModel = true
 	      bond.useCouponAsYield = false
 	      bond.requiresCalibration = false
 	      
 	  case "EB" => 
 	      val engine = (equity:Equity) => BlackScholesDiscreteDividends1f(equity)
-	      bond.defaultModel = (m:Market, b:Bond) => EquityMontecarlo1f(m, b, engine, 80000)
+	      bond.defaultModel = (m:Market, b:Bond) => EquityMontecarlo1f(m, b, engine, 50000)
 	      bond.forceModel = true
 	      bond.useCouponAsYield = false
 	      bond.requiresCalibration = false

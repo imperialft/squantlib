@@ -330,14 +330,19 @@ class Market(
 	
 	
 	def show:Unit = {
-		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
-		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
 		println("Curves:")
-		sortedcurves.foreach{case (n, c) => println(c.toString + (if (discountingCurves.contains(n)) "(*)" else ""))}
-		println("(*) Discounting curves")
-		println(" ")
+		println(curves.keySet.toList.sorted.mkString(" "))
 		println("Credit Spreads:")
-		sortedcdscurves.foreach{case (n, c) => println(n + "\t" + c.rate.valuedate.shortDate + "\t" + c.rate.maxdate.shortDate)}
+		println(cdscurves.keySet.toList.sorted.mkString(" "))
+		println("Indices:")
+		println(indexInitializers.keySet.toList.sorted.mkString(" "))
+		println("Equities:")
+		println(equityInitializers.keySet.toList.sorted.mkString(" "))
+		println("FX:")
+		println(fxInitializers.keySet.toList.sorted.mkString(" "))
+		println("Fixings:")
+		println(fixings.keySet.toList.sorted.mkString(" "))
+		
 	}
 	
 	def describe = {

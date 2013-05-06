@@ -6,13 +6,15 @@ import scala.collection.LinearSeq
 import scala.annotation.tailrec 
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
+import squantlib.database.fixings.Fixings
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{Date => qlDate}
 import org.jquantlib.daycounters.Actual365Fixed
 
 case class ScheduledPayoffs(
     scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],
-    valuedate:Option[qlDate] = None) 
+    valuedate:Option[qlDate] = None,
+    fixedValues:List[Map[String, Option[Double]]] = List.empty) 
     extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   
   lazy val (schedule, payoffs, calls) = scheduledPayoffs.unzip3  match {
@@ -34,6 +36,16 @@ case class ScheduledPayoffs(
   def currentPayoffs(vd:qlDate):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd)}.map(_._2) (collection.breakOut)
   
   def currentCoupons(vd:qlDate):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd) && !d.isAbsolute}.map(_._2) (collection.breakOut)
+  
+  def isTriggered:Boolean = (scheduledPayoffs, fixedValues).zipped.exists{case ((_, _, call), f) => 
+    val fixings:Map[String, Double] = f.collect{case (s, Some(v)) => (s, v)} (collection.breakOut)
+    call.isTriggered(fixings)}
+  
+  def triggeredDate:Option[CalculationPeriod] = {
+    val trigDays = (scheduledPayoffs, fixedValues).zipped.collect{case ((sched, _, call), f) => 
+      val fixings:Map[String, Double] = f.collect{case (s, Some(v)) => (s, v)} (collection.breakOut)
+      if (call.isTriggered(fixings)) Some(sched) else None}.flatMap(s => s)
+    if (trigDays.isEmpty) None else Some(trigDays.minBy(_.eventDate))}
   
   lazy val bonusRate = amountToRate(bonusAmount)
   
@@ -93,7 +105,15 @@ case class ScheduledPayoffs(
   
   override def apply(i:Int):(CalculationPeriod, Payoff, Callability) = scheduledPayoffs(i)
   
-  override def toString = scheduledPayoffs.map{case (d, p, c) => d.toString + " " + p.toString + " " + c.toString}.mkString("\n")
+  override def toString = {
+    val fullfixings:List[Map[String, Double]] = fixedValues.map(kv => kv.collect{case (k, Some(v)) => (k, v)}) ++ List.fill(scheduledPayoffs.size - fixedValues.size)(Map.empty[String, Double])
+    (scheduledPayoffs, fullfixings).zipped.map{case ((d, p, c), f) => 
+      List(d.toString, 
+          p.toString, 
+          c.toString, 
+          if (f.isEmpty) "not fixed" else "fixed:" + f.map{case (k, v) => k + " -> " + v}.mkString(" ")
+          ).mkString(" ")}.mkString("\n")
+  }
 	
   override def isEmpty:Boolean = scheduledPayoffs.isEmpty
 	
@@ -122,12 +142,14 @@ object ScheduledPayoffs {
   
   def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
-    ScheduledPayoffs((schedule, payoffs, calls).zipped.toList)
+	val fixings:List[Map[String, Option[Double]]] = Fixings.pastFixings(payoffs.underlyings, schedule.eventDates)
+    ScheduledPayoffs((schedule, payoffs, calls).zipped.toList, None, fixings)
   }
     
   def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
-    ScheduledPayoffs(schedule.sortWith(payoffs, calls))
+	val fixings:List[Map[String, Option[Double]]] = Fixings.pastFixings(payoffs.underlyings, schedule.eventDates)
+    ScheduledPayoffs(schedule.sortWith(payoffs, calls), None, fixings)
   }
   
 }
