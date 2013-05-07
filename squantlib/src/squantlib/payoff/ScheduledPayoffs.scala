@@ -108,7 +108,8 @@ case class ScheduledPayoffs(
   override def toString = {
     val fullfixings:List[Map[String, Double]] = fixedValues.map(kv => kv.collect{case (k, Some(v)) => (k, v)}) ++ List.fill(scheduledPayoffs.size - fixedValues.size)(Map.empty[String, Double])
     (scheduledPayoffs, fullfixings).zipped.map{case ((d, p, c), f) => 
-      List(d.toString, 
+      List(d.eventDate.shortDate.toString, 
+          d.paymentDate.shortDate.toString,
           p.toString, 
           c.toString, 
           if (f.isEmpty) "not fixed" else "fixed:" + f.map{case (k, v) => k + " -> " + v}.mkString(" ")

@@ -848,7 +848,7 @@ case class Bond(
 	    disp("market", market match { case None => "Not defined" case Some(m) => m.paramset})
 	    disp("underlyings", underlyings.mkString(" "))
 	    disp("initial", underlyings.map(u => u + " -> " + db.fixingMap.getOrElse(u, "not fixed")).mkString(" "))
-	    disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse(u, "not fixed")).mkString(" ")}.getOrElse("no market"))
+	    disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse("not fixed")).mkString(" ")}.getOrElse("no market"))
 	    disp("termination", terminationDate.getOrElse("not terminated"))
 	    println("Full schedule:")
 	    println(scheduledPayoffs.toString)

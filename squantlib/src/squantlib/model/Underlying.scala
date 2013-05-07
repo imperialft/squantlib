@@ -144,8 +144,8 @@ trait Underlying extends StaticAsset {
 	def show(vd:List[qlDate]):Unit = {
 	  println("id:\t" + id)
 	  println("valuedate:\t" + valuedate)
-	  println("spot:\t" + spot)
-	  vd.foreach(d => println(d + "\t" + forward(d).asDouble + "\t" + volatility(d).asPercent(2)))
+	  println("spot:\t" + spot.asDouble)
+	  vd.foreach(d => println("%tY/%<tm/%<td".format(d.longDate) + "\t" + forward(d).asDouble + "\t" + volatility(d).asPercent(2)))
 	}
 	
 	def defaultShowPeriods = List("3M", "6M", "1Y", "2Y", "3Y", "5Y", "10Y", "20Y", "30Y").map(p => 
