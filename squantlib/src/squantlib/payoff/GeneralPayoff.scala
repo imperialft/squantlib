@@ -20,11 +20,11 @@ case class GeneralPayoff(formula:Map[Set[String], Double], floor:Option[Double],
 	val constant:Double = formula.getOrElse(Set.empty, 0.0)
 	
 	override def price(fixing:Double) = 
-	  if (variables.size == 1) price(Map(variables.head -> fixing))
+	  if (variables.size == 1 && !fixing.isNaN) price(Map(variables.head -> fixing))
 	  else Double.NaN
 	
 	override def price(fixings:Map[String, Double]):Double = {
-	  if (!(variables subsetOf fixings.keySet)) {return Double.NaN}
+	  if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN)) {return Double.NaN}
 	  
 	  var rate = formula.map{
       	case (vs, c) if vs.isEmpty => c

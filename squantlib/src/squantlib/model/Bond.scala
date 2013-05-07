@@ -95,6 +95,11 @@ case class Bond(
 	
 	def isTerminated:Boolean = terminationDate.isDefined
 	
+	def getUnderlyings:Map[String, Option[Underlying]] = market match {
+	  case None => underlyings.map(u => (u, None)) (collection.breakOut)
+	  case Some(mkt) => underlyings.map(u => (u, Underlying(u, mkt))) (collection.breakOut)
+	}
+	
 	/*
 	 * Creates clone of the same bond (shallow copy)
 	 */
@@ -269,7 +274,7 @@ case class Bond(
 	 * Returns dirty price of the bond. (ie. including accrued interest)
 	 */
 	def dirtyPrice:Option[Double] = 
-	  if (isTerminated) None
+	  if (terminationDate.isDefined && valueDate.isDefined && (terminationDate.get le valueDate.get)) None
 	  else (model, discountCurve) match {
 	    case (Some(m), Some(c)) => m.price(c)
 		case (Some(m), None) => m.price
@@ -845,15 +850,8 @@ case class Bond(
 	    disp("initial", underlyings.map(u => u + " -> " + db.fixingMap.getOrElse(u, "not fixed")).mkString(" "))
 	    disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse(u, "not fixed")).mkString(" ")}.getOrElse("no market"))
 	    disp("termination", terminationDate.getOrElse("not terminated"))
-	    
-	    if (market isDefined) {
-	      println("Live payoffs:") 
-	      println(livePayoffs.toString)
-	    }
-	    else {
-	      println("Full schedule:")
-	      println(scheduledPayoffs.toString)
-	    }
+	    println("Full schedule:")
+	    println(scheduledPayoffs.toString)
 	  }
 	
 	def showAll:Unit = {
@@ -865,6 +863,13 @@ case class Bond(
 	  }
 	}
 	
+	def showUnderlyingInfo:Unit = {
+	  val eventDates:List[qlDate] = scheduledPayoffs.schedule.eventDates
+	  getUnderlyings.foreach{
+	    case (k, Some(u)) => println(k); u.show(eventDates)
+	    case (k, None) => println(k); println("not found in market or market not calibrated")
+	  }
+	}
 } 
 
 

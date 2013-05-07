@@ -67,7 +67,7 @@ object Fixings {
  	  
   	val currencySet = Currencies.keySet
   	
-	private def isCcy(v:String):Boolean = currencySet contains v
+	def isCcy(v:String):Boolean = currencySet contains v
 	
 	private val cashPeriods = Set("M", "W", "D")
 	

@@ -1,8 +1,12 @@
 package squantlib.math.statistical
 
+import org.apache.commons.math3.distribution.NormalDistribution
+
 object NormSInv {
-	def apply(u:Double):Double =
-	{
+  
+	def apply(u:Double):Double = numericalApprox(u)
+  
+	def numericalApprox(u:Double):Double ={
 		// This function generates a standard normal random 
 		// variable r from a uniform random variable in (0,1).
 		// Note that u=0 or u=1 are not allowed.
@@ -24,5 +28,10 @@ object NormSInv {
 			val r=(((((((c8*w+c7)*w+c6)*w+c5)*w+c4)*w+c3)*w+c2)*w+c1)*w+c0;
 			if (v < 0) -r else r
 		}
-	}	
+	}
+	
+	lazy val normdist = new NormalDistribution
+	
+	def apache(u:Double):Double = normdist.inverseCumulativeProbability(u)
+	
 }
