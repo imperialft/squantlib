@@ -89,6 +89,17 @@ case class Bond(
 	
 	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
 	
+	def lastPeriod:Option[CalculationPeriod] = scheduledPayoffs.triggeredDate
+	
+	def terminationDate:Option[qlDate] = lastPeriod.collect{case p => p.paymentDate}
+	
+	def isTerminated:Boolean = terminationDate.isDefined
+	
+	def getUnderlyings:Map[String, Option[Underlying]] = market match {
+	  case None => underlyings.map(u => (u, None)) (collection.breakOut)
+	  case Some(mkt) => underlyings.map(u => (u, Underlying(u, mkt))) (collection.breakOut)
+	}
+	
 	/*
 	 * Creates clone of the same bond (shallow copy)
 	 */
@@ -262,10 +273,12 @@ case class Bond(
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
 	 */
-	def dirtyPrice:Option[Double] = (model, discountCurve) match {
-	  case (Some(m), Some(c)) => m.price(c)
-	  case (Some(m), None) => m.price
-	  case _ => None}
+	def dirtyPrice:Option[Double] = 
+	  if (terminationDate.isDefined && valueDate.isDefined && (terminationDate.get le valueDate.get)) None
+	  else (model, discountCurve) match {
+	    case (Some(m), Some(c)) => m.price(c)
+		case (Some(m), None) => m.price
+		case _ => None}
 	
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)
@@ -834,17 +847,11 @@ case class Bond(
 	    disp("model", model match { case None => "Not defined" case Some(m) => m.getClass.getName})
 	    disp("market", market match { case None => "Not defined" case Some(m) => m.paramset})
 	    disp("underlyings", underlyings.mkString(" "))
-	    
-	    if (market isDefined) {
-	      println("Live payoffs:") 
-	      println(livePayoffs.toString)
-	    }
-	    else {
-	      println("Full schedule:")
-		  scheduledPayoffs.foreach{case (s, po, _) => disp(s.toString, po)}
-	      disp("triggers", trigger.mkString(","))
-	      disp("bermudans", bermudan.mkString(","))
-	    }
+	    disp("initial", underlyings.map(u => u + " -> " + db.fixingMap.getOrElse(u, "not fixed")).mkString(" "))
+	    disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse("not fixed")).mkString(" ")}.getOrElse("no market"))
+	    disp("termination", terminationDate.getOrElse("not terminated"))
+	    println("Full schedule:")
+	    println(scheduledPayoffs.toString)
 	  }
 	
 	def showAll:Unit = {
@@ -856,6 +863,13 @@ case class Bond(
 	  }
 	}
 	
+	def showUnderlyingInfo:Unit = {
+	  val eventDates:List[qlDate] = scheduledPayoffs.schedule.eventDates
+	  getUnderlyings.foreach{
+	    case (k, Some(u)) => println(k); u.show(eventDates)
+	    case (k, None) => println(k); println("not found in market or market not calibrated")
+	  }
+	}
 } 
 
 
@@ -866,7 +880,7 @@ object Bond {
 	  val schedule = db.schedule.orNull
 	  if (schedule == null) {return None}
 		
-	  val fixings:Map[String, Double] = if (!db.fixingList.isEmpty) db.fixingList
+	  val fixings:Map[String, Double] = if (!db.fixingMap.isEmpty) db.fixingMap
 			  else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)
 			  else Map.empty
 

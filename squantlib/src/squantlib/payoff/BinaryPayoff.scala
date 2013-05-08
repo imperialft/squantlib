@@ -30,16 +30,16 @@ extends Payoff {
 	override def price(fixings:Map[String, Double]) = 
 	  if (payoff.isEmpty || isInvalid) Double.NaN
 	  else getFixings(fixings) match {
-	    case None => Double.NaN
-	    case Some(fixValues) => 
+	    case Some(fixValues) if fixValues.forall(!_.isNaN) => 
 	      payoff.map{
 	        case (v, None) => v
 	        case (v, Some(l)) if fixValues.corresponds(l) {_ >= _} => v
 	        case _ => 0.0}.max
+	    case _ => Double.NaN
 	  }
 	  
 	override def price(fixing:Double) =
-	  if (payoff.isEmpty || isInvalid || variables.size != 1) Double.NaN
+	  if (payoff.isEmpty || isInvalid || variables.size != 1 || fixing.isNaN) Double.NaN
 	  else payoff.map{
 	    case (v, None) => v 
 	    case (v, Some(l)) if fixing > l.head => v

@@ -3,6 +3,8 @@ package squantlib.model
 import squantlib.database.fixings.Fixings
 import squantlib.database.DB
 import squantlib.model.rates.DiscountCurve
+import squantlib.setting.initializer.Currencies
+import squantlib.util.DisplayUtils._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
@@ -95,6 +97,34 @@ trait Underlying extends StaticAsset {
     def forwardY(years:Double):Double = forward(years * 365.25)
     
 	/**
+	 * Returns forward atm volatility
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardVol(valuedate:Double, maturity:Double):Double = 
+      math.sqrt((maturity * math.pow(volatility(maturity), 2.0) - valuedate * math.pow(volatility(valuedate), 2.0)) / (maturity - valuedate))    
+      
+	/**
+	 * Returns forward volatility with strike
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardVol(valuedate:Double, maturity:Double, strike:Double):Double = 
+      math.sqrt((maturity * math.pow(volatility(maturity, strike), 2.0) - valuedate * math.pow(volatility(valuedate, strike), 2.0)) / (maturity - valuedate))    
+      
+	/**
+	 * Returns forward atm volatility
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardVol(valuedate:qlDate, maturity:qlDate):Double = 
+      math.sqrt((toDays(maturity) * math.pow(volatility(maturity), 2.0) - toDays(valuedate) * math.pow(volatility(valuedate), 2.0)) / (toDays(maturity) - toDays(valuedate)))    
+      
+	/**
+	 * Returns forward volatility with strike
+	 * @param observation date as the nb year from value date.
+	 */
+    def forwardVol(valuedate:qlDate, maturity:qlDate, strike:Double):Double = 
+      math.sqrt((toDays(maturity) * math.pow(volatility(maturity, strike), 2.0) - toDays(valuedate) * math.pow(volatility(valuedate, strike), 2.0)) / (toDays(maturity) - toDays(valuedate))) 
+    
+	/**
 	 * Returns the latest defined date.
 	 */
     def maxDays:Double
@@ -110,5 +140,35 @@ trait Underlying extends StaticAsset {
     override def getHistoricalPrice = Fixings.getHistorical(id).getOrElse(Map.empty)
     
     override protected def getDbForwardPrice:Map[qlDate, Double] = DB.getForwardPricesTimeSeries(assetID, id).map{case (k, v) => (new qlDate(k), v)}
+	
+	def show(vd:List[qlDate]):Unit = {
+	  println("id:\t" + id)
+	  println("valuedate:\t" + valuedate)
+	  println("spot:\t" + spot.asDouble)
+	  vd.foreach(d => println("%tY/%<tm/%<td".format(d.longDate) + "\t" + forward(d).asDouble + "\t" + volatility(d).asPercent(2)))
+	}
+	
+	def defaultShowPeriods = List("3M", "6M", "1Y", "2Y", "3Y", "5Y", "10Y", "20Y", "30Y").map(p => 
+	  valuedate.add(new qlPeriod(p))
+	  )
+	  
+	def show:Unit = show(defaultShowPeriods)
     
 } 
+
+
+object Underlying {
+  
+  def apply(param:String, market:Market) = getUnderlying(param, market)
+  
+	def getUnderlying(param:String, market:Market):Option[Underlying] = {
+	  if (param == null) None
+	  else param.trim match {
+	    case "NKY" => market.getIndex("NKY")
+	    case p if p.head.isDigit => market.getEquity(p)
+	    case p => market.getFX(p)
+	    }
+	}
+  
+}
+

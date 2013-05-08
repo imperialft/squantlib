@@ -86,7 +86,7 @@ class Bond(@Column("ID")					override var id: String,
   
   def triggerList:List[List[String]] = call.jsonArray.map(_.parseStringList.map(_.orNull))
   
-  def fixingList:Map[String, Double] = fixings.parseJsonDoubleFields
+  def fixingMap:Map[String, Double] = fixings.parseJsonDoubleFields
   
   def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
   

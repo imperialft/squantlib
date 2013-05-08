@@ -27,12 +27,12 @@ extends Payoff {
 	    
 	override def price(fixings:Map[String, Double]) = 
 	  getFixings(fixings) match {
+	    case Some(fixValues) if fixValues.forall(!_.isNaN) => (fixValues, strike).zipped.map((v, k) => v/k).min
 	    case None => Double.NaN
-	    case Some(fixValues) => (fixValues, strike).zipped.map((v, k) => v/k).min
 	  }
 	  
 	override def price(fixing:Double) =
-	  if (variables.size != 1) Double.NaN
+	  if (variables.size != 1 || fixing.isNaN) Double.NaN
 	  else fixing / strike.head
 	
 	override def toString =

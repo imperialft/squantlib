@@ -2,24 +2,24 @@ package squantlib.pricing.mcengine
 
 import squantlib.math.random.{RandomGenerator, MersenneTwister}
 import squantlib.math.statistical.NormSInv
-import squantlib.model.index.Index
+import squantlib.model.equity.Equity
 
 
-/* Black-Scholes montecarlo pricer with repo rate.
- * - Continuous dividend
+/* Black-Scholes montecarlo generator with discrete dividends
+ * - Discrete dividend
  * - Volatility is constant over time without smile
  * - No rate & dividend volatility
  * @param spot 		current underlying price
  * @param rate(t)	continuous compounding risk-free rate of pricing currency at time t as number of years
- * @param dividendYield(t)	continuous compounding risk-free dividend yield at time t as number of years
- * @param dividendYield(t)	repo rate at time t as number of years
-*  * @param sigma(t)	volatility of the underlying 
+ * @param dividends	dividend schedule described as date(#year from value date) => amount
+ * @param repo(t)	repo rate at time t as number of years
+*  * @param sigma(t)	volatility of the underlying index
  */
 
-case class BlackScholesWithRepo(
+case class BlackScholesDiscreteDividends1f(
     var spot:Double, 
     var rate: Double => Double, 
-    var dividendYield: Double => Double, 
+    var dividends: Map[Double, Double], 
     var repoYield: Double => Double, 
     var volatility: Double => Double) 
     extends Montecarlo1f{
@@ -42,14 +42,23 @@ case class BlackScholesWithRepo(
   override def generatePaths(eventDates:List[Double], paths:Int):(List[Double], List[List[Double]]) = {
     if (eventDates.isEmpty) {return (List.empty, List.empty)}
     
-    reset 
+    reset
     
-    val dates = eventDates.sorted
+    val relavantDivs = dividends.filter(d => d._1 > 0.0 && d._1 <= eventDates.max)
+    val eventWithDivs = eventDates.map(d => (d, 0.0)).toMap
+    
+    val eventDivs:List[(Double, Double)] = (eventWithDivs ++ relavantDivs).toList.sortBy(_._1)
+    val dates = eventDivs.map(_._1)
+    val divs = eventDivs.map(_._2)
+    
+    val sortedEventDates = eventDates.sorted
+    val pathmapper = sortedEventDates.map(dates.indexOf(_))
+        
     val steps = dates.size
     val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
 
     val ratedom = dates.map(rate)
-    val ratefor = dates.map(d => dividendYield(d) + repoYield(d))
+    val ratefor = dates.map(d => repoYield(d))
     val sigma = dates.map(volatility)
     
     val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
@@ -67,27 +76,28 @@ case class BlackScholesWithRepo(
 	
     val genpaths = for (path <- (0 to paths-1).toList) yield {
       var spotprice = spot
-      for (d <- (0 to steps-1).toList) yield {
+      val apath = for (d <- (0 to steps-1).toList) yield {
         if (stepsize(d) == 0.0) spotprice
         else {
           val rnd = randomGenerator.sample
           val ninv1 = normSInv(rnd)
-          spotprice *= scala.math.exp(drift(d) + (sigt(d) * ninv1))
+          spotprice = spotprice * scala.math.exp(drift(d) + (sigt(d) * ninv1)) - divs(d)
           spotprice
           }
       }
+      pathmapper.map(apath)
     }
     
-    (dates, genpaths)
+    (sortedEventDates, genpaths)
   }
 
 }
 
-object BlackScholesWithRepo {
+object BlackScholesDiscreteDividends1f {
   
-  def apply(index:Index):Option[BlackScholesWithRepo] = 
-	try { Some(new BlackScholesWithRepo(index.spot, index.interestRateY, index.dividendYieldY, index.repoRateY, index.volatilityY)) } 
-	catch { case _:Throwable => None}
+  def apply(equity:Equity):Option[BlackScholesDiscreteDividends1f] = 
+	try { Some(new BlackScholesDiscreteDividends1f(equity.spot, equity.interestRateY, equity.dividendYears, equity.repoRateY, equity.volatilityY)) } 
+	catch { case _ :Throwable=> None}
 	
 }
 

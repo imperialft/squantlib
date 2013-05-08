@@ -31,14 +31,14 @@ case class PutDIPayoff(
 	    
 	override def price(fixings:Map[String, Double]) = 
 	  getFixings(fixings) match {
-	    case None => Double.NaN
-	    case Some(fixValues) => 
+	    case Some(fixValues) if fixValues.forall(!_.isNaN) => 
 	      if (fixValues.corresponds(trigger) {_ >= _}) amount
 	      else amount * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
+	    case None => Double.NaN
 	  }
 	  
 	override def price(fixing:Double) =
-	  if (variables.size != 1) Double.NaN
+	  if (variables.size != 1 || fixing.isNaN) Double.NaN
 	  else if (fixing >= trigger.head) amount
 	  else amount * math.min(1.00, fixing / strike.head)
 	 

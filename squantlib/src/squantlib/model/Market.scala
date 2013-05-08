@@ -6,6 +6,7 @@ import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
 import squantlib.model.fx._
 import squantlib.model.index._
+import squantlib.model.equity._
 import squantlib.database.schemadefinitions.{CDSParameter, RateFXParameter}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
@@ -26,6 +27,7 @@ class Market(
     val cdscurves:Map[String, CDSCurve] = Map.empty, 
     val fxInitializers:Map[String, FXInitializer] = Map.empty,
     val indexInitializers:Map[String, IndexInitializer] = Map.empty,
+    val equityInitializers:Map[String, EquityInitializer] = Map.empty,
     val fixings:Map[String, Double]  = Map.empty) {
 
 	/** 
@@ -194,6 +196,10 @@ class Market(
 	  indexInitializers.get(name).flatMap{case initializer => initializer.getModel(this)}
 	}
 	
+	def getEquity(name:String) : Option[Equity] = {
+	  equityInitializers.get(name).flatMap{case initializer => initializer.getModel(this)}
+	}
+	
 	/**
 	 * Returns rate curve for the given currency.
 	 * @param currency code
@@ -269,7 +275,7 @@ class Market(
 	    if (equivshift contains c) (c, v.shiftRate(equivshift(c))) 
 	    else (c, v)} 
 	    
-	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, fixings)
+	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, equityInitializers, fixings)
 	}
 	
 	/**
@@ -284,7 +290,7 @@ class Market(
 	    if (fxShift contains c) (c, v.multFX(fxShift(c))) 
 	    else (c, v)}
 	    
-	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, fixings)
+	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, equityInitializers, fixings)
 	}
 
 	
@@ -302,6 +308,7 @@ class Market(
 	      cdscurves, 
 	      fxInitializers.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}, 
 	      indexInitializers, 
+	      equityInitializers, 
 	      fixings)
 	
 	
@@ -323,14 +330,19 @@ class Market(
 	
 	
 	def show:Unit = {
-		val sortedcurves = scala.collection.immutable.TreeMap(curves.toArray:_*)	    
-		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
 		println("Curves:")
-		sortedcurves.foreach{case (n, c) => println(c.toString + (if (discountingCurves.contains(n)) "(*)" else ""))}
-		println("(*) Discounting curves")
-		println(" ")
+		println(curves.keySet.toList.sorted.mkString(" "))
 		println("Credit Spreads:")
-		sortedcdscurves.foreach{case (n, c) => println(n + "\t" + c.rate.valuedate.shortDate + "\t" + c.rate.maxdate.shortDate)}
+		println(cdscurves.keySet.toList.sorted.mkString(" "))
+		println("Indices:")
+		println(indexInitializers.keySet.toList.sorted.mkString(" "))
+		println("Equities:")
+		println(equityInitializers.keySet.toList.sorted.mkString(" "))
+		println("FX:")
+		println(fxInitializers.keySet.toList.sorted.mkString(" "))
+		println("Fixings:")
+		println(fixings.keySet.toList.sorted.mkString(" "))
+		
 	}
 	
 	def describe = {
@@ -375,6 +387,8 @@ object Market {
 
 	  val indices = IndexInitializer.getInitializers(ratefxparams)
 	  
+	  val equities = EquityInitializer.getInitializers(ratefxparams)
+	  
 	  val paramset = ratefxparams.head.paramset
 	  
 	  val fixingParams = Set("Fixing", "Index", "Equity")
@@ -391,6 +405,7 @@ object Market {
 		    cdscurves.map(c => (c.issuerid, c)) (breakOut), 
 		    fxparams,
 		    indices, 
+		    equities,
 		    fixingset))
 	}
   

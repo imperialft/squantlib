@@ -29,6 +29,13 @@ object Fixings {
 	
 	def latestList(ids:List[String]):Map[String, Double] = ids.map(id => (id, Fixings.latest(id))).collect{case (a, Some(b)) => (a, b._2)} (collection.breakOut)
 	
+	def pastFixings(params:Set[String], dates:List[qlDate], paramType:String = null):List[Map[String, Option[Double]]] = {
+	  if (dates.isEmpty) {return List.empty}
+	  val allhistory:Map[String, Option[Map[qlDate, Double]]] = params.map(p => (p, getHistorical(p, dates.min, dates.max, paramType))) (collection.breakOut)
+	  dates.map(d => params.map(p => 
+	    (p, allhistory(p).flatMap{case ps => ps.get(d)})).toMap)
+	}
+	
 	def getHistorical(param:String):Option[Map[qlDate, Double]] = getHistorical(param, null)
 	  
 	def getHistorical(param:String, paramType:String):Option[Map[qlDate, Double]] = getHistorical(param, null, null, paramType)
@@ -60,7 +67,7 @@ object Fixings {
  	  
   	val currencySet = Currencies.keySet
   	
-	private def isCcy(v:String):Boolean = currencySet contains v
+	def isCcy(v:String):Boolean = currencySet contains v
 	
 	private val cashPeriods = Set("M", "W", "D")
 	

@@ -36,7 +36,9 @@ object JsonUtils {
 	  def parseString(name:String):Option[String] = if (hasName(name)) node.get(name).parseString else None
 
 	  def parseDate:Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString.orNull)))} catch {case _:Throwable => None}
-	  def parseDate(name:String):Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString(name).orNull)))} catch {case _:Throwable => None}
+	  def parseDate(name:String):Option[qlDate] = 
+	    if (name == null || !name.contains("/")) None
+	    else try{Some(new qlDate(jsonDateFormat.parse(node.parseString(name).orNull)))} catch {case _:Throwable => None}
 	  
 	  def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))
 	  def parseObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = if (hasName(name)) Some(constructor(node.get(name).parseValueFields)) else None

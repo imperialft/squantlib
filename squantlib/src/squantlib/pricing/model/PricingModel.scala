@@ -2,9 +2,6 @@ package squantlib.pricing.model
 
 import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod, ScheduledPayoffs}
 import squantlib.model.rates.DiscountCurve
-import scala.collection.mutable.Queue
-import squantlib.model.{Market, Bond}
-import org.jquantlib.time.{Date => qlDate}
 
 trait PricingModel {
   
