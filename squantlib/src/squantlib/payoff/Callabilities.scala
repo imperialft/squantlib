@@ -27,7 +27,7 @@ case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Dou
 	    if (bermudan) "call" else "",
 	    if (isTrigger) ("trig " + triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
 	    if (bonus != 0.0) "bonus " + bonus.asPercent(3) else ""
-	    ).mkString(" ")
+	    ).mkString(" ") 
 }
 
 object Callability {
