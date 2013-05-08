@@ -4,6 +4,7 @@ import scala.collection.LinearSeq
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
 import scala.collection.breakOut
+import squantlib.util.DisplayUtils._
 
 case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Double) {
   
@@ -22,9 +23,11 @@ case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Dou
     else false
   
   override def toString:String = 
-    (if (bermudan) "call " else "") + 
-    (if (isTrigger) "trig:" + triggers.mkString(" ") else "") + 
-    (if (bonus != 0.0) " bonus:" + bonus else "")
+    List(
+	    if (bermudan) "call" else "",
+	    if (isTrigger) ("trig " + triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
+	    if (bonus != 0.0) "bonus " + bonus.asPercent(3) else ""
+	    ).mkString(" ")
 }
 
 object Callability {

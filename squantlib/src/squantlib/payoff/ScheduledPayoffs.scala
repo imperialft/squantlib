@@ -112,7 +112,9 @@ case class ScheduledPayoffs(
           d.paymentDate.shortDate.toString,
           p.toString, 
           c.toString, 
-          if (f.isEmpty) "not fixed" else "fixed:" + f.map{case (k, v) => k + " -> " + v}.mkString(" ")
+          if (underlyings.isEmpty) "fixed"
+          else if (f.isEmpty) "not fixed" 
+          else "fixed:" + f.map{case (k, v) => k + ":" + v}.mkString(" ")
           ).mkString(" ")}.mkString("\n")
   }
 	
