@@ -19,7 +19,7 @@ trait Payoff {
 	/*
 	 * Price assuming all variables fixed at spot market.
 	 */	
-	final def price(market:Market):Double = if (isPriceable) price(market) else Double.NaN
+	final def price(market:Market):Double = if (isPriceable) priceImpl(market) else Double.NaN
 	
 	def priceImpl(market:Market):Double = price(market.getFixings(variables))
 	
