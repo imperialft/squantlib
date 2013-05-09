@@ -15,19 +15,24 @@ import squantlib.util.UnderlyingInfo
  *  {type:"binary", variable:[string], payoff:[{amount:double, strike:[double]}], description:String}, 
  * No strike is considered as no low boundary
  */
-case class BinaryPayoff(binaryVariables:List[String], payoff:List[(Double, Option[List[Double]])], description:String = null)
+case class BinaryPayoff(
+    binaryVariables:List[String], 
+    payoff:List[(Double, Option[List[Double]])], 
+    description:String = null)
 extends Payoff {
   
 	val variables = binaryVariables.toSet
 	
 	val isInvalid:Boolean = payoff.collect{case (v, Some(lst)) => lst}.flatten.exists(_.isNaN)
+	
+	override val isPriceable:Boolean = !isInvalid
   
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
 	    Some((0 to binaryVariables.size - 1).map(i => fixings(binaryVariables(i)))(collection.breakOut))
 	  else None
 	    
-	override def price(fixings:Map[String, Double]) = 
+	override def priceImpl(fixings:Map[String, Double]) = 
 	  if (payoff.isEmpty || isInvalid) Double.NaN
 	  else getFixings(fixings) match {
 	    case Some(fixValues) if fixValues.forall(!_.isNaN) => 
@@ -38,7 +43,7 @@ extends Payoff {
 	    case _ => Double.NaN
 	  }
 	  
-	override def price(fixing:Double) =
+	override def priceImpl(fixing:Double) =
 	  if (payoff.isEmpty || isInvalid || variables.size != 1 || fixing.isNaN) Double.NaN
 	  else payoff.map{
 	    case (v, None) => v 
@@ -52,7 +57,7 @@ extends Payoff {
 	      case (v, Some(s)) => " [" + s.map(_.asDouble).mkString(",") + "]" + v.asPercent
 	    }.mkString(" ")
 	
-	override def price = Double.NaN
+	override def priceImpl = Double.NaN
 	
 	override def jsonString = {
 	  

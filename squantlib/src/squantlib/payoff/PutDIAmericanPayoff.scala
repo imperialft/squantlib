@@ -33,6 +33,8 @@ case class PutDIAmericanPayoff(
  	
 	val triggerMap:Map[String, Double] = (putVariables zip trigger) (collection.breakOut)
 	
+	override val isPriceable:Boolean = !trigger.exists(_.isNaN) && !strike.exists(_.isNaN)
+	
 	var mcPeriod6m = 30
 	var mcPeriod1y = 90
 	var mcPeriodbefore = 180
@@ -80,15 +82,15 @@ case class PutDIAmericanPayoff(
 	def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
 	def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
 	
-	override def price(fixings:List[Map[String, Double]]):Double = priceList(fixings)
+	override def priceImpl(fixings:List[Map[String, Double]]):Double = priceList(fixings)
 
-	override def price(fixings:Map[String, Double]):Double = priceSingle(fixings)
+	override def priceImpl(fixings:Map[String, Double]):Double = priceSingle(fixings)
 	
-	override def price[T:ClassManifest](fixings:List[Double]):Double = priceList(fixings)
+	override def priceImpl[T:ClassManifest](fixings:List[Double]):Double = priceList(fixings)
 	
-	override def price(fixings:Double):Double = priceSingle(fixings)
+	override def priceImpl(fixings:Double):Double = priceSingle(fixings)
 	
-	override def price = Double.NaN
+	override def priceImpl = Double.NaN
 	
 	override def toString =
 	  amount.asPercent + " [" + trigger.mkString(",") + "](Amer) " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "]"

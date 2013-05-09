@@ -14,18 +14,23 @@ import squantlib.util.UnderlyingInfo
  *   formula = {min:double, max:double, mult:double, add:double, description:XXX}
  *   payment for array(i) is min <= mult * variable + add <= max
  */
-case class Linear1dPayoff(variable:String, payoff:Linear1dFormula, description:String) extends Payoff {
+case class Linear1dPayoff(
+    variable:String, 
+    payoff:Linear1dFormula, 
+    description:String) extends Payoff {
   
 	val variables:Set[String] = if (variable == null) Set.empty else Set(variable)
-	 
-	override def price(fixings:Map[String, Double]) = fixings.get(variable) match {
+	
+	override val isPriceable = true
+	
+	override def priceImpl(fixings:Map[String, Double]) = fixings.get(variable) match {
 	  case Some(v) if !v.isNaN => payoff.price(v)
 	  case _ => Double.NaN
 	}
 	
-	override def price(fixing:Double) = if (fixing.isNaN) Double.NaN else payoff.price(fixing)
+	override def priceImpl(fixing:Double) = if (fixing.isNaN) Double.NaN else payoff.price(fixing)
 	
-	override def price = Double.NaN
+	override def priceImpl = Double.NaN
 	
 	override def toString:String = payoff.toString(variable)
 	

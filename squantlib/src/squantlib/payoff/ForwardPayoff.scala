@@ -15,30 +15,35 @@ import java.util.{Map => JavaMap}
  *  {type:"forward", variable:[String], trigger:[Double], strike:[Double], description:String}, 
  * No strike is considered as no low boundary
  */
-case class ForwardPayoff(fwdVariables:List[String], strike:List[Double], description:String = null) 
+case class ForwardPayoff(
+    fwdVariables:List[String], 
+    strike:List[Double], 
+    description:String = null) 
 extends Payoff {
   
 	val variables = fwdVariables.toSet
+	
+	override val isPriceable = !strike.exists(_.isNaN)
   
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
 	    Some((0 to fwdVariables.size - 1).toList.map(i => fixings(fwdVariables(i))))
 	  else None
 	    
-	override def price(fixings:Map[String, Double]) = 
+	override def priceImpl(fixings:Map[String, Double]) = 
 	  getFixings(fixings) match {
 	    case Some(fixValues) if fixValues.forall(!_.isNaN) => (fixValues, strike).zipped.map((v, k) => v/k).min
 	    case None => Double.NaN
 	  }
 	  
-	override def price(fixing:Double) =
+	override def priceImpl(fixing:Double) =
 	  if (variables.size != 1 || fixing.isNaN) Double.NaN
 	  else fixing / strike.head
 	
 	override def toString =
 	  "Min{[" + variables.mkString(",") + "] / [" + strike.mkString(",") + "]}"
 	
-	override def price = Double.NaN
+	override def priceImpl = Double.NaN
 	
 	override def jsonString = {
 	  

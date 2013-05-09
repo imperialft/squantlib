@@ -14,38 +14,51 @@ trait Payoff {
 	 */	
 	val variables:Set[String]
 	
+	val isPriceable:Boolean // checks priceablility of the payoff
+	
 	/*
 	 * Price assuming all variables fixed at spot market.
 	 */	
-	def price(market:Market):Double = price(market.getFixings(variables))
+	final def price(market:Market):Double = if (isPriceable) price(market) else Double.NaN
+	
+	def priceImpl(market:Market):Double = price(market.getFixings(variables))
 	
 	/*
 	 * Price given variable fixings, where set of necessary variables are provided by variables function.
 	 */	
-	def price(fixings:Map[String, Double]):Double
+	final def price(fixings:Map[String, Double]):Double = if (isPriceable) priceImpl(fixings) else Double.NaN
+	
+	def priceImpl(fixings:Map[String, Double]):Double
 	
 	/*
 	 * Returns price if there's only one variable. Returns NaN in case of >1 variables.
 	 */	
-	def price(fixing:Double):Double 
+	final def price(fixing:Double):Double = if (isPriceable) priceImpl(fixing) else Double.NaN
+	
+	def priceImpl(fixing:Double):Double 
 	
 	/*
 	 * Returns price if there's no variable. Returns NaN in case of >0 variables.
 	 */	
-	def price:Double
+	final def price:Double = if (isPriceable) priceImpl else Double.NaN
+	
+	def priceImpl:Double
 	
 	/*
 	 * Price in case of multiple event dates.
 	 * Only refers to the last variable by default but can be overridden.
 	 */	
-	def price(fixings:List[Map[String, Double]]):Double = if (fixings.isEmpty) price else price(fixings.last)
+	final def price(fixings:List[Map[String, Double]]):Double = if (isPriceable) priceImpl(fixings) else Double.NaN
+	
+	def priceImpl(fixings:List[Map[String, Double]]):Double = if (fixings.isEmpty) price else price(fixings.last)
 	
 	/*
 	 * Price in case of multiple event dates with only one variable.
 	 * Only refers to the last variable by default but can be overridden.
 	 */	
-	def price[T:ClassManifest](fixings:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last)
+	final def price[T:ClassManifest](fixings:List[Double]):Double = if (isPriceable) priceImpl[T](fixings) else Double.NaN
 	
+	def priceImpl[T:ClassManifest](fixings:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last)
 
 	/*
 	 * Event dates, usually used in case of >1 fixing dates.
@@ -87,6 +100,8 @@ trait Payoff {
 	 * Returns this object otherwise.
 	 */	
 	def applyFixing(fixing:Double):Payoff = if (variables.size == 1) FixedPayoff(fixing, "{ \"ref\":" + fixing + "}") else this
+	
+	def missingInputs:Map[String, Double => Payoff] = Map.empty
 	
 	def description:String
 	

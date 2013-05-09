@@ -10,20 +10,26 @@ import squantlib.util.UnderlyingInfo
  * Any symbols other than +, -, *, /, > and < are considered as an independent variable.
  * Brackets are not supported.
  */
-case class GeneralPayoff(formula:Map[Set[String], Double], floor:Option[Double], cap:Option[Double], description:String = null) extends Payoff {
+case class GeneralPayoff(
+    formula:Map[Set[String], Double], 
+    floor:Option[Double], 
+    cap:Option[Double], 
+    description:String = null) extends Payoff {
 	
 	override val variables:Set[String] = formula.keySet.flatten
-	 
+	
+	override val isPriceable = formula.values.forall(!_.isNaN)
+	
 	def leverage(index:String):Double = leverage(Set(index))
 	def leverage(index:Set[String]):Double = formula.getOrElse(index, 0.0)
 	
 	val constant:Double = formula.getOrElse(Set.empty, 0.0)
 	
-	override def price(fixing:Double) = 
+	override def priceImpl(fixing:Double) = 
 	  if (variables.size == 1 && !fixing.isNaN) price(Map(variables.head -> fixing))
 	  else Double.NaN
 	
-	override def price(fixings:Map[String, Double]):Double = {
+	override def priceImpl(fixings:Map[String, Double]):Double = {
 	  if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN)) {return Double.NaN}
 	  
 	  var rate = formula.map{
@@ -36,7 +42,7 @@ case class GeneralPayoff(formula:Map[Set[String], Double], floor:Option[Double],
       rate
 	}
 	 
-	override def price = 
+	override def priceImpl = 
 	  if (variables.isEmpty) constant
 	  else Double.NaN
 	

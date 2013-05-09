@@ -70,7 +70,11 @@ class Bond(@Column("ID")					override var id: String,
   def calendar:Calendar = if (calendar_str == null) Calendars(currencyid).get
   						else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
   
-  protected def updateFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
+  protected def updateFixing(p:String, fixings:Map[String, Any]):String = {
+     val fixingReplaced = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
+     if (settingMap.contains("tbd")) multipleReplace(fixingReplaced, Map("tbd" -> settingMap("tbd"))) 
+     else fixingReplaced
+  }
   						
   def fixedCoupon(fixings:Map[String, Any]):String = updateFixing(coupon, fixings)
   
@@ -80,6 +84,12 @@ class Bond(@Column("ID")					override var id: String,
   
   def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(redemprice, fixings)
   
+  def tbdParameter:Option[String] = (coupon.contains("tbd"), redemprice.contains("tbd")) match {
+  	 case (true, false) => Some(coupon)
+  	 case (false, true) => Some(redemprice)
+  	 case _ => None
+  }
+  
   def underlyingList:List[String] = stringList(underlying)
   
   def bermudanList:List[Boolean] = booleanList(call, "berm")
@@ -87,6 +97,8 @@ class Bond(@Column("ID")					override var id: String,
   def triggerList:List[List[String]] = call.jsonArray.map(_.parseStringList.map(_.orNull))
   
   def fixingMap:Map[String, Double] = fixings.parseJsonDoubleFields
+  
+  def settingMap:Map[String, String] = settings.parseJsonStringFields
   
   def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
   

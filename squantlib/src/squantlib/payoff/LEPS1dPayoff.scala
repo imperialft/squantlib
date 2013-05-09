@@ -18,20 +18,25 @@ import squantlib.util.UnderlyingInfo
  *     if minrange(i) <= X < maxrange(i) => mult(i) * variable + add(i)
  *     otherwise zero
  */
-case class LEPS1dPayoff(variable:String, payoff:List[LEPS1dComponent], description:String = null) extends Payoff {
+case class LEPS1dPayoff(
+    variable:String, 
+    payoff:List[LEPS1dComponent], 
+    description:String = null) extends Payoff {
   
 	override val variables:Set[String] = Set(variable)
-	  
-	override def price(fixings:Map[String, Double]) = fixings.get(variable) match {
+	
+	override val isPriceable = true
+	
+	override def priceImpl(fixings:Map[String, Double]) = fixings.get(variable) match {
 	  case Some(f) if !f.isNaN => price(f)
 	  case _ => Double.NaN
 	}
 	
-	override def price(fixing:Double) = if (fixing.isNaN) Double.NaN else payoff.map(_.price(fixing)).sum
+	override def priceImpl(fixing:Double) = if (fixing.isNaN) Double.NaN else payoff.map(_.price(fixing)).sum
 	
 	override def toString = payoff.map(p => p.toString(variable)).mkString(" ")
 	
-	override def price = Double.NaN
+	override def priceImpl = Double.NaN
 	
 	override def display(isRedemption:Boolean):String = {
 	  val varname = UnderlyingInfo.nameJpn(variable)

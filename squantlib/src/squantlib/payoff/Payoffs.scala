@@ -24,6 +24,8 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	
 	val factors:Int = underlyings.size
 	
+	val isPriceable:Boolean = payoffs.forall(_.isPriceable)
+	
 	abstract class FixingInterpreter[T, U] {
 	  def price(fixing:T, payoff:Payoff):Double
 	  def triggered(fixing:T, trigger:Option[U]):Boolean

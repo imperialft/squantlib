@@ -23,13 +23,15 @@ case class PutDIPayoff(
     description:String = null) extends Payoff {
   
 	val variables = putVariables.toSet
+	
+	override val isPriceable:Boolean = !trigger.exists(_.isNaN) && !strike.exists(_.isNaN)
   
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
 	    Some((0 to putVariables.size - 1).toList.map(i => fixings(putVariables(i))))
 	  else None
 	    
-	override def price(fixings:Map[String, Double]) = 
+	override def priceImpl(fixings:Map[String, Double]) = 
 	  getFixings(fixings) match {
 	    case Some(fixValues) if fixValues.forall(!_.isNaN) => 
 	      if (fixValues.corresponds(trigger) {_ >= _}) amount
@@ -37,7 +39,7 @@ case class PutDIPayoff(
 	    case None => Double.NaN
 	  }
 	  
-	override def price(fixing:Double) =
+	override def priceImpl(fixing:Double) =
 	  if (variables.size != 1 || fixing.isNaN) Double.NaN
 	  else if (fixing >= trigger.head) amount
 	  else amount * math.min(1.00, fixing / strike.head)
@@ -45,7 +47,7 @@ case class PutDIPayoff(
 	override def toString =
 	  amount.asPercent + " [" + trigger.mkString(",") + "] " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])"
 	
-	override def price = Double.NaN
+	override def priceImpl = Double.NaN
 	
 	override def display(isRedemption:Boolean):String = {
  	  val varnames = putVariables.map(UnderlyingInfo.nameJpn)

@@ -15,10 +15,12 @@ import squantlib.util.JsonUtils._
 case class FixedPayoff(payoff:Double, description:String = null) extends Payoff {
 	
 	val variables:Set[String] = Set.empty
+	
+	override val isPriceable = !payoff.isNaN
 	 
-	override def price(fixings:Map[String, Double]) = payoff
-	override def price(fixing:Double) = payoff
-	override def price = payoff
+	override def priceImpl(fixings:Map[String, Double]) = payoff
+	override def priceImpl(fixing:Double) = payoff
+	override def priceImpl = payoff
 	
 	override def toString = payoff.asPercent
 	

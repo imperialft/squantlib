@@ -11,15 +11,19 @@ import squantlib.util.JsonUtils._
  * JSON format: {type:"fixed", description:XXX, payoff:double}
  * Natual format: 0.035 or "3.5%"
  */
-case class NullPayoff(description:String = null, inputString:String = null) extends Payoff {
+case class NullPayoff(
+    description:String = null, 
+    inputString:String = null) extends Payoff {
 	
-	val variables:Set[String] = Set.empty
+	override val variables:Set[String] = Set.empty
+	
+	override val isPriceable = false
 	 
-	override def price(fixings:Map[String, Double]) = Double.NaN
+	override def priceImpl(fixings:Map[String, Double]) = Double.NaN
 	
-	override def price(fixing:Double) = Double.NaN
+	override def priceImpl(fixing:Double) = Double.NaN
 	
-	override def price = Double.NaN
+	override def priceImpl = Double.NaN
 	
 	override def toString = description
 	
