@@ -64,9 +64,8 @@ SquantLib
 * Bermudan swaptions
 * Portfolio analysis
 
-## What is this for?
-* Main pricing backbone behind PFOL.IO project (http://pfol.io)
-* Free for personal use - any interest?
+## Motives
+* Main pricing backbone behind PFOL.IO project (http://pfol.io) - please join us if you're interested!
  
 ## Contact
 Masakatsu Wakayu (masakatsu.wakayu@imperial-ft.com)
