@@ -876,14 +876,24 @@ case class Bond(
 object Bond {
   
 	def apply(db:dbBond):Option[Bond] = {
+	  val tbdfixings = try { Some(db.settingMap("tbd").toDouble)} catch {case _:Throwable => None}
+	  apply(db, tbdfixings)
+	}
+  
+	def apply(db:dbBond, tbdfixing:Option[Double]):Option[Bond] = {
 	  
 	  val schedule = db.schedule.orNull
 	  if (schedule == null) {return None}
-		
-	  val fixings:Map[String, Double] = if (!db.fixingMap.isEmpty) db.fixingMap
-			  else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)
-			  else Map.empty
-
+	  
+	  val ulfixings:Map[String, Double] = if (!db.fixingMap.isEmpty) db.fixingMap
+		else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)
+	    else Map.empty
+	  
+	  val fixings = tbdfixing match {
+	      case Some(v) => ulfixings ++ Map("tbd" -> v)
+	      case None => ulfixings
+	    }
+	  
 	  val coupon:Payoffs = Payoffs(db.fixedCoupon(fixings), schedule.size - 1).orNull
 	  if (coupon == null || coupon.size + 1 != schedule.size) {return None}
 		

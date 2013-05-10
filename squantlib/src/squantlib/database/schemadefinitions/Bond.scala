@@ -70,11 +70,7 @@ class Bond(@Column("ID")					override var id: String,
   def calendar:Calendar = if (calendar_str == null) Calendars(currencyid).get
   						else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
   
-  protected def updateFixing(p:String, fixings:Map[String, Any]):String = {
-     val fixingReplaced = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
-     if (settingMap.contains("tbd")) multipleReplace(fixingReplaced, Map("tbd" -> settingMap("tbd"))) 
-     else fixingReplaced
-  }
+  protected def updateFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
   						
   def fixedCoupon(fixings:Map[String, Any]):String = updateFixing(coupon, fixings)
   
