@@ -888,7 +888,7 @@ object Bond {
 	  val ulfixings:Map[String, Double] = if (!db.fixingMap.isEmpty) db.fixingMap
 		else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)
 	    else Map.empty
-	  
+	   
 	  val fixings = tbdfixing match {
 	      case Some(v) => ulfixings ++ Map("tbd" -> v)
 	      case None => ulfixings
