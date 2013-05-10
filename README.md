@@ -54,14 +54,15 @@ SquantLib
 ###Exotic
 * BS formula
 * Montecarlo models
+  * single factor only for now
   * continuous dividend
   * discrete dividend + repo
 * Model extension
   * Exercise frontier pre-computation for issuer's callability
 
-###To Do (maybe)
+###To Do
 * More sophisticated montecarlo model (smile, multi-factor)
-* Bermudan swaptions
+* Rate exotics (Bermudan swaptions)
 * Portfolio analysis
 
 ## Motives
