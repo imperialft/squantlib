@@ -7,34 +7,62 @@ SquantLib
 
 ## What can it do?
 ###Rates
-* Building yield curves from given market quotes.
-* Drawing charts of various curves.
-* Computing cashflow discount curve using given credit spread, either from yield curves or FX forward curve.
-* Building Swaption volatility surface
-* Pricing swaptions
-* Pricing bonds (vanilla, callable, step-up)
+* Building discountable yield curves from
+  * cash rate, swap rate, ccy basis swap and 3m/6m basis swap
+  * non-deliverable swap
+  * fx swap points
+* Draw simple charts
+* Compute cashflow discount factor using given discounting currency & spread.
+* Build swaption volatility surface
+* Pricing simple swaptions
 
 ###FX
-* Building volatility surfaces
-* Compute forward
-* Price exotic FX options using BS and Montecarlo
-* Computing historical volatilities and correlations.
-* Pricing FX linked bonds with trigger using Black-Scholes MC
-* Pricing FX linked bonds with callability through equivalent trigger approximation 
+* Compute forward fx
+* Build fx volatility surfaces
+
+###Equity and Index
+* Compute forward price
+* Build volatility surfaces
 
 ###Bond
-* Building various cashflows. (fix, binary, linear sums, put, cap, floor, etc)
-* Pricing bonds with specific pricing mechanisms.
-* Greeks - delta (rate & fx), vega (rate & fx), yield, durations, convexity, etc..
-* Consolidate bonds with published prices
+* Cashflows
+  * Fixed rate
+  * Binary
+  * Sum of linear equations
+  * Cap, floor
+  * Forward
+  * American knock-in
+  * Issuer's early termination
+  * Automatic trigger
+* Greeks
+  * rate delta, fx delta
+  * rate vega, fx vega
+  * yield (simple, compounding)
+  * duration (effective, modified, macaulay)
+  * convexity, etc.
+* Analysis
+  * FX exercise frontier
+  * Rate exercise frontier
+  * Forward bond price
+* Handling bonds with published prices
 
-###Indices
-* Pricing index linked bond with trigger
+###Historical
+* Historical volatility
+* Historical correlation
+* Moving average, etc
+
+###Exotic
+* BS formula
+* Montecarlo models
+  * continuous dividend
+  * discrete dividend + repo
+* Model extension
+  * Exercise frontier pre-computation for issuer's callability
 
 ###To Do (maybe)
-* Equity linked products
 * More sophisticated montecarlo model (smile, multi-factor)
 * Bermudan swaptions
+* Portfolio analysis
 
 ## What is this for?
 * Main pricing backbone behind PFOL.IO project (http://pfol.io)
