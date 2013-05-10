@@ -1,7 +1,7 @@
 SquantLib
 =========
 
-*SquantLib* is a financial engineering tool focused on pricing Bonds written in Scala.
+*SquantLib* is a financial engineering tool written in Scala.
 
 **Helps, suggestions and bug-fix are very much appreciated!!**
 
