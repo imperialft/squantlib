@@ -30,7 +30,7 @@ SquantLib
   * Binary
   * Sum of linear equations
   * Cap, floor
-  * Forward
+  * Forward, Put
   * American knock-in
   * Issuer's early termination
   * Automatic trigger
