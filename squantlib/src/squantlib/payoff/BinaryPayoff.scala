@@ -23,7 +23,11 @@ extends Payoff {
   
 	val variables = binaryVariables.toSet
 	
-	val isInvalid:Boolean = payoff.collect{case (v, Some(lst)) => lst}.flatten.exists(_.isNaN)
+//	val isInvalid:Boolean = payoff.collect{case (v, Some(lst)) => lst}.flatten.exists(_.isNaN)
+	val isInvalid:Boolean = payoff.exists{
+	  case (v, Some(lst)) => lst.exists(_.isNaN) || v.isNaN
+	  case (v, None) => v.isNaN
+	}
 	
 	override val isPriceable:Boolean = !isInvalid
   
