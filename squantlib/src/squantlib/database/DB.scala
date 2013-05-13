@@ -10,6 +10,7 @@ import org.squeryl.{Session, SessionFactory, Schema, Table}
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.{KeyedEntityDef, KeyedEntity, Table}
 import squantlib.database.schemadefinitions._
+import squantlib.util.JsonUtils
 import scala.collection.mutable.{MutableList, StringBuilder}
 import java.io.{File, FileWriter, BufferedWriter, FileInputStream}
 import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID, Properties}
@@ -191,6 +192,12 @@ object DB extends Schema {
   def setInitialFXFixing(id:String, initialFX:Double):Unit = transaction{
     update(bonds)(b => where (b.id === id) set(b.initialfx := initialFX))
   }
+  
+  def setBondSetting(id:String, setting:String):Unit = transaction{
+    update(bonds)(b => where (b.id === id) set(b.settings := setting))
+  }
+  
+  def setBondSetting[T](id:String, setting:Map[String, T]):Unit = setBondSetting(id, JsonUtils.jsonString(setting))
   
   /**
    * Returns a Set of BondPrice objects identified by a Set of ID.
