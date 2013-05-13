@@ -93,7 +93,7 @@ case class PutDIAmericanPayoff(
 	override def priceImpl = Double.NaN
 	
 	override def toString =
-	  amount.asPercent + " [" + trigger.mkString(",") + "](Amer) " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "]"
+	  amount.asPercent + " [" + trigger.mkString(",") + "](Amer) " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])" 
 	
 	override def display(isRedemption:Boolean):String = {
  	  val varnames = putVariables.map(UnderlyingInfo.nameJpn)
