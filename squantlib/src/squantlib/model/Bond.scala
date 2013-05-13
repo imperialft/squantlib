@@ -883,7 +883,7 @@ object Bond {
 	def apply(db:dbBond, tbdfixing:Option[Double]):Option[Bond] = {
 	  
 	  val schedule = db.schedule.orNull
-	  if (schedule == null) {return None}
+	  if (schedule == null) {println(db.id + ": cannot initialize schedule"); return None}
 	  
 	  val ulfixings:Map[String, Double] = if (!db.fixingMap.isEmpty) db.fixingMap
 		else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)
@@ -895,10 +895,10 @@ object Bond {
 	    }
 	  
 	  val coupon:Payoffs = Payoffs(db.fixedCoupon(fixings), schedule.size - 1).orNull
-	  if (coupon == null || coupon.size + 1 != schedule.size) {return None}
+	  if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}
 		
 	  val redemption = Payoff(db.fixedRedemprice(fixings)).orNull
-	  if (redemption == null) {return None}
+	  if (redemption == null) {println(db.id + ": cannot initialize redemption"); return None}
 		
 	  val underlyings:List[String] = db.underlyingList
 		
@@ -911,10 +911,10 @@ object Bond {
 	  val trigger = db.triggerList(fixings, schedule.size)
 	  
 	  val calls = Callabilities(bermudan, trigger, underlyings)
-	  if (calls == null) {return None}
+	  if (calls == null) {println(db.id + ": cannot initialize calls"); return None}
 	  
 	  val scheduledPayoffs:ScheduledPayoffs = ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
-	  if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {return None}
+	  if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {println(db.id + ": cannot initialize scheduled payoffs"); return None}
 		
 	  Some(Bond(db, scheduledPayoffs, underlyings))
 	}
