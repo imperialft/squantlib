@@ -10,13 +10,17 @@ import org.squeryl.{Session, SessionFactory, Schema, Table}
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.{KeyedEntityDef, KeyedEntity, Table}
 import squantlib.database.schemadefinitions._
-import squantlib.util.JsonUtils
 import scala.collection.mutable.{MutableList, StringBuilder}
 import java.io.{File, FileWriter, BufferedWriter, FileInputStream}
 import java.util.{Date => JavaDate, Calendar => JavaCalendar, UUID, Properties}
 import java.text.SimpleDateFormat
 import org.apache.commons.lang3.StringEscapeUtils
 import com.sun.org.apache.xpath.internal.operations.And
+import squantlib.util.JsonUtils
+import squantlib.util.JsonUtils._
+import org.codehaus.jackson.JsonNode
+import org.codehaus.jackson.node.ObjectNode
+  
 
 object DB extends Schema { 
   
@@ -197,18 +201,27 @@ object DB extends Schema {
     from(bonds)(b => where (b.id === id) select (&(b.settings))).headOption.getOrElse(null)
   }
   
+  def getBondSettingJson(id:String):ObjectNode = {
+    val currentsetting = getBondSetting(id)
+    if (currentsetting != null && !currentsetting.isEmpty) currentsetting.objectNode.getOrElse(JsonUtils.newObjectNode)
+    else JsonUtils.newObjectNode
+  }
+  
   def setBondSetting(id:String, setting:String):Unit = transaction{
     update(bonds)(b => where (b.id === id) set(b.settings := setting))
   }
   
-  def setBondSetting[T](id:String, setting:Map[String, T]):Unit = {
-    import squantlib.util.JsonUtils._
-    import org.codehaus.jackson.JsonNode
-    val currentsetting = getBondSetting(id)
-    val currentjson = 
-      if (currentsetting != null && !currentsetting.isEmpty) currentsetting.objectNode.getOrElse(JsonUtils.newObjectNode)
-      else JsonUtils.newObjectNode
-    setting.foreach{case (k, v) => currentjson.put(k, v.toString)}
+  def updateBondSetting[T<:AnyVal](id:String, name:String, newvalue:T):Unit = updateBondSetting(id, name, newvalue.toString)
+  
+  def updateBondSetting(id:String, name:String, newvalue:String):Unit = {
+    val currentjson = getBondSettingJson(id)
+    currentjson.put(name, newvalue)
+    setBondSetting(id, currentjson.toJsonString)
+  }
+  
+  def updateBondSetting(id:String, name:String, newnode:JsonNode):Unit = {
+    val currentjson = getBondSettingJson(id)
+    currentjson.put(name, newnode)
     setBondSetting(id, currentjson.toJsonString)
   }
   
