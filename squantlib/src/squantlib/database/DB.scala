@@ -193,11 +193,24 @@ object DB extends Schema {
     update(bonds)(b => where (b.id === id) set(b.initialfx := initialFX))
   }
   
+  def getBondSetting(id:String):String = transaction{
+    from(bonds)(b => where (b.id === id) select (&(b.settings))).headOption.getOrElse(null)
+  }
+  
   def setBondSetting(id:String, setting:String):Unit = transaction{
     update(bonds)(b => where (b.id === id) set(b.settings := setting))
   }
   
-  def setBondSetting[T](id:String, setting:Map[String, T]):Unit = setBondSetting(id, JsonUtils.jsonString(setting))
+  def setBondSetting[T](id:String, setting:Map[String, T]):Unit = {
+    import squantlib.util.JsonUtils._
+    import org.codehaus.jackson.JsonNode
+    val currentsetting = getBondSetting(id)
+    val currentjson = 
+      if (currentsetting != null && !currentsetting.isEmpty) currentsetting.objectNode.getOrElse(JsonUtils.newObjectNode)
+      else JsonUtils.newObjectNode
+    setting.foreach{case (k, v) => currentjson.put(k, v.toString)}
+    setBondSetting(id, currentjson.toJsonString)
+  }
   
   /**
    * Returns a Set of BondPrice objects identified by a Set of ID.

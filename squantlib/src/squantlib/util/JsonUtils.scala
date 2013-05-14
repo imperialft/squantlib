@@ -2,6 +2,7 @@ package squantlib.util
 
 import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.JsonNode
+import org.codehaus.jackson.node.{ObjectNode, ArrayNode}
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{Date => qlDate}
 import org.codehaus.jackson.`type`.TypeReference;
@@ -9,7 +10,13 @@ import org.codehaus.jackson.`type`.TypeReference;
 
 object JsonUtils {
   
+	val mapper = new ObjectMapper
+  
 	val jsonDateFormat = new java.text.SimpleDateFormat("y/M/d")
+	
+	def newObjectNode = mapper.createObjectNode
+	
+	def newArrayNode = mapper.createArrayNode
   
 	implicit def jsonToExtendedJson(node:JsonNode) = ExtendedJson(node)
 	
@@ -86,7 +93,8 @@ object JsonUtils {
 		  
 	  def parseStringFields(name:String):Map[String, String] = if (hasName(name)) Map.empty
 		  else node.get(name).getFieldNames.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
-		  
+	
+	  def toJsonString:String = mapper.writeValueAsString(node)
 	  
 	}
 	
@@ -95,9 +103,11 @@ object JsonUtils {
 	
 	case class JsonString(formula:String) {
 	  
-	  val mapper = new ObjectMapper
-	  
 	  def jsonNode:Option[JsonNode] = try { Some(mapper.readTree(formula)) } catch { case _:Throwable => None }
+	  
+	  def objectNode:Option[ObjectNode] = try { Some(mapper.readTree(formula).asInstanceOf[ObjectNode]) } catch { case _:Throwable => None }
+	  
+	  def arrayNode:Option[ArrayNode] = try { Some(mapper.readTree(formula).asInstanceOf[ArrayNode]) } catch { case _:Throwable => None }
 	  
 	  def jsonNode(name:String):Option[JsonNode] = try { 
 	    val node = mapper.readTree(formula).get(name)
