@@ -26,6 +26,28 @@ object DisplayUtils {
 		}
 		trimAcc(s)
 	  }
+	  
+	  def oneByteString = {
+	    var result = s
+	    result = result.map{
+	      case c if c >= 'ａ' && c <= 'ｚ' => (c - 'ａ' + 'a').toChar
+	      case c if c >= 'Ａ' && c <= 'Ｚ' => (c - 'Ａ' + 'A').toChar
+	      case c if c >= '０' && c <= '９' => (c - '０' + '0').toChar
+	      case '　' => ' '
+	      case '（' => '('
+	      case '）' => ')'
+	      case '\n' => ' '
+	      case '／' => '/'
+	      case '．' => '.'
+	      case '?' => ' '
+	      case '＆' => '&'
+	      case '，' => ','
+	      case '、' => ','
+	      case c => c
+	    }
+	    result
+	  }
+	  
 	}
 	
 	implicit def doubleToExtendedDouble(d:Double) = ExtendedDouble(d)

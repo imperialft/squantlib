@@ -30,6 +30,11 @@ object DB extends Schema {
    def idPropertyName = "id"
  }  
   
+ implicit object IntDataKED extends KeyedEntityDef[IntEntity, Int] {
+   def getId(a: IntEntity) = a.id
+   def isPersisted(a: IntEntity) = a.id > 0
+   def idPropertyName = "id"
+ }  
   
   /** 
    * Attach schema definitions to the tables.
@@ -43,14 +48,10 @@ object DB extends Schema {
   val countries = table[Country]("Countries")
   val currencies = table[Currency]("Currencies")
   val distributors = table[Distributor]("Distributors")
-  val fxrates = table[FXRate]("FXRates")
   val issuers = table[Issuer]("Issuers")
   val products = table[Product]("Products")
   val bonds = table[Bond]("Bonds")
   val equities = table[Equity]("Equities")
-  val ratefxparameters = table[RateFXParameter]("RateFXParameters")
-  val inputparameters = table[InputParameter]("InputParameters")
-  val cdsparameters = table[CDSParameter]("CDSParameters")
   val bondprices = table[BondPrice]("BondPrices")
   val volatilities = table[Volatility]("Volatilities")
   val correlations = table[Correlation]("Correlations")
@@ -60,6 +61,12 @@ object DB extends Schema {
   val underlyings = table[Underlying]("Underlyings")
   val jsdaprices = table[JsdaPrice]("JSDAPrice")
   
+  val fxrates = table[FXRate]("FXRates")
+  val ratefxparameters = table[RateFXParameter]("RateFXParameters")
+  val inputparameters = table[InputParameter]("InputParameters")
+  val cdsparameters = table[CDSParameter]("CDSParameters")
+  val distributorbranches = table[DistributorBranch]("DistributorBranches")
+
   private def getKeyedEntity[A<:StringEntity](t:Table[A]):Set[A] = transaction {
       from(t)(p => select(p)).toSet}
   
@@ -67,6 +74,15 @@ object DB extends Schema {
       from(t)(p => where(p.id in ids) select(p)).toSet }
   
   private def getAKeyedEntity[A<:StringEntity](t:Table[A], id:String):Option[A] = transaction {
+      from(t)(p => where(p.id === id) select(p)).headOption }
+  
+  private def getKeyedIntEntity[A<:IntEntity](t:Table[A]):Set[A] = transaction {
+      from(t)(p => select(p)).toSet}
+  
+  private def getKeyedIntEntity[A<:IntEntity](t:Table[A], ids:Traversable[Int]):Set[A] = transaction {
+      from(t)(p => where(p.id in ids) select(p)).toSet }
+  
+  private def getAKeyedIntEntity[A<:IntEntity](t:Table[A], id:Int):Option[A] = transaction {
       from(t)(p => where(p.id === id) select(p)).headOption }
   
   private def weekday(b: TypedExpression[java.util.Date,TDate])
@@ -126,6 +142,16 @@ object DB extends Schema {
   def getDistributors:Set[Distributor] = getKeyedEntity(distributors)
   def getDistributors(ids:Traversable[String]):Set[Distributor] = getKeyedEntity(distributors, ids)
   def getDistributor(id:String):Option[Distributor] = getAKeyedEntity(distributors, id)
+  
+  /**
+   * Returns a Set of DistributorBranch objects identified by a Set of ID.
+   * 
+   * @param ids A Set of unique IDs.
+   * @return A Set of Distributor objects.
+   */
+  def getDistributorBranches:Set[DistributorBranch] = getKeyedIntEntity(distributorbranches)
+  def getDistributorBranches(ids:Traversable[Int]):Set[DistributorBranch] = getKeyedIntEntity(distributorbranches, ids)
+  def getDistributorBranch(id:Int):Option[DistributorBranch] = getAKeyedIntEntity(distributorbranches, id)
 
   /**
    * Returns a Set of Issuer objects identified by a Set of ID.
@@ -1290,12 +1316,39 @@ object DB extends Schema {
   }
   
   def updateStringEntity[T<:StringEntity](data:T):Unit = transaction{
-//	  Session.currentSession.setLogger(msg => println(msg))    
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.update(data)
       case _ => println("table not found")
     }
   }
+
+  def insertIntEntity[T <: IntEntity](data:T):Unit = transaction{
+    intTable(data.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.insert(data)
+      case _ => println("table not found")
+    }
+  }
+  
+  def insertIntEntity[T <: IntEntity](data:Set[T]):Unit = transaction{
+    intTable(data.head.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.insert(data)
+      case _ => println("table not found")
+    }
+  }
+  
+  def updateIntEntity[T<:IntEntity](data:Set[T]):Unit = transaction{
+    intTable(data.head.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.update(data)
+      case _ => println("table not found")
+    }
+  }
+  
+  def updateIntEntity[T<:IntEntity](data:T):Unit = transaction{
+    intTable(data.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.update(data)
+      case _ => println("table not found")
+    }
+  }  
   
   def dataTable(name:String):Option[Table[_ <: StringEntity]] = name match {
       case "BondPrice" => Some(bondprices)
@@ -1305,6 +1358,15 @@ object DB extends Schema {
       case "ForwardPrice" => Some(forwardprices)
       case "ImpliedRate" => Some(impliedrates)
       case "Bond" => Some(bonds)
+      case _ => None
+    }
+  
+  def intTable(name:String):Option[Table[_ <: IntEntity]] = name match {
+      case "RateFXParameter" => Some(ratefxparameters)
+      case "InputParameter" => Some(inputparameters)
+      case "DistributorBranch" => Some(distributorbranches)
+      case "FXRate" => Some(fxrates)
+      case "CDSParameter" => Some(cdsparameters)
       case _ => None
     }
   
@@ -1341,7 +1403,7 @@ object DB extends Schema {
    * @return Whether or not the statement ran successfully.
    *          However, this does not guarantee whether every row has been inserted.
    */
-  def empty[T <: StringEntity](table:Table[T]):Boolean = {
+  def empty[T](table:Table[T]):Boolean = {
     val tablename = table.name
     runSQLStatement("TRUNCATE TABLE " + tablename)
     true
