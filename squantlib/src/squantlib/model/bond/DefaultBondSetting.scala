@@ -31,10 +31,13 @@ object DefaultBondSetting extends BondSetting {
 	    
 	  "DCC" -> FXCallableModelSetting,
 	  "PRDC" -> FXCallableModelSetting,
+	  "FXLINKED" -> FXCallableModelSetting,
+	  "RDC" -> FXCallableModelSetting,
 	      
 	  "NKY" -> IndexMcModelSetting,
 	      
 	  "EB" -> EquityMcModelSetting
+	  
   )
   
   def apply(bond:Bond):Unit = productMapping.get(bond.db.productid) match {
