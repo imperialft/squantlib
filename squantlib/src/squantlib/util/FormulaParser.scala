@@ -1,6 +1,6 @@
 package squantlib.util
 
-import squantlib.setting.initializer.Currencies
+import squantlib.util.initializer.Currencies
 import scala.collection.mutable.{Map => mutableMap}
 import squantlib.util.DisplayUtils._
 

@@ -3,7 +3,7 @@ package squantlib.model.rates
 import scala.collection.immutable.{TreeMap, SortedMap}
 import squantlib.database.schemadefinitions.CDSParameter
 import squantlib.model.yieldparameter.YieldParameter
-import squantlib.setting.initializer.Currencies
+import squantlib.util.initializer.Currencies
 import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
 import org.jquantlib.currencies.Currency
 import squantlib.model.yieldparameter.{FlatVector, LinearNoExtrapolation}

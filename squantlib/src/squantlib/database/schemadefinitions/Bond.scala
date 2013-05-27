@@ -5,7 +5,7 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 import squantlib.util.JsonUtils._
 import squantlib.payoff.Schedule
-import squantlib.setting.initializer._
+import squantlib.util.initializer._
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
 import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._

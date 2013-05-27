@@ -5,7 +5,7 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 import org.jquantlib.daycounters.Actual365Fixed
 import org.jquantlib.time.{Date => qlDate}
-import squantlib.setting.initializer.Daycounters
+import squantlib.util.initializer.Daycounters
 
 
 class Coupon(@Column("ID")				override var id:String,

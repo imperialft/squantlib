@@ -10,6 +10,7 @@ import org.jquantlib.time.calendars.NullCalendar
 import scala.collection.mutable.{Map => MutableMap}
 import org.jquantlib.time.Calendar
 import scala.annotation.tailrec
+import squantlib.util.initializer.Calendars
 
 /**
  * Equity specific discount curve calibration.
@@ -83,7 +84,7 @@ case class EquityFlatDivATM(
   }
   
   def constractDividend(baseDate:qlDate, endDate:qlDate, annualAmount:Double, payFreq:Int, calendars:Set[String]):Map[qlDate, Double] = {
-    val cdr = squantlib.setting.initializer.Calendars(calendars).getOrElse(new NullCalendar)
+    val cdr = Calendars(calendars).getOrElse(new NullCalendar)
     val tenor = new qlPeriod(payFreq + "M")
     var currentdate = baseDate
     var periods = 1

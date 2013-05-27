@@ -8,7 +8,7 @@ import squantlib.database.DB
 import squantlib.database.schemadefinitions.{Bond => dbBond, BondPrice, Coupon => dbCoupon, ForwardPrice}
 import squantlib.payoff._
 import squantlib.model.rates.DiscountCurve
-import squantlib.setting.initializer.{DayAdjustments, Currencies, Daycounters}
+import squantlib.util.initializer.{DayAdjustments, Currencies, Daycounters}
 import squantlib.util.JsonUtils._
 import squantlib.database.fixings.Fixings
 import squantlib.pricing.model.{PricingModel, NoModel}

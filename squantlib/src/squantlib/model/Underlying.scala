@@ -3,7 +3,7 @@ package squantlib.model
 import squantlib.database.fixings.Fixings
 import squantlib.database.DB
 import squantlib.model.rates.DiscountCurve
-import squantlib.setting.initializer.Currencies
+import squantlib.util.initializer.Currencies
 import squantlib.util.DisplayUtils._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter

@@ -1,7 +1,7 @@
 package squantlib.database.fixings
 
 import squantlib.database.DB
-import squantlib.setting.initializer.Currencies
+import squantlib.util.initializer.Currencies
 import org.jquantlib.time.{Date => qlDate}
 import java.util.{Date => JavaDate}
 

@@ -1,4 +1,4 @@
-package squantlib.setting.initializer
+package squantlib.util.initializer
 
 import org.jquantlib.daycounters._
 
