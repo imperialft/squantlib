@@ -273,18 +273,21 @@ case class Bond(
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
 	 */
-	def dirtyPrice:Option[Double] = 
-	  if (terminationDate.isDefined && valueDate.isDefined && (terminationDate.get le valueDate.get)) None
-	  else (model, discountCurve) match {
+	def dirtyPrice:Option[Double] = (terminationDate, valueDate) match {
+	  case (Some(td), Some(vd)) if td le vd => println(id + " : terminated on " + td); None
+	  case _ => (model, discountCurve) match {
 	    case (Some(m), Some(c)) => m.price(c)
-		case (Some(m), None) => m.price
-		case _ => None}
+		case (Some(m), None) => println(id + " : missing discount curve"); m.price
+		case _ => println(id + " : missing model"); None
+	}}
 	
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)
 	 */
 	def cleanPrice:Option[Double] = (dirtyPrice, accruedAmount) match { 
-	  case (Some(d), Some(a)) => Some(d - a) case _ => None}
+	  case (Some(d), Some(a)) => Some(d - a) 
+	  case _ => None
+	}
 	
 	/*	
 	 * Returns accrued coupon.
@@ -301,8 +304,8 @@ case class Bond(
 	 */
 	def modelPrice:Option[Double] = (model, discountCurve) match {
 	  case (Some(m), Some(c)) => m.modelPrice(c)
-	  case _ => None}
-
+	  case _ => None
+	}
 	
 	/*	
 	 * Returns FX at which JPY dirty bond price becomes 100% at any given date
