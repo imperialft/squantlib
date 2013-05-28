@@ -47,8 +47,8 @@ object JsonUtils {
 	    if (name == null) None
 	    else node.parseString(name) match {
 	      case None => None
-	      case Some(s) if !s.contains("/") => None
-	      case Some(s) => try{Some(new qlDate(jsonDateFormat.parse(s)))} catch {case _:Throwable => None}	      
+	      case Some(s) if s.size < 8 || !s.contains("/") => None
+	      case Some(s) => try{Some(new qlDate(jsonDateFormat.parse(s)))} catch {case _:Throwable => println(s + " could not be parsed"); None}	      
 	    }
 	  
 	  def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))
