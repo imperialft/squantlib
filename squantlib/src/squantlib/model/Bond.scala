@@ -91,9 +91,9 @@ case class Bond(
 	
 	def lastPeriod:Option[CalculationPeriod] = scheduledPayoffs.triggeredDate
 	
-	def terminationDate:Option[qlDate] = lastPeriod.collect{case p => p.paymentDate}
+	def earlyTerminationDate:Option[qlDate] = lastPeriod.collect{case p => p.paymentDate}
 	
-	def isTerminated:Boolean = terminationDate.isDefined
+	def isEarlyTerminated:Boolean = earlyTerminationDate.isDefined
 	
 	def getUnderlyings:Map[String, Option[Underlying]] = market match {
 	  case None => underlyings.map(u => (u, None)) (collection.breakOut)
@@ -273,7 +273,7 @@ case class Bond(
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
 	 */
-	def dirtyPrice:Option[Double] = (terminationDate, valueDate) match {
+	def dirtyPrice:Option[Double] = (earlyTerminationDate, valueDate) match {
 	  case (Some(td), Some(vd)) if td le vd => println(id + " : terminated on " + td); None
 	  case _ => (model, discountCurve) match {
 	    case (Some(m), Some(c)) => m.price(c)
@@ -680,88 +680,101 @@ case class Bond(
 	  (new ObjectMapper).writeValueAsString(javamap)
 	}
 	
+
+	
+	def bondPrice(paramset:String, valuedate:qlDate)(f:BondPrice => Unit):BondPrice = {
+	  val price = new BondPrice(
+  		id = id + ":" + paramset + ":" + currency.code,
+		bondid = id,
+		currencyid = currency.code,
+		comment = null,
+		paramset = paramset,
+		paramdate = valuedate.longDate,
+		fxjpy = Double.NaN,
+		pricedirty = Double.NaN,
+		priceclean = None,
+		accrued = None,
+		pricedirty_jpy = None,
+		priceclean_jpy = None,
+		accrued_jpy = None,
+		yield_continuous = None,
+		yield_annual = None,
+		yield_semiannual = None,
+		yield_simple = None,
+		bpvalue = None,
+		irr = None,
+		currentrate = None,
+		nextamount = None,
+		nextdate = None,
+		dur_simple = None,
+		dur_modified = None,
+		dur_macauley = None,
+		yieldvaluebp = None,
+		convexity = None,
+		remaininglife = remainingLife,
+		parMtMYield = None,
+		parMtMfx = None,
+		rateDelta = null,
+		rateVega = null,
+		fxDelta = null,
+		fxDeltaJpy = null,
+		fxVega = null,
+		created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
+		lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)))
+	  
+	  f(price)
+	  price}
+	
+	
 	def toBondPrice:Option[BondPrice] = (market, cleanPrice) match {
-	  case (Some(mkt), Some(p)) => Some(new BondPrice(
-	  		id = id + ":" + mkt.paramset + ":" + currency.code,
-			bondid = id,
-			currencyid = currency.code,
-			comment = null,
-			paramset = mkt.paramset,
-			paramdate = mkt.valuedate.longDate,
-			fxjpy = fxjpy.getOrElse(0),
-			pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN),
-			priceclean = cleanPrice.collect{case p => p * 100},
-			accrued = accruedAmount.collect{case p => p * 100},
-			pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100},
-			priceclean_jpy = cleanPriceJpy.collect{case p => p * 100},
-			accrued_jpy = accruedAmountJpy.collect{case p => p * 100},
-			yield_continuous = yieldContinuous.collect{case p => p * 100},
-			yield_annual = yieldAnnual.collect{case p => p * 100},
-			yield_semiannual = yieldSemiannual.collect{case p => p * 100},
-			yield_simple = yieldSimple.collect{case p => p * 100},
-			bpvalue = bpvalue.collect{case p => p * 10000},
-			irr = irr.collect{case p => p * 100},
-			currentrate = currentRate.collect{case p => p * 100},
-			nextamount = nextPayment.collect{case (d, p) => p * 100},
-			nextdate = nextPayment.collect{case (d, p) => d.longDate},
-			dur_simple = effectiveDuration,
-			dur_modified = modifiedDuration,
-			dur_macauley = macaulayDuration,
-			yieldvaluebp = yieldValueBasisPoint,
-			convexity = convexity,
-			remaininglife = remainingLife,
-			parMtMYield = parMtMYield,
-			parMtMfx = parMtMfx,
-			rateDelta = mapToJsonString(rateDeltas(0.001)),
-			rateVega = null,
-			fxDelta = mapToJsonString(fxDeltas(1.01)),
-			fxDeltaJpy = mapToJsonString(fxDeltaOneJpy),
-			fxVega = mapToJsonString(fxVegas(0.01)),
-			created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
-			lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))))
+	  case (Some(mkt), Some(p)) => Some(bondPrice(mkt.paramset, mkt.valuedate){price => 
+		price.fxjpy = fxjpy.getOrElse(0)
+		price.pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.priceclean = cleanPrice.collect{case p => p * 100}
+		price.accrued = accruedAmount.collect{case p => p * 100}
+		price.pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100}
+		price.priceclean_jpy = cleanPriceJpy.collect{case p => p * 100}
+		price.accrued_jpy = accruedAmountJpy.collect{case p => p * 100}
+		price.yield_continuous = yieldContinuous.collect{case p => p * 100}
+		price.yield_annual = yieldAnnual.collect{case p => p * 100}
+		price.yield_semiannual = yieldSemiannual.collect{case p => p * 100}
+		price.yield_simple = yieldSimple.collect{case p => p * 100}
+		price.bpvalue = bpvalue.collect{case p => p * 10000}
+		price.irr = irr.collect{case p => p * 100}
+		price.currentrate = currentRate.collect{case p => p * 100}
+		price.nextamount = nextPayment.collect{case (d, p) => p * 100}
+		price.nextdate = nextPayment.collect{case (d, p) => d.longDate}
+		price.dur_simple = effectiveDuration
+		price.dur_modified = modifiedDuration
+		price.dur_macauley = macaulayDuration
+		price.yieldvaluebp = yieldValueBasisPoint
+		price.convexity = convexity
+		price.remaininglife = remainingLife
+		price.parMtMYield = parMtMYield
+		price.parMtMfx = parMtMfx
+		price.rateDelta = mapToJsonString(rateDeltas(0.001))
+		price.rateVega = null
+		price.fxDelta = mapToJsonString(fxDeltas(1.01))
+		price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
+		price.fxVega = mapToJsonString(fxVegas(0.01))
+	  })
 	  
 	  case _ => None
 	} 
-
+	
 	def toQuickBondPrice:Option[BondPrice] = (market, cleanPrice) match {
-	  case (Some(mkt), Some(p)) => Some(new BondPrice(
-	  		id = id + ":" + mkt.paramset + ":" + currency.code,
-			bondid = id,
-			currencyid = currency.code,
-			comment = null,
-			paramset = mkt.paramset,
-			paramdate = mkt.valuedate.longDate,
-			fxjpy = fxjpy.getOrElse(0),
-			pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN),
-			priceclean = cleanPrice.collect{case p => p * 100},
-			accrued = accruedAmount.collect{case p => p * 100},
-			pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100},
-			priceclean_jpy = cleanPriceJpy.collect{case p => p * 100},
-			accrued_jpy = accruedAmountJpy.collect{case p => p * 100},
-			yield_continuous = None,
-			yield_annual = None,
-			yield_semiannual = None,
-			yield_simple = None,
-			bpvalue = None,
-			irr = None,
-			currentrate = currentRate.collect{case p => p * 100},
-			nextamount = nextPayment.collect{case (d, p) => p * 100},
-			nextdate = nextPayment.collect{case (d, p) => d.longDate},
-			dur_simple = None,
-			dur_modified = None,
-			dur_macauley = None,
-			yieldvaluebp = None,
-			convexity = None,
-			remaininglife = remainingLife,
-			parMtMYield = None,
-			parMtMfx = None,
-			rateDelta = null,
-			rateVega = null,
-			fxDelta = null,
-			fxDeltaJpy = null,
-			fxVega = null,
-			created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
-			lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))))
+	  case (Some(mkt), Some(p)) => Some(bondPrice(mkt.paramset, mkt.valuedate){price => 
+		price.fxjpy = fxjpy.getOrElse(0)
+		price.pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.priceclean = cleanPrice.collect{case p => p * 100}
+		price.accrued = accruedAmount.collect{case p => p * 100}
+		price.pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100}
+		price.priceclean_jpy = cleanPriceJpy.collect{case p => p * 100}
+		price.accrued_jpy = accruedAmountJpy.collect{case p => p * 100}
+		price.currentrate = currentRate.collect{case p => p * 100}
+		price.nextamount = nextPayment.collect{case (d, p) => p * 100}
+		price.nextdate = nextPayment.collect{case (d, p) => d.longDate}
+	  })
 	  
 	  case _ => None
 	} 
@@ -852,7 +865,7 @@ case class Bond(
 	    disp("underlyings", underlyings.mkString(" "))
 	    disp("initial", underlyings.map(u => u + " -> " + db.fixingMap.getOrElse(u, "not fixed")).mkString(" "))
 	    disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse("not fixed")).mkString(" ")}.getOrElse("no market"))
-	    disp("termination", terminationDate.getOrElse("not terminated"))
+	    disp("termination", earlyTerminationDate.getOrElse("not terminated"))
 	    println("Full schedule:")
 	    println(scheduledPayoffs.toString)
 	  }
@@ -923,4 +936,92 @@ object Bond {
 	}
   
 }
-	
+
+
+
+
+//	def toBondPrice:Option[BondPrice] = (market, cleanPrice) match {
+//	  case (Some(mkt), Some(p)) => Some(new BondPrice(
+//  		id = id + ":" + mkt.paramset + ":" + currency.code,
+//		bondid = id,
+//		currencyid = currency.code,
+//		comment = null,
+//		paramset = mkt.paramset,
+//		paramdate = mkt.valuedate.longDate,
+//		fxjpy = fxjpy.getOrElse(0),
+//		pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN),
+//		priceclean = cleanPrice.collect{case p => p * 100},
+//		accrued = accruedAmount.collect{case p => p * 100},
+//		pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100},
+//		priceclean_jpy = cleanPriceJpy.collect{case p => p * 100},
+//		accrued_jpy = accruedAmountJpy.collect{case p => p * 100},
+//		yield_continuous = yieldContinuous.collect{case p => p * 100},
+//		yield_annual = yieldAnnual.collect{case p => p * 100},
+//		yield_semiannual = yieldSemiannual.collect{case p => p * 100},
+//		yield_simple = yieldSimple.collect{case p => p * 100},
+//		bpvalue = bpvalue.collect{case p => p * 10000},
+//		irr = irr.collect{case p => p * 100},
+//		currentrate = currentRate.collect{case p => p * 100},
+//		nextamount = nextPayment.collect{case (d, p) => p * 100},
+//		nextdate = nextPayment.collect{case (d, p) => d.longDate},
+//		dur_simple = effectiveDuration,
+//		dur_modified = modifiedDuration,
+//		dur_macauley = macaulayDuration,
+//		yieldvaluebp = yieldValueBasisPoint,
+//		convexity = convexity,
+//		remaininglife = remainingLife,
+//		parMtMYield = parMtMYield,
+//		parMtMfx = parMtMfx,
+//		rateDelta = mapToJsonString(rateDeltas(0.001)),
+//		rateVega = null,
+//		fxDelta = mapToJsonString(fxDeltas(1.01)),
+//		fxDeltaJpy = mapToJsonString(fxDeltaOneJpy),
+//		fxVega = mapToJsonString(fxVegas(0.01)),
+//		created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
+//		lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))))
+//	  
+//	  case _ => None
+//	} 
+
+//	def toQuickBondPrice:Option[BondPrice] = (market, cleanPrice) match {
+//	  case (Some(mkt), Some(p)) => Some(new BondPrice(
+//  		id = id + ":" + mkt.paramset + ":" + currency.code,
+//		bondid = id,
+//		currencyid = currency.code,
+//		comment = null,
+//		paramset = mkt.paramset,
+//		paramdate = mkt.valuedate.longDate,
+//		fxjpy = fxjpy.getOrElse(0),
+//		pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN),
+//		priceclean = cleanPrice.collect{case p => p * 100},
+//		accrued = accruedAmount.collect{case p => p * 100},
+//		pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100},
+//		priceclean_jpy = cleanPriceJpy.collect{case p => p * 100},
+//		accrued_jpy = accruedAmountJpy.collect{case p => p * 100},
+//		yield_continuous = None,
+//		yield_annual = None,
+//		yield_semiannual = None,
+//		yield_simple = None,
+//		bpvalue = None,
+//		irr = None,
+//		currentrate = currentRate.collect{case p => p * 100},
+//		nextamount = nextPayment.collect{case (d, p) => p * 100},
+//		nextdate = nextPayment.collect{case (d, p) => d.longDate},
+//		dur_simple = None,
+//		dur_modified = None,
+//		dur_macauley = None,
+//		yieldvaluebp = None,
+//		convexity = None,
+//		remaininglife = remainingLife,
+//		parMtMYield = None,
+//		parMtMfx = None,
+//		rateDelta = null,
+//		rateVega = null,
+//		fxDelta = null,
+//		fxDeltaJpy = null,
+//		fxVega = null,
+//		created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
+//		lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))))
+//	  
+//	  case _ => None
+//	} 
