@@ -41,6 +41,9 @@ case class EquityMontecarlo1f(valuedate:qlDate,
 	def calculatePrice(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", mcPrice(paths))
 	
 	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
+	
+	override val priceType = "MODEL"
+	  
 }
 
 

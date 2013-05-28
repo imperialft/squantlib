@@ -40,6 +40,7 @@ class BondPrice(@Column("ID")			override var id:String,
 			@Column("FXDELTA")			var fxDelta:String, 
 			@Column("FXDELTAJPY")		var fxDeltaJpy:String, 
 			@Column("FXVEGA")			var fxVega:String, 
+			@Column("PRICETYPE")		var priceType:String, 
 			@Column("Created")			var created:Option[Date],
 			@Column("LastModified")		var lastmodified:Option[Date]
 			) extends StringEntity {
@@ -82,6 +83,7 @@ class BondPrice(@Column("ID")			override var id:String,
 		fxDelta = null, 
 		fxDeltaJpy = null, 
 		fxVega = null,
+		priceType = null,
 		created = None,
 		lastmodified = None
       )
@@ -123,6 +125,7 @@ class BondPrice(@Column("ID")			override var id:String,
 		"FXDELTA:\t" + fxDelta,
 		"FXDELTAJPY:\t" + fxDeltaJpy,
 		"FXVEGA:\t" + fxVega,
+		"PRICETYPE:\t" + priceType,
 		"Created:\t" + created.getOrElse("None"),
 		"LastModified:\t" + lastmodified.getOrElse("None")
 		).mkString("\n")

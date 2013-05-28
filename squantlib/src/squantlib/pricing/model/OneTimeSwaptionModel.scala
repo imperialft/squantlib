@@ -22,6 +22,8 @@ case class OneTimeSwaptionModel(scheduledPayoffs:ScheduledPayoffs, valueDate:qlD
 	override def calculatePrice:List[Double] = scheduledPayoffs.price
 	
 	override val optionPrice:Option[Double] = Some(-swaptionPrice)
+	
+	override val priceType = "MODEL"
 }
 
 object OneTimeSwaptionModel {

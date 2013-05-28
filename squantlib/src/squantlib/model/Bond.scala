@@ -719,6 +719,7 @@ case class Bond(
 		fxDelta = null,
 		fxDeltaJpy = null,
 		fxVega = null,
+		priceType = model.collect{case m => m.priceType}.getOrElse("MODEL"),
 		created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
 		lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)))
 	  
@@ -899,7 +900,7 @@ object Bond {
 	def apply(db:dbBond, tbdfixing:Option[Double]):Option[Bond] = {
 	  
 	  val schedule = db.schedule.orNull
-	  if (schedule == null) {println(db.id + ": cannot initialize schedule"); return None}
+	  if (schedule == null) {return None}
 	  
 	  val ulfixings:Map[String, Double] = if (!db.fixingMap.isEmpty) db.fixingMap
 		else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)

@@ -11,6 +11,7 @@ case class NoModel(scheduledPayoffs:ScheduledPayoffs) extends PricingModel {
   
 	override def calculatePrice:List[Double] = scheduledPayoffs.price
 	
+	override val priceType = "MODEL"
 }
 
 

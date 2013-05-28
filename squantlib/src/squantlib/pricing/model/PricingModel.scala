@@ -16,6 +16,11 @@ trait PricingModel {
   def modelPaths(paths:Int = mcPaths):List[List[Double]] = List.empty
   
   /*	
+   * Type of price ("MODEL", "PUBLISHED", etc)
+   */
+  val priceType:String
+  
+  /*	
    * Returns forward underlyings
    */
   def modelForward(paths:Int = mcPaths):List[Double] = List.empty

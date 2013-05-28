@@ -51,6 +51,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	  FXMontecarlo1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository)
 	}
 	
+	override val priceType = "MODEL"
 }
 
 

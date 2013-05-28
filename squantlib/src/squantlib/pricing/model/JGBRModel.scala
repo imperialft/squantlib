@@ -31,6 +31,8 @@ case class JGBRModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 	    storedPrice
 	  }
 	}
+	
+	override val priceType = "PUBLISHED"
 }
 	
 
