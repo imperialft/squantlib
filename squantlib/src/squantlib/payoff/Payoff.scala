@@ -6,41 +6,53 @@ import squantlib.database.fixings.Fixings
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.model.Market
 
-trait Payoff {
+trait Payoff extends FixingLeg {
 	
 	/*
 	 * List of reference variables. 
 	 * Price fixings should be provided by map variable -> fixing value.
 	 */	
-	val variables:Set[String]
+	override val variables:Set[String]
 	
 	val isPriceable:Boolean // checks priceablility of the payoff
 	
 	/*
 	 * Price assuming all variables fixed at spot market.
 	 */	
-	final def price(market:Market):Double = if (isPriceable) priceImpl(market) else Double.NaN
+	final def price(market:Market):Double = 
+	  if (isFixed) price(getFixings)
+	  else if (isPriceable) priceImpl(market) 
+	  else Double.NaN
 	
 	def priceImpl(market:Market):Double = price(market.getFixings(variables))
 	
 	/*
 	 * Price given variable fixings, where set of necessary variables are provided by variables function.
 	 */	
-	final def price(fixings:Map[String, Double]):Double = if (isPriceable) priceImpl(fixings) else Double.NaN
+	final def price(fixings:Map[String, Double]):Double = 
+	  if (isFixed) priceImpl(getFixings)
+	  else if (isPriceable) priceImpl(fixings) 
+	  else Double.NaN
 	
 	def priceImpl(fixings:Map[String, Double]):Double
 	
 	/*
 	 * Returns price if there's only one variable. Returns NaN in case of >1 variables.
 	 */	
-	final def price(fixing:Double):Double = if (isPriceable) priceImpl(fixing) else Double.NaN
+	final def price(fixing:Double):Double = 
+	  if (isFixed) price(getFixings)
+	  else if (isPriceable) priceImpl(fixing) 
+	  else Double.NaN
 	
 	def priceImpl(fixing:Double):Double 
 	
 	/*
 	 * Returns price if there's no variable. Returns NaN in case of >0 variables.
 	 */	
-	final def price:Double = if (isPriceable) priceImpl else Double.NaN
+	final def price:Double = 
+	  if (isFixed) price(getFixings)
+	  else if (isPriceable) priceImpl 
+	  else Double.NaN
 	
 	def priceImpl:Double
 	
@@ -48,7 +60,10 @@ trait Payoff {
 	 * Price in case of multiple event dates.
 	 * Only refers to the last variable by default but can be overridden.
 	 */	
-	final def price(fixings:List[Map[String, Double]]):Double = if (isPriceable) priceImpl(fixings) else Double.NaN
+	final def price(fixings:List[Map[String, Double]]):Double = 
+	  if (isFixed) price(getFixings)
+	  else if (isPriceable) priceImpl(fixings) 
+	  else Double.NaN
 	
 	def priceImpl(fixings:List[Map[String, Double]]):Double = if (fixings.isEmpty) price else price(fixings.last)
 	
@@ -56,7 +71,10 @@ trait Payoff {
 	 * Price in case of multiple event dates with only one variable.
 	 * Only refers to the last variable by default but can be overridden.
 	 */	
-	final def price[T:ClassManifest](fixings:List[Double]):Double = if (isPriceable) priceImpl[T](fixings) else Double.NaN
+	final def price[T:ClassManifest](fixings:List[Double]):Double = 
+	  if (isFixed) price(getFixings)
+	  else if (isPriceable) priceImpl[T](fixings) 
+	  else Double.NaN
 	
 	def priceImpl[T:ClassManifest](fixings:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last)
 
@@ -69,37 +87,38 @@ trait Payoff {
 	 * Returns FixedPayoff if all variables fixing are available on given date. 
 	 * Returns this object if any variables are missing.
 	 */	
-	def applyFixing(eventDate:qlDate):Payoff = 
-	  if (variables.size == 0) this
+	def assignFixings(eventDate:qlDate):Unit = 
+	  if (variables.size == 0) {}
 	  else {
 	    val fixings:Map[String, Double] = variables.map(v => Fixings.byDate(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x) (collection.breakOut)
-	    applyFixing(fixings)
+	    assignFixings(fixings)
 	  }
 	
 	/*
 	 * Returns FixedPayoff if all variables fixing are available on given market. 
 	 * Returns this object if any variables are missing.
 	 */	
-	def applyFixing(market:Market):Payoff = applyFixing(market.getFixings(variables))
+	def assignFixings(market:Market):Unit = assignFixings(market.getFixings(variables))
 	
-	/*
-	 * Returns FixedPayoff if all fixings are provided by the mapping.
-	 * Returns this object if any variables are missing.
-	 */	
-	def applyFixing(fixings:Map[String, Double]):Payoff = fixings match {
-	  case f if (f.isEmpty || variables.size == 0) => this
-	  case f if variables subsetOf fixings.keySet => {
-	    val comment = "{" + fixings.map{case (variable, v) => "\"" + variable + "\":" + v}.mkString(", ") + "}"
-	    FixedPayoff(price(fixings), comment)
-	  }
-	  case _ => this
-	}
+//	/*
+//	 * Returns FixedPayoff if all fixings are provided by the mapping.
+//	 * Returns this object if any variables are missing.
+//	 */	
+//	def assignFixings(fixings:Map[String, Double]):Unit = fixings match {
+//	  case f if (f.isEmpty || variables.size == 0) => this
+//	  case f if variables subsetOf fixings.keySet => {
+//	    val comment = "{" + fixings.map{case (variable, v) => "\"" + variable + "\":" + v}.mkString(", ") + "}"
+//	    FixedPayoff(price(fixings), comment)
+//	  }
+//	  case _ => this
+//	}
+//	
+//	/*
+//	 * Returns FixedPayoff if there is <= 1 variable and the value is provided. 
+//	 * Returns this object otherwise.
+//	 */	
+//	def assignFixings(fixing:Double):Unit = if (variables.size == 1) FixedPayoff(fixing, "{ \"ref\":" + fixing + "}") else this
 	
-	/*
-	 * Returns FixedPayoff if there is <= 1 variable and the value is provided. 
-	 * Returns this object otherwise.
-	 */	
-	def applyFixing(fixing:Double):Payoff = if (variables.size == 1) FixedPayoff(fixing, "{ \"ref\":" + fixing + "}") else this
 	
 	def missingInputs:Map[String, Double => Payoff] = Map.empty
 	
@@ -134,5 +153,7 @@ object Payoff {
 	  case f if f.startsWith("leps") => "leps1d"
 	  case f => formula.parseJsonString("type").orNull
 	  }
+	
+	def simpleCashFlow(amount:Double) = FixedPayoff(amount)
 }
 

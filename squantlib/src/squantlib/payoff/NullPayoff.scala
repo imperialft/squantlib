@@ -18,6 +18,8 @@ case class NullPayoff(
 	override val variables:Set[String] = Set.empty
 	
 	override val isPriceable = false
+	
+	override val isFixed = false
 	 
 	override def priceImpl(fixings:Map[String, Double]) = Double.NaN
 	

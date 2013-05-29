@@ -12,7 +12,7 @@ import scala.Predef.{DummyImplicit => DI, _}
 import com.sun.beans.decoder.FalseElementHandler
 import com.sun.beans.decoder.FalseElementHandler
 
-case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
+case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLegs[Payoff] {
   
 	val underlyings:Set[String] = {
 	  @tailrec def variablesRec(paylist:List[Payoff], acc:Set[String]):Set[String] = {
@@ -26,15 +26,17 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	
 	val isPriceable:Boolean = payoffs.forall(_.isPriceable)
 	
+	override val fixinglegs = payoffs
+	
 	abstract class FixingInterpreter[T, U] {
 	  def price(fixing:T, payoff:Payoff):Double
 	  def triggered(fixing:T, trigger:Option[U]):Boolean
-	  def applyFixing(fixing:T, payoff:Payoff):Payoff}
+	  def assignFixings(fixing:T, payoff:Payoff):Unit}
 	
 	implicit object DoubleList extends FixingInterpreter[Double, Double] {
 	  def price(fixing:Double, payoff:Payoff) = if (fixing.isNaN) payoff.price else payoff.price(fixing)
 	  def triggered(fixing:Double, trigger:Option[Double]) = trigger.isDefined && fixing > trigger.get
-	  def applyFixing(fixing:Double, payoff:Payoff) = payoff.applyFixing(fixing)}
+	  def assignFixings(fixing:Double, payoff:Payoff) = payoff.assignFixings(fixing)}
 	
 	implicit object MapList extends FixingInterpreter[Map[String, Double], Map[String, Double]] {
 	  def price(fixing:Map[String, Double], payoff:Payoff) = if (fixing.isEmpty) payoff.price else payoff.price(fixing)
@@ -42,12 +44,12 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	    case None => false
 	    case Some(t) if t isEmpty => false
 	    case Some(t) => t.forall{case (v, d) => d <= fixing(v)}}
-	  def applyFixing(fixing:Map[String, Double], payoff:Payoff) = payoff.applyFixing(fixing)}
+	  def assignFixings(fixing:Map[String, Double], payoff:Payoff) = payoff.assignFixings(fixing)}
 	
 	implicit object ListDoubleList extends FixingInterpreter[List[Double], Double] {
 	  def price(fixing:List[Double], payoff:Payoff) = if (fixing.isEmpty) payoff.price else payoff.price(fixing)
 	  def triggered(fixing:List[Double], trigger:Option[Double]) = trigger.isDefined && fixing.last > trigger.get
-	  def applyFixing(fixing:List[Double], payoff:Payoff) = payoff.applyFixing(fixing.last)}
+	  def assignFixings(fixing:List[Double], payoff:Payoff) = payoff.assignFixings(fixing.last)}
 	
 	implicit object ListMapList extends FixingInterpreter[List[Map[String, Double]], Map[String, Double]] {
 	  def price(fixing:List[Map[String, Double]], p:Payoff) = if (fixing.isEmpty) p.price else p.price(fixing)
@@ -55,7 +57,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	    case None => false
 	    case Some(t) if t isEmpty => false
 	    case Some(t) => t.forall{case (v, d) => d <= fixing.last(v)}}
-	  def applyFixing(fixing:List[Map[String, Double]], payoff:Payoff) = payoff.applyFixing(fixing.last)}
+	  def assignFixings(fixing:List[Map[String, Double]], payoff:Payoff) = payoff.assignFixings(fixing.last)}
 	
 	@tailrec private def priceRec[T](paylist:List[Payoff], fixlist:List[T], acc:List[Double])
 	(implicit fi:FixingInterpreter[T, _]):List[Double] = {
@@ -73,12 +75,15 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  else priceTrig(paylist.tail, fixlist.tail, acc :+ fi.price(fixlist.head, paylist.head), triglist.tail, trigamt.tail, false)
 	}
 	
-	@tailrec private def fixingRec[T](paylist:List[Payoff], fixlist:List[T], acc:List[Payoff])
-	(implicit fi:FixingInterpreter[T, _]):List[Payoff] = {
-	  if (paylist.isEmpty) acc
-	  else fixingRec(paylist.tail, fixlist.tail, acc :+ fi.applyFixing(fixlist.head, paylist.head))
-	}
-	
+//	@tailrec private def fixingRec[T](paylist:List[Payoff], fixlist:List[T])
+//	(implicit fi:FixingInterpreter[T, _]):Unit = {
+//	  if (paylist.isEmpty) {return}
+//	  else {
+//	    fi.assignFixings(fixlist.head, paylist.head)
+//	    fixingRec(paylist.tail, fixlist.tail)
+//	  }
+//	}
+//	
 	
 	/*
 	 * Select appropriate pricing functions depending on your needs.
@@ -169,18 +174,35 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff]{
 	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
 	}
 	
-	/* 
-	 * Replaces already-fixed payoffs to fixed leg
-	 */
-	def applyFixing(fixings:List[Map[String, Double]]):Payoffs = {
-	  assert(fixings.size == payoffs.size)
-	  Payoffs(fixingRec(payoffs, fixings, List.empty))
-	}
+//	/* 
+//	 * Replaces already-fixed payoffs to fixed leg
+//	 */
+//	def applyFixing(fixings:List[Map[String, Double]]):Payoffs = {
+//	  assert(fixings.size == payoffs.size)
+//	  Payoffs(fixingRec(payoffs, fixings, List.empty))
+//	}
+//	
+//	def applyFixing(fixings:List[Option[Double]]) (implicit d:DI):Payoffs = {
+//	  if (factors == 1) applyFixing(fixings.map{case None => Map.empty[String, Double] case Some(v) => Map(underlyings.head -> v)})
+//	  else this
+//	}
 	
-	def applyFixing(fixings:List[Option[Double]]) (implicit d:DI):Payoffs = {
-	  if (factors == 1) applyFixing(fixings.map{case None => Map.empty[String, Double] case Some(v) => Map(underlyings.head -> v)})
-	  else this
-	}
+//	/* 
+//	 * Replaces already-fixed payoffs to fixed leg
+//	 */
+//	def assignFixings(fixings:List[Map[String, Double]]):Unit = {
+//	  assert(fixings.size == payoffs.size)
+//	  (payoffs, fixings).zipped.foreach{case (p, f) => p.assignFixings(f)}
+//	}
+//	
+//	def assignFixings(fixings:List[Option[Double]]) (implicit d:DI):Unit = {
+//	  assert(fixings.size == payoffs.size)
+//	  (payoffs, fixings).zipped.foreach{
+//	    case (p, Some(f)) => p.assignFixings(f)
+//	    case (p, None) => {}}
+//	}
+//	
+//	def isFixed:Boolean = payoffs.forall(_.isFixed)
 	
 	def ++(another:Payoffs) = new Payoffs(payoffs ++ another.payoffs)
 	
@@ -219,12 +241,22 @@ object Payoffs {
 	def apply(formula:String, legs:Int = 0):Option[Payoffs] =	{
 	  if (formula == null || formula.trim.isEmpty) None
 	  else {
+//	    val payofflist:List[Payoff] = formula.jsonNode match {
+//	      case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f))).flatten
+//	      case _ => formula.split(";").toList.map(getPayoff).flatten
+//	    }
+	    
 	    val payofflist:List[Payoff] = formula.jsonNode match {
 	      case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f))).flatten
 	      case _ => formula.split(";").toList.map(getPayoff).flatten
 	    }
+	    
+	    def getFirstElement:Payoff = formula.jsonNode match {
+	      case Some(n) if n isArray => getPayoff(toJsonString(n.getElements.toList.head)).head
+	      case _ => getPayoff(formula.split(";").head).head
+	    }
 	  
-	  	val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(payofflist.head) ++ payofflist else payofflist
+	  	val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(getFirstElement) ++ payofflist else payofflist
 	  	Some(Payoffs(fullpayoff))
 	}}
 	

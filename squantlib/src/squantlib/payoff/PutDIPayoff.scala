@@ -25,7 +25,7 @@ case class PutDIPayoff(
 	val variables = putVariables.toSet
 	
 	override val isPriceable:Boolean = !trigger.exists(_.isNaN) && !strike.exists(_.isNaN)
-  
+	
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
 	    Some((0 to putVariables.size - 1).toList.map(i => fixings(putVariables(i))))

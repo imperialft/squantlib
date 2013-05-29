@@ -103,23 +103,44 @@ class Bond(@Column("ID")					override var id: String,
   
   def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
   
+  def daycounter = Daycounters(daycount).getOrElse(new Actual365Fixed)
+  
+  def calendarAdjust = DayAdjustments.getOrElse(daycount_adj, BusinessDayConvention.ModifiedFollowing)
+  
+  def paymentAdjust = DayAdjustments.getOrElse(payment_adj, BusinessDayConvention.ModifiedFollowing)
+  
+  def maturityAdjust = DayAdjustments.getOrElse(daycount_adj, BusinessDayConvention.ModifiedFollowing)
+  
+  def period = (coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
+
+  def issueDateQl = new qlDate(issuedate)
+  
+  def maturityQl = new qlDate(maturity)
+  
+  def isFixingInArrears = inarrears != Some(0)
+  
+  def couponNotice:Int = cpnnotice.getOrElse(5)
+  
+  def redemptionNotice:Int = redemnotice.getOrElse(couponNotice)
+
   def schedule:Option[Schedule] = try {
-    val period = (this.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
-    val issueDate = new qlDate(this.issuedate)
-    val maturity = new qlDate(this.maturity)
-    val daycount = Daycounters(this.daycount).getOrElse(new Actual365Fixed)
-    val calendarAdjust = DayAdjustments.getOrElse(this.daycount_adj, BusinessDayConvention.ModifiedFollowing)
-	val paymentAdjust = DayAdjustments.getOrElse(this.payment_adj, BusinessDayConvention.ModifiedFollowing)
-	val maturityAdjust = DayAdjustments.getOrElse(this.daycount_adj, BusinessDayConvention.ModifiedFollowing)
-	val calendar = this.calendar
-	val fixingInArrears = this.inarrears != Some(0)
-	val couponNotice:Int = this.cpnnotice.getOrElse(5)
-	val rule = DateGeneration.Rule.Backward
-	val issuer:String = this.issuerid
-	val redemnotice = this.redemnotice.getOrElse(couponNotice)
-	
-	Some(Schedule(issueDate, maturity, period, calendar, calendarAdjust, paymentAdjust, maturityAdjust, rule, 
-	    fixingInArrears, couponNotice, daycount, None, None, true, redemnotice))
+    Some(Schedule(
+        effectiveDate = issueDateQl,
+		terminationDate = maturityQl,
+		tenor = period,
+		calendar = calendar,
+		calendarConvention = calendarAdjust,
+		paymentConvention = paymentAdjust,
+		terminationDateConvention = maturityAdjust,
+		rule = DateGeneration.Rule.Backward,
+		fixingInArrears = isFixingInArrears,
+		noticeDay = couponNotice,
+		daycount = daycounter, 
+		firstDate = None,
+		nextToLastDate = None,
+		addRedemption = true,
+		maturityNotice = redemptionNotice
+    ))
   }
   catch { case _:Throwable => None}
   

@@ -30,7 +30,10 @@ case class EquityMontecarlo1f(valuedate:qlDate,
 	}
 	 
 	def mcPrice(paths:Int):List[Double] = {
-	  try { modelPaths(paths).map(p => scheduledPayoffs.price(p)).transpose.map(_.sum / paths.toDouble) }
+	  try { 
+	    val mpaths = modelPaths(paths)
+	    if (mpaths.isEmpty) scheduledPayoffs.price
+	    else mpaths.map(p => scheduledPayoffs.price(p)).transpose.map(_.sum / paths.toDouble) }
 	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	

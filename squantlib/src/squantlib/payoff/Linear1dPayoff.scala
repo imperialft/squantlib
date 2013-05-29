@@ -19,7 +19,7 @@ case class Linear1dPayoff(
     payoff:Linear1dFormula, 
     description:String) extends Payoff {
   
-	val variables:Set[String] = if (variable == null) Set.empty else Set(variable)
+	override val variables:Set[String] = if (variable == null) Set.empty else Set(variable)
 	
 	override val isPriceable = true
 	

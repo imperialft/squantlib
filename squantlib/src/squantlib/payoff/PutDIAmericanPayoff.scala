@@ -27,7 +27,7 @@ case class PutDIAmericanPayoff(
     amount:Double = 1.0, 
     description:String = null) extends Payoff {
   
-	val variables = putVariables.toSet
+	override val variables = putVariables.toSet
 	
 	val strikeMap:Map[String, Double] = (putVariables zip strike) (collection.breakOut)
  	
@@ -40,7 +40,7 @@ case class PutDIAmericanPayoff(
 	var mcPeriodbefore = 180
 	
 	override def eventDates(period:CalculationPeriod):List[qlDate] = {
-	  if (refStart == null || refEnd == null) {return List(period.endDate)}
+	  if (refStart == null || refEnd == null || (refStart gt refEnd)) {return List(period.endDate)}
 	  val basemod = refEnd.serialNumber % mcPeriod6m
 	  val start = refStart.serialNumber
 	  val end = refEnd.serialNumber

@@ -5,7 +5,12 @@ import org.jquantlib.daycounters._
 import org.jquantlib.time.{Date => qlDate, _}
 import org.jquantlib.daycounters.DayCounter
 
-case class CalculationPeriod(eventDate:qlDate, startDate:qlDate, endDate:qlDate, paymentDate:qlDate, daycounter:DayCounter) {
+case class CalculationPeriod(
+    eventDate:qlDate, 
+    startDate:qlDate, 
+    endDate:qlDate, 
+    paymentDate:qlDate, 
+    daycounter:DayCounter) {
   
 	def dayCount:Double = daycounter.yearFraction(startDate, endDate)
 	
@@ -34,14 +39,13 @@ case class CalculationPeriod(eventDate:qlDate, startDate:qlDate, endDate:qlDate,
 
 object CalculationPeriod {
   
-	def apply(startDate:qlDate, endDate:qlDate, notice:Int, inarrears:Boolean, daycount:DayCounter, calendar:Calendar, paymentConvention:BusinessDayConvention):CalculationPeriod = {
-	  
-	  val eventDate = if (inarrears) calendar.advance(endDate, -notice, TimeUnit.Days)
-			  		else calendar.advance(startDate, -notice, TimeUnit.Days)
-			  		  
-	  val paymentDate = calendar.adjust(endDate, paymentConvention)
-	  				
-	  new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount)
-	}
+  def apply(startDate:qlDate, endDate:qlDate, notice:Int, inarrears:Boolean, daycount:DayCounter, calendar:Calendar, paymentConvention:BusinessDayConvention):CalculationPeriod = {
+    val eventDate = calendar.advance(if (inarrears) endDate else startDate, -notice, TimeUnit.Days)
+	val paymentDate = calendar.adjust(endDate, paymentConvention)
+	new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount)
+  }
+  
+  def simpleCashflow(paymentDate:qlDate, calendar:Calendar, paymentConvention:BusinessDayConvention):CalculationPeriod = 
+    apply(paymentDate, paymentDate, 0, false, new Absolute, calendar, paymentConvention)
   
 }

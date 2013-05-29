@@ -18,10 +18,9 @@ import java.util.{Map => JavaMap}
 case class ForwardPayoff(
     fwdVariables:List[String], 
     strike:List[Double], 
-    description:String = null) 
-extends Payoff {
+    description:String = null) extends Payoff {
   
-	val variables = fwdVariables.toSet
+	override val variables = fwdVariables.toSet
 	
 	override val isPriceable = !strike.exists(_.isNaN)
   

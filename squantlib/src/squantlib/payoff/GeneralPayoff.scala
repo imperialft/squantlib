@@ -20,6 +20,8 @@ case class GeneralPayoff(
 	
 	override val isPriceable = formula.values.forall(!_.isNaN)
 	
+	override val isFixed = variables.size == 0 || super.isFixed
+	
 	def leverage(index:String):Double = leverage(Set(index))
 	def leverage(index:Set[String]):Double = formula.getOrElse(index, 0.0)
 	

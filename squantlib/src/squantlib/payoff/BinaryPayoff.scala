@@ -18,10 +18,9 @@ import squantlib.util.UnderlyingInfo
 case class BinaryPayoff(
     binaryVariables:List[String], 
     payoff:List[(Double, Option[List[Double]])], 
-    description:String = null)
-extends Payoff {
+    description:String = null) extends Payoff {
   
-	val variables = binaryVariables.toSet
+	override val variables = binaryVariables.toSet
 	
 //	val isInvalid:Boolean = payoff.collect{case (v, Some(lst)) => lst}.flatten.exists(_.isNaN)
 	val isInvalid:Boolean = payoff.exists{

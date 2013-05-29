@@ -6,36 +6,7 @@ import scala.collection.immutable.ListMap
 import scala.collection.breakOut
 import squantlib.util.DisplayUtils._
 
-case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Double) {
-  
-  def isBermuda:Boolean = bermudan
-  
-  def underlyings:List[String] = triggers.keys.toList
-  
-  def triggerValues(underlyings:List[String]):List[Option[Double]] = underlyings.map(triggers.get)
-  
-  def isTrigger:Boolean = !triggers.isEmpty
-  
-  def isEmpty:Boolean = !bermudan && triggers.isEmpty
-  
-  def isTriggered(fixings:Map[String, Double]):Boolean = 
-    if (!triggers.isEmpty && (triggers.keySet subsetOf fixings.keySet)) triggers.forall{case (k, v) => v <= fixings(k)}
-    else false
-  
-  override def toString:String = 
-    List(
-	    if (bermudan) "call" else "",
-	    if (isTrigger) ("trig " + triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
-	    if (bonus != 0.0) "bonus " + bonus.asPercent(3) else ""
-	    ).mkString(" ") 
-}
-
-object Callability {
-  
-  val empty = Callability(false, ListMap.empty, 0.0)
-}
-
-case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] {
+case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] with FixingLegs[Callability]{
   
 	val underlyings:Set[String] = calls.map(_.underlyings).flatten.toSet
 	
@@ -80,6 +51,19 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	override def toList:List[Callability] = calls
 	
 	def reorder(order:List[Int]) = new Callabilities((0 to calls.size-1).map(i => calls(order(i))) (collection.breakOut)) 
+	
+	override val fixinglegs = calls
+//	def assignFixings(fixings:List[Map[String, Double]]):Unit = {
+//	  assert(fixings.size == calls.size)
+//	  (calls, fixings).zipped.foreach{case (c, f) => c.assignFixings(f)}
+//	}
+//	
+//	def assignFixings(fixings:List[Option[Double]]) (implicit d:DummyImplicit):Unit = {
+//	  assert(fixings.size == calls.size)
+//	  (calls, fixings).zipped.foreach{
+//	    case (c, Some(f)) => c.assignFixings(f)
+//	    case (c, None) => {}}
+//	}
 	
 }
 

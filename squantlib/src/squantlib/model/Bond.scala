@@ -89,11 +89,21 @@ case class Bond(
 	
 	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
 	
-	def lastPeriod:Option[CalculationPeriod] = scheduledPayoffs.triggeredDate
+	lazy val (earlyTerminationPeriod:Option[CalculationPeriod], earlyTerminationAmount:Option[Double]) = 
+	  scheduledPayoffs.triggeredDate.collect{case (p, a) => (Some(p), Some(a))}.getOrElse((None, None))
 	
-	def earlyTerminationDate:Option[qlDate] = lastPeriod.collect{case p => p.paymentDate}
+	lazy val earlyTerminationDate:Option[qlDate] = earlyTerminationPeriod.collect{case p => p.paymentDate}
 	
-	def isEarlyTerminated:Boolean = earlyTerminationDate.isDefined
+	def isEarlyTerminated:Option[Boolean] = (valueDate, earlyTerminationDate) match {
+	  case (Some(vd), Some(td)) => Some(vd ge td)
+	  case (Some(vd), None) => Some(false)
+	  case _ => None
+	}
+	
+	def isTerminated:Option[Boolean] = (isMatured, isEarlyTerminated) match {
+	  case (Some(m), Some(t)) => Some(m || t)
+	  case _ => None
+	}
 	
 	def getUnderlyings:Map[String, Option[Underlying]] = market match {
 	  case None => underlyings.map(u => (u, None)) (collection.breakOut)
@@ -145,10 +155,10 @@ case class Bond(
 	def initializeModel(reCalibrate:Boolean = false):Unit = {
 	  if (reCalibrate) {calibrationCache.clear; modelCalibrated = false}
 	  
-	  model = if (isMatured == Some(false)) livePayoffs match {
-	    	case po if !po.isEmpty && !forceModel && po.payoffs.underlyings.size == 0 => Some(NoModel(po))
-	    	case _ => if (defaultModel == null) None else defaultModel(market.get, this)
-	    } else None
+	  model = if (isTerminated == Some(false)) livePayoffs match {
+	    case po if !po.isEmpty && !forceModel && po.isFixed => Some(NoModel(po))
+	    case _ => if (defaultModel == null) None else defaultModel(market.get, this)
+	  } else None
 	  
 	  cpncache.clear
 	  if (requiresCalibration && !modelCalibrated) { modelCalibrated = true; calibrateModel}
@@ -175,14 +185,14 @@ case class Bond(
 	def getCalibrationCache(k:String):Option[Any] = calibrationCache.get(k)
 	
 	
-	/*	
-	 * Returns "live" schedules
-	 * 	@returns Schedule containing legs with payment date after market value date or specified value date.
-	 */
-	def liveSchedule:Schedule = valueDate.collect{case d => liveSchedule(d)}.orNull
-	
-	def liveSchedule(vd:qlDate):Schedule = Schedule(schedule.filter(_.paymentDate gt vd))
-	
+//	/*	
+//	 * Returns "live" schedules
+//	 * 	@returns Schedule containing legs with payment date after market value date or specified value date.
+//	 */ 
+//	def liveSchedule:Schedule = valueDate.collect{case d => liveSchedule(d)}.orNull
+//	
+//	def liveSchedule(vd:qlDate):Schedule = Schedule(schedule.filter(_.paymentDate gt vd))
+//	
 	
 	/*	
 	 * Returns "live" payment schedules
@@ -191,22 +201,30 @@ case class Bond(
 	 */
 	def livePayoffs:ScheduledPayoffs = valueDate.collect {case d => livePayoffs(d)}.getOrElse(ScheduledPayoffs.empty)
 
-	def livePayoffs(vd:qlDate):ScheduledPayoffs = getFixedPayoffs(scheduledPayoffs.withValueDate(vd), Some(vd))
+	def livePayoffs(vd:qlDate):ScheduledPayoffs = {
+	  val p = (earlyTerminationDate,earlyTerminationAmount) match {
+	    case (Some(d), Some(a)) => scheduledPayoffs.after(vd).called(d, a, calendar, db.paymentAdjust).withValueDate(vd)
+	    case _ => scheduledPayoffs.after(vd).withValueDate(vd)
+	  }
+//	  getFixedPayoffs(p, Some(vd))
+	  p
+	}
 	
 	def liveCoupons:ScheduledPayoffs = livePayoffs.filtered{case (period, _, _) => !period.isAbsolute}
 	
 	def liveCoupons(vd:qlDate):ScheduledPayoffs = livePayoffs(vd).filtered{case (period, _, _) => !period.isAbsolute}
 	
-	def allPayoffs:ScheduledPayoffs = getFixedPayoffs(scheduledPayoffs)
+	def allPayoffs:ScheduledPayoffs = scheduledPayoffs
 	
-	def getFixedPayoffs(payoffSchedule:ScheduledPayoffs, vd:Option[qlDate] = None):ScheduledPayoffs = 
-	    payoffSchedule.mapped{
-	      case (period, payoff, call) if payoff.variables.size == 0 => (period, payoff, call)
-	      case (period, payoff, call) if (vd.isDefined && (period.eventDate gt vd.get)) => (period, payoff, call)
-	      case (period, payoff, call) => {
-	        val fixings:Map[String, Double] = payoff.variables.map(v => Fixings.byDate(v, period.eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x) (breakOut)
-    	    (period, payoff.applyFixing(fixings), call)
-    	  }}
+//	def getFixedPayoffs(payoffSchedule:ScheduledPayoffs, vd:Option[qlDate] = None):ScheduledPayoffs = 
+//	  payoffSchedule
+//	    payoffSchedule.mapped{
+//	      case (period, payoff, call) if payoff.variables.size == 0 => (period, payoff, call)
+//	      case (period, payoff, call) if (vd.isDefined && (period.eventDate gt vd.get)) => (period, payoff, call)
+//	      case (period, payoff, call) => {
+//	        val fixings:Map[String, Double] = payoff.variables.map(v => Fixings.byDate(v, period.eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x) (breakOut)
+//    	    (period, payoff.assignFixing(fixings), call)
+//    	  }}
 	
 	/*	
 	 * Returns "live" triggers
@@ -902,7 +920,8 @@ object Bond {
 	  val schedule = db.schedule.orNull
 	  if (schedule == null) {return None}
 	  
-	  val ulfixings:Map[String, Double] = if (!db.fixingMap.isEmpty) db.fixingMap
+	  val ulfixings:Map[String, Double] = 
+	    if (!db.fixingMap.isEmpty) db.fixingMap
 		else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)
 	    else Map.empty
 	   

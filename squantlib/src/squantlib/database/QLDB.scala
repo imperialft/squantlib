@@ -44,12 +44,27 @@ object QLDB {
   def getBonds:Set[sBond] = getBonds(DB.getBonds)
 	
   def getBonds(date:JavaDate):Set[sBond] = getBonds(DB.getBonds(date))
+  
+  def getBonds(par:Boolean, showProgress:Boolean):Set[sBond] = getBonds(DB.getBonds, par, showProgress)
 	
-  def getBonds(bonds:Set[dbBond], par:Boolean = false)(implicit d:DummyImplicit):Set[sBond] = {
+  def getBonds(bonds:Set[dbBond], par:Boolean = false, showProgress:Boolean = false)(implicit d:DummyImplicit):Set[sBond] = {
 	  println("initialize bonds..")
-	  val sbonds = (if (par) bonds.par else bonds).map(b => sBond(b)).seq
+	  val sbonds = (if (par) bonds.par else bonds).map(b => {
+	    if (showProgress) println(b.id + " : initialize") 
+	    sBond(b)}).seq
 	  println(sbonds.size + " bonds retrieved - initializing")
 	  sbonds.collect{case Some(bond) => bondSetting(bond); bond}.toSet
+  }
+  
+  def getBondsWithLatestMarket(par:Boolean, showProgress:Boolean):Set[sBond] = {
+    val bonds = getBonds(par, showProgress)
+    QLDB.getMarket match {
+      case Some(mkt) => (if (par) bonds.par else bonds).foreach(b => {
+        if (showProgress) println(b.id + " : assign market")
+        b.market = mkt})
+      case _ => println("market cannot be initialized")
+    }
+    bonds
   }
 	  
 }
