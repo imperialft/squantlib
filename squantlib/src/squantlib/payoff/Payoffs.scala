@@ -68,22 +68,10 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	@tailrec private def priceTrig[T, U](paylist:List[Payoff], fixlist:List[T], acc:List[Double], triglist:List[Option[U]], trigamt:List[Double], triggered:Boolean)
 	(implicit fi:FixingInterpreter[T, U]):List[Double] = {
 	  if (paylist.isEmpty) acc
-//	  else if (triggered) priceTrig(paylist.tail, fixlist.tail, acc :+ 0.0, triglist.tail, trigamt.tail, true)
 	  else if (triggered) acc ++ List.fill(paylist.tail.size)(0.0)
-//	  else if (fi.triggered(fixlist.head, triglist.head)) priceTrig(paylist.tail, fixlist.tail, acc :+ (fi.price(fixlist.head, paylist.head) + trigamt.head), triglist.tail, trigamt.tail, true)
 	  else if (fi.triggered(fixlist.head, triglist.head)) (acc :+ (fi.price(fixlist.head, paylist.head) + trigamt.head)) ++ List.fill(paylist.tail.size)(0.0)
 	  else priceTrig(paylist.tail, fixlist.tail, acc :+ fi.price(fixlist.head, paylist.head), triglist.tail, trigamt.tail, false)
 	}
-	
-//	@tailrec private def fixingRec[T](paylist:List[Payoff], fixlist:List[T])
-//	(implicit fi:FixingInterpreter[T, _]):Unit = {
-//	  if (paylist.isEmpty) {return}
-//	  else {
-//	    fi.assignFixings(fixlist.head, paylist.head)
-//	    fixingRec(paylist.tail, fixlist.tail)
-//	  }
-//	}
-//	
 	
 	/*
 	 * Select appropriate pricing functions depending on your needs.
@@ -173,36 +161,6 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
 	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
 	}
-	
-//	/* 
-//	 * Replaces already-fixed payoffs to fixed leg
-//	 */
-//	def applyFixing(fixings:List[Map[String, Double]]):Payoffs = {
-//	  assert(fixings.size == payoffs.size)
-//	  Payoffs(fixingRec(payoffs, fixings, List.empty))
-//	}
-//	
-//	def applyFixing(fixings:List[Option[Double]]) (implicit d:DI):Payoffs = {
-//	  if (factors == 1) applyFixing(fixings.map{case None => Map.empty[String, Double] case Some(v) => Map(underlyings.head -> v)})
-//	  else this
-//	}
-	
-//	/* 
-//	 * Replaces already-fixed payoffs to fixed leg
-//	 */
-//	def assignFixings(fixings:List[Map[String, Double]]):Unit = {
-//	  assert(fixings.size == payoffs.size)
-//	  (payoffs, fixings).zipped.foreach{case (p, f) => p.assignFixings(f)}
-//	}
-//	
-//	def assignFixings(fixings:List[Option[Double]]) (implicit d:DI):Unit = {
-//	  assert(fixings.size == payoffs.size)
-//	  (payoffs, fixings).zipped.foreach{
-//	    case (p, Some(f)) => p.assignFixings(f)
-//	    case (p, None) => {}}
-//	}
-//	
-//	def isFixed:Boolean = payoffs.forall(_.isFixed)
 	
 	def ++(another:Payoffs) = new Payoffs(payoffs ++ another.payoffs)
 	

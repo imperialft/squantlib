@@ -16,6 +16,8 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	
 	def triggerValues(variables:List[String]):List[List[Option[Double]]] = calls.map(_.triggerValues(variables))
 	
+	def isPriceable:Boolean = calls.forall(_.isPriceable)
+	
 	val bonus:List[Double] = calls.map(_.bonus)
 	
 	def fill(legs:Int) = size match {
@@ -53,17 +55,6 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	def reorder(order:List[Int]) = new Callabilities((0 to calls.size-1).map(i => calls(order(i))) (collection.breakOut)) 
 	
 	override val fixinglegs = calls
-//	def assignFixings(fixings:List[Map[String, Double]]):Unit = {
-//	  assert(fixings.size == calls.size)
-//	  (calls, fixings).zipped.foreach{case (c, f) => c.assignFixings(f)}
-//	}
-//	
-//	def assignFixings(fixings:List[Option[Double]]) (implicit d:DummyImplicit):Unit = {
-//	  assert(fixings.size == calls.size)
-//	  (calls, fixings).zipped.foreach{
-//	    case (c, Some(f)) => c.assignFixings(f)
-//	    case (c, None) => {}}
-//	}
 	
 }
 

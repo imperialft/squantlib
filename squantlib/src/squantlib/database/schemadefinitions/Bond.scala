@@ -9,6 +9,8 @@ import squantlib.util.initializer._
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
 import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._
+import org.codehaus.jackson.JsonNode
+
 
 class Bond(@Column("ID")					override var id: String,
               @Column("REF_NUMBER")			var ref_number: Int,
@@ -154,9 +156,13 @@ class Bond(@Column("ID")					override var id: String,
     case Some(b) if b.isArray && b.size == 1 => 
       List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
     case Some(b) if b isArray => 
-      List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
+      List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(optionalDouble).toList else List.empty) ++ List.fill(2)(List.empty)
     case _ => List.fill(nbLegs)(List.empty)
   }
+  
+  private def optionalDouble(n:JsonNode):Option[Double] = 
+    if (n == null) None
+    else Some(n.parseDouble.getOrElse(Double.NaN))
 
   def this() = this(
 		id = null,

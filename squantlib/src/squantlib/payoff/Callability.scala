@@ -20,6 +20,8 @@ case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Dou
   
   override def isFixed = isTrigger && (variables.isEmpty || !preFixings.isEmpty)
   
+  def isPriceable:Boolean = !triggers.values.exists(_.isNaN)
+  
   def isEmpty:Boolean = !bermudan && triggers.isEmpty
   
   def fixedTrigger:Option[Boolean] = if (isFixed) Some(triggers.forall{case (k, v) => v <= getFixings(k)}) else None

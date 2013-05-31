@@ -36,7 +36,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	  try { 
 	    val mpaths = modelPaths(paths)
 	    if (mpaths.isEmpty) scheduledPayoffs.price
-	    else mpaths.map(p => scheduledPayoffs.price(p, trigger, redemamt)).transpose.map(_.sum / paths.toDouble) }
+	    else mpaths.map(p => scheduledPayoffs.price(p , trigger, redemamt)).transpose.map(_.sum / paths.toDouble) }
 	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	

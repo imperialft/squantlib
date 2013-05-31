@@ -14,7 +14,6 @@ import org.jquantlib.daycounters.Actual365Fixed
 case class ScheduledPayoffs(
     scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],
     valuedate:Option[qlDate] = None
-//    fixedValues:List[Map[String, Double]]
     ) 
     extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   
@@ -25,6 +24,8 @@ case class ScheduledPayoffs(
   lazy val coupon = Payoffs(payoffs.dropRight(1))
   
   lazy val redemption = payoffs.last
+  
+  def isPriceable = payoffs.isPriceable && calls.isPriceable
 
   val underlyings:Set[String] = payoffs.underlyings ++ calls.underlyings
   
@@ -39,14 +40,8 @@ case class ScheduledPayoffs(
   def currentCoupons(vd:qlDate):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd) && !d.isAbsolute}.map(_._2) (collection.breakOut)
   
   def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
-    
-//    (scheduledPayoffs, fixedValues).zipped.exists{case ((_, _, call), f) => 
-//    call.isTriggered(f)}
   
   def triggeredDate:Option[(CalculationPeriod, Double)] = {
-//    val trigDays = (scheduledPayoffs, fixedValues).zipped.collect{case ((sched, _, call), f) => 
-//      if (call.isTriggered(f)) Some((sched, call.redemptionAmount)) else None}.flatMap(s => s)
-//    if (trigDays.isEmpty) None else Some(trigDays.minBy{case (c, a) => c.eventDate})}
     val trigDays = scheduledPayoffs.filter{case (cp, p, c) => c.fixedTrigger == Some(true)}
     if (trigDays.isEmpty) None else Some(trigDays.map{case (cp, p, c) => (cp, c.redemptionAmount)}.minBy{case (cp, c) => cp.eventDate})
   }
@@ -65,15 +60,6 @@ case class ScheduledPayoffs(
       case None => dates
     }
   }
-    
-//    scheduledPayoffs.map{
-//    case (d, p, t) if p.isFixed && t.isFixed => List.empty
-//    case (d, p, t) if p.isFixed && valuedate.isDefined => List(d.eventDate).filter(_ gt valuedate.get)
-//    case (d, p, t) if t.isFixed && valuedate.isDefined => p.eventDates(d).filter(_ gt valuedate.get)
-//    case (d, p, t) if p.isFixed => List(p.eventDates(d).last)
-//    case (d, p, t) if valuedate.isDefined => p.eventDates(d).filter(_ gt valuedate.get)
-//    case (d, p, t) => p.eventDates(d)
-//    } (collection.breakOut)
   
   val eventDates:List[qlDate] = eventDateLegs.flatten.toSet.toList.sorted
   
@@ -94,13 +80,19 @@ case class ScheduledPayoffs(
     
   def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = 
     if (calls.isTrigger) {
-      val trig:List[Option[Double]] = calls.toList.map(_.triggers.values.headOption)
-      payoffs.price(priceMapper(fixings), trig, bonusRate)
+      if (calls.isPriceable){
+        val trig:List[Option[Double]] = calls.toList.map(_.triggers.values.headOption)
+        payoffs.price(priceMapper(fixings), trig, bonusRate)
+      }
+      else List.fill(fixings.size)(Double.NaN)
     } 
     else payoffs.price(priceMapper(fixings))
 
   def price(fixings:List[Map[String, Double]]):List[Double] = {
-    if (calls.isTrigger) payoffs.price(priceMapper(fixings), calls.triggers, bonusRate)
+    if (calls.isTrigger) {
+      if (calls.isPriceable) payoffs.price(priceMapper(fixings), calls.triggers, bonusRate)
+      else List.fill(fixings.size)(Double.NaN)
+    }
     else payoffs.price(priceMapper(fixings))
     }
     
@@ -116,26 +108,15 @@ case class ScheduledPayoffs(
   def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
   
-  def price:List[Double] = payoffs.price
+  def price:List[Double] = if (calls.isTrigger) List.fill(payoffs.size)(Double.NaN) else payoffs.price
 
-  
   def withValueDate(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs, Some(vd))
-  
-//  {
-//    val (s, f) = (scheduledPayoffs, fixedValues).zipped.filter{case ((cp, _, _), _) => cp.paymentDate gt vd}
-//    ScheduledPayoffs(s, Some(vd), f)
-//  }
     
   def after(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate gt vd})
   
   def before(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate le vd})
 
   def between(vd:qlDate, lastvd:qlDate):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => (cp.paymentDate le vd) && (cp.paymentDate gt vd)})
-  
-//  {
-//    val (s, f) = (scheduledPayoffs, fixedValues).zipped.filter{case ((cp, _, _), _) => cp.paymentDate le vd}
-//    ScheduledPayoffs(s, Some(vd), f)
-//  }
   
   def called(vd:qlDate, redemAmount:Double, calendar:Calendar, convention:BusinessDayConvention):ScheduledPayoffs = 
     before(vd).addCashflow(vd, redemAmount, calendar, convention)
@@ -164,17 +145,6 @@ case class ScheduledPayoffs(
           else "fixed:" + (p.getFixings ++ c.getFixings).map{case (k, v) => k + ":" + v}.mkString(" ")
           ).mkString(" ")}.mkString("\n")
   }
-//    val fullfixings:List[Map[String, Double]] = fixedValues ++ List.fill(scheduledPayoffs.size - fixedValues.size)(Map.empty[String, Double])
-//    (scheduledPayoffs, fullfixings).zipped.map{case ((d, p, c), f) => 
-//      List(d.eventDate.shortDate.toString, 
-//          d.paymentDate.shortDate.toString,
-//          p.toString, 
-//          c.toString, 
-//          if (underlyings.isEmpty || (p.variables.isEmpty && c.variables.isEmpty)) "fixed"
-//          else if (f.isEmpty) "not fixed" 
-//          else "fixed:" + f.map{case (k, v) => k + ":" + v}.mkString(" ")
-//          ).mkString(" ")}.mkString("\n")
-//  }
 	
   override def isEmpty:Boolean = scheduledPayoffs.isEmpty
 	
@@ -204,12 +174,6 @@ case class ScheduledPayoffs(
 object ScheduledPayoffs {
 
   def empty:ScheduledPayoffs = ScheduledPayoffs(Schedule.empty, Payoffs.empty, Callabilities.empty)
-  
-//  def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities, fixings:List[Map[String, Double]]):ScheduledPayoffs = {
-//	payoffs.assignFixings(fixings)
-//	calls.assignFixings(fixings)
-//    ScheduledPayoffs((schedule, payoffs, calls).zipped.toList, None)
-//  }
   
   def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)

@@ -155,7 +155,7 @@ case class Bond(
 	def initializeModel(reCalibrate:Boolean = false):Unit = {
 	  if (reCalibrate) {calibrationCache.clear; modelCalibrated = false}
 	  
-	  model = if (isTerminated == Some(false)) livePayoffs match {
+	  model = if (isTerminated == Some(false) && scheduledPayoffs.isPriceable) livePayoffs match {
 	    case po if !po.isEmpty && !forceModel && po.isFixed => Some(NoModel(po))
 	    case _ => if (defaultModel == null) None else defaultModel(market.get, this)
 	  } else None
@@ -206,7 +206,6 @@ case class Bond(
 	    case (Some(d), Some(a)) => scheduledPayoffs.after(vd).called(d, a, calendar, db.paymentAdjust).withValueDate(vd)
 	    case _ => scheduledPayoffs.after(vd).withValueDate(vd)
 	  }
-//	  getFixedPayoffs(p, Some(vd))
 	  p
 	}
 	
@@ -215,16 +214,6 @@ case class Bond(
 	def liveCoupons(vd:qlDate):ScheduledPayoffs = livePayoffs(vd).filtered{case (period, _, _) => !period.isAbsolute}
 	
 	def allPayoffs:ScheduledPayoffs = scheduledPayoffs
-	
-//	def getFixedPayoffs(payoffSchedule:ScheduledPayoffs, vd:Option[qlDate] = None):ScheduledPayoffs = 
-//	  payoffSchedule
-//	    payoffSchedule.mapped{
-//	      case (period, payoff, call) if payoff.variables.size == 0 => (period, payoff, call)
-//	      case (period, payoff, call) if (vd.isDefined && (period.eventDate gt vd.get)) => (period, payoff, call)
-//	      case (period, payoff, call) => {
-//	        val fixings:Map[String, Double] = payoff.variables.map(v => Fixings.byDate(v, period.eventDate).collect{case (d, f) => (v, f)}).flatMap(x => x) (breakOut)
-//    	    (period, payoff.assignFixing(fixings), call)
-//    	  }}
 	
 	/*	
 	 * Returns "live" triggers
@@ -291,12 +280,14 @@ case class Bond(
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
 	 */
-	def dirtyPrice:Option[Double] = (earlyTerminationDate, valueDate) match {
-	  case (Some(td), Some(vd)) if td le vd => println(id + " : terminated on " + td); None
-	  case _ => (model, discountCurve) match {
-	    case (Some(m), Some(c)) => m.price(c)
-		case (Some(m), None) => println(id + " : missing discount curve"); m.price
-		case _ => println(id + " : missing model"); None
+	def dirtyPrice:Option[Double] = 
+	  if(!scheduledPayoffs.isPriceable) {println(id + " : invalid payoff or trigger"); None}
+	  else (earlyTerminationDate, valueDate) match {
+	    case (Some(td), Some(vd)) if td le vd => println(id + " : terminated on " + td); None
+	    case _ => (model, discountCurve) match {
+	      case (Some(m), Some(c)) => m.price(c)
+	      case (Some(m), None) => println(id + " : missing discount curve"); m.price
+	      case _ => println(id + " : missing model"); None
 	}}
 	
 	/*	
