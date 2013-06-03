@@ -5,7 +5,7 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedul
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
 import squantlib.database.DB
-import squantlib.database.schemadefinitions.{Bond => dbBond, BondPrice, Coupon => dbCoupon, ForwardPrice}
+import squantlib.database.schemadefinitions.{Bond => dbBond, BondPrice, Coupon => dbCoupon, ForwardPrice, LatestPrice, HistoricalPrice}
 import squantlib.payoff._
 import squantlib.model.rates.DiscountCurve
 import squantlib.util.initializer.{DayAdjustments, Currencies, Daycounters}
@@ -789,6 +789,120 @@ case class Bond(
 	  case _ => None
 	} 
 	
+	
+	def latestPrice(paramset:String, valuedate:qlDate)(f:LatestPrice => Unit):LatestPrice = {
+	  val price = new LatestPrice(
+  		id = id,
+		bondid = id,
+		currencyid = currency.code,
+		comment = null,
+		paramset = paramset,
+		paramdate = valuedate.longDate,
+		fxjpy = Double.NaN,
+		pricedirty = Double.NaN,
+		priceclean = Double.NaN,
+		accrued = Double.NaN,
+		pricedirty_jpy = None,
+		priceclean_jpy = None,
+		accrued_jpy = None,
+		yield_continuous = None,
+		yield_annual = None,
+		yield_semiannual = None,
+		yield_simple = None,
+		bpvalue = None,
+		irr = None,
+		currentrate = None,
+		nextamount = None,
+		nextdate = None,
+		dur_simple = None,
+		dur_modified = None,
+		dur_macauley = None,
+		yieldvaluebp = None,
+		convexity = None,
+		remaininglife = remainingLife,
+		parMtMYield = None,
+		parMtMfx = None,
+		rateDelta = null,
+		rateVega = null,
+		fxDelta = null,
+		fxDeltaJpy = null,
+		fxVega = null,
+		pricetype = model.collect{case m => m.priceType}.getOrElse("NOPRICE"),
+		volatility = -999.99,
+		created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)),
+		lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)))
+	  
+	  f(price)
+	  price}
+	
+	def toLatestPrice:Option[LatestPrice] = (market, cleanPrice) match {
+	  case (Some(mkt), Some(p)) => Some(latestPrice(mkt.paramset, mkt.valuedate){price => 
+		price.fxjpy = fxjpy.getOrElse(0)
+		price.pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.priceclean = cleanPrice.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.accrued = accruedAmount.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100}
+		price.priceclean_jpy = cleanPriceJpy.collect{case p => p * 100}
+		price.accrued_jpy = accruedAmountJpy.collect{case p => p * 100}
+		price.yield_continuous = yieldContinuous.collect{case p => p * 100}
+		price.yield_annual = yieldAnnual.collect{case p => p * 100}
+		price.yield_semiannual = yieldSemiannual.collect{case p => p * 100}
+		price.yield_simple = yieldSimple.collect{case p => p * 100}
+		price.bpvalue = bpvalue.collect{case p => p * 10000}
+		price.irr = irr.collect{case p => p * 100}
+		price.currentrate = currentRate.collect{case p => p * 100}
+		price.nextamount = nextPayment.collect{case (d, p) => p * 100}
+		price.nextdate = nextPayment.collect{case (d, p) => d.longDate}
+		price.dur_simple = effectiveDuration
+		price.dur_modified = modifiedDuration
+		price.dur_macauley = macaulayDuration
+		price.yieldvaluebp = yieldValueBasisPoint
+		price.convexity = convexity
+		price.remaininglife = remainingLife
+		price.parMtMYield = parMtMYield
+		price.parMtMfx = parMtMfx
+		price.rateDelta = mapToJsonString(rateDeltas(0.001))
+		price.rateVega = null
+		price.fxDelta = mapToJsonString(fxDeltas(1.01))
+		price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
+		price.fxVega = mapToJsonString(fxVegas(0.01))
+		price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")
+	  })
+	  
+	  case _ => None
+	} 
+	
+	
+	def historicalPrice(paramset:String, valuedate:qlDate)(f:HistoricalPrice => Unit):HistoricalPrice = {
+	  val price = new HistoricalPrice(
+	    id = id + ":" + ("%tY%<tm%<td" format valuedate.longDate),
+		bondid = id,
+		paramdate = valuedate.longDate,
+		currencyid = currency.code,
+		fxjpy = Double.NaN,
+		pricedirty = Double.NaN,
+		priceclean = Double.NaN,
+		pricedirty_jpy = Double.NaN,
+		priceclean_jpy = Double.NaN,
+		pricetype = model.collect{case m => m.priceType}.getOrElse("NOPRICE"),
+		created = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
+	  
+	  f(price)
+	  price}
+	
+	
+	def toHistoricalPrice:Option[HistoricalPrice] = (market, cleanPrice) match {
+	  case (Some(mkt), Some(p)) => Some(historicalPrice(mkt.paramset, mkt.valuedate){price => 
+		price.fxjpy = fxjpy.getOrElse(0)
+		price.pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.priceclean = cleanPrice.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.pricedirty_jpy = dirtyPriceJpy.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.priceclean_jpy = cleanPriceJpy.collect{case p => p * 100}.getOrElse(Double.NaN)
+		price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")
+	  })
+	  
+	  case _ => None
+	} 	
 	val defaultMathContext = new JMC(34, RoundingMode.HALF_UP)
 	
 	def toCoupons:Set[dbCoupon] = {

@@ -11,7 +11,9 @@ case class DistributorBranch(
               @Column("ADDRESS")			var address: String,
               @Column("TEL")				var tel: String,
               @Column("HOURS")				var hours: String,
-              @Column("DistributorID")		var distributorid: String
+              @Column("DistributorID")		var distributorid: String,
+              @Column("ADDRESS_LAT")		var addresslat: Option[Double],
+              @Column("ADDRESS_LNG")		var addresslng: Option[Double]
               ) extends IntEntity {
   
   def this() = this(
@@ -21,7 +23,9 @@ case class DistributorBranch(
 	address = null,
 	tel = null,
 	hours = null,
-	distributorid = null)
+	distributorid = null,
+	addresslat = Some(-9999.9),
+	addresslng = Some(-9999.9))
 
   override def toString():String = format("%-5s %-15s %-10s %-30s %-15s %-15s", id, name, url, address, tel, hours)
 }

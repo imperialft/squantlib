@@ -59,12 +59,13 @@ class Bond(@Column("ID")					override var id: String,
               @Column("CURRENTCOUPON")		var currentcoupon:Option[Double],
               @Column("TARGETYIELD")		var targetyield: Option[Double],
               @Column("PRICETYPE") 			var pricetype: String,
+              @Column("DEFAULT_VOL") 		var defaultvol: Double,
               @Column("COMMENT") 			var comment: String,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends StringEntity {
   
-  def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo", "comment", "settings", "targetyield", "currentcoupon", "pricetype")
+  def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo", "comment", "settings", "targetyield", "currentcoupon", "pricetype", "defaultvol")
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
@@ -212,6 +213,7 @@ class Bond(@Column("ID")					override var id: String,
 		firstcoupon = Some(-9999.99),
 		currentcoupon = Some(-9999.99),
 		targetyield = Some(-9999.99),
+		defaultvol = -999.99,
 		comment = null,
 		created = None,
 		lastmodified  = None)
