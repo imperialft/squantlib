@@ -12,7 +12,7 @@ class Currency(@Column("ID")				override var id: String,
               @Column("DESCRIPTION_JPN")	var description_jpn: String,
               @Column("DESCRIPTION_ENG")	var description_eng: String,
               @Column("RISKTAGS") 			var risktags: String,
-              @Column("DEFAULT_VOL") 		var defaultvol: Double,
+              @Column("VOLATILITY") 		var volatility: Double,
               @Column("Created")			var created: Option[Date],
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends StringEntity {
@@ -26,7 +26,7 @@ class Currency(@Column("ID")				override var id: String,
       description_jpn = null, 
       description_eng = null,
       risktags = "",
-      defaultvol = -999.99,
+      volatility = -999.99,
       created = None, 
       lastmodified = None)
 

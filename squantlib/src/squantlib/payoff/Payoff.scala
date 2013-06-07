@@ -100,26 +100,6 @@ trait Payoff extends FixingLeg {
 	 */	
 	def assignFixings(market:Market):Unit = assignFixings(market.getFixings(variables))
 	
-//	/*
-//	 * Returns FixedPayoff if all fixings are provided by the mapping.
-//	 * Returns this object if any variables are missing.
-//	 */	
-//	def assignFixings(fixings:Map[String, Double]):Unit = fixings match {
-//	  case f if (f.isEmpty || variables.size == 0) => this
-//	  case f if variables subsetOf fixings.keySet => {
-//	    val comment = "{" + fixings.map{case (variable, v) => "\"" + variable + "\":" + v}.mkString(", ") + "}"
-//	    FixedPayoff(price(fixings), comment)
-//	  }
-//	  case _ => this
-//	}
-//	
-//	/*
-//	 * Returns FixedPayoff if there is <= 1 variable and the value is provided. 
-//	 * Returns this object otherwise.
-//	 */	
-//	def assignFixings(fixing:Double):Unit = if (variables.size == 1) FixedPayoff(fixing, "{ \"ref\":" + fixing + "}") else this
-	
-	
 	def missingInputs:Map[String, Double => Payoff] = Map.empty
 	
 	def description:String

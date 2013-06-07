@@ -137,7 +137,7 @@ trait Underlying extends StaticAsset {
     protected def toDays(date:qlDate) = (date.serialNumber() - valuedate.serialNumber()).toDouble
     protected def toDays(period:qlPeriod) = period.days(valuedate).toDouble
     
-    override def getHistoricalPrice = Fixings.getHistorical(id).getOrElse(Map.empty)
+    override def getPriceHistory = Fixings.getHistorical(id).getOrElse(Map.empty)
     
     override protected def getDbForwardPrice:Map[qlDate, Double] = DB.getForwardPricesTimeSeries(assetID, id).map{case (k, v) => (new qlDate(k), v)}
 	
@@ -159,7 +159,7 @@ trait Underlying extends StaticAsset {
 
 object Underlying {
   
-  def apply(param:String, market:Market) = getUnderlying(param, market)
+	def apply(param:String, market:Market) = getUnderlying(param, market)
   
 	def getUnderlying(param:String, market:Market):Option[Underlying] = {
 	  if (param == null) None

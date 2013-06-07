@@ -15,9 +15,9 @@ class LatestPrice(@Column("ID")			override var id:String,
 			@Column("PRICEDIRTY")		var pricedirty:Double,
 			@Column("PRICECLEAN")		var priceclean:Double,
 			@Column("ACCRUED")			var accrued:Double,
-			@Column("PRICEDIRTY_JPY")	var pricedirty_jpy:Option[Double],
-			@Column("PRICECLEAN_JPY")	var priceclean_jpy:Option[Double],
-			@Column("ACCRUED_JPY")		var accrued_jpy:Option[Double],
+			@Column("PRICEDIRTY_JPY")	var pricedirty_jpy:Double,
+			@Column("PRICECLEAN_JPY")	var priceclean_jpy:Double,
+			@Column("ACCRUED_JPY")		var accrued_jpy:Double,
 			@Column("YIELD_CONTINUOUS")	var yield_continuous:Option[Double],
 			@Column("YIELD_ANNUAL")		var yield_annual:Option[Double],
 			@Column("YIELD_SEMIANNUAL")	var yield_semiannual:Option[Double],
@@ -32,7 +32,7 @@ class LatestPrice(@Column("ID")			override var id:String,
 			@Column("DUR_MACAULEY")		var dur_macauley:Option[Double],
 			@Column("YIELDVALUE")		var yieldvaluebp:Option[Double],
 			@Column("CONVEXITY")		var convexity:Option[Double], 
-			@Column("REMAININGLIFE")	var remaininglife:Option[Double], 
+			@Column("REMAININGLIFE")	var remaininglife:Double, 
 			@Column("PARMTMYIELD")		var parMtMYield:Option[Double], 
 			@Column("PARMTMFX")			var parMtMfx:Option[Double], 
 			@Column("RATEDELTA")		var rateDelta:String, 
@@ -42,12 +42,16 @@ class LatestPrice(@Column("ID")			override var id:String,
 			@Column("FXVEGA")			var fxVega:String, 
 			@Column("PRICETYPE")		var pricetype:String, 
 			@Column("VOLATILITY")		var volatility:Double, 
-			@Column("Created")			var created:Option[Date],
-			@Column("LastModified")		var lastmodified:Option[Date]
+			@Column("Created")			var created:Date,
+			@Column("LastModified")		var lastmodified:Date
 			) extends StringEntity {
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
+  def isPriced = pricetype != "NOMODEL" && pricetype != "MATURED"
+  
+  def isMatured = pricetype == "MATURED"
+    
   def this() = this(
 		id = null,
 		bondid = null,
@@ -59,9 +63,9 @@ class LatestPrice(@Column("ID")			override var id:String,
 		pricedirty = 0.0,
 		priceclean = 0.0,
 		accrued = 0.0,
-		pricedirty_jpy = Some(-999.0),
-		priceclean_jpy = Some(-999.0),
-		accrued_jpy = Some(-999.0),
+		pricedirty_jpy = -999.0,
+		priceclean_jpy = -999.0,
+		accrued_jpy = -999.0,
 		yield_continuous = Some(-999.0),
 		yield_annual = Some(-999.0),
 		yield_semiannual = Some(-999.0),
@@ -76,7 +80,7 @@ class LatestPrice(@Column("ID")			override var id:String,
 		dur_macauley= Some(-999.0),
 		yieldvaluebp = Some(-999.0),
 		convexity = Some(-999.0), 		
-		remaininglife = Some(999.0), 		
+		remaininglife = -999.0, 		
 		parMtMYield= Some(-999.0), 
 		parMtMfx = Some(-999.0), 
 		rateDelta = null, 
@@ -86,8 +90,8 @@ class LatestPrice(@Column("ID")			override var id:String,
 		fxVega = null,
 		pricetype = null,
 		volatility = 0.1,
-		created = None,
-		lastmodified = None
+		created = null,
+		lastmodified = null
       )
       
    override def toString:String = List(
@@ -101,9 +105,9 @@ class LatestPrice(@Column("ID")			override var id:String,
 		"PRICEDIRTY:\t" + pricedirty,
 		"PRICECLEAN:\t" + priceclean,
 		"ACCRUED:\t" + accrued,
-		"PRICEDIRTY_JPY:\t" + pricedirty_jpy.getOrElse("None"),
-		"PRICECLEAN_JPY:\t" + priceclean_jpy.getOrElse("None"),
-		"ACCRUED_JPY:\t" + accrued_jpy.getOrElse("None"),
+		"PRICEDIRTY_JPY:\t" + pricedirty_jpy,
+		"PRICECLEAN_JPY:\t" + priceclean_jpy,
+		"ACCRUED_JPY:\t" + accrued_jpy,
 		"YIELD_CONTINUOUS:\t" + yield_continuous.getOrElse("None"),
 		"YIELD_ANNUAL:\t" + yield_annual.getOrElse("None"),
 		"YIELD_SEMIANNUAL:\t" + yield_semiannual.getOrElse("None"),
@@ -118,7 +122,7 @@ class LatestPrice(@Column("ID")			override var id:String,
 		"DUR_MACAULEY:\t" + dur_macauley.getOrElse("None"),
 		"YIELDVALUE:\t" + yieldvaluebp.getOrElse("None"),
 		"CONVEXITY:\t" + convexity.getOrElse("None"),
-		"REMAININGLIFE:\t" + remaininglife.getOrElse("None"),
+		"REMAININGLIFE:\t" + remaininglife,
 		"PARMTMYIELD:\t" + parMtMYield.getOrElse("None"),
 		"PARMTMFX:\t" + parMtMfx.getOrElse("None"),
 		"RATEDELTA:\t" + rateDelta,
@@ -128,8 +132,24 @@ class LatestPrice(@Column("ID")			override var id:String,
 		"FXVEGA:\t" + fxVega,
 		"PRICETYPE:\t" + pricetype,
 		"VOLATILITY:\t" + volatility,
-		"Created:\t" + created.getOrElse("None"),
-		"LastModified:\t" + lastmodified.getOrElse("None")
+		"Created:\t" + created,
+		"LastModified:\t" + lastmodified
 		).mkString("\n")
+		
+  def getHistoricalPrice:HistoricalPrice = {
+    new HistoricalPrice(
+	    id = id + ":" + ("%tY%<tm%<td" format paramdate),
+		bondid = id,
+		paramdate = paramdate,
+		currencyid = currencyid,
+		fxjpy = fxjpy,
+		pricedirty = pricedirty,
+		priceclean = priceclean,
+		pricedirty_jpy = pricedirty_jpy,
+		priceclean_jpy = priceclean_jpy,
+		pricetype = pricetype,
+		created = created)
+  }
+  
       
 }

@@ -28,15 +28,18 @@ trait StaticAsset {
   
   def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice.filter{case (d, _) => isWeekday(d)}))
 	
-  protected def getHistoricalPrice:Map[qlDate, Double]
+  protected def getPriceHistory:Map[qlDate, Double]
   
-  def historicalPrice:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getHistoricalPrice.filter{case (d, _) => isWeekday(d)}))
+  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getPriceHistory.filter{case (d, _) => isWeekday(d)}))
   
-  def historicalVolLatest(nbDays:Int, annualDays:Double = 260):Option[Double] = historicalVol(nbDays, annualDays, 1).headOption.collect{case s => s._2}
+  def historicalVolLatest(nbDays:Int, annualDays:Double = 260):Option[Double] = historicalVol(nbDays, annualDays, 1).headOption match {
+    case Some(v) if !v._2.isNaN => Some(v._2)
+    case _ => None
+  }
   
   def historicalVol(nbDays:Int, annualDays:Double = 260, nbResult:Int = 0):SortedMap[qlDate, Double] = {
 	val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
-	val source = historicalPrice takeRight (if(sourcesize > 0) sourcesize else 10000)
+	val source = priceHistory takeRight (if(sourcesize > 0) sourcesize else 10000)
     Volatility.calculate(source, nbDays, annualDays)
   }
   
@@ -71,7 +74,7 @@ trait StaticAsset {
   
   def historicalCorrel(asset:StaticAsset, nbDays:Int, nbResult:Int = 0):SortedMap[qlDate, Double] = {
 	val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
-    val intersection:SortedMap[qlDate, (Double, Double)] = historicalPrice.intersectionWith(asset.historicalPrice) takeRight sourcesize
+    val intersection:SortedMap[qlDate, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory) takeRight sourcesize
     Correlation.calculate(intersection, nbDays)
   }
   

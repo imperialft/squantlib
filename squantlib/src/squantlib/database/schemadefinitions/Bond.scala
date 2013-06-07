@@ -120,6 +120,11 @@ class Bond(@Column("ID")					override var id: String,
   
   def maturityQl = new qlDate(maturity)
   
+  def endDate:qlDate = terminationdate match {
+    case Some(d) if maturity after d => new qlDate(d)
+    case _ => maturityQl
+  }
+  
   def isFixingInArrears = inarrears != Some(0)
   
   def couponNotice:Int = cpnnotice.getOrElse(5)
@@ -164,6 +169,76 @@ class Bond(@Column("ID")					override var id: String,
   private def optionalDouble(n:JsonNode):Option[Double] = 
     if (n == null) None
     else Some(n.parseDouble.getOrElse(Double.NaN))
+    
+  def defaultPrice(vd:qlDate):Double = 
+    if (isMatured(vd)) 0.0 
+    else if (issueDateQl ge vd) issueprice.getOrElse(100.0)
+    else try {
+      val r = redemprice.toDouble * 100.0
+      val i = issueprice.get
+      val comp = math.pow(r / i, 1.0 / maturityQl.sub(issueDateQl).toDouble)
+      i * math.pow(comp, vd.sub(issueDateQl).toDouble)
+    } catch {case e:Throwable => issueprice.getOrElse(100.0)}
+    
+  def isMatured(vd:qlDate):Boolean = (vd ge endDate) 
+    
+  def getLatestPrice(paramset:String, valuedate:qlDate, fx:Double):LatestPrice = {
+	new LatestPrice(
+		id = id,
+		bondid = id,
+		currencyid = currencyid,
+		comment = null,
+		paramset = paramset,
+		paramdate = valuedate.longDate,
+		fxjpy = fx,
+		pricedirty = defaultPrice(valuedate),
+		priceclean = defaultPrice(valuedate),
+		accrued = 0.0,
+		pricedirty_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
+		priceclean_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
+		accrued_jpy = 0.0,
+		yield_continuous = None,
+		yield_annual = None,
+		yield_semiannual = None,
+		yield_simple = None,
+		bpvalue = None,
+		irr = None,
+		currentrate = None,
+		nextamount = None,
+		nextdate = None,
+		dur_simple = None,
+		dur_modified = None,
+		dur_macauley = None,
+		yieldvaluebp = None,
+		convexity = None,
+		remaininglife = math.max(0.0, maturityQl.sub(valuedate).toDouble / 365.25),
+		parMtMYield = None,
+		parMtMfx = None,
+		rateDelta = null,
+		rateVega = null,
+		fxDelta = null,
+		fxDeltaJpy = null,
+		fxVega = null,
+		pricetype = if (isMatured(valuedate)) "MATURED" else "NOPRICE",
+		volatility = defaultvol,
+		created = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime),
+		lastmodified = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
+    }
+  
+  def getHistoricalPrice(paramset:String, valuedate:qlDate, fx:Double):HistoricalPrice = {
+    new HistoricalPrice(
+	    id = id + ":" + ("%tY%<tm%<td" format valuedate.longDate),
+		bondid = id,
+		paramdate = valuedate.longDate,
+		currencyid = currencyid,
+		fxjpy = fx,
+		pricedirty = defaultPrice(valuedate),
+		priceclean = defaultPrice(valuedate),
+		pricedirty_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
+		priceclean_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
+		pricetype = if (isMatured(valuedate)) "MATURED" else "NOPRICE",
+		created = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
+  }
 
   def this() = this(
 		id = null,

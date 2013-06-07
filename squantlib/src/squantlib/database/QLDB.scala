@@ -28,6 +28,13 @@ object QLDB {
 	  Market(ratefx, cds)
   }
   
+  def getMarket(paramdate:qlDate):Option[Market] = getMarket(paramdate.longDate)
+  
+  def getMarket(paramdate:JavaDate):Option[Market] = {
+    val pset = ("%tY%<tm%<td" format paramdate) + "-000"
+    getMarket(pset)
+  }
+  
   def getMarket(paramset:String, valueDate:qlDate):Option[Market] = 
     Market(DB.getRateFXParameters(paramset), DB.getCDSParameters(paramset), valueDate)
 	

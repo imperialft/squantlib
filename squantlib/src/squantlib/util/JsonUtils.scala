@@ -41,6 +41,14 @@ object JsonUtils {
 	  
 	  def parseString:Option[String] = Some(node.asText)
 	  def parseString(name:String):Option[String] = if (hasName(name)) node.get(name).parseString else None
+	  
+	  val emptyStream = new java.io.PrintStream(new java.io.OutputStream {override def write(b:Int){}})
+	  def ignoreErr[T](f: =>T):T = {
+	    System.setErr(emptyStream)
+	    val r = f
+	    System.setErr(System.err)
+	    r
+	  }
 
 	  def parseDate:Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString.orNull)))} catch {case _:Throwable => None}
 	  def parseDate(name:String):Option[qlDate] = 
@@ -48,7 +56,10 @@ object JsonUtils {
 	    else node.parseString(name) match {
 	      case None => None
 	      case Some(s) if s.size < 8 || !s.contains("/") => None
-	      case Some(s) => try{Some(new qlDate(jsonDateFormat.parse(s)))} catch {case _:Throwable => println(s + " could not be parsed"); None}	      
+	      case Some(s) => ignoreErr {
+	        try{Some(new qlDate(jsonDateFormat.parse(s)))} 
+	        catch {case e:Throwable => println(s + " could not be parsed"); e.printStackTrace; None}
+	      }
 	    }
 	  
 	  def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))

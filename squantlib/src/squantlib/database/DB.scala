@@ -53,6 +53,8 @@ object DB extends Schema {
   val bonds = table[Bond]("Bonds")
   val equities = table[Equity]("Equities")
   val bondprices = table[BondPrice]("BondPrices")
+  val latestprices = table[LatestPrice]("LatestPrices")
+  val historicalprices = table[HistoricalPrice]("HistoricalPrices")
   val volatilities = table[Volatility]("Volatilities")
   val correlations = table[Correlation]("Correlations")
   val coupons = table[Coupon]("Coupons")
@@ -262,6 +264,7 @@ object DB extends Schema {
    * @param ids A Set of unique IDs.
    * @return A Set of BondPrice objects.
    */
+  
   def getBondPrices:Set[BondPrice] = getKeyedEntity(bondprices)
   def getBondPrices(ids:Traversable[String]):Set[BondPrice] = getKeyedEntity(bondprices, ids)
   
@@ -288,8 +291,43 @@ object DB extends Schema {
         groupBy(b.bondid) compute(count(b.id))).map(c => (c.key, c.measures.toInt)).toMap
   }
   
+  /*
+   * Added for LatestPrice
+   */
+  
+  def getLatestPrices:Set[LatestPrice] = getKeyedEntity(latestprices)
+  def getLatestPrices(ids:Traversable[String]):Set[LatestPrice] = getKeyedEntity(latestprices, ids)
+  
+  def getLatestPriceParam:(String, JavaDate) = {
+    val paramsets = transaction {from(latestprices)(b => select((&(b.paramset), &(b.paramdate)))).distinct.toSet}
+    paramsets.maxBy(_._1)
+  }
+  
+  def getHistoricalPriceCount:Map[String, Int] = transaction {
+    from(historicalprices)(b =>
+      groupBy(b.bondid) compute(count(b.id))).map(c => (c.key, c.measures.toInt)).toMap
+  }
+  
+  def getLatestHistoricalPrice:Option[JavaDate] = transaction {
+    from(historicalprices)(b => compute(max(b.paramdate))).map(c => c)
+  }
+  
+  def getHistoricalPriceDates:Set[JavaDate] = transaction {
+    from(historicalprices)(b => select(&(b.paramdate))).distinct.toSet
+  }
+  
+  def getHistoricalPrices(d:JavaDate):Set[HistoricalPrice] = transaction {
+    from(historicalprices)(b => where(b.paramdate === d) select(b)).toSet
+  }
+  
+  def getHistoricalPriceIDs(d:JavaDate):Set[String] = transaction {
+    from(historicalprices)(b => where(b.paramdate === d) select(&(b.bondid))).toSet
+  }
+  
   def removeHistoricalPrice(bondid:String) = transaction {
     bondprices.deleteWhere(b => b.bondid === bondid)
+    historicalprices.deleteWhere(b => b.bondid === bondid)
+    latestprices.deleteWhere(b => b.bondid === bondid)
   }
   
   def getLatestBondPriceIDs:Set[String] = transaction {
@@ -1320,6 +1358,13 @@ object DB extends Schema {
     }
   }
   
+  def insertOrUpdateStringEntity[T<:StringEntity](data:T):Unit = transaction{
+    dataTable(data.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => t.insertOrUpdate(data)
+      case _ => println("table not found")
+    }
+  }
+  
   def updateStringEntity[T<:StringEntity](data:T):Unit = transaction{
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.update(data)
@@ -1334,7 +1379,7 @@ object DB extends Schema {
     }
   }
   
-  def insertIntEntity[T <: IntEntity](data:Set[T]):Unit = transaction{
+  def insertIntEntity[T<:IntEntity](data:Set[T]):Unit = transaction{
     intTable(data.head.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.insert(data)
       case _ => println("table not found")
@@ -1357,12 +1402,17 @@ object DB extends Schema {
   
   def dataTable(name:String):Option[Table[_ <: StringEntity]] = name match {
       case "BondPrice" => Some(bondprices)
+      case "LatestPrice" => Some(latestprices)
+      case "HistoricalPrice" => Some(historicalprices)
       case "Volatility" => Some(volatilities)
       case "Correlation" => Some(correlations)
       case "Coupon" => Some(coupons)
       case "ForwardPrice" => Some(forwardprices)
       case "ImpliedRate" => Some(impliedrates)
       case "Bond" => Some(bonds)
+      case "Currency" => Some(currencies)
+      case "Issuer" => Some(issuers)
+      case "Product" => Some(products)
       case _ => None
     }
   
