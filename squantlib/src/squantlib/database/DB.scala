@@ -297,6 +297,7 @@ object DB extends Schema {
   
   def getLatestPrices:Set[LatestPrice] = getKeyedEntity(latestprices)
   def getLatestPrices(ids:Traversable[String]):Set[LatestPrice] = getKeyedEntity(latestprices, ids)
+  def getLatestPrice(id:String):Option[LatestPrice] = getAKeyedEntity(latestprices, id)
   
   def getLatestPriceParam:(String, JavaDate) = {
     val paramsets = transaction {from(latestprices)(b => select((&(b.paramset), &(b.paramdate)))).distinct.toSet}
