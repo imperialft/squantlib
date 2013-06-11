@@ -52,7 +52,7 @@ object DB extends Schema {
   val products = table[Product]("Products")
   val bonds = table[Bond]("Bonds")
   val equities = table[Equity]("Equities")
-  val bondprices = table[BondPrice]("BondPrices")
+//  val bondprices = table[BondPrice]("BondPrices")
   val latestprices = table[LatestPrice]("LatestPrices")
   val historicalprices = table[HistoricalPrice]("HistoricalPrices")
   val volatilities = table[Volatility]("Volatilities")
@@ -193,8 +193,34 @@ object DB extends Schema {
   def getBonds(ids:Traversable[String]):Set[Bond] = getKeyedEntity(bonds, ids)
   def getBond(id:String):Option[Bond] = getAKeyedEntity(bonds, id)
   
-  def getBonds(valuedate:JavaDate):Set[Bond] = transaction {
-      from(bonds)(bond => where(bond.maturity gt valuedate) select(bond)).toSet}
+  def getBondsWithPrices:Set[(Bond, LatestPrice)] = {
+    val bonds = getBonds
+    val prices:Map[String, LatestPrice] = getLatestPrices(bonds.map(_.id)).map(p => (p.bondid, p)) (collection.breakOut)
+    bonds.filter(b => prices.keySet contains b.id).map(b => (b, prices(b.id)))
+  }
+  
+  def getLiveBondsWithPrices:Set[(Bond, LatestPrice)] = getLiveBondsWithPrices(getLatestPriceParam._2)
+    
+  def getLiveBondsWithPrices(paramdate:JavaDate):Set[(Bond, LatestPrice)] = {
+    val bonds = getLiveBonds(paramdate)
+    val prices:Map[String, LatestPrice] = getLatestPrices(bonds.map(_.id)).map(p => (p.bondid, p)) (collection.breakOut)
+    bonds.filter(b => prices.keySet contains b.id).map(b => (b, prices(b.id)))
+  }
+  
+  def getPricedBondIds:Set[String] = {
+    val bonds:Set[(String, String)] = transaction{from(latestprices)(b => select((&(b.bondid), &(b.pricetype)))).toSet}
+    import squantlib.database.schemadefinitions.LatestPrice
+    bonds.filter{case (b, t) => !(LatestPrice.noPriceKeys contains t)}.map(_._1)
+  }
+  
+  def removeBond(id:String):Unit = {
+	  removeHistoricalPrice(id)
+	  removeCoupons(id)
+	  transaction {bonds.deleteWhere(b => (b.id === id))}
+  }
+  
+  def getLiveBonds(valuedate:JavaDate):Set[Bond] = transaction {
+      from(bonds)(bond => where((bond.maturity gt valuedate) and ((bond.terminationdate isNull) or (bond.terminationdate gt valuedate))) select(bond)).toSet}
 
   def getBondsByProducts(productids:Traversable[String]):Set[Bond] = transaction {
       from(bonds)(b => where(b.productid in productids) select(b)).toSet}
@@ -247,14 +273,16 @@ object DB extends Schema {
   def updateBondSetting[T<:AnyVal](id:String, name:String, newvalue:T):Unit = updateBondSetting(id, name, newvalue.toString)
   
   def updateBondSetting(id:String, name:String, newvalue:String):Unit = {
-    val currentjson = getBondSettingJson(id)
-    currentjson.put(name, newvalue)
+    var currentjson = getBondSettingJson(id)
+    if (newvalue == null || newvalue.trim.isEmpty) currentjson.remove(name)
+    else currentjson.put(name, newvalue)
     setBondSetting(id, currentjson.toJsonString)
   }
   
   def updateBondSetting(id:String, name:String, newnode:JsonNode):Unit = {
     val currentjson = getBondSettingJson(id)
-    currentjson.put(name, newnode)
+    if (newnode == null || newnode.isNull) currentjson.remove(name)
+    else currentjson.put(name, newnode)
     setBondSetting(id, currentjson.toJsonString)
   }
   
@@ -265,29 +293,29 @@ object DB extends Schema {
    * @return A Set of BondPrice objects.
    */
   
-  def getBondPrices:Set[BondPrice] = getKeyedEntity(bondprices)
-  def getBondPrices(ids:Traversable[String]):Set[BondPrice] = getKeyedEntity(bondprices, ids)
-  
-  def getBondPriceByParamSet(paramset:String):Set[BondPrice] = transaction {
-      from(bondprices)(b =>
-        where(b.paramset === paramset) select(b)).toSet}
-  
-  def getBondPriceIdByParamSet(paramset:String):Set[String] = transaction {
-      from(bondprices)(b =>
-        where(b.paramset === paramset) select(&(b.bondid))).toSet}
-  
-  def getBondPriceByParamDate(paramdate:JavaDate):Set[BondPrice] = transaction {
-      from(bondprices)(b =>
-        where(b.paramdate === paramdate) select(b)).toSet} 
-
-  def getPricedParamSets:Set[(String, JavaDate)] = transaction {
-      from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).distinct.toSet}
-  
-  def getPricedParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-    getPricedParamSets.filter{case (pset, pdate) => (pdate >= fromDate && pdate <= toDate)}
-  
+//  def getBondPrices:Set[BondPrice] = getKeyedEntity(bondprices)
+//  def getBondPrices(ids:Traversable[String]):Set[BondPrice] = getKeyedEntity(bondprices, ids)
+//  
+//  def getBondPriceByParamSet(paramset:String):Set[BondPrice] = transaction {
+//      from(bondprices)(b =>
+//        where(b.paramset === paramset) select(b)).toSet}
+//  
+//  def getBondPriceIdByParamSet(paramset:String):Set[String] = transaction {
+//      from(bondprices)(b =>
+//        where(b.paramset === paramset) select(&(b.bondid))).toSet}
+//  
+//  def getBondPriceByParamDate(paramdate:JavaDate):Set[BondPrice] = transaction {
+//      from(bondprices)(b =>
+//        where(b.paramdate === paramdate) select(b)).toSet} 
+//
+//  def getPricedParamSets:Set[(String, JavaDate)] = transaction {
+//      from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).distinct.toSet}
+//  
+//  def getPricedParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
+//    getPricedParamSets.filter{case (pset, pdate) => (pdate >= fromDate && pdate <= toDate)}
+//  
   def getBondPriceCount:Map[String, Int] = transaction {
-      from(bondprices)(b =>
+      from(historicalprices)(b =>
         groupBy(b.bondid) compute(count(b.id))).map(c => (c.key, c.measures.toInt)).toMap
   }
   
@@ -326,48 +354,54 @@ object DB extends Schema {
   }
   
   def removeHistoricalPrice(bondid:String) = transaction {
-    bondprices.deleteWhere(b => b.bondid === bondid)
     historicalprices.deleteWhere(b => b.bondid === bondid)
     latestprices.deleteWhere(b => b.bondid === bondid)
   }
   
-  def getLatestBondPriceIDs:Set[String] = transaction {
-    val maxparam:Option[JavaDate] = from(bondprices) (b => compute(max(b.paramdate)))
-    maxparam match {
-      case None => Set.empty
-      case Some(d) => from (bondprices) (b => where(b.paramdate === d) select (&(b.bondid))).toSet
+  def cleanHistoricalPrice:Int = {
+    val pricedbonds = getLatestPrices.filter(_.isPriced).map(_.bondid)
+    transaction{
+      historicalprices.deleteWhere(b => (b.bondid in pricedbonds) and (b.pricetype === "NOPRICE"))
     }
   }
   
-  def getLatestBondPrices:Set[BondPrice] = transaction {
-    val maxparam:Option[JavaDate] = from(bondprices) (b => compute(max(b.paramdate)))
-    maxparam match {
-      case None => Set.empty
-      case Some(d) => from (bondprices) (b => where(b.paramdate === d) select (b)).toSet
-    }
-  }
+//  def getLatestBondPriceIDs:Set[String] = transaction {
+//    val maxparam:Option[JavaDate] = from(bondprices) (b => compute(max(b.paramdate)))
+//    maxparam match {
+//      case None => Set.empty
+//      case Some(d) => from (bondprices) (b => where(b.paramdate === d) select (&(b.bondid))).toSet
+//    }
+//  }
   
-  def getLatestBondPrice(bondid:String):Option[BondPrice] = transaction {
-    from (bondprices) (b => 
-      where (b.bondid === bondid) 
-      select(b)
-      orderBy(b.paramdate desc)
-      ).headOption
-  }
+//  def getLatestBondPrices:Set[BondPrice] = transaction {
+//    val maxparam:Option[JavaDate] = from(bondprices) (b => compute(max(b.paramdate)))
+//    maxparam match {
+//      case None => Set.empty
+//      case Some(d) => from (bondprices) (b => where(b.paramdate === d) select (b)).toSet
+//    }
+//  }
   
-  def getLatestBondPriceParam:Option[(String, JavaDate)] = getPricedParamSets match {
-    case s if s.isEmpty => None
-    case s => Some(s.maxBy(_._2)) 
-  }
-  
-  def getPricedBondIDs():Set[String] = transaction {
-      from(bondprices)(b => select(&(b.bondid))).distinct.toSet
-    }
-  
-  def getPricedBondIDs(paramset:String):Set[String] = transaction {
-      from(bondprices)(b => where(b.paramset === paramset) select(&(b.bondid))).distinct.toSet
-    }
-  
+//  def getLatestBondPrice(bondid:String):Option[BondPrice] = transaction {
+//    from (bondprices) (b => 
+//      where (b.bondid === bondid) 
+//      select(b)
+//      orderBy(b.paramdate desc)
+//      ).headOption
+//  }
+//  
+//  def getLatestBondPriceParam:Option[(String, JavaDate)] = getPricedParamSets match {
+//    case s if s.isEmpty => None
+//    case s => Some(s.maxBy(_._2)) 
+//  }
+//  
+//  def getPricedBondIDs():Set[String] = transaction {
+//      from(bondprices)(b => select(&(b.bondid))).distinct.toSet
+//    }
+//  
+//  def getPricedBondIDs(paramset:String):Set[String] = transaction {
+//      from(bondprices)(b => where(b.paramset === paramset) select(&(b.bondid))).distinct.toSet
+//    }
+//  
   /**
    * Returns a Set of Volatility objects identified by a Set of ID.
    * 
@@ -504,6 +538,8 @@ object DB extends Schema {
   def getCouponsByBondID(bondids:Traversable[String]):List[Coupon] = transaction {
       from(coupons)(c => where(c.bondid in bondids) select(c)).toList
     }
+  
+  def removeCoupons(bondid:String):Unit = transaction{coupons.deleteWhere(c => c.bondid === bondid)}
   
   def getUnfixedCoupons(d:JavaDate):List[Coupon] = transaction {
       from(coupons)(c =>
@@ -1152,13 +1188,9 @@ object DB extends Schema {
    * @return bondid Bond id. eg. "ADB-00001"
    */
   def getBondPriceTimeSeries(bondid:String):Map[JavaDate, Double] = transaction {
-      from(bondprices)(bp =>
-        where(
-          (bp.paramset like "%-000") and
-          bp.bondid      === bondid and
-          bp.priceclean.isNotNull
-        )
-        select(&(bp.paramdate), &(bp.priceclean.get))
+      from(historicalprices)(bp =>
+        where(bp.bondid      === bondid)
+        select(&(bp.paramdate), &(bp.priceclean))
       ) toMap;
   	}
   
@@ -1195,15 +1227,13 @@ object DB extends Schema {
    * @return bondid Bond id. eg. "ADB-00001"
    */
   def getPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):Map[JavaDate, Double] = transaction {
-      from(bondprices)(bp =>
+      from(historicalprices)(bp =>
         where(
           (bp.paramdate gte start) and
           (bp.paramdate lte end) and
-          (bp.paramset like "%-000") and
-          bp.bondid      === bondid and
-          bp.priceclean.isNotNull
+          bp.bondid      === bondid
         )
-        select(&(bp.paramdate), &(bp.priceclean.get))
+        select(&(bp.paramdate), &(bp.priceclean))
       ) toMap;
   	}
 
@@ -1221,15 +1251,13 @@ object DB extends Schema {
    * @return bondid Bond id. eg. "ADB-00001"
    */
   def getJPYPriceTimeSeries(start:JavaDate, end:JavaDate, bondid:String):Map[JavaDate, Double] = transaction {
-      from(bondprices)(bp =>
+      from(historicalprices)(bp =>
         where(
           (bp.paramdate gte start) and
           (bp.paramdate lte end) and
-          (bp.paramset like "%-000") and
-          bp.bondid      === bondid and
-          bp.priceclean_jpy.isNotNull
+          bp.bondid      === bondid
         )
-        select(&(bp.paramdate), &(bp.priceclean_jpy.get))
+        select(&(bp.paramdate), &(bp.priceclean_jpy))
       ).toMap
   	}
   
@@ -1245,18 +1273,12 @@ object DB extends Schema {
    */
   def getJPYPriceTimeSeries(bondid:String):Map[JavaDate, Double] = {
     val bond = getBond(bondid).orNull
-    
     if (bond == null) Map.empty
 
     else {
-      
-      val results = transaction{from(bondprices)(bp =>
-        where(
-          bp.paramset like "%-000" and
-	      bp.bondid      === bondid and
-	      bp.priceclean.isNotNull
-	    )
-	    select(&(bp.paramdate), &(bp.priceclean.get), &(bp.fxjpy))
+      val results = transaction{from(historicalprices)(bp =>
+        where(bp.bondid      === bondid)
+	    select(&(bp.paramdate), &(bp.priceclean), &(bp.fxjpy))
 	  ).toSet}
 	  
 	  val basefx = if (bond.initialfx > 0) bond.initialfx else results.maxBy{case (d, p, f) => d}._3
@@ -1275,13 +1297,9 @@ object DB extends Schema {
    * @return bondid Bond id. eg. "ADB-00001"
    */
   def getJPYPriceTimeSeries(bondid:String, basefx:Double):Map[JavaDate, Double] = transaction {
-    from(bondprices)(bp =>
-      where(
-          bp.paramset like "%-000" and
-	      bp.bondid      === bondid and
-	      bp.priceclean.isNotNull
-	      )
-	  select(&(bp.paramdate), &(bp.priceclean.get), &(bp.fxjpy))
+    from(historicalprices)(bp =>
+      where(bp.bondid      === bondid)
+	  select(&(bp.paramdate), &(bp.priceclean), &(bp.fxjpy))
 	  ).map(v => (v._1, v._2 * v._3 / basefx)).toMap
   	}
   
@@ -1306,17 +1324,15 @@ object DB extends Schema {
         ).singleOption.orNull
         
       if (quoteccy == null) Map.empty
-      else from(bondprices, fxrates)((bp, fx) =>
+      else from(historicalprices, fxrates)((bp, fx) =>
 	        where(
-	          bp.paramset like "%-000" and
 	          (bp.paramdate gte start) and
 	          (bp.paramdate lte end) and
 	          bp.bondid      === bondid and
-	          bp.priceclean.isNotNull and
 	          fx.currencyid === quoteccy and
-	          bp.paramset === fx.paramset
+	          bp.paramdate === fx.paramdate
 	        )
-	        select(&(bp.paramdate), &(bp.priceclean.get), &(fx.fxjpy))
+	        select(&(bp.paramdate), &(bp.priceclean), &(fx.fxjpy))
 	      ).map(v => (v._1, v._2 * v._3 / basefx)).toMap
   	}
   
@@ -1402,7 +1418,7 @@ object DB extends Schema {
   }  
   
   def dataTable(name:String):Option[Table[_ <: StringEntity]] = name match {
-      case "BondPrice" => Some(bondprices)
+//      case "BondPrice" => Some(bondprices)
       case "LatestPrice" => Some(latestprices)
       case "HistoricalPrice" => Some(historicalprices)
       case "Volatility" => Some(volatilities)

@@ -32,9 +32,13 @@ trait StaticAsset {
   
   def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getPriceHistory.filter{case (d, _) => isWeekday(d)}))
   
-  def historicalVolLatest(nbDays:Int, annualDays:Double = 260):Option[Double] = historicalVol(nbDays, annualDays, 1).headOption match {
-    case Some(v) if !v._2.isNaN => Some(v._2)
-    case _ => None
+  def historicalVolLatest(nbDays:Int, annualDays:Double = 260, minDays:Int = 100):Option[Double] = {
+    if (priceHistory.size < minDays) {return None}
+    val source = priceHistory takeRight math.min(priceHistory.size, nbDays)
+    Volatility.calculate(source, source.size, annualDays).headOption match {
+      case Some(v) if !v._2.isNaN => Some(v._2)
+      case _ => None
+    }
   }
   
   def historicalVol(nbDays:Int, annualDays:Double = 260, nbResult:Int = 0):SortedMap[qlDate, Double] = {
