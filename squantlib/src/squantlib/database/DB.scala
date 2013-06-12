@@ -219,6 +219,8 @@ object DB extends Schema {
 	  transaction {bonds.deleteWhere(b => (b.id === id))}
   }
   
+  def getLiveBonds:Set[Bond] = getLiveBonds(getLatestPriceParam._2)
+  
   def getLiveBonds(valuedate:JavaDate):Set[Bond] = transaction {
       from(bonds)(bond => where((bond.maturity gt valuedate) and ((bond.terminationdate isNull) or (bond.terminationdate gt valuedate))) select(bond)).toSet}
 
@@ -293,27 +295,6 @@ object DB extends Schema {
    * @return A Set of BondPrice objects.
    */
   
-//  def getBondPrices:Set[BondPrice] = getKeyedEntity(bondprices)
-//  def getBondPrices(ids:Traversable[String]):Set[BondPrice] = getKeyedEntity(bondprices, ids)
-//  
-//  def getBondPriceByParamSet(paramset:String):Set[BondPrice] = transaction {
-//      from(bondprices)(b =>
-//        where(b.paramset === paramset) select(b)).toSet}
-//  
-//  def getBondPriceIdByParamSet(paramset:String):Set[String] = transaction {
-//      from(bondprices)(b =>
-//        where(b.paramset === paramset) select(&(b.bondid))).toSet}
-//  
-//  def getBondPriceByParamDate(paramdate:JavaDate):Set[BondPrice] = transaction {
-//      from(bondprices)(b =>
-//        where(b.paramdate === paramdate) select(b)).toSet} 
-//
-//  def getPricedParamSets:Set[(String, JavaDate)] = transaction {
-//      from(bondprices)(b => select((&(b.paramset), &(b.paramdate)))).distinct.toSet}
-//  
-//  def getPricedParamSets(fromDate:JavaDate, toDate:JavaDate):Set[(String, JavaDate)] = 
-//    getPricedParamSets.filter{case (pset, pdate) => (pdate >= fromDate && pdate <= toDate)}
-//  
   def getBondPriceCount:Map[String, Int] = transaction {
       from(historicalprices)(b =>
         groupBy(b.bondid) compute(count(b.id))).map(c => (c.key, c.measures.toInt)).toMap
@@ -365,43 +346,6 @@ object DB extends Schema {
     }
   }
   
-//  def getLatestBondPriceIDs:Set[String] = transaction {
-//    val maxparam:Option[JavaDate] = from(bondprices) (b => compute(max(b.paramdate)))
-//    maxparam match {
-//      case None => Set.empty
-//      case Some(d) => from (bondprices) (b => where(b.paramdate === d) select (&(b.bondid))).toSet
-//    }
-//  }
-  
-//  def getLatestBondPrices:Set[BondPrice] = transaction {
-//    val maxparam:Option[JavaDate] = from(bondprices) (b => compute(max(b.paramdate)))
-//    maxparam match {
-//      case None => Set.empty
-//      case Some(d) => from (bondprices) (b => where(b.paramdate === d) select (b)).toSet
-//    }
-//  }
-  
-//  def getLatestBondPrice(bondid:String):Option[BondPrice] = transaction {
-//    from (bondprices) (b => 
-//      where (b.bondid === bondid) 
-//      select(b)
-//      orderBy(b.paramdate desc)
-//      ).headOption
-//  }
-//  
-//  def getLatestBondPriceParam:Option[(String, JavaDate)] = getPricedParamSets match {
-//    case s if s.isEmpty => None
-//    case s => Some(s.maxBy(_._2)) 
-//  }
-//  
-//  def getPricedBondIDs():Set[String] = transaction {
-//      from(bondprices)(b => select(&(b.bondid))).distinct.toSet
-//    }
-//  
-//  def getPricedBondIDs(paramset:String):Set[String] = transaction {
-//      from(bondprices)(b => where(b.paramset === paramset) select(&(b.bondid))).distinct.toSet
-//    }
-//  
   /**
    * Returns a Set of Volatility objects identified by a Set of ID.
    * 
@@ -1378,7 +1322,17 @@ object DB extends Schema {
   def insertOrUpdateStringEntity[T<:StringEntity](data:T):Unit = transaction{
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.insertOrUpdate(data)
-      case _ => println("table not found")
+      case _ => println("table not found : " + data.getClass.getSimpleName.toString)
+    }
+  }
+  
+  def insertOrUpdateStringEntity[T<:StringEntity](data:Set[T]):Unit = transaction{
+    dataTable(data.head.getClass.getSimpleName.toString) match {
+      case Some(t:Table[T]) => 
+        val (currentitems, newitems) = data.partition(d => t.lookup(d.id).isDefined)
+        t.insert(newitems)
+        t.update(currentitems)
+      case _ => println("table not found : " +  data.head.getClass.getSimpleName.toString)
     }
   }
   

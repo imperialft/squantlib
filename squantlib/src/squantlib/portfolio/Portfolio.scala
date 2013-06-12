@@ -33,7 +33,7 @@ case class Portfolio(assets:Map[StaticAsset, Double]) extends Map[StaticAsset, D
   val correlationCache = WeakHashMap.empty[Int, SymmetricMatrix[StaticAsset]]
   
   def correlationMatrix(nbDays:Int = defaultNbDays):SymmetricMatrix[StaticAsset] = correlationCache.getOrElseUpdate(nbDays, 
-    SymmetricMatrix(priceableWeights.keySet, (a:StaticAsset, b:StaticAsset) => a.historicalCorrelLatest(b, nbDays).getOrElse(0.0)))
+    SymmetricMatrix(priceableWeights.keySet, (a:StaticAsset, b:StaticAsset) => a.historicalCorrelLatest(b, nbDays).collect{case c => c.value}.getOrElse(0.0)))
     
   def correlation(a:StaticAsset, b:StaticAsset, nbDays:Int = defaultNbDays):Double = correlationMatrix(nbDays).get(a, b)
     
