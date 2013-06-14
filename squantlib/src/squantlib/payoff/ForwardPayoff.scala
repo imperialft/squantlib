@@ -22,7 +22,7 @@ case class ForwardPayoff(
   
 	override val variables = fwdVariables.toSet
 	
-	override val isPriceable = !strike.exists(_.isNaN)
+	override val isPriceable = !strike.exists(v => v.isNaN || v.isInfinity)
   
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
@@ -31,12 +31,12 @@ case class ForwardPayoff(
 	    
 	override def priceImpl(fixings:Map[String, Double]) = 
 	  getFixings(fixings) match {
-	    case Some(fixValues) if fixValues.forall(!_.isNaN) => (fixValues, strike).zipped.map((v, k) => v/k).min
+	    case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => (fixValues, strike).zipped.map((v, k) => v/k).min
 	    case None => Double.NaN
 	  }
 	  
 	override def priceImpl(fixing:Double) =
-	  if (variables.size != 1 || fixing.isNaN) Double.NaN
+	  if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
 	  else fixing / strike.head
 	
 	override def toString =

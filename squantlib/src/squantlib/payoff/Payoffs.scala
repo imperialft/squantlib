@@ -34,7 +34,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	  def assignFixings(fixing:T, payoff:Payoff):Unit}
 	
 	implicit object DoubleList extends FixingInterpreter[Double, Double] {
-	  def price(fixing:Double, payoff:Payoff) = if (fixing.isNaN) payoff.price else payoff.price(fixing)
+	  def price(fixing:Double, payoff:Payoff) = if (fixing.isNaN || fixing.isInfinity) payoff.price else payoff.price(fixing)
 	  def triggered(fixing:Double, trigger:Option[Double]) = trigger.isDefined && fixing > trigger.get
 	  def assignFixings(fixing:Double, payoff:Payoff) = payoff.assignFixings(fixing)}
 	

@@ -20,7 +20,7 @@ case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Dou
   
   override def isFixed = isTrigger && (variables.isEmpty || !preFixings.isEmpty)
   
-  def isPriceable:Boolean = !triggers.values.exists(_.isNaN)
+  def isPriceable:Boolean = !triggers.values.exists(v => v.isNaN || v.isInfinity)
   
   def isEmpty:Boolean = !bermudan && triggers.isEmpty
   

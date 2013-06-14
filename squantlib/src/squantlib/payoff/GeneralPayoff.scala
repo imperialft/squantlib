@@ -18,7 +18,7 @@ case class GeneralPayoff(
 	
 	override val variables:Set[String] = formula.keySet.flatten
 	
-	override val isPriceable = formula.values.forall(!_.isNaN)
+	override val isPriceable = formula.values.forall(v => !v.isNaN && !v.isInfinity)
 	
 	override val isFixed = variables.size == 0 || super.isFixed
 	
@@ -28,11 +28,11 @@ case class GeneralPayoff(
 	val constant:Double = formula.getOrElse(Set.empty, 0.0)
 	
 	override def priceImpl(fixing:Double) = 
-	  if (variables.size == 1 && !fixing.isNaN) price(Map(variables.head -> fixing))
+	  if (variables.size == 1 && !fixing.isNaN && !fixing.isInfinity) price(Map(variables.head -> fixing))
 	  else Double.NaN
 	
 	override def priceImpl(fixings:Map[String, Double]):Double = {
-	  if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN)) {return Double.NaN}
+	  if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN || fixings(v).isInfinity)) {return Double.NaN}
 	  
 	  var rate = formula.map{
       	case (vs, c) if vs.isEmpty => c

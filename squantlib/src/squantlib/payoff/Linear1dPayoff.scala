@@ -24,11 +24,11 @@ case class Linear1dPayoff(
 	override val isPriceable = true
 	
 	override def priceImpl(fixings:Map[String, Double]) = fixings.get(variable) match {
-	  case Some(v) if !v.isNaN => payoff.price(v)
+	  case Some(v) if !v.isNaN && !v.isInfinity => payoff.price(v)
 	  case _ => Double.NaN
 	}
 	
-	override def priceImpl(fixing:Double) = if (fixing.isNaN) Double.NaN else payoff.price(fixing)
+	override def priceImpl(fixing:Double) = if (fixing.isNaN || fixing.isInfinity) Double.NaN else payoff.price(fixing)
 	
 	override def priceImpl = Double.NaN
 	

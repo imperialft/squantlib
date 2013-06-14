@@ -86,11 +86,14 @@ class Bond(@Column("ID")					override var id: String,
   
   def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(redemprice, fixings)
   
-  def tbdParameter:Option[String] = (coupon.contains("tbd"), redemprice.contains("tbd")) match {
-  	 case (true, false) => Some(coupon)
-  	 case (false, true) => Some(redemprice)
+  def tbdParameter:Option[String] = (coupon.contains("tbd"), redemprice.contains("tbd"), call.contains("tbd")) match {
+  	 case (true, false, false) => Some(coupon)
+  	 case (false, true, false) => Some(redemprice)
+  	 case (false, false, true) => Some(call)
   	 case _ => None
   }
+  
+  def containsTbd:Boolean = tbdParameter.isDefined
   
   def underlyingList:List[String] = stringList(underlying)
   
@@ -239,6 +242,7 @@ class Bond(@Column("ID")					override var id: String,
 		pricetype = if (isMatured(valuedate)) "MATURED" else "NOPRICE",
 		created = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
   }
+  
 
   def this() = this(
 		id = null,

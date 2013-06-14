@@ -74,7 +74,7 @@ class Market(
 	def fx(ccy1:String, ccy2:String):Option[Double] = 
 	  try { 
 	    val calc = curves(ccy2).fx / curves(ccy1).fx
-	    if (calc.isNaN) None else Some(calc)}
+	    if (calc.isNaN || calc.isInfinity) None else Some(calc)}
 	  catch { case _:Throwable => None}
 
 	/**

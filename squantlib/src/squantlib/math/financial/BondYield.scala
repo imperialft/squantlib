@@ -8,7 +8,7 @@ import org.jquantlib.termstructures.Compounding
 object BondYield {
   
     def solve(price:Double, cashflows:List[(Double, Double)], yieldToZC:(Double, Double) => Double, accuracy:Double, maxIteration:Int):Option[Double] = {
-      if (cashflows.exists(_._2.isNaN)) return None
+      if (cashflows.exists(v => v._2.isNaN || v._2.isInfinity)) return None
       
       def yieldToPrice(y:Double):Double = cashflows.map{case (d, v) => v * yieldToZC(y, d)}.sum
       val priceformula = (y:Double) => (yieldToPrice(y) - price)

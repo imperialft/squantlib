@@ -24,7 +24,7 @@ case class PutDIPayoff(
   
 	val variables = putVariables.toSet
 	
-	override val isPriceable:Boolean = !trigger.exists(_.isNaN) && !strike.exists(_.isNaN)
+	override val isPriceable:Boolean = !trigger.exists(v => v.isNaN || v.isInfinity) && !strike.exists(v => v.isNaN || v.isInfinity)
 	
 	def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
 	  if (variables.toSet subsetOf fixings.keySet) 
@@ -33,14 +33,14 @@ case class PutDIPayoff(
 	    
 	override def priceImpl(fixings:Map[String, Double]) = 
 	  getFixings(fixings) match {
-	    case Some(fixValues) if fixValues.forall(!_.isNaN) => 
+	    case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => 
 	      if (fixValues.corresponds(trigger) {_ >= _}) amount
 	      else amount * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
 	    case None => Double.NaN
 	  }
 	  
 	override def priceImpl(fixing:Double) =
-	  if (variables.size != 1 || fixing.isNaN) Double.NaN
+	  if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
 	  else if (fixing >= trigger.head) amount
 	  else amount * math.min(1.00, fixing / strike.head)
 	 

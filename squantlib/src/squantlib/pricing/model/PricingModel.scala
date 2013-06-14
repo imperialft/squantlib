@@ -52,7 +52,7 @@ trait PricingModel {
    */
   def price(curve:DiscountCurve):Option[Double] = {
     val result = discountedPriceLegs(curve).unzip._2.sum + optionPrice.getOrElse(0.0)
-    if (result.isNaN) None else Some(result)
+    if (result.isNaN || result.isInfinity) None else Some(result)
   }
   
   /*

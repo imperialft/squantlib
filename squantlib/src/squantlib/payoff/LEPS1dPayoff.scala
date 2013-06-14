@@ -28,11 +28,11 @@ case class LEPS1dPayoff(
 	override val isPriceable = true
 	
 	override def priceImpl(fixings:Map[String, Double]) = fixings.get(variable) match {
-	  case Some(f) if !f.isNaN => price(f)
+	  case Some(f) if !f.isNaN && !f.isInfinity => price(f)
 	  case _ => Double.NaN
 	}
 	
-	override def priceImpl(fixing:Double) = if (fixing.isNaN) Double.NaN else payoff.map(_.price(fixing)).sum
+	override def priceImpl(fixing:Double) = if (fixing.isNaN || fixing.isInfinity) Double.NaN else payoff.map(_.price(fixing)).sum
 	
 	override def toString = payoff.map(p => p.toString(variable)).mkString(" ")
 	

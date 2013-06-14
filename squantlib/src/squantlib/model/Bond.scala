@@ -97,7 +97,7 @@ case class Bond(
 	
 	def fixedRedemptionAmount:Option[Double] = {
 	  val amount = redemption.price
-	  if (amount.isNaN) None else Some(amount)
+	  if (amount.isNaN || amount.isInfinity) None else Some(amount)
 	}
 	
 	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
@@ -434,17 +434,19 @@ case class Bond(
     def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = 
       getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)
       
-    def getYield(price:Double, cashflows:List[(Double, Double)], comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = 
-      if (cashflows isEmpty) None
-      else if (useCouponAsYield) accruedAmount.collect{case acc => BondYield.asAverageCoupon(cashflows, acc)}
-	  else comp match {
-        case Compounding.Simple => BondYield.solveNoCompounding(price, cashflows, accuracy, maxIteration)
-	    case Compounding.Compounded | Compounding.SimpleThenCompounded => BondYield.solveCompounded(price, cashflows, freq.toInteger, accuracy, maxIteration)
-	    case Compounding.Continuous => BondYield.solveContinuous(price, cashflows, accuracy, maxIteration)
-	    case Compounding.None => accruedAmount.collect{case acc => BondYield.solveNoRate(price, cashflows, acc)}
-	    case _ => None
-      }
-	
+    def getYield(price:Double, cashflows:List[(Double, Double)], comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = {
+      val result = 
+        if (cashflows isEmpty) None
+        else if (useCouponAsYield) accruedAmount.collect{case acc => BondYield.asAverageCoupon(cashflows, acc)}
+        else comp match {
+          case Compounding.Simple => BondYield.solveNoCompounding(price, cashflows, accuracy, maxIteration)
+          case Compounding.Compounded | Compounding.SimpleThenCompounded => BondYield.solveCompounded(price, cashflows, freq.toInteger, accuracy, maxIteration)
+          case Compounding.Continuous => BondYield.solveContinuous(price, cashflows, accuracy, maxIteration)
+          case Compounding.None => accruedAmount.collect{case acc => BondYield.solveNoRate(price, cashflows, acc)}
+          case _ => None
+        }
+      if (result.collect{case r => r.isNaN || r.isInfinity}.getOrElse(false)) None else result
+    }
 	
 	def modelPriceJpy:Option[Double] = (modelPrice, fxjpy, db.initialfx) match { 
 	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
@@ -547,7 +549,7 @@ case class Bond(
 	 */
     def macaulayDuration:Option[Double] = discountCurve.flatMap{case curve => 
       val mac = Duration.macaulay(spotCashflowDayfrac(new Actual365Fixed), (d:Double) => curve(d * 365.25))
-      if (mac.isNaN) None else Some(mac)
+      if (mac.isNaN || mac.isInfinity) None else Some(mac)
     }
     
 	/*	
@@ -586,7 +588,9 @@ case class Bond(
 	  val newBond = this.clone
 	  newBond.market = operation(mkt)
 	  val newprice = target(newBond)
-	  (initprice, newprice) match { case (Some(i), Some(n)) if !i.isNaN && !n.isNaN=> Some(n - i) case _ => None }
+	  (initprice, newprice) match { 
+	    case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some(n - i) 
+	    case _ => None }
 	}
 	
 	/*	
@@ -695,7 +699,7 @@ case class Bond(
 	}
 	
 	private def removeNaN(v:Option[Double]):Option[Double] = v match {
-	  case Some(vv) if !vv.isNaN => Some(vv)
+	  case Some(vv) if !vv.isNaN && !vv.isInfinity => Some(vv)
 	  case _ => None
 	}
 	
@@ -707,15 +711,39 @@ case class Bond(
 	    val fxinit = if(db.initialfx > 0) db.initialfx else fxs
 	    
 	    val price = db.getLatestPrice(mkt.paramset, mkt.valuedate, fxs)
-	    price.currentrate = currentRate.flatMap{case p if p.isNaN => None; case p => Some(p * 100)}
-	    price.nextamount = nextPayment.flatMap{case (_, p) if p.isNaN => None; case (_, p) => Some(p * 100)}
+	    price.currentrate = currentRate.flatMap{case p if p.isNaN || p.isInfinity => None; case p => Some(p * 100)}
+	    price.nextamount = nextPayment.flatMap{case (_, p) if p.isNaN || p.isInfinity => None; case (_, p) => Some(p * 100)}
 	    price.nextdate = nextPayment.collect{case (d, p) => d.longDate}
 	    price.dur_modified = modifiedDuration
 	    price.dur_macauley = macaulayDuration
 	    price.volatility = historicalVolLatest(260).getOrElse(db.defaultvol)
 	    if (isTerminated.getOrElse(false)) price.pricetype = "MATURED"
 	    
-	    if (cleanPrice.isDefined){
+	    if (mkt.valuedate le issueDate){
+	      val preissue = issuePrice.getOrElse(100.0) / 100.0
+	      price.pricedirty = preissue * 100.0
+	      price.priceclean = preissue * 100.0
+	      price.accrued = 0.0
+	      price.yield_continuous = getYield(preissue, Compounding.Continuous, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
+	      price.yield_annual = getYield(preissue, Compounding.Compounded, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
+	      price.yield_semiannual = getYield(preissue, Compounding.Compounded, Frequency.Semiannual, mkt.valuedate).collect{case p => p * 100}
+	      price.yield_simple = getYield(preissue, Compounding.None, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
+	      price.bpvalue = bpvalue.collect{case p => p * 10000}
+	      price.irr = getYield(preissue, Compounding.Compounded, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
+	      price.dur_simple = effectiveDuration
+	      price.yieldvaluebp = yieldValueBasisPoint
+	      price.convexity = convexity
+	      price.parMtMYield = parMtMYield
+	      price.parMtMfx = parMtMfx
+	      price.rateDelta = mapToJsonString(rateDeltas(0.001))
+	      price.rateVega = null
+	      price.fxDelta = mapToJsonString(fxDeltas(1.01))
+	      price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
+	      price.fxVega = mapToJsonString(fxVegas(0.01))
+	      if (cleanPrice.isDefined) price.pricetype = "PREISSUE"
+	    }
+	      
+	    else if (cleanPrice.isDefined){
 	      price.pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(0.0)
 	      price.priceclean = cleanPrice.collect{case p => p * 100}.getOrElse(0.0)
 	      price.accrued = accruedAmount.collect{case p => p * 100}.getOrElse(0.0)
@@ -776,10 +804,10 @@ case class Bond(
 	  
 	  (0 to pos.size - 1).map(i => {
 	      val (s, p, t) = pos(i)
-	      val fixedrate = p match {case po:FixedPayoff if !po.payoff.isNaN => Some(po.payoff) case _ => None }
+	      val fixedrate = p match {case po:FixedPayoff if !po.payoff.isNaN && !po.payoff.isInfinity => Some(po.payoff) case _ => None }
 	      val fixedamount = fixedrate.collect{case r => r * s.dayCount}
 	      val paytype = if (s isAbsolute) "REDEMPTION" else "COUPON"
-	      val spotrate = spot(i) match {case v if v.isNaN || fixedrate.isDefined => None case _ => Some(spot(i)) }
+	      val spotrate = spot(i) match {case v if v.isNaN || v.isInfinity || fixedrate.isDefined => None case _ => Some(spot(i)) }
 	      val spotamount = spotrate.collect{case r => r * s.dayCount}
 	      
 	      new dbCoupon(

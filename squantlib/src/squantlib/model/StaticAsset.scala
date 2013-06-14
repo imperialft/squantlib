@@ -36,7 +36,7 @@ trait StaticAsset {
     if (priceHistory.size < minDays) {return None}
     val source = priceHistory takeRight math.min(priceHistory.size, nbDays)
     Volatility.calculate(source, source.size, annualDays).headOption match {
-      case Some(v) if !v._2.isNaN => Some(v._2)
+      case Some(v) if !v._2.isNaN && !v._2.isInfinity => Some(v._2)
       case _ => None
     }
   }
@@ -60,7 +60,7 @@ trait StaticAsset {
     
     val source = intersection takeRight math.min(intersection.size, nbDays)
     Correlation.calculate(source, source.size).headOption match {
-      case Some(v) if !v._2.isNaN => Some(getCorrelation(asset, StaticAsset.currenttime, nbDays, 1, v._2))
+      case Some(v) if !v._2.isNaN && !v._2.isInfinity => Some(getCorrelation(asset, StaticAsset.currenttime, nbDays, 1, v._2))
       case _ => None
     }
   }

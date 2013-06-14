@@ -43,7 +43,7 @@ object OneTimeSwaptionModel {
 	  if (curve == null) {return None}
 	  
 	  val strike = bond.nextRateFrontier.getOrElse(Double.NaN)
-	  if (strike isNaN) {return None}
+	  if (strike.isNaN || strike.isInfinity) {return None}
 	  
 	  Some(OneTimeSwaptionModel(scheduledPayoffs, valuedate, nextPayment, maturity, strike, curve))
 	}

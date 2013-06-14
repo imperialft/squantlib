@@ -19,7 +19,7 @@ class FXflatVol(val curveDom:DiscountCurve, val curveFor:DiscountCurve, vol:Doub
 object FXflatVol {
   
 	def apply(curveDom:DiscountCurve, curveFor:DiscountCurve, vol:Double):Option[FXflatVol] = vol match {
-	  case v if v.isNaN => None
+	  case v if v.isNaN || v.isInfinity => None
 	  case v => Some(new FXflatVol(curveDom, curveFor, v))
 	}
 

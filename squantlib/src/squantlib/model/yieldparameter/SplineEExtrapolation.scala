@@ -32,7 +32,7 @@ case class SplineEExtrapolation(var valuedate : qlDate, values:Map[Double, Doubl
 
 	override def lowextrapolation(v : Double) = sortedValues.head._2
  
-	override def highextrapolation(v : Double) = if (impliedRate.isNaN) Double.MinPositiveValue 
+	override def highextrapolation(v : Double) = if (impliedRate.isNaN || impliedRate.isInfinity) Double.MinPositiveValue 
     						else firstvalue * extrapolator.value(-1.0 * impliedRate * v.toDouble)
     						
     def interpolation(v : Double) = splinefunction.value(v)

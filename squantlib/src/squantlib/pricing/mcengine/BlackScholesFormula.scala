@@ -25,7 +25,7 @@ object BlackScholesFormula {
     val h1 = (math.log(spot / strike) + ((ratedom - ratefor) + sigma * sigma / 2) * time) / (sigma * math.sqrt(time))
     val h2 = h1 - sigma * math.sqrt(time)
     val price = (spot * math.exp(-ratefor * time) * NormSInv(h1) - strike * math.exp(-ratedom * time) * NormSInv(h2)) 
-    if (discount.isNaN) price else price * math.exp(ratedom * time) * discount
+    if (discount.isNaN || discount.isInfinity) price else price * math.exp(ratedom * time) * discount
   }
   
 }

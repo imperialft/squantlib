@@ -22,10 +22,9 @@ case class BinaryPayoff(
   
 	override val variables = binaryVariables.toSet
 	
-//	val isInvalid:Boolean = payoff.collect{case (v, Some(lst)) => lst}.flatten.exists(_.isNaN)
 	val isInvalid:Boolean = payoff.exists{
-	  case (v, Some(lst)) => lst.exists(_.isNaN) || v.isNaN
-	  case (v, None) => v.isNaN
+	  case (v, Some(lst)) => lst.exists(v => v.isNaN || v.isInfinity) || v.isNaN || v.isInfinity
+	  case (v, None) => v.isNaN || v.isInfinity
 	}
 	
 	override val isPriceable:Boolean = !isInvalid
@@ -38,7 +37,7 @@ case class BinaryPayoff(
 	override def priceImpl(fixings:Map[String, Double]) = 
 	  if (payoff.isEmpty || isInvalid) Double.NaN
 	  else getFixings(fixings) match {
-	    case Some(fixValues) if fixValues.forall(!_.isNaN) => 
+	    case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => 
 	      payoff.map{
 	        case (v, None) => v
 	        case (v, Some(l)) if fixValues.corresponds(l) {_ >= _} => v
@@ -47,7 +46,7 @@ case class BinaryPayoff(
 	  }
 	  
 	override def priceImpl(fixing:Double) =
-	  if (payoff.isEmpty || isInvalid || variables.size != 1 || fixing.isNaN) Double.NaN
+	  if (payoff.isEmpty || isInvalid || variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
 	  else payoff.map{
 	    case (v, None) => v 
 	    case (v, Some(l)) if fixing > l.head => v

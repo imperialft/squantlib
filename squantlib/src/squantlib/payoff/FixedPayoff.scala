@@ -16,7 +16,7 @@ case class FixedPayoff(payoff:Double, description:String = null) extends Payoff 
 	
 	override val variables:Set[String] = Set.empty
 	
-	override val isPriceable = !payoff.isNaN
+	override val isPriceable = !payoff.isNaN && !payoff.isInfinity
 	
 	override val isFixed = true
 	 

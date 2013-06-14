@@ -134,6 +134,10 @@ object DB extends Schema {
 
   def getCurrencyJNames:Map[String, String] = transaction {
       from(currencies)(c => select((&(c.id), &(c.name_jpn)))).toMap}
+  
+  def getIssuedCurrencies:Set[String] = transaction {
+    from (bonds) (b => select(&(b.currencyid))).distinct.toSet
+  }
 
   /**
    * Returns a Set of Distributors objects identified by a Set of ID.
@@ -938,13 +942,18 @@ object DB extends Schema {
       }.map(d => (d._1, d._2/d._3)).toMap
       
   def getLatestFX(ccy:String):Option[(JavaDate, Double)] = transaction {
-        val maxdate = from (fxrates)(fx => 
-          where((fx.paramset like "%-000") and (fx.currencyid === "AUD")) 
+        val maxdate:Option[JavaDate] = from (fxrates)(fx => 
+          where((fx.paramset like "%-000") and (fx.currencyid === ccy)) 
           compute(max(fx.paramdate)))
-          
-        from (fxrates)(fx => 
-          where((fx.paramset like "%-000") and (fx.currencyid === "AUD") and (fx.paramdate === maxdate)) 
-          select ((&(fx.paramdate), &(fx.fxjpy))))}.headOption
+        
+        maxdate match {
+          case None => None
+          case Some(d) => 
+            from (fxrates)(fx => 
+              where((fx.paramset like "%-000") and (fx.currencyid === ccy) and (fx.paramdate === maxdate)) 
+              select ((&(fx.paramdate), &(fx.fxjpy)))).headOption
+        }
+        }
 
   
   def getLatestFX(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
@@ -1225,7 +1234,9 @@ object DB extends Schema {
 	    select(&(bp.paramdate), &(bp.priceclean), &(bp.fxjpy))
 	  ).toSet}
 	  
-	  val basefx = if (bond.initialfx > 0) bond.initialfx else results.maxBy{case (d, p, f) => d}._3
+	  val basefx:Double = if (bond.initialfx > 0) bond.initialfx 
+			  else if (!results.isEmpty) results.maxBy{case (d, p, f) => d}._3
+			  else DB.getLatestFX(bond.currencyid).collect{case (d, v) => v}.getOrElse(1.0)
 	  
 	  results.map(v => (v._1, v._2 * v._3 / basefx)).toMap
   }}
@@ -1323,16 +1334,6 @@ object DB extends Schema {
     dataTable(data.getClass.getSimpleName.toString) match {
       case Some(t:Table[T]) => t.insertOrUpdate(data)
       case _ => println("table not found : " + data.getClass.getSimpleName.toString)
-    }
-  }
-  
-  def insertOrUpdateStringEntity[T<:StringEntity](data:Set[T]):Unit = transaction{
-    dataTable(data.head.getClass.getSimpleName.toString) match {
-      case Some(t:Table[T]) => 
-        val (currentitems, newitems) = data.partition(d => t.lookup(d.id).isDefined)
-        t.insert(newitems)
-        t.update(currentitems)
-      case _ => println("table not found : " +  data.head.getClass.getSimpleName.toString)
     }
   }
   
