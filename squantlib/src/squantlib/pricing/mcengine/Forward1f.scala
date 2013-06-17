@@ -2,6 +2,7 @@ package squantlib.pricing.mcengine
 
 import squantlib.math.random.RandomGenerator
 import squantlib.model.Underlying
+import squantlib.util.DisplayUtils._
 
 /* Simple Black-Scholes montecarlo pricer for FX
  * FX volatility is constant over time without smile, No rates volatility
@@ -35,6 +36,19 @@ case class Forward1f(
     (dates, List.fill(paths)(apath))
   }  
 
+  
+  override def modelStatus = {
+    var result = this.getClass.toString + "\n"
+    val dates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
+	
+	result += "spot: " + forward(0.0) + "\n"
+	result += List("date", "fwd").mkString("\t") + "\n"
+	result += dates.map(d => {
+	  List(d, forward(d)).map(_.asDouble).mkString("\t")
+	}).mkString("\n")
+	
+    result
+  }  
 }
 
 

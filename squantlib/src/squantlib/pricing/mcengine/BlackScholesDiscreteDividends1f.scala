@@ -3,6 +3,7 @@ package squantlib.pricing.mcengine
 import squantlib.math.random.{RandomGenerator, MersenneTwister}
 import squantlib.math.statistical.NormSInv
 import squantlib.model.equity.Equity
+import squantlib.util.DisplayUtils._
 
 
 /* Black-Scholes montecarlo generator with discrete dividends
@@ -89,6 +90,43 @@ case class BlackScholesDiscreteDividends1f(
     }
     
     (sortedEventDates, genpaths)
+  }
+  
+  override def modelStatus = {
+    var result = this.getClass.toString + "\n"
+    val eventDates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
+    
+    val relavantDivs:Map[Double, Double] = dividends.filter(d => d._1 > 0.0 && d._1 <= eventDates.max).toMap
+    val eventWithDivs:Map[Double, Double] = eventDates.map(d => (d, 0.0)).toMap
+    
+    val eventDivs:List[(Double, Double)] = (eventWithDivs ++ relavantDivs).toList.sortBy(_._1)
+    val dates:List[Double] = eventDivs.map(_._1)
+    
+    val steps = dates.size
+    val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
+
+    val ratedom = dates.map(rate)
+    val ratefor = dates.map(d => repoYield(d))
+    val sigma = dates.map(volatility)
+    
+    val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
+        (if (stepsize(i) == 0.0) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
+    
+    val fratefor = ratefor.head :: (for (i <- (1 to steps-1).toList) yield 
+        (if (stepsize(i) == 0.0) 0.0 else (ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
+    
+    val fsigma = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
+        (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
+    
+	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+	
+	result += "spot: " + spot + "\n"
+	result += List("date", "frate", "repo", "sigma", "drift", "div").mkString("\t") + "\n"
+	result += (0 to steps - 1).map(i => {
+	  List(dates(i), fratedom(i), fratefor(i), fsigma(i), drift(i), relavantDivs.get(dates(i)).getOrElse(0.0)).map(_.asDouble).mkString("\t")
+	}).mkString("\n")
+	
+    result
   }
 
 }

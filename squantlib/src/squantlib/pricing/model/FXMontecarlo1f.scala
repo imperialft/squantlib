@@ -55,6 +55,9 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	}
 	
 	override val priceType = "MODEL"
+	  
+	override val mcEngine = Some(mcengine)
+	  
 }
 
 

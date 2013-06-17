@@ -2,6 +2,7 @@ package squantlib.pricing.model
 
 import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod, ScheduledPayoffs}
 import squantlib.model.rates.DiscountCurve
+import squantlib.pricing.mcengine.MontecarloEngine
 
 trait PricingModel {
   
@@ -75,6 +76,17 @@ trait PricingModel {
    * Returns callable option price. Override if the product is callable.
    */
   val optionPrice:Option[Double] = None
+  
+  /*
+   * Returns calculation information
+   */
+  def priceInfo:String = ""
+    
+  /*
+   * Returns pricing engine
+   */
+  val mcEngine:Option[MontecarloEngine] = None
+    
   
 }
 

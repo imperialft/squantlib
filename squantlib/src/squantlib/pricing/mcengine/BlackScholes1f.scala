@@ -3,7 +3,7 @@ package squantlib.pricing.mcengine
 import squantlib.math.random.{RandomGenerator, MersenneTwister}
 import squantlib.math.statistical.NormSInv
 import squantlib.model.fx.FX
-
+import squantlib.util.DisplayUtils._
 
 /* Simple Black-Scholes montecarlo pricer.
  * - Continuous dividend
@@ -79,6 +79,38 @@ case class BlackScholes1f(
     }
     
     (dates, genpaths)
+  }
+  
+  
+  override def modelStatus = {
+    var result = this.getClass.toString + "\n"
+    val dates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
+    
+    val steps = dates.size
+    val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
+
+    val ratedom = dates.map(rate)
+    val ratefor = dates.map(dividendYield)
+    val sigma = dates.map(volatility)
+    
+    val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
+        (if (stepsize(i) == 0.0) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
+    
+    val fratefor = ratefor.head :: (for (i <- (1 to steps-1).toList) yield 
+        (if (stepsize(i) == 0.0) 0.0 else (ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
+    
+    val fsigma = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
+        (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
+    
+	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+	
+	result += "spot: " + spot + "\n"
+	result += List("date", "rdom", "rfor", "sigma", "drift").mkString("\t") + "\n"
+	result += (0 to steps - 1).map(i => {
+	  List(dates(i), fratedom(i), fratefor(i), fsigma(i), drift(i)).map(_.asDouble).mkString("\t")
+	}).mkString("\n")
+	
+    result
   }
 
 }

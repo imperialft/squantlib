@@ -56,7 +56,7 @@ case class PutDIAmericanPayoff(
 	  def price(fixings:T, isKnockedIn:Boolean):Double // Method to be implemented
 	  
 	  def isKnockIn(fixings:List[T]):Boolean = fixings.exists(isKnockIn(_))
-	  def price(fixings:T):Double = price(fixings, false)
+	  def price(fixings:T):Double = price(fixings, isKnockIn(fixings))
 	  def price(fixings:List[T]):Double = price(fixings.last, isKnockIn(fixings))
 	}
 	
@@ -74,12 +74,13 @@ case class PutDIAmericanPayoff(
 	implicit object DoubleInterpreter extends FixingInterpreter[Double] {
 	  override def isKnockIn(fixing:Double):Boolean = fixing <= trigger.head
 	  override def price(fixing:Double, isKnockedIn:Boolean):Double = 
-	    if (fixing.isNaN || fixing.isInfinity) Double.NaN
+	    if (fixing.isNaN || fixing.isInfinity || variables.size != 1) Double.NaN
 	    else if (isKnockedIn) amount * math.min(1.0, fixing / strike.head)
 	    else amount
 	  }
 	
 	def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
+	
 	def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
 	
 	override def priceImpl(fixings:List[Map[String, Double]]):Double = priceList(fixings)
@@ -88,7 +89,7 @@ case class PutDIAmericanPayoff(
 	
 	override def priceImpl[T:ClassManifest](fixings:List[Double]):Double = priceList(fixings)
 	
-	override def priceImpl(fixings:Double):Double = priceSingle(fixings)
+	override def priceImpl(fixing:Double):Double = priceSingle(fixing)
 	
 	override def priceImpl = Double.NaN
 	

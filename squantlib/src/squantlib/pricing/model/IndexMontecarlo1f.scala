@@ -46,6 +46,8 @@ case class IndexMontecarlo1f(valuedate:qlDate,
 	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
 	
 	override val priceType = "MODEL"
+	  
+	override val mcEngine = Some(mcengine)
 }
 
 
