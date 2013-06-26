@@ -86,12 +86,14 @@ class Bond(@Column("ID")					override var id: String,
   
   def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(redemprice, fixings)
   
-  def tbdParameter:Option[String] = (coupon.contains("tbd"), redemprice.contains("tbd"), call.contains("tbd")) match {
+  def tbdParameter:Option[String] = (containsN(coupon, "tbd"), containsN(redemprice, "tbd"), containsN(call, "tbd")) match {
   	 case (true, false, false) => Some(coupon)
   	 case (false, true, false) => Some(redemprice)
   	 case (false, false, true) => Some(call)
   	 case _ => None
   }
+  
+  def containsN(s:String, t:String):Boolean = (s != null) && (s contains t)
   
   def containsTbd:Boolean = tbdParameter.isDefined
   

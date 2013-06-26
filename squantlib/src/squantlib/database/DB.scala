@@ -345,6 +345,10 @@ object DB extends Schema {
     latestprices.deleteWhere(b => b.bondid === bondid)
   }
   
+  def getPricedParamSetsAfter(basedate:JavaDate):Set[(String, JavaDate)] = 
+    getParamSets.filter{case (pset, pdate) => pdate > basedate}
+  
+  
   def cleanHistoricalPrice:Int = {
     val pricedbonds = getLatestPrices.filter(_.isPriced).map(_.bondid)
     transaction{
