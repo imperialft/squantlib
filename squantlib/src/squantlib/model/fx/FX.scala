@@ -76,6 +76,6 @@ trait FX extends Underlying {
     def rateFor(dayfrac:Double, dayCounter:DayCounter) = curveFor.impliedRate(dayfrac, dayCounter)
     def rateForY(years:Double) = curveFor.impliedRate(years * 365)
     
-    val maxDays = curveDom.maxdays.min(curveFor.maxdays)
+    override val maxDays = curveDom.maxdays.min(curveFor.maxdays)
     
 } 

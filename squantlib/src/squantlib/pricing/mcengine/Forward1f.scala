@@ -41,6 +41,7 @@ case class Forward1f(
     var result = this.getClass.toString + "\n"
     val dates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
 	
+	result += "forward rates\n"
 	result += "spot: " + forward(0.0) + "\n"
 	result += List("date", "fwd").mkString("\t") + "\n"
 	result += dates.map(d => {

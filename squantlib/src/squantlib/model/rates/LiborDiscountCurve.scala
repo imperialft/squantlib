@@ -15,8 +15,14 @@ import scala.collection.breakOut
    * - no 3m-Xm basis for X < 6 (implied by ZC interpolation 3m & 6m)
    * - no 6m-Xm basis for X > 6 (implied by ZC interpolation 6m & 12m)
    */
-case class LiborDiscountCurve (cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, fx:Double, vol:Option[RateVolatility]) 
-extends RateCurve{
+case class LiborDiscountCurve (
+    cash:CashCurve, 
+    swap:SwapCurve, 
+    basis:BasisSwapCurve, 
+    tenorbasis:TenorBasisSwapCurve, 
+    fx:Double, 
+    vol:Option[RateVolatility]) extends RateCurve {
+  
   require (
 		(cash == null || (cash.valuedate == swap.valuedate && cash.currency == swap.currency && cash.floatindex.dayCounter == swap.floatindex.dayCounter))
 		&& (swap == null || swap.valuedate == swap.valuedate)

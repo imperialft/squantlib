@@ -2,6 +2,7 @@ package squantlib.model
 
 import squantlib.database.fixings.Fixings
 import squantlib.database.DB
+import squantlib.util.UnderlyingParser
 import squantlib.model.rates.DiscountCurve
 import squantlib.util.initializer.Currencies
 import squantlib.util.DisplayUtils._
@@ -10,9 +11,11 @@ import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
 import java.util.{Date => JavaDate}
 
+
 /**
  * Underlying to be used for pricing models.
  */
+
 trait Underlying extends StaticAsset {
   
 	val valuedate:qlDate
@@ -160,15 +163,12 @@ trait Underlying extends StaticAsset {
 object Underlying {
   
 	def apply(param:String, market:Market) = getUnderlying(param, market)
-  
-	def getUnderlying(param:String, market:Market):Option[Underlying] = {
-	  if (param == null) None
-	  else param.trim match {
-	    case "NKY" => market.getIndex("NKY")
-	    case p if p.head.isDigit => market.getEquity(p)
-	    case p => market.getFX(p)
-	    }
-	}
+	
+	def getUnderlying(param:String, market:Market):Option[Underlying] = UnderlyingParser.getUnderlying(param, market)
+	
+  	val currencySet = Currencies.keySet
+  	
+	def isCcy(v:String):Boolean = currencySet contains v
   
 }
 

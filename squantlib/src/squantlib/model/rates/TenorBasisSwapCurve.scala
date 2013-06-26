@@ -18,10 +18,17 @@ import squantlib.model.rates.convention.RateConvention
  * @constructor stores each information
  * @param daycount and frequency convention (should be quarterly with standard cash daycount)
  */
-case class TenorBasisSwapCurve (rate:YieldParameter, shortindex:IborIndex, longindex:IborIndex) extends AbstractCurve {
+case class TenorBasisSwapCurve (
+    rate:YieldParameter, 
+    shortindex:IborIndex, 
+    longindex:IborIndex) extends AbstractCurve {
+
   require(shortindex.tenor().length == 3 && longindex.tenor().length == 6 && shortindex.currency == longindex.currency)
+  
   val currency = shortindex.currency
+  
   def shifted(shift:(Double, Double) => Double):TenorBasisSwapCurve = new TenorBasisSwapCurve(rate.shifted(shift), shortindex, longindex)
+  
 }
 
 object TenorBasisSwapCurve{

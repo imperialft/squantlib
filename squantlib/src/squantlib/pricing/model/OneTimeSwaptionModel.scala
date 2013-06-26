@@ -8,7 +8,13 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.mcengine.SwaptionFormula
 
 
-case class OneTimeSwaptionModel(scheduledPayoffs:ScheduledPayoffs, valueDate:qlDate, optionDate:qlDate, maturity:qlDate, strike:Double, curve:DiscountCurve) extends PricingModel {
+case class OneTimeSwaptionModel(
+    scheduledPayoffs:ScheduledPayoffs, 
+    valueDate:qlDate, 
+    optionDate:qlDate, 
+    maturity:qlDate, 
+    strike:Double, 
+    curve:DiscountCurve) extends PricingModel {
   
 	val swaptionPrice = {
 	  val exp = (optionDate.serialNumber.toDouble - valueDate.serialNumber.toDouble) / 365.0

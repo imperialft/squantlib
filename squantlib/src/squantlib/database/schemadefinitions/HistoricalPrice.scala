@@ -21,6 +21,14 @@ class HistoricalPrice(
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
+  def isPriced = !(HistoricalPrice.noPriceKeys contains pricetype)
+  
+  def isMatured = HistoricalPrice.maturedKeys contains pricetype
+  
+  def isError = HistoricalPrice.errorKeys contains pricetype
+  
+  def isNotIssued = HistoricalPrice.notIssuedKeys contains pricetype
+    
   def this() = this(
 		id = null,
 		bondid = null,
@@ -49,4 +57,13 @@ class HistoricalPrice(
 		"Created:\t" + created
 		).mkString("\n")
       
+}
+
+object HistoricalPrice {
+  
+  val errorKeys = Set("NOPRICE")
+  val maturedKeys = Set("MATURED")
+  val notIssuedKeys = Set("PREISSUE")
+  val noPriceKeys = errorKeys ++ maturedKeys ++ notIssuedKeys
+
 }

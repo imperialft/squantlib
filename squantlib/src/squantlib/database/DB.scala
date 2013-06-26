@@ -214,7 +214,7 @@ object DB extends Schema {
   def getPricedBondIds:Set[String] = {
     val bonds:Set[(String, String)] = transaction{from(latestprices)(b => select((&(b.bondid), &(b.pricetype)))).toSet}
     import squantlib.database.schemadefinitions.LatestPrice
-    bonds.filter{case (b, t) => !(LatestPrice.noPriceKeys contains t)}.map(_._1)
+    bonds.filter{case (b, t) => !(HistoricalPrice.noPriceKeys contains t)}.map(_._1)
   }
   
   def removeBond(id:String):Unit = {
@@ -350,6 +350,12 @@ object DB extends Schema {
     transaction{
       historicalprices.deleteWhere(b => (b.bondid in pricedbonds) and (b.pricetype === "NOPRICE"))
     }
+  }
+  
+  def getLatestHistoricalPrices:Set[HistoricalPrice] = transaction{
+    val latestdates = from(historicalprices)(p => groupBy(p.bondid) compute(max(p.paramdate)))
+    from(historicalprices, latestdates)((p, d) => where (p.bondid === d.key and p.paramdate === d.measures) select (p)).toSet
+//    println(latestprices.statement)
   }
   
   /**
@@ -890,78 +896,65 @@ object DB extends Schema {
   
   def getFXParams(ccy:String):Map[JavaDate, Double] = transaction {
       from(fxrates)(ip =>
-        where((ip.paramset like "%-000") and ip.currencyid === ccy)
+        where(ip.currencyid === ccy)
         select((&(ip.paramdate), &(ip.fxjpy)))).toMap
     }
   
-  def getFXParams(ccy:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = 
+  def getFXParams(ccy:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = transaction {
     if (start != null && end != null) 
-      transaction {
         from(fxrates)(ip =>
         where(
-          (ip.paramset like "%-000") and
           ip.currencyid === ccy and
           (ip.paramdate gte start) and
           (ip.paramdate lte end)
         )
         select((&(ip.paramdate), &(ip.fxjpy)))).toMap
-      }
     else
-      transaction {
         from(fxrates)(ip =>
-        where(
-          (ip.paramset like "%-000") and
-          ip.currencyid === ccy
-        )
+        where(ip.currencyid === ccy)
         select((&(ip.paramdate), &(ip.fxjpy)))).toMap
       }
       
   
   def getFXParams(ccy1:String, ccy2:String):Map[JavaDate, Double] = getFXParams(ccy1, ccy2, null, null)
   
-  def getFXParams(ccy1:String, ccy2:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = 
+  def getFXParams(ccy1:String, ccy2:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = transaction{
     if (start != null && end != null) 
-      transaction{from(fxrates, fxrates)((fx1, fx2) =>
+      from(fxrates, fxrates)((fx1, fx2) =>
         where(
-          (fx1.paramset like "%-000") and
           (fx1.paramset === fx2.paramset) and
           (fx1.currencyid === ccy1) and
           (fx2.currencyid === ccy2) and
           (fx1.paramdate gte start) and
           (fx1.paramdate lte end)
         )
-        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
-      }.map(d => (d._1, d._2/d._3)).toMap
+        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy)))).map(d => (d._1, d._2/d._3)).toMap
     else
-      transaction{from(fxrates, fxrates)((fx1, fx2) =>
+      from(fxrates, fxrates)((fx1, fx2) =>
         where(
-          (fx1.paramset like "%-000") and
           (fx1.paramset === fx2.paramset) and
           (fx1.currencyid === ccy1) and
           (fx2.currencyid === ccy2) 
         )
-        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy))))
-      }.map(d => (d._1, d._2/d._3)).toMap
+        select((&(fx1.paramdate), &(fx1.fxjpy), &(fx2.fxjpy)))).map(d => (d._1, d._2/d._3)).toMap}
       
   def getLatestFX(ccy:String):Option[(JavaDate, Double)] = transaction {
-        val maxdate:Option[JavaDate] = from (fxrates)(fx => 
-          where((fx.paramset like "%-000") and (fx.currencyid === ccy)) 
-          compute(max(fx.paramdate)))
+    val maxdate:Option[JavaDate] = from (fxrates)(fx => 
+      where((fx.currencyid === ccy)) 
+      compute(max(fx.paramdate)))
         
-        maxdate match {
-          case None => None
-          case Some(d) => 
-            from (fxrates)(fx => 
-              where((fx.paramset like "%-000") and (fx.currencyid === ccy) and (fx.paramdate === maxdate)) 
-              select ((&(fx.paramdate), &(fx.fxjpy)))).headOption
-        }
-        }
+      maxdate match {
+        case None => None
+        case Some(d) => 
+          from (fxrates)(fx => 
+          where(fx.currencyid === ccy and fx.paramdate === maxdate) 
+          select ((&(fx.paramdate), &(fx.fxjpy)))).headOption
+  }}
 
   
   def getLatestFX(ccy:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction {
       from(fxrates)(ip =>
         where(
-          (ip.paramset like "%-000") and
           (ip.paramdate lte valuedate) and
           ip.currencyid === ccy
         )
@@ -972,7 +965,6 @@ object DB extends Schema {
   def getLatestFX(ccy1:String, ccy2:String, valuedate:JavaDate):Option[(JavaDate, Double)] = transaction{
       from(fxrates, fxrates)((fx1, fx2) =>
         where(
-          (fx1.paramset like "%-000") and
           (fx1.paramdate lte valuedate) and
           (fx1.paramset === fx2.paramset) and
           (fx1.currencyid === ccy1) and
@@ -1008,10 +1000,7 @@ object DB extends Schema {
    */
   def getFXTimeSeries(ccy:String):Map[JavaDate, Double] = transaction {
       from(fxrates)(fx =>
-        where(
-          (fx.paramset like "%-000") and
-          fx.currencyid === ccy
-        )
+        where(fx.currencyid === ccy)
         select((&(fx.paramdate), &(fx.fxjpy)))
       ).toMap
 	 }
@@ -1027,7 +1016,6 @@ object DB extends Schema {
 	  else transaction{
 		      from(fxrates, fxrates)((fx1, fx2) =>
 		        where(
-		          (fx1.paramset like "%-000") and
 		          fx1.paramset === fx2.paramset and
 		          fx1.currencyid === currency1 and
 		          fx2.currencyid === currency2
@@ -1042,18 +1030,14 @@ object DB extends Schema {
    *
    * @return fx1 Currency to be measured in JPY.
    */
-  def getFXTimeSeries(currencylist:Set[String]):Map[String, Map[JavaDate, Double]] = 
-	    transaction {
-	      currencylist.map( c =>
-	        (c, 
-		      from(fxrates)(p =>
-		        where(
-		            (p.paramset like "%-000") and 
-		            p.currencyid === c)
-		        select((&(p.paramdate), &(p.fxjpy)))
-		      ).toMap
-		      )).toMap
-		 }
+  def getFXTimeSeries(currencylist:Set[String]):Map[String, Map[JavaDate, Double]] = transaction {
+      currencylist.map( c =>
+        (c, 
+		from(fxrates)(p =>
+		where(p.currencyid === c)
+		select((&(p.paramdate), &(p.fxjpy)))
+		).toMap)).toMap
+	}
   
   
   /**
@@ -1064,8 +1048,7 @@ object DB extends Schema {
    * @param toDate A ending point of Date. Range includes this date.
    * @return fx1 Currency to be measured in JPY.
    */
-  def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, currency:String):Map[JavaDate, Double] =
-    transaction {
+  def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, currency:String):Map[JavaDate, Double] = transaction {
       from(fxrates)(fx =>
         where(
           (fx.paramset like "%-000") and

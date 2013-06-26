@@ -22,19 +22,17 @@ case class CashCurve (rate:YieldParameter, floatindex:IborIndex) extends Abstrac
 
 object CashCurve {
   
-	def buildCurve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter
-		= (values.keySet.size) match {
-			case 1 => FlatVector(valuedate, values)
-			case 2 => LinearNoExtrapolation(valuedate, values)
-			case _ => SplineNoExtrapolation(valuedate, values, 2) } 
+  def buildCurve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter = values.keySet.size match {
+    case 1 => FlatVector(valuedate, values)
+	case 2 => LinearNoExtrapolation(valuedate, values)
+	case _ => SplineNoExtrapolation(valuedate, values, 2) } 
 	
-	def apply(valuedate:qlDate, currency:String, value:Double):Option[CashCurve] 
-		= apply(valuedate, currency, Map(new qlPeriod("1Y") -> value))
+  def apply(valuedate:qlDate, currency:String, value:Double):Option[CashCurve] = apply(valuedate, currency, Map(new qlPeriod("1Y") -> value))
 	
-	def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[CashCurve] 
+  def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[CashCurve] 
 		= apply(buildCurve(valuedate, values), currency)
   
-	def apply(curve:YieldParameter, currency:String):Option[CashCurve]
+  def apply(curve:YieldParameter, currency:String):Option[CashCurve]
 		= RateConvention(currency) collect {case conv => CashCurve(curve, conv.iborindex(new qlPeriod(6, TimeUnit.Months)))}
   
 }

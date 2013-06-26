@@ -139,6 +139,10 @@ class Market(
 	private def ratecurve(c:String):RateCurve = 
 	  if (discountingCurves.contains(c)) discountingCurves(c) 
 	  else throw new ClassCastException
+	  
+	  
+	def getCashUnderlying(ccy:String, tenor:qlPeriod):Option[CashRate] = 
+	  getDiscountCurve(ccy, ccy, 0.0).collect{case c => CashRate(c, tenor, get3M6MCurve(ccy))}
 	
 	/**
 	 * Returns zero volatility FX object representing the FX exchange rate between given currencies.
@@ -219,6 +223,8 @@ class Market(
 	
 	def get3M6M(ccy:String, maturity:qlPeriod):Option[Double] = 
 	  getRateCurve(ccy).flatMap(c => try {Some(c.tenorbasis(maturity))} catch { case _:Throwable => None })
+	  
+	def get3M6MCurve(ccy:String):Option[TenorBasisSwapCurve] = getRateCurve(ccy).collect{case c => c.tenorbasis}
 	  
 	/**
 	 * Returns FX curve for the given currency.

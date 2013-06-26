@@ -15,6 +15,8 @@ object DefaultBondSetting extends BondSetting {
 	  "SB" -> NoModelSetting,
 	  "STEPUP" -> NoModelSetting,
 	  
+	  "FRN" -> ForwardModelSetting,
+	  
 	  "JGBR10F" -> JGBRModelSetting,
 	  "JGBR10N" -> JGBRModelSetting,
 	  "JGBR3" -> JGBRModelSetting,
@@ -62,6 +64,16 @@ object NoModelSetting extends BondSetting {
   
 }
 
+object ForwardModelSetting extends BondSetting {
+  
+  override def apply(bond:Bond) = {
+    bond.defaultModel = (m:Market, b:Bond) => Forward(m, b)
+	bond.forceModel = false
+	bond.useCouponAsYield = false
+    bond.requiresCalibration = false
+  }
+  
+}
 
 object JGBRModelSetting extends BondSetting {
   

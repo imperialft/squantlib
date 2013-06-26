@@ -16,7 +16,12 @@ import java.lang.UnsupportedOperationException
  * value = discount factor, ZCspread = discount spread on 3m float rate (not defined on FX discount)
  */
 
-case class DiscountCurve(currency:Currency, zc:YieldParameter, discountspread:YieldParameter, fx:Double, vol:Option[RateVolatility]) extends YieldParameter {
+case class DiscountCurve(
+    currency:Currency, 
+    zc:YieldParameter, 
+    discountspread:YieldParameter, 
+    fx:Double, 
+    vol:Option[RateVolatility]) extends YieldParameter {
   
 	private var vd = zc.valuedate
   
@@ -54,10 +59,20 @@ case class DiscountCurve(currency:Currency, zc:YieldParameter, discountspread:Yi
     def impliedRate(date:qlDate):Double = impliedRate(date.serialNumber - valuedate.serialNumber)
     def impliedRate(period:qlPeriod):Double = impliedRate(period.days(valuedate))
     
+    def impliedLibor(days:Double, dayCounter:DayCounter):Double = (1.0 / value(days) - 1.0) / (days / dayCounter.annualDayCount)
+    def impliedLibor(days:Long, dayCounter:DayCounter):Double = impliedLibor(days, dayCounter)
+    def impliedLibor(date:qlDate, dayCounter:DayCounter):Double = impliedLibor(date.serialNumber - valuedate.serialNumber, dayCounter)
+    def impliedLibor(period:qlPeriod, dayCounter:DayCounter):Double = impliedLibor(period.days(valuedate), dayCounter)
+    
     def forwardRate(expiry:Double, maturity:Double):Double = (impliedRate(expiry + maturity) * (expiry + maturity) - impliedRate(expiry) * (expiry)) / maturity
     def forwardRate(expiry:Long, maturity:Long):Double = forwardRate(expiry.toDouble, maturity.toDouble)
     def forwardRate(expiry:qlDate, maturity:qlDate):Double = forwardRate(expiry.serialNumber - valuedate.serialNumber, maturity.serialNumber - expiry.serialNumber)
     def forwardRate(expiry:qlPeriod, maturity:qlPeriod):Double = forwardRate(expiry.days(valuedate), maturity.days(valuedate) - expiry.days(valuedate))
+    
+    def forwardRate(expiry:Double, maturity:Double, dayCounter:DayCounter):Double = (math.exp(forwardRate(expiry, maturity) * maturity / 365.0) - 1.0) / (maturity / 365.0 * dayCounter.annualDayCount)
+    def forwardRate(expiry:Long, maturity:Long, dayCounter:DayCounter):Double = forwardRate(expiry.toDouble, maturity.toDouble, dayCounter)
+    def forwardRate(expiry:qlDate, maturity:qlDate, dayCounter:DayCounter):Double = forwardRate(expiry.serialNumber - valuedate.serialNumber, maturity.serialNumber - expiry.serialNumber, dayCounter)
+    def forwardRate(expiry:qlPeriod, maturity:qlPeriod, dayCounter:DayCounter):Double = forwardRate(expiry.days(valuedate), maturity.days(valuedate) - expiry.days(valuedate), dayCounter)
     
     def volatility(expiry:Double, maturity:Double):Option[Double] = vol.collect{case v => v(expiry, maturity)}
     def volatility(expiry:Long, maturity:Long):Option[Double] = vol.collect{case v => v(expiry, maturity)}

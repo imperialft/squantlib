@@ -104,6 +104,7 @@ case class BlackScholes1f(
     
 	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
 	
+	result += "forward rates\n"
 	result += "spot: " + spot + "\n"
 	result += List("date", "rdom", "rfor", "sigma", "drift").mkString("\t") + "\n"
 	result += (0 to steps - 1).map(i => {
