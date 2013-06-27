@@ -78,7 +78,7 @@ class Bond(@Column("ID")					override var id: String,
   
   protected def updateFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
   						
-  def fixedCoupon(fixings:Map[String, Any]):String = updateFixing(coupon, fixings)
+  def fixedCoupon(fixings:Map[String, Any]):String = updateFixing(if (coupon == null) "" else coupon, fixings)
   
   def couponList:List[String] = stringList(coupon)
   

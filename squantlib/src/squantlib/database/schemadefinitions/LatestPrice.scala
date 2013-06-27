@@ -163,6 +163,7 @@ object LatestPrice {
   val errorKeys = Set("NOPRICE")
   val maturedKeys = Set("MATURED")
   val notIssuedKeys = Set("PREISSUE")
+  val pricedKeys = Set("MODEL", "PUBLISHED")
   val noPriceKeys = errorKeys ++ maturedKeys ++ notIssuedKeys
 
 }

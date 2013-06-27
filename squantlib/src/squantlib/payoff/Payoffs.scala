@@ -197,13 +197,11 @@ object Payoffs {
 	def apply(payoffs:LinearSeq[Payoff]) = new Payoffs(payoffs.toList)
 	
 	def apply(formula:String, legs:Int = 0):Option[Payoffs] =	{
-	  if (formula == null || formula.trim.isEmpty) None
+	  if (formula == null || formula.trim.isEmpty) {
+	    def getNullPayoff = new NullPayoff
+	    Some(Payoffs(List.fill(legs)(getNullPayoff)))
+	  }
 	  else {
-//	    val payofflist:List[Payoff] = formula.jsonNode match {
-//	      case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f))).flatten
-//	      case _ => formula.split(";").toList.map(getPayoff).flatten
-//	    }
-	    
 	    val payofflist:List[Payoff] = formula.jsonNode match {
 	      case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f))).flatten
 	      case _ => formula.split(";").toList.map(getPayoff).flatten

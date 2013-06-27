@@ -211,10 +211,16 @@ object DB extends Schema {
     bonds.filter(b => prices.keySet contains b.id).map(b => (b, prices(b.id)))
   }
   
-  def getPricedBondIds:Set[String] = {
+  def getLatestPricedBondIds:Set[String] = {
     val bonds:Set[(String, String)] = transaction{from(latestprices)(b => select((&(b.bondid), &(b.pricetype)))).toSet}
-    import squantlib.database.schemadefinitions.LatestPrice
     bonds.filter{case (b, t) => !(HistoricalPrice.noPriceKeys contains t)}.map(_._1)
+  }
+  
+  def getHistoricalPricedBondIds:Set[String] = {
+    val nopricedtypes = HistoricalPrice.noPriceKeys
+    transaction {
+      from (historicalprices)(p => where (not (p.pricetype in nopricedtypes)) select (&(p.bondid))).distinct.toSet
+    }
   }
   
   def removeBond(id:String):Unit = {
