@@ -153,6 +153,7 @@ class Market(
 	  val curveFor = getBaseDiscountCurve(ccyFor)
 	  if ((curveDom isDefined) && (curveFor isDefined)) {
 	    if (fxInitializers.contains(ccyFor + ccyDom)) fxInitializers(ccyFor + ccyDom).getModel(curveDom.get, curveFor.get)
+	    else if (fxInitializers.contains(ccyDom + ccyFor)) fxInitializers(ccyDom + ccyFor).getNoSmileModel(curveDom.get, curveFor.get)
 	    else Some(FXzeroVol(curveDom.get, curveFor.get))
 	    }
 	  else None

@@ -114,7 +114,7 @@ trait Payoff extends FixingLeg {
 object Payoff {
   
 	def apply(formula:String):Option[Payoff] =
-	  if (formula == null || formula.trim.isEmpty) None
+	  if (formula == null || formula.trim.isEmpty) Some(NullPayoff(""))
 	  else Some(payoffType(formula) match {
 	    case "fixed" => FixedPayoff(formula)
 		case "leps1d" => LEPS1dPayoff(formula)

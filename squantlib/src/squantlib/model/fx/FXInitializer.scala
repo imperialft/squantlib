@@ -21,6 +21,11 @@ class FXInitializer (
 	  if (vol.size > 0 && rr25.size > 0 && rr10.size > 0 && bf25.size > 0 && bf10.size > 0) FXnoSmile(curveDom, curveFor, this)
 	  else if (vol.size > 0) FXnoSmile(curveDom, curveFor, this)
 	  else None
+	  
+	def getNoSmileModel(curveDom:DiscountCurve, curveFor:DiscountCurve):Option[FX] = 
+	  if (vol.size > 0 && rr25.size > 0 && rr10.size > 0 && bf25.size > 0 && bf10.size > 0) FXnoSmile(curveDom, curveFor, this)
+	  else if (vol.size > 0) FXnoSmile(curveDom, curveFor, this)
+	  else None
 	
 	def isEmpty = vol.isEmpty
 	

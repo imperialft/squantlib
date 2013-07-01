@@ -104,7 +104,7 @@ object YieldParameter {
   def apply(valuedate:qlDate, data:Map[Double, Double]):Option[YieldParameter] = data.size match {
     case s if s > 2 => Some(SplineNoExtrapolation(valuedate, data))
     case 2 => Some(LinearNoExtrapolation(valuedate, data))
-    case 1 => Some(FlatVector(valuedate, data.head._1))
+    case 1 => Some(FlatVector(valuedate, data.head._2))
     case _ => None
   }
   

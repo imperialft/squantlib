@@ -38,7 +38,8 @@ object DefaultBondSetting extends BondSetting {
 	      
 	  "NKY" -> IndexMcModelSetting,
 	      
-	  "EB" -> EquityMcModelSetting
+	  "EB" -> EquityMcModelSetting,
+	  "ETF" -> EquityMcModelSetting
 	  
   )
   

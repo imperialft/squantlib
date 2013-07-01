@@ -76,7 +76,8 @@ case class EquityFlatDivATM(
     }).getOrElse(RepoCurve.zeroCurve(valuedate))
     
     val vol:YieldParameter = (params.get(volid) match {
-      case Some(vols) => YieldParameter(valuedate, vols.map(p => (new qlPeriod(p.maturity), p.value)).toMap)
+      case Some(vols) => 
+        YieldParameter(valuedate, vols.map(p => (new qlPeriod(p.maturity), p.value)).toMap)
       case None => None
     }).getOrElse(YieldParameter(valuedate, Double.NaN).get)
      

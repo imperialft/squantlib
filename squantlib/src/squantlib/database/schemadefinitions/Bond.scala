@@ -65,7 +65,7 @@ class Bond(@Column("ID")					override var id: String,
               @Column("LastModified")		var lastmodified : Option[Date]
               ) extends StringEntity {
   
-  def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo", "comment", "settings", "targetyield", "currentcoupon", "pricetype", "defaultvol")
+  def autoUpdateFields = List("lastmodified","created", "initialfx", "fixings", "shortname", "underlyinginfo", "comment", "settings", "targetyield", "currentcoupon", "pricetype", "defaultvol", "cpnnotice")
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
@@ -84,7 +84,7 @@ class Bond(@Column("ID")					override var id: String,
   
   def couponList(fixings:Map[String, Any]):List[String] = stringList(updateFixing(coupon, fixings))
   
-  def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(redemprice, fixings)
+  def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(if (redemprice == null) "" else redemprice, fixings)
   
   def tbdParameter:Option[String] = (containsN(coupon, "tbd"), containsN(redemprice, "tbd"), containsN(call, "tbd")) match {
   	 case (true, false, false) => Some(coupon)

@@ -16,7 +16,7 @@ import org.jquantlib.daycounters.Actual365Fixed
 case class EquityMontecarlo1f(valuedate:qlDate, 
 					  mcengine:Montecarlo1f, 
 					  scheduledPayoffs:ScheduledPayoffs, 
-					  Equity:Equity,
+					  equity:Equity,
 					  defaultPaths:Int) extends PricingModel {
   
 	mcPaths = defaultPaths
@@ -48,7 +48,7 @@ case class EquityMontecarlo1f(valuedate:qlDate,
 	override val priceType = "MODEL"
 	  
 	override def priceInfo = {
-	  var result = "mcdates\taverage/1000paths"
+	  var result = "mcdates\taverage/1000paths\n"
 	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, 1000)
 	  result += (mcdates, mcpaths).zipped.map{case (d, p) => d.toString + "\t" + (p.sum / p.size)}.mkString("\n")
