@@ -50,17 +50,6 @@ object Fixings {
 	      case r => Some(r.map{case (d, v) => (new qlDate(d), v)})
 	  }
 	}
-	
-  	val currencySet = Currencies.keySet
-  	
-	def isCcy(v:String):Boolean = currencySet contains v
-	
-	private val cashPeriods = Set("M", "W", "D")
-	
-	private val swapPeriods = Set("Y")
-	
-	private def isNumber(v:String):Boolean = try {v.toInt; true} catch {case _:Throwable => false}
-	
 }
 
 

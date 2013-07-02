@@ -11,6 +11,7 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.model.bond.BondSetting
 import squantlib.util.initializer.{DayAdjustments, Currencies, Daycounters}
 import squantlib.util.JsonUtils._
+import squantlib.util.{CurrencyParser, FxParser, UnderlyingParser}
 import squantlib.database.fixings.Fixings
 import squantlib.pricing.model.{PricingModel, NoModel}
 import squantlib.math.solver._
@@ -572,21 +573,24 @@ case class Bond(
 	/*	
 	 * List of underlying currencies
 	 */
+	
 	def currencyList:Set[String] = {
-	  var result = scala.collection.mutable.Set.empty[String]
-	  livePayoffs.payoffs.underlyings.foreach {
-	    case c if c.size == 6 => if (Currencies contains (c take 3)) result += (c take 3)
-			  				  if (Currencies contains (c takeRight 3)) result += (c takeRight 3)
-	    case c if c.size >= 3 => if (Currencies contains (c take 3)) result += (c take 3)
-	    case _ => {}
-	  }
-	  (result + currency.code).toSet
+	  val ulset:Set[String] = underlyings.toSet
+	  val ulccys:Set[String] = ulset.map(ul => {
+	    UnderlyingParser.getParser(ul) match {
+	    case Some(p:CurrencyParser) => Set(ul)
+	    case Some(p:FxParser) => Set(ul take 3, ul takeRight 3)
+	    case _ => Set.empty
+	  }}).flatten
+	  ulccys + currency.code
 	}
 
-	def greek(target:Bond => Option[Double], operation:Market => Market) = market.flatMap { case mkt =>
+	def greek(target:Bond => Option[Double], operation:Market => Option[Market]):Option[Double] = market.flatMap { case mkt =>
 	  val initprice = target(this)
 	  val newBond = this.clone
-	  newBond.market = operation(mkt)
+	  val newmkt = operation(mkt).orNull
+	  if (newmkt == null) {return None}
+	  newBond.market = newmkt
 	  val newprice = target(newBond)
 	  (initprice, newprice) match { 
 	    case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some(n - i) 
@@ -600,7 +604,7 @@ case class Bond(
 	
 	def rateDelta(ccy:String, shift:Double):Option[Double] = rateDelta((b:Bond) => b.modelPrice, Map(ccy -> shift))
 		
-	def rateDelta(target:Bond => Option[Double], shift:Map[String, Double]):Option[Double] = greek(target, (m:Market) => m.rateShifted(shift))
+	def rateDelta(target:Bond => Option[Double], shift:Map[String, Double]):Option[Double] = greek(target, (m:Market) => Some(m.rateShifted(shift)))
 
 	
 	/*	
@@ -613,7 +617,7 @@ case class Bond(
 	 */
 	def fxDelta(ccy:String, mult:Double):Option[Double] = fxDelta((b:Bond) => b.modelPrice, Map(ccy -> mult))
 	
-	def fxDelta(target:Bond => Option[Double], mult:Map[String, Double]):Option[Double]	= greek(target, (m:Market) => m.fxShifted(mult))
+	def fxDelta(target:Bond => Option[Double], mult:Map[String, Double]):Option[Double]	= greek(target, (m:Market) => Some(m.fxShifted(mult)))
 	
 	/*	
 	 * Returns FX delta for all involved currencies.
@@ -632,9 +636,9 @@ case class Bond(
 	 */
 	def fxDeltaOneJpy:Map[String, Double] = market match {
 	  case None => Map.empty
-	  case Some(mkt) => (currencyList - "JPY").map(f => mkt.fx(f, "JPY") match {
-	      case Some(fx) => (f + "JPY", fxDelta((b:Bond) => b.modelPriceJpy, Map(f -> fx/(fx+1))))
-	      case None => (f + "JPY", None)
+	  case Some(mkt) => (currencyList - "JPY").map(ccy => mkt.fx(ccy, "JPY") match {
+	      case Some(fx) => (ccy + "JPY", fxDelta((b:Bond) => b.modelPriceJpy, Map(ccy -> fx/(fx+1))))
+	      case None => (ccy + "JPY", None)
 	    }).collect{case (a, Some(b)) => (a, b)}(breakOut)}
 	    
 	
@@ -651,8 +655,25 @@ case class Bond(
 	
 	def fxVega(ccypair:String, addvol:Double):Option[Double] = fxVega((b:Bond) => b.modelPrice, Map(ccypair -> addvol))
 	
-	def fxVega(target:Bond => Option[Double], addvol:Map[String, Double]):Option[Double] = greek(target, (m:Market) => m.fxVolShifted(addvol))
+	def fxVega(target:Bond => Option[Double], addvol:Map[String, Double]):Option[Double] = greek(target, (m:Market) => Some(m.fxVolShifted(addvol)))
 	  
+	
+	/*	
+	 * Returns delta for any underlying
+	 */
+	def underlyingDelta(id:String, shift:Double):Option[Double] = greek((b:Bond) => b.modelPrice, (m:Market) => m.underlyingShifted(id, shift))
+	
+	def underlyingDeltas(shift:Double):Map[String, Option[Double]] = {
+	  val uls = underlyings ++ currencyList.filter(_ != "JPY").map(_ + "JPY")
+	  uls.map(ul => (ul, underlyingDelta(ul, shift)))(collection.breakOut)
+	}
+	
+	def underlyingVega(id:String, shift:Double):Option[Double] = greek((b:Bond) => b.modelPrice, (m:Market) => m.underlyingVolShifted(id, shift))
+	
+	def underlyingVegas(shift:Double):Map[String, Option[Double]] = {
+	  val uls = underlyings ++ currencyList.filter(_ != "JPY").map(_ + "JPY")
+	  uls.map(ul => (ul, underlyingVega(ul, shift))) (collection.breakOut)
+	}
 	
 	/*
      * Cash-flow convexity
@@ -740,6 +761,8 @@ case class Bond(
 	      price.fxDelta = mapToJsonString(fxDeltas(1.01))
 	      price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
 	      price.fxVega = mapToJsonString(fxVegas(0.01))
+	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (k, v * 100.0)})
+	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (k, v)})
 	      if (cleanPrice.isDefined) price.pricetype = "PREISSUE"
 	    }
 	      
@@ -763,6 +786,8 @@ case class Bond(
 	      price.fxDelta = mapToJsonString(fxDeltas(1.01))
 	      price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
 	      price.fxVega = mapToJsonString(fxVegas(0.01))
+	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (k, v * 100.0)})
+	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (k, v)})
 	      price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")	        
 	    }
 	    

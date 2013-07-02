@@ -19,6 +19,11 @@ trait EquityInitializer {
   
   def getModel(market:Market):Option[Equity]
   
+  def mult(x:Double):EquityInitializer
+  
+  def addVol(x:Double):EquityInitializer
+  
+  def addDividend(x:Double):EquityInitializer
 }
 
 object EquityInitializer {
@@ -31,57 +36,118 @@ object EquityInitializer {
   }
   
   val modelMap:Map[String, Set[RateFXParameter] => EquityInitializer] = 
-    equitylist.map{case (name, eqty) => (name, (p:Set[RateFXParameter]) => EquityFlatDivATM(name, p, eqty, eqty.currencyid, 0.0))
+    equitylist.map{case (name, eqty) => (name, (p:Set[RateFXParameter]) => SimpleInitializer(name, p, eqty, eqty.currencyid, 0.0))
   }
+}
+
+case class EmptyInitializer extends EquityInitializer {
+  override def getModel(market:Market):Option[Equity] = None
+  override def mult(x:Double):EquityInitializer = this
+  override def addVol(x:Double):EquityInitializer = this
+  override def addDividend(x:Double):EquityInitializer = this
 }
 
 case class EquityFlatDivATM(
     name:String, 
-    equityparams:Set[RateFXParameter], 
-    equityinfo:EquityInfo,
+    ccy:String,
+    spot:Double, 
+    dividends:Map[qlDate, Double],
+    repo:Map[qlPeriod, Double],
+    vol:Map[qlPeriod, Double],
     discountCurve:String,
     discountSpread:Double = 0.0
     ) extends EquityInitializer {
+  
+  
+  override def getModel(market:Market):Option[Equity] = {
+    val valuedate = market.valuedate
+    
+    val ratecurve:squantlib.model.rates.DiscountCurve = market.getDiscountCurve(ccy, discountCurve, discountSpread).orNull
+    if (ratecurve == null) {return None}
+    
+    val repoCurve:squantlib.model.equity.RepoCurve = if(repo.isEmpty) RepoCurve.zeroCurve(valuedate) else RepoCurve(valuedate, repo).getOrElse(RepoCurve.zeroCurve(valuedate))
+    
+    val volCurve:YieldParameter = 
+      if (vol.isEmpty) YieldParameter(valuedate, Double.NaN).get
+      else YieldParameter(valuedate, vol).getOrElse(YieldParameter(valuedate, Double.NaN).get)
+     
+    Some(BasicEquity(name, spot, ratecurve, dividends, repoCurve, volCurve))
+  }
+  
+  override def mult(x:Double):EquityInitializer = EquityFlatDivATM(
+    name, 
+    ccy,
+    spot * x, 
+    dividends,
+    repo,
+    vol,
+    discountCurve,
+    discountSpread)
+    
+  override def addVol(x:Double):EquityInitializer = EquityFlatDivATM(
+    name, 
+    ccy,
+    spot, 
+    dividends,
+    repo,
+    vol.map{case (k, v) => (k, v + x)},
+    discountCurve,
+    discountSpread)
+
+  override def addDividend(x:Double):EquityInitializer = EquityFlatDivATM(
+    name, 
+    ccy,
+    spot, 
+    dividends.map{case (k, v) => (k, v + x)},
+    repo,
+    vol,
+    discountCurve,
+    discountSpread)
+}
+
+
+object SimpleInitializer {
   
   val dividendid = "Dividend12M"
   val spotid = "Equity"
   val volid = "EquityVol"
   val repoid = "Repo"
+    
   
-  val baseDivDate = new qlDate(equityinfo.basedivdate)
-  val lastDivDate = baseDivDate.add(new qlPeriod("30Y"))
-  
-  override def getModel(market:Market):Option[Equity] = {
+  def apply(
+    name:String, 
+    equityparams:Set[RateFXParameter], 
+    equityinfo:EquityInfo,
+    discountCurve:String,
+    discountSpread:Double = 0.0):EquityInitializer = {
+    
     val params = equityparams.groupBy(_.instrument)
-    if (!params.contains(dividendid) || !params.contains(spotid)) {return None}
+    if (!params.contains(dividendid) || !params.contains(spotid)) {return new EmptyInitializer}
+    
+    val baseDivDate = new qlDate(equityinfo.basedivdate)
+    val lastDivDate = baseDivDate.add(new qlPeriod("30Y"))
+    
+    val ccy = equityinfo.currencyid
 
-    val valuedate = market.valuedate
     val spot:Double = params(spotid).head.value
     
-    val annualdiv = params(dividendid).head.value
+    val annualdiv:Double = params(dividendid).head.value
     val divfreq = equityinfo.divfreq
-    val ccy = equityinfo.currencyid
-    
     val dividends:Map[qlDate, Double] = constractDividend(baseDivDate, lastDivDate, annualdiv, divfreq, Set(ccy))
-    if (dividends == null || dividends.isEmpty) {return None}
+    if (dividends == null || dividends.isEmpty) {return new EmptyInitializer}
     
-    val ratecurve = market.getDiscountCurve(ccy, discountCurve, discountSpread).orNull
-    if (ratecurve == null) {return None}
+    val repo:Map[qlPeriod, Double] = (params.get(repoid) match {
+      case Some(rs) => rs.map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
+      case None => Map.empty
+    })
     
-    val repo = (params.get(repoid) match {
-      case Some(rs) => 
-        val repoparam:Map[qlPeriod, Double] = rs.map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
-        RepoCurve(valuedate, repoparam)
-      case None => None
-    }).getOrElse(RepoCurve.zeroCurve(valuedate))
+    val vol:Map[qlPeriod, Double] = (params.get(volid) match {
+      case Some(vols) => vols.map(p => (new qlPeriod(p.maturity), p.value)).toMap
+      case None => Map.empty
+    })
     
-    val vol:YieldParameter = (params.get(volid) match {
-      case Some(vols) => 
-        YieldParameter(valuedate, vols.map(p => (new qlPeriod(p.maturity), p.value)).toMap)
-      case None => None
-    }).getOrElse(YieldParameter(valuedate, Double.NaN).get)
      
-    Some(BasicEquity(name, spot, ratecurve, dividends, repo, vol))
+    EquityFlatDivATM(name, ccy, spot, dividends, repo, vol, discountCurve, discountSpread)
   }
   
   def constractDividend(baseDate:qlDate, endDate:qlDate, annualAmount:Double, payFreq:Int, calendars:Set[String]):Map[qlDate, Double] = {
@@ -102,3 +168,76 @@ case class EquityFlatDivATM(
   }
 
 }
+
+
+
+
+//
+//
+//case class EquityFlatDivATM(
+//    name:String, 
+//    equityparams:Set[RateFXParameter], 
+//    equityinfo:EquityInfo,
+//    discountCurve:String,
+//    discountSpread:Double = 0.0
+//    ) extends EquityInitializer {
+//  
+//  val dividendid = "Dividend12M"
+//  val spotid = "Equity"
+//  val volid = "EquityVol"
+//  val repoid = "Repo"
+//  
+//  val baseDivDate = new qlDate(equityinfo.basedivdate)
+//  val lastDivDate = baseDivDate.add(new qlPeriod("30Y"))
+//  
+//  override def getModel(market:Market):Option[Equity] = {
+//    val params = equityparams.groupBy(_.instrument)
+//    if (!params.contains(dividendid) || !params.contains(spotid)) {return None}
+//
+//    val valuedate = market.valuedate
+//    val spot:Double = params(spotid).head.value
+//    
+//    val annualdiv = params(dividendid).head.value
+//    val divfreq = equityinfo.divfreq
+//    val ccy = equityinfo.currencyid
+//    
+//    val dividends:Map[qlDate, Double] = constractDividend(baseDivDate, lastDivDate, annualdiv, divfreq, Set(ccy))
+//    if (dividends == null || dividends.isEmpty) {return None}
+//    
+//    val ratecurve = market.getDiscountCurve(ccy, discountCurve, discountSpread).orNull
+//    if (ratecurve == null) {return None}
+//    
+//    val repo = (params.get(repoid) match {
+//      case Some(rs) => 
+//        val repoparam:Map[qlPeriod, Double] = rs.map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
+//        RepoCurve(valuedate, repoparam)
+//      case None => None
+//    }).getOrElse(RepoCurve.zeroCurve(valuedate))
+//    
+//    val vol:YieldParameter = (params.get(volid) match {
+//      case Some(vols) => 
+//        YieldParameter(valuedate, vols.map(p => (new qlPeriod(p.maturity), p.value)).toMap)
+//      case None => None
+//    }).getOrElse(YieldParameter(valuedate, Double.NaN).get)
+//     
+//    Some(BasicEquity(name, spot, ratecurve, dividends, repo, vol))
+//  }
+//  
+//  def constractDividend(baseDate:qlDate, endDate:qlDate, annualAmount:Double, payFreq:Int, calendars:Set[String]):Map[qlDate, Double] = {
+//    val cdr = Calendars(calendars).getOrElse(new NullCalendar)
+//    val tenor = new qlPeriod(payFreq + "M")
+//    var currentdate = baseDate
+//    var periods = 1
+//    var divamount = annualAmount / 12.0 * payFreq.toDouble
+//    
+//    @tailrec def scheduleIter(currentPeriod:Int, currentmap:Map[qlDate, Double]):Map[qlDate, Double] = {
+//      val nextDate = cdr.advance(baseDate, tenor.mul(currentPeriod), BusinessDayConvention.Following)
+//      if (nextDate ge endDate) currentmap ++ Map((nextDate, divamount), (baseDate, divamount))
+//      else scheduleIter(currentPeriod + 1, currentmap + (nextDate -> divamount))
+//    }
+//    
+//    scheduleIter(1, Map.empty)
+//    
+//  }
+//
+//}

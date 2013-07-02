@@ -17,12 +17,15 @@ object UnderlyingParser {
       new EquityParser,
       new FxParser,
       new CashParser,
-      new SwapParser
+      new SwapParser,
+      new CurrencyParser
   )
   
   def getParser(id:String):Option[UnderlyingParser] = parsers.filter(p => p.isApplicable(id)).headOption
   
   def getUnderlying(id:String, mkt:Market):Option[Underlying] = getParser(id).flatMap{case s => s.getUnderlying(id, mkt)}
+  
+  def getSpot(id:String, mkt:Market):Option[Double] = getParser(id).flatMap{case s => s.getSpot(id, mkt)}
   
   def getHistorical(id:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = getParser(id).collect{case s => s.getHistorical(id, start, end)}.getOrElse(Map.empty)
 
@@ -34,6 +37,7 @@ abstract class UnderlyingParser{
   def isApplicable(id:String):Boolean
   def getUnderlying(id:String, mkt:Market):Option[Underlying] 
   def getHistorical(id:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double]
+  def getSpot(id:String, mkt:Market):Option[Double] = getUnderlying(id, mkt).collect{case u => u.spot}
 
   def isNumber(v:String):Boolean = try {v.toInt; true} catch {case _:Throwable => false}
   def rateBreakDown(id:String) = (id take 3, (id substring 3) dropRight 1, id takeRight 1)
@@ -43,6 +47,7 @@ abstract class UnderlyingParser{
 case class CmtParser extends UnderlyingParser {
   override def isApplicable(id:String) = id == "CMT10"
   override def getUnderlying(id:String, mkt:Market) = None
+  override def getSpot(id:String, mkt:Market) = mkt.getFixing("JGBY10Y")
   override def getHistorical(id:String, start:JavaDate, end:JavaDate) = DB.getHistoricalRateFX("Fixing", "JGBY", "10Y", start, end)
 }
 
@@ -74,6 +79,13 @@ case class FxParser extends UnderlyingParser {
   }
 }
 
+case class CurrencyParser extends UnderlyingParser {
+  override def isApplicable(id:String) = id.size == 3 && isCurrency(id)
+  override def getUnderlying(id:String, mkt:Market) = None
+  override def getHistorical(id:String, start:JavaDate, end:JavaDate) = (new FxParser).getHistorical(id + "USD", start, end)
+  override def getSpot(id:String, mkt:Market) = (new FxParser).getSpot(id + "USD", mkt)
+}
+
 case class CashParser extends UnderlyingParser {
   val cashPeriods = Set("M", "W", "D")
   override def isApplicable(id:String) = id.size > 3 && (rateBreakDown(id) match {case (ccy, mat, per) => isCurrency(ccy) && isNumber(mat) && (cashPeriods contains per)})
@@ -89,6 +101,7 @@ case class SwapParser extends UnderlyingParser {
   val swapPeriods = Set("Y")
   override def isApplicable(id:String) = id.size > 3 && (rateBreakDown(id) match {case (ccy, mat, per) => isCurrency(ccy) && isNumber(mat) && (swapPeriods contains per)})
   override def getUnderlying(id:String, mkt:Market) = None
+  override def getSpot(id:String, mkt:Market) = rateBreakDown(id) match {case (ccy, mat, per) => mkt.getSwap(ccy, new qlPeriod(mat + per))}
   override def getHistorical(id:String, start:JavaDate, end:JavaDate) = rateBreakDown(id) match {
     case (ccy, mat, per) => DB.getHistoricalRateFX("Swap", ccy, mat + per, start, end)
   }

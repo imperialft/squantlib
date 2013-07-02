@@ -165,10 +165,6 @@ object Underlying {
 	def apply(param:String, market:Market) = getUnderlying(param, market)
 	
 	def getUnderlying(param:String, market:Market):Option[Underlying] = UnderlyingParser.getUnderlying(param, market)
-	
-  	val currencySet = Currencies.keySet
-  	
-	def isCcy(v:String):Boolean = currencySet contains v
   
 }
 

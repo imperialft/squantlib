@@ -14,6 +14,7 @@ import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.termstructures.YieldTermStructure
 import squantlib.model.index.IndexInitializer
+import squantlib.util.UnderlyingParser
 
 /** 
  * Stores market information and initialize discount curves as requested.
@@ -238,22 +239,13 @@ class Market(
 	def getSwapPoint(ccy:String, maturity:qlPeriod):Option[Double] = 
 	  getFXCurve(ccy).flatMap(c => try {Some(c.swappoint(maturity))} catch { case _:Throwable => None })
 	
-	def getFixings(params:Set[String]):Map[String, Double] = params.map(p => (p, getFixing(p))).collect{case (n, Some(p)) => (n, p)} (breakOut)
+	def getFixings(ids:Set[String]):Map[String, Double] = ids.map(p => (p, getFixing(p))).collect{case (n, Some(p)) => (n, p)} (breakOut)
 	
-	def getFixing(param:String):Option[Double] = 
-	  if (param == null) None
-	  else param.trim match {
+	def getFixing(id:String):Option[Double] = 
+	  if (id == null) None
+	  else id.trim match {
 	      case p if fixings contains p => Some(fixings(p))
-		  case "CMT10" => fixings.get("JGBY10Y")
-		  case p if p.size <= 3 => None
-		  case p => (p take 3, p substring 3) match {
-		    case (ccy, _) if !isCcy(ccy) => None
-		    case (ccy1, ccy2) if isCcy(ccy2) => fx(ccy1, ccy2)
-		    case (ccy, mat) if !isNumber(mat dropRight 1) => None
-		    case (ccy, mat) if cashPeriods contains (mat takeRight 1) => getCash(ccy, new qlPeriod(mat))
-		    case (ccy, mat) if swapPeriods contains (mat takeRight 1) => getSwap(ccy, new qlPeriod(mat))
-		    case _ => None
-		  }
+	      case p => UnderlyingParser.getSpot(p, this)
 	}
 	
 	/**
@@ -262,10 +254,10 @@ class Market(
 	 * @param currency code
 	 * @param map with shift on each curve (additive)
 	 */
-	def rateShifted(currency:String, shiftAmount:Double):Market = rateShifted(Map(currency -> shiftAmount))
-	def rateShifted(rateShift:Map[String, Double]):Market = {
+	def rateShifted(id:String, shiftAmount:Double):Market = rateShifted(Map(id -> shiftAmount))
+	def rateShifted(shift:Map[String, Double]):Market = {
 	  val basecurve = getBaseDiscountCurve(FXbaseCurrency).get
-	  val equivshift:Map[String, (Double, Double) => Double] = rateShift.filter{case (k, v) => curves contains k}
+	  val equivshift:Map[String, (Double, Double) => Double] = shift.filter{case (k, v) => curves contains k}
 	  			.map { case (k, v) =>
 	  			  curves(k) match {
 	  			    case curve:RateCurve => (k, (d:Double, r:Double) => r + v)
@@ -290,12 +282,11 @@ class Market(
 	 * @param currency code
 	 * @param map with shift on each curve (multiplicative)
 	 */
-	def fxShifted(currency:String, shiftAmount:Double):Market = fxShifted(Map(currency -> shiftAmount))
+	def fxShifted(id:String, shift:Double):Market = fxShifted(Map(id -> shift))
 	
-	def fxShifted(fxShift:Map[String, Double]):Market = {
+	def fxShifted(shift:Map[String, Double]):Market = {
 	  val newcurve:Map[String, DiscountableCurve] = curves.map{case (c, v) => 
-	    if (fxShift contains c) (c, v.multFX(fxShift(c))) 
-	    else (c, v)}
+	    if (shift contains c) (c, v.multFX(shift(c))) else (c, v)}
 	    
 	  new Market(paramset, newcurve, cdscurves, fxInitializers, indexInitializers, equityInitializers, fixings)
 	}
@@ -306,27 +297,113 @@ class Market(
 	 * @param currency code
 	 * @param map with shift on each curve (additive)
 	 */
-	def fxVolShifted(fxpair:String, shiftAmount:Double):Market = fxVolShifted(Map(fxpair -> shiftAmount))
+	def fxVolShifted(id:String, shift:Double):Market = fxVolShifted(Map(id -> shift))
 	
-	def fxVolShifted(fxShift:Map[String, Double]):Market = 
+	def fxVolShifted(shift:Map[String, Double]):Market = 
 	  new Market(
 	      paramset, 
 	      curves, 
 	      cdscurves, 
-	      fxInitializers.map{case (c, v) => if (fxShift contains c) (c, v.addFXVol(fxShift(c))) else (c, v)}, 
+	      fxInitializers.map{case (c, v) => if (shift contains c) (c, v.addFXVol(shift(c))) else (c, v)}, 
 	      indexInitializers, 
 	      equityInitializers, 
 	      fixings)
+
 	
+	/**
+	 * Returns market after multiplying equity spot.
+	 * @param equity code
+	 * @param map with shift on each curve (multiplicative)
+	 */
+	def equityShifted(id:String, shift:Double):Market = equityShifted(Map(id -> shift))
 	
-	private def isCcy(v:String):Boolean = curves.contains(v)
+	def equityShifted(shift:Map[String, Double]):Market = {
+	  val newinitializer:Map[String, EquityInitializer] = equityInitializers.map{case (c, v) => 
+	    if (shift contains c) (c, v.mult(shift(c))) else (c, v)}
+	    
+	  new Market(paramset, curves, cdscurves, fxInitializers, indexInitializers, newinitializer, fixings)
+	}
 	
-	private val cashPeriods = Set("M", "W", "D")
+	/**
+	 * Returns market after adding equity volatility.
+	 * @param equity code
+	 * @param map with shift on each curve (multiplicative)
+	 */
+	def equityVolShifted(id:String, shift:Double):Market = equityVolShifted(Map(id -> shift))
 	
-	private val swapPeriods = Set("Y")
+	def equityVolShifted(shift:Map[String, Double]):Market = {
+	  val newinitializer:Map[String, EquityInitializer] = equityInitializers.map{case (c, v) => 
+	    if (shift contains c) (c, v.addVol(shift(c))) else (c, v)}
+	    
+	  new Market(paramset, curves, cdscurves, fxInitializers, indexInitializers, newinitializer, fixings)
+	}
 	
-	private def isNumber(v:String):Boolean = try {v.toInt; true} catch {case _:Throwable => false}
-	  
+	/**
+	 * Returns market after adding equity volatility.
+	 * @param equity code
+	 * @param map with shift on each curve (multiplicative)
+	 */
+	def equityDividendShifted(id:String, shift:Double):Market = equityDividendShifted(Map(id -> shift))
+	
+	def equityDividendShifted(shift:Map[String, Double]):Market = {
+	  val newinitializer:Map[String, EquityInitializer] = equityInitializers.map{case (c, v) => 
+	    if (shift contains c) (c, v.addDividend(shift(c))) else (c, v)}
+	    
+	  new Market(paramset, curves, cdscurves, fxInitializers, indexInitializers, newinitializer, fixings)
+	}
+	
+	/**
+	 * Returns market after multiplying equity spot.
+	 * @param equity code
+	 * @param map with shift on each curve (multiplicative)
+	 */
+	def indexShifted(id:String, shift:Double):Market = indexShifted(Map(id -> shift))
+	
+	def indexShifted(shift:Map[String, Double]):Market = {
+	  val newInitializers:Map[String, IndexInitializer] = indexInitializers.map{case (c, v) => 
+	    if (shift contains c) (c, v.mult(shift(c))) else (c, v)}
+	    
+	  new Market(paramset, curves, cdscurves, fxInitializers, newInitializers, equityInitializers, fixings)
+	}
+	
+	/**
+	 * Returns market after adding equity volatility.
+	 * @param equity code
+	 * @param map with shift on each curve (multiplicative)
+	 */
+	def indexVolShifted(id:String, shift:Double):Market = indexVolShifted(Map(id -> shift))
+	
+	def indexVolShifted(shift:Map[String, Double]):Market = {
+	  val newInitializers:Map[String, IndexInitializer] = indexInitializers.map{case (c, v) => 
+	    if (shift contains c) (c, v.addVol(shift(c))) else (c, v)}
+	    
+	  new Market(paramset, curves, cdscurves, fxInitializers, newInitializers, equityInitializers, fixings)
+	}
+	
+	def getSpot(id:String):Option[Double] = UnderlyingParser.getParser(id) match {
+	  case Some(p:squantlib.util.EquityParser) => getEquity(id).collect{case e => e.spot}
+	  case Some(p:squantlib.util.CurrencyParser) => fx(id, FXbaseCurrency)
+	  case Some(p:squantlib.util.FxParser) => fx(id take 3, id takeRight 3)
+	  case Some(p:squantlib.util.IndexParser) => getIndex(id).collect{case e => e.spot}
+	  case _ => None
+	}
+	
+	def getUnderlying(id:String):Option[Underlying] = if (id == null) None else UnderlyingParser.getUnderlying(id, this)
+	
+	def underlyingShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id) match {
+	  case Some(p:squantlib.util.EquityParser) => Some(equityShifted(id, shift))
+	  case Some(p:squantlib.util.CurrencyParser) => Some(fxShifted(id, shift))
+	  case Some(p:squantlib.util.FxParser) => Some(fxShifted(id take 3, 1.0/shift))
+	  case Some(p:squantlib.util.IndexParser) => Some(indexShifted(id, shift))
+	  case _ => None
+	}
+	
+	def underlyingVolShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id) match {
+	  case Some(p:squantlib.util.EquityParser) => Some(equityVolShifted(id, shift))
+	  case Some(p:squantlib.util.FxParser) => Some(fxVolShifted(id, shift))
+	  case Some(p:squantlib.util.IndexParser) => Some(indexVolShifted(id, shift))
+	  case _ => None
+	}
 	
 	/** 
 	 * Checks whether the given curve is already calculated and stored in the repository.
