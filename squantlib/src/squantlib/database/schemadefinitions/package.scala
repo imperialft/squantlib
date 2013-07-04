@@ -22,7 +22,7 @@ package object schemadefinitions {
   
   def compareValues(a:Any, b:Any) = emptyStringToNull(a) == emptyStringToNull(b)
   
-  def compareMap(m1:Map[String, Any], m2:Map[String, Any], ignoredFields:List[String] = List.empty):Boolean = m1.forall{
+  def compareMap(m1:Map[String, Any], m2:Map[String, Any], ignoredFields:Set[String] = Set.empty):Boolean = m1.forall{
     case (k, _) if ignoredFields contains k => true
     case (k, _) if k.head == '_' => true
     case (k, v) => m2.get(k) match {
@@ -31,7 +31,7 @@ package object schemadefinitions {
       }
     }
   
-  def compareObjects[T <: AnyRef](a:T, b:T, ignoredFields:List[String]):Boolean = {
+  def compareObjects[T <: AnyRef](a:T, b:T, ignoredFields:Set[String]):Boolean = {
     compareMap(getObjectFieldMap(a), getObjectFieldMap(b), ignoredFields)
   }
   

@@ -11,7 +11,7 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.model.bond.BondSetting
 import squantlib.util.initializer.{DayAdjustments, Currencies, Daycounters}
 import squantlib.util.JsonUtils._
-import squantlib.util.{CurrencyParser, FxParser, UnderlyingParser}
+import squantlib.util.{CurrencyParser, FxParser, UnderlyingParser, UnderlyingInfo}
 import squantlib.database.fixings.Fixings
 import squantlib.pricing.model.{PricingModel, NoModel}
 import squantlib.math.solver._
@@ -661,14 +661,14 @@ case class Bond(
 	/*	
 	 * Returns delta for any underlying
 	 */
-	def underlyingDelta(id:String, shift:Double):Option[Double] = greek((b:Bond) => b.modelPrice, (m:Market) => m.underlyingShifted(id, shift))
+	def underlyingDelta(id:String, shift:Double):Option[Double] = greek((b:Bond) => b.modelPriceJpy, (m:Market) => m.underlyingShifted(id, shift))
 	
 	def underlyingDeltas(shift:Double):Map[String, Option[Double]] = {
 	  val uls = underlyings ++ currencyList.filter(_ != "JPY").map(_ + "JPY")
 	  uls.map(ul => (ul, underlyingDelta(ul, shift)))(collection.breakOut)
 	}
 	
-	def underlyingVega(id:String, shift:Double):Option[Double] = greek((b:Bond) => b.modelPrice, (m:Market) => m.underlyingVolShifted(id, shift))
+	def underlyingVega(id:String, shift:Double):Option[Double] = greek((b:Bond) => b.modelPriceJpy, (m:Market) => m.underlyingVolShifted(id, shift))
 	
 	def underlyingVegas(shift:Double):Map[String, Option[Double]] = {
 	  val uls = underlyings ++ currencyList.filter(_ != "JPY").map(_ + "JPY")
@@ -761,8 +761,8 @@ case class Bond(
 	      price.fxDelta = mapToJsonString(fxDeltas(1.01))
 	      price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
 	      price.fxVega = mapToJsonString(fxVegas(0.01))
-	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (k, v * 100.0)})
-	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (k, v)})
+	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v * 100.0)})
+	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v)})
 	      if (cleanPrice.isDefined) price.pricetype = "PREISSUE"
 	    }
 	      
@@ -786,8 +786,8 @@ case class Bond(
 	      price.fxDelta = mapToJsonString(fxDeltas(1.01))
 	      price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
 	      price.fxVega = mapToJsonString(fxVegas(0.01))
-	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (k, v * 100.0)})
-	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (k, v)})
+	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v * 100.0)})
+	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v)})
 	      price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")	        
 	    }
 	    
@@ -955,10 +955,10 @@ object Bond {
 	  
 	  val coupon:Payoffs = Payoffs(db.fixedCoupon(fixings), schedule.size - 1).orNull
 	  if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}
-		
+	  
 	  val redemption = Payoff(db.fixedRedemprice(fixings)).orNull
 	  if (redemption == null) {println(db.id + ": cannot initialize redemption"); return None}
-		
+	  
 	  val underlyings:List[String] = db.underlyingList
 		
 	  val bermudan:List[Boolean] = {

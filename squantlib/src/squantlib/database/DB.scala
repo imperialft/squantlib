@@ -1004,7 +1004,6 @@ object DB extends Schema {
   
   /**
    * Returns historical values of FX spot rate against JPY.
-   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @return fx1 Currency to be measured in JPY.
    */
@@ -1017,7 +1016,6 @@ object DB extends Schema {
   
   /**
    * Returns historical values of FX spot rate.
-   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @return fx1 Currency to be measured in JPY.
    */
@@ -1036,7 +1034,6 @@ object DB extends Schema {
   
   /**
    * Returns historical values of FX spot rate.
-   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @return fx1 Currency to be measured in JPY.
    */
@@ -1052,7 +1049,6 @@ object DB extends Schema {
   
   /**
    * Returns historical values of FX spot rate against JPY.
-   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
    * @param toDate A ending point of Date. Range includes this date.
@@ -1061,7 +1057,6 @@ object DB extends Schema {
   def getFXTimeSeries(fromDate:JavaDate, toDate:JavaDate, currency:String):Map[JavaDate, Double] = transaction {
       from(fxrates)(fx =>
         where(
-          (fx.paramset like "%-000") and
           fx.currencyid === currency and
           (fx.paramdate gte fromDate) and
           (fx.paramdate lte toDate)
@@ -1072,7 +1067,6 @@ object DB extends Schema {
     
   /**
    * Returns historical values of FX spot rate between 2 currencies.
-   * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
    *
    * @param fromDate A starting point of Date. Range includes this date.
    * @param toDate A ending point of Date. Range includes this date.
@@ -1085,7 +1079,6 @@ object DB extends Schema {
 	  else transaction{
 		      from(fxrates, fxrates)((fx1, fx2) =>
 		        where(
-		          (fx1.paramset like "%-000") and
 		          fx1.paramset === fx2.paramset and
 		          (fx1.paramdate gte fromDate) and
 		          (fx1.paramdate lte toDate) and
@@ -1103,6 +1096,32 @@ object DB extends Schema {
     from(fxrates)(fx => select(&(fx.currencyid))).distinct.toSet
     }
 		      
+		      
+  /**
+   * Returns historical values of equity spot price.
+   */
+  def getEquityTimeSeries(eqty:String):Map[JavaDate, Double] = transaction {
+      from(ratefxparameters)(p =>
+        where(p.instrument === "Equity" and p.asset === eqty)
+        select((&(p.paramdate), &(p.value)))
+      ).toMap
+	 }
+  
+  /**
+   * Returns historical values of equity spot price for given date range
+   */
+  def getEquityTimeSeries(fromDate:JavaDate, toDate:JavaDate, equity:String):Map[JavaDate, Double] = transaction {
+      from(ratefxparameters)(p =>
+        where(
+          p.instrument === "Equity" and 
+          p.asset === equity and
+          (p.paramdate gte fromDate) and
+          (p.paramdate lte toDate)
+        )
+        select((&(p.paramdate), &(p.value)))
+      ).toMap
+	 }
+  
   /**
    * Returns historical values of CDS.
    * Note only the "official" parameters (ie. paramset ending with "-000") is taken.
@@ -1380,6 +1399,7 @@ object DB extends Schema {
       case "Currency" => Some(currencies)
       case "Issuer" => Some(issuers)
       case "Product" => Some(products)
+      case "Equity" => Some(equities)
       case _ => None
     }
   
