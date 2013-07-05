@@ -134,7 +134,9 @@ case class ScheduledPayoffs(
   
   override def apply(i:Int):(CalculationPeriod, Payoff, Callability) = scheduledPayoffs(i)
   
-  override def toString = {
+  def newline = sys.props("line.separator")
+  
+  def describe:List[String] = 
     scheduledPayoffs.map{case (d, p, c) => 
       List(d.eventDate.shortDate.toString, 
           d.paymentDate.shortDate.toString,
@@ -143,8 +145,9 @@ case class ScheduledPayoffs(
           if (underlyings.isEmpty || (p.variables.isEmpty && c.variables.isEmpty)) "fixed"
           else if (!p.isFixed && !c.isFixed) "not fixed" 
           else "fixed:" + (p.getFixings ++ c.getFixings).map{case (k, v) => k + ":" + v}.mkString(" ")
-          ).mkString(" ")}.mkString("\n")
-  }
+          ).mkString("/t")}.toList
+    
+  override def toString:String = describe.map(d => d.replace("/t", " ")).mkString(newline)
 	
   override def isEmpty:Boolean = scheduledPayoffs.isEmpty
 	
