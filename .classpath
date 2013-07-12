@@ -1,0 +1,50 @@
+<classpath>
+  <classpathentry output="target/scala-2.10/classes" path="src/main/scala" kind="src"></classpathentry>
+  <classpathentry output="target/scala-2.10/classes" path="src/main/java" kind="src"></classpathentry>
+  <classpathentry output="target/scala-2.10/test-classes" path="src/test/scala" kind="src"></classpathentry>
+  <classpathentry output="target/scala-2.10/test-classes" path="src/test/java" kind="src"></classpathentry>
+  <classpathentry path="./lib/jquantlib.jar" kind="lib"></classpathentry>
+  <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.mchange/c3p0/jars/c3p0-0.9.2.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.mchange/mchange-commons-java/jars/mchange-commons-java-0.2.3.4.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.squeryl/squeryl_2.10/jars/squeryl_2.10-0.9.6-RC1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/cglib/cglib-nodep/jars/cglib-nodep-2.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.scala-lang/scalap/jars/scalap-2.10.0.jar" kind="lib"></classpathentry>
+  <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_COMPILER_CONTAINER"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.scala-lang/scala-reflect/jars/scala-reflect-2.10.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.apache.commons/commons-lang3/jars/commons-lang3-3.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.apache.commons/commons-math3/jars/commons-math3-3.0.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.google.gdata/core/jars/core-1.47.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.google.oauth-client/google-oauth-client-jetty/jars/google-oauth-client-jetty-1.11.0-beta.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.google.oauth-client/google-oauth-client-java6/jars/google-oauth-client-java6-1.11.0-beta.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.google.oauth-client/google-oauth-client/jars/google-oauth-client-1.11.0-beta.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.google.http-client/google-http-client/jars/google-http-client-1.11.0-beta.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.google.guava/guava/jars/guava-11.0.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.apache.httpcomponents/httpclient/jars/httpclient-4.0.3.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.apache.httpcomponents/httpcore/jars/httpcore-4.0.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/commons-logging/commons-logging/jars/commons-logging-1.1.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/commons-codec/commons-codec/jars/commons-codec-1.6.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/xpp3/xpp3/jars/xpp3-1.1.4c.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.mortbay.jetty/jetty/jars/jetty-6.1.26.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.mortbay.jetty/jetty-util/jars/jetty-util-6.1.26.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.mortbay.jetty/servlet-api/jars/servlet-api-2.5-20081211.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.google.code.findbugs/jsr305/jars/jsr305-1.3.7.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/javax.mail/mail/jars/mail-1.4.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/javax.activation/activation/jars/activation-1.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.codehaus.jackson/jackson-core-asl/jars/jackson-core-asl-1.9.10.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.codehaus.jackson/jackson-mapper-asl/jars/jackson-mapper-asl-1.9.10.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/log4j/log4j/bundles/log4j-1.2.17.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.jfree/jcommon/jars/jcommon-1.0.17.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.jfree/jfreechart/jars/jfreechart-1.0.14.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/xml-apis/xml-apis/jars/xml-apis-1.3.04.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/com.lowagie/itext/jars/itext-2.1.5.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/bouncycastle/bcmail-jdk14/jars/bcmail-jdk14-138.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/bouncycastle/bcprov-jdk14/jars/bcprov-jdk14-138.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/mysql/mysql-connector-java/jars/mysql-connector-java-5.1.10.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.specs2/specs2_2.10/jars/specs2_2.10-1.13.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.specs2/scalaz-core_2.10/jars/scalaz-core_2.10-7.0.0.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.specs2/scalaz-concurrent_2.10/jars/scalaz-concurrent_2.10-7.0.0.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/katsu/.ivy2/cache/org.specs2/scalaz-effect_2.10/jars/scalaz-effect_2.10-7.0.0.jar" kind="lib"></classpathentry>
+  <classpathentry path="org.eclipse.jdt.launching.JRE_CONTAINER" kind="con"></classpathentry>
+  <classpathentry path="bin" kind="output"></classpathentry>
+</classpath>
