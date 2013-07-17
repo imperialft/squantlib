@@ -11,7 +11,6 @@ version := "0.1.0"
 scalaVersion := "2.10.2"
 
 libraryDependencies ++= Seq(
-  "org.specs2" %% "specs2" % "1.13" % "test",
   "com.mchange" % "c3p0" % "0.9.2.1" % "provided",
   "org.squeryl" %% "squeryl" % "0.9.6-RC1" % "provided",
   "org.apache.commons" % "commons-lang3" % "3.1" % "provided",
