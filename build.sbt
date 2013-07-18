@@ -4,11 +4,7 @@ assemblySettings
 
 jarName in assembly := "squantlib.jar"
 
-excludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
-  cp filter { _.data.getName == "scala-compiler.jar" }
-}
-
-EclipseKeys.skipParents := false
+test in assembly := {}
 
 name := "squantlib"
 
@@ -33,7 +29,10 @@ libraryDependencies ++= Seq(
   "mysql" % "mysql-connector-java" % "5.1.10" % "provided"
 )
 
+EclipseKeys.skipParents := false
+
 classDirectory in Compile <<= baseDirectory apply ( _ / "target" / "classes" )
 
 initialCommands := "import net.squantlib._"
 
+retrieveManaged := false

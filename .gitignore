@@ -18,3 +18,7 @@ src_managed/
 project/boot/
 project/plugins/project/
 .scala_dependencies
+.DS_Store
+.project
+.classpath
+.cache
