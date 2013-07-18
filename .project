@@ -1,5 +1,5 @@
 <projectDescription>
-  <name>test</name>
+  <name>squantlib</name>
   <buildSpec>
     <buildCommand>
       <name>org.scala-ide.sdt.core.scalabuilder</name>
