@@ -738,6 +738,7 @@ case class Bond(
 	    price.dur_modified = modifiedDuration
 	    price.dur_macauley = macaulayDuration
 	    price.volatility = historicalVolLatest(260).getOrElse(db.defaultvol)
+	    price.ispriced = if (cleanPrice.isDefined) 1 else 0
 	    if (isTerminated.getOrElse(false)) price.pricetype = "MATURED"
 	    
 	    if (mkt.valuedate le issueDate){
@@ -812,6 +813,8 @@ case class Bond(
 	        price.priceclean = cleanPrice.collect{case p => p * 100}.getOrElse(0.0)
 	        price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")
 	      }
+	      
+	      price.ispriced = if (cleanPrice.isDefined) 1 else 0
 	      
 	      price.pricedirty_jpy = price.pricedirty * (if (fxs > 0.0) fxs / fxinit else 1.0)
 	      price.priceclean_jpy = price.priceclean * (if (fxs > 0.0) fxs / fxinit else 1.0)

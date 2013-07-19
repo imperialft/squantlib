@@ -45,17 +45,20 @@ class LatestPrice(@Column("ID")			override var id:String,
 			@Column("PARMTM")			var parmtm:String, 
 			@Column("PRICETYPE")		var pricetype:String, 
 			@Column("VOLATILITY")		var volatility:Double, 
+			@Column("ISPRICED")			var ispriced:Int, 
 			@Column("Created")			var created:Date,
 			@Column("LastModified")		var lastmodified:Date
 			) extends StringEntity {
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
-  def isPriced = !(LatestPrice.noPriceKeys contains pricetype)
+//  def isPriced = !(LatestPrice.noPriceKeys contains pricetype)
+  
+  def isPriced = ispriced == 1
   
   def isMatured = LatestPrice.maturedKeys contains pricetype
   
-  def isError = LatestPrice.errorKeys contains pricetype
+  def isError = (LatestPrice.errorKeys contains pricetype) || (ispriced != 1)
   
   def isNotIssued = LatestPrice.notIssuedKeys contains pricetype
     
@@ -100,6 +103,7 @@ class LatestPrice(@Column("ID")			override var id:String,
 		parmtm = null,
 		pricetype = null,
 		volatility = 0.1,
+		ispriced = -1,
 		created = null,
 		lastmodified = null
       )
@@ -145,6 +149,7 @@ class LatestPrice(@Column("ID")			override var id:String,
 		"DELTAS:\t" + deltas,
 		"VEGAS:\t" + vegas,
 		"PARMTM:\t" + parmtm,
+		"ISPRICED:\t" + ispriced,
 		"Created:\t" + created,
 		"LastModified:\t" + lastmodified
 		).mkString("\n")
@@ -161,6 +166,7 @@ class LatestPrice(@Column("ID")			override var id:String,
 		pricedirty_jpy = pricedirty_jpy,
 		priceclean_jpy = priceclean_jpy,
 		pricetype = pricetype,
+		ispriced = ispriced,
 		created = created)
   }
   

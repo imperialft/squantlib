@@ -16,6 +16,7 @@ class HistoricalPrice(
 			@Column("PRICEDIRTY_JPY")	var pricedirty_jpy:Double,
 			@Column("PRICECLEAN_JPY")	var priceclean_jpy:Double,
 			@Column("PRICETYPE")		var pricetype:String,
+			@Column("ISPRICED")			var ispriced:Int,
 			@Column("Created")			var created:Date
 			) extends StringEntity {
   
@@ -40,6 +41,7 @@ class HistoricalPrice(
 		pricedirty_jpy = 0.0,
 		priceclean_jpy = 0.0,
 		pricetype = null,
+		ispriced = -1,
 		created = new Date
       )
       
@@ -54,6 +56,7 @@ class HistoricalPrice(
 		"PRICEDIRTY_JPY:\t" + pricedirty_jpy,
 		"PRICECLEAN_JPY:\t" + priceclean_jpy,
 		"PRICETYPE:\t" + pricetype,
+		"ISPRICED:\t" + ispriced,
 		"Created:\t" + created
 		).mkString("\n")
       

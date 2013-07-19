@@ -244,6 +244,7 @@ class Bond(@Column("ID")					override var id: String,
 		parmtm = null,
 		pricetype = if (isMatured(valuedate)) "MATURED" else "NOPRICE",
 		volatility = defaultvol,
+		ispriced = 0,
 		created = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime),
 		lastmodified = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
     }
@@ -260,6 +261,7 @@ class Bond(@Column("ID")					override var id: String,
 		pricedirty_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
 		priceclean_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
 		pricetype = if (isMatured(valuedate)) "MATURED" else "NOPRICE",
+		ispriced = 0,
 		created = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
   }
   
