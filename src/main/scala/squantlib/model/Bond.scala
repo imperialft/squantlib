@@ -738,7 +738,6 @@ case class Bond(
 	    price.dur_modified = modifiedDuration
 	    price.dur_macauley = macaulayDuration
 	    price.volatility = historicalVolLatest(260).getOrElse(db.defaultvol)
-	    price.ispriced = if (cleanPrice.isDefined) 1 else 0
 	    if (isTerminated.getOrElse(false)) price.pricetype = "MATURED"
 	    
 	    if (mkt.valuedate le issueDate){
@@ -764,7 +763,10 @@ case class Bond(
 	      price.fxVega = mapToJsonString(fxVegas(0.01))
 	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v * 100.0)})
 	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v)})
-	      if (cleanPrice.isDefined) price.pricetype = "PREISSUE"
+	      price.pricetype = "PREISSUE"
+	      if (cleanPrice.isDefined) {
+	        price.ispriced = 1
+	      }
 	    }
 	      
 	    else if (cleanPrice.isDefined){
@@ -789,7 +791,8 @@ case class Bond(
 	      price.fxVega = mapToJsonString(fxVegas(0.01))
 	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v * 100.0)})
 	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v)})
-	      price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")	        
+	      price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")	       
+	      price.ispriced = 1
 	    }
 	    
 	    price.pricedirty_jpy = price.pricedirty * (if (fxs > 0.0) fxs / fxinit else 1.0)
@@ -812,9 +815,8 @@ case class Bond(
 	        price.pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(0.0)
 	        price.priceclean = cleanPrice.collect{case p => p * 100}.getOrElse(0.0)
 	        price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")
+	        price.ispriced = 1
 	      }
-	      
-	      price.ispriced = if (cleanPrice.isDefined) 1 else 0
 	      
 	      price.pricedirty_jpy = price.pricedirty * (if (fxs > 0.0) fxs / fxinit else 1.0)
 	      price.priceclean_jpy = price.priceclean * (if (fxs > 0.0) fxs / fxinit else 1.0)
@@ -902,6 +904,12 @@ case class Bond(
     
     override protected def getDbForwardPrice = DB.getForwardPricesTimeSeries("BOND", id).map{case (k, v) => (new qlDate(k), v)}
 	
+	def checkPayoffs:List[Boolean] = scheduledPayoffs.map{case (s, p, c) => 
+	  p.isPriceable && 
+	  c.isPriceable && 
+	  (p.variables ++ c.variables).forall(underlyings.contains)}.toList
+	  
+	
 	def show:Unit = {
 	    disp("id", id)
 	    disp("currency", currency.code)
@@ -940,21 +948,13 @@ object Bond {
 	  val tbdfixings = try { Some(db.settingMap("tbd").toDouble)} catch {case _:Throwable => None}
 	  apply(db, tbdfixings)
 	}
-  
+	
 	def apply(db:dbBond, tbdfixing:Option[Double]):Option[Bond] = {
 	  
 	  val schedule = db.schedule.orNull
 	  if (schedule == null) {return None}
 	  
-	  val ulfixings:Map[String, Double] = 
-	    if (!db.fixingMap.isEmpty) db.fixingMap
-		else if (db.fixingdate.isDefined && db.fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(db.underlyingList)
-	    else Map.empty
-	   
-	  val fixings = tbdfixing match {
-	      case Some(v) => ulfixings ++ Map("tbd" -> v)
-	      case None => ulfixings
-	    }
+	  val fixings:Map[String, Double] = db.getInitialFixings ++ tbdfixing.collect{case v => Map("tbd" -> v)}.getOrElse(Map.empty)
 	  
 	  val coupon:Payoffs = Payoffs(db.fixedCoupon(fixings), schedule.size - 1).orNull
 	  if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}

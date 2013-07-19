@@ -52,13 +52,11 @@ class LatestPrice(@Column("ID")			override var id:String,
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
-//  def isPriced = !(LatestPrice.noPriceKeys contains pricetype)
-  
   def isPriced = ispriced == 1
   
   def isMatured = LatestPrice.maturedKeys contains pricetype
   
-  def isError = (LatestPrice.errorKeys contains pricetype) || (ispriced != 1)
+  def isError = ispriced == 0
   
   def isNotIssued = LatestPrice.notIssuedKeys contains pricetype
     
@@ -103,7 +101,7 @@ class LatestPrice(@Column("ID")			override var id:String,
 		parmtm = null,
 		pricetype = null,
 		volatility = 0.1,
-		ispriced = -1,
+		ispriced = 0,
 		created = null,
 		lastmodified = null
       )
@@ -175,11 +173,9 @@ class LatestPrice(@Column("ID")			override var id:String,
 
 object LatestPrice {
   
-  val errorKeys = Set("NOPRICE")
   val maturedKeys = Set("MATURED")
   val notIssuedKeys = Set("PREISSUE")
   val pricedKeys = Set("MODEL", "PUBLISHED")
-  val noPriceKeys = errorKeys ++ maturedKeys ++ notIssuedKeys
 
 }
 

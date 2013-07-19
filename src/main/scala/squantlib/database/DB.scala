@@ -52,7 +52,6 @@ object DB extends Schema {
   val products = table[Product]("Products")
   val bonds = table[Bond]("Bonds")
   val equities = table[Equity]("Equities")
-//  val bondprices = table[BondPrice]("BondPrices")
   val latestprices = table[LatestPrice]("LatestPrices")
   val historicalprices = table[HistoricalPrice]("HistoricalPrices")
   val volatilities = table[Volatility]("Volatilities")
@@ -213,7 +212,8 @@ object DB extends Schema {
   
   def getLatestPricedBondIds:Set[String] = {
     val bonds:Set[(String, String)] = transaction{from(latestprices)(b => select((&(b.bondid), &(b.pricetype)))).toSet}
-    bonds.filter{case (b, t) => !(HistoricalPrice.noPriceKeys contains t)}.map(_._1)
+    val ignored = HistoricalPrice.errorKeys ++ HistoricalPrice.maturedKeys
+    bonds.filter{case (b, t) => !(ignored contains t)}.map(_._1)
   }
   
   def getHistoricalPricedBondIds:Set[String] = {

@@ -6,6 +6,7 @@ import org.squeryl.KeyedEntity
 import squantlib.util.JsonUtils._
 import squantlib.payoff.Schedule
 import squantlib.util.initializer._
+import squantlib.database.fixings.Fixings
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
 import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._
@@ -79,7 +80,6 @@ class Bond(@Column("ID")					override var id: String,
       "pricetype", 
       "defaultvol", 
       "cpnnotice",
-      "redemnotice",
       "bondname",
       "shortname")
   
@@ -202,6 +202,11 @@ class Bond(@Column("ID")					override var id: String,
     } catch {case e:Throwable => issueprice.getOrElse(100.0)}
     
   def isMatured(vd:qlDate):Boolean = (vd ge endDate) 
+  
+  def getInitialFixings:Map[String, Double] = 
+    if (!fixingMap.isEmpty) fixingMap
+    else if (fixingdate.isDefined && fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(underlyingList)
+	else Map.empty
     
   def getLatestPrice(paramset:String, valuedate:qlDate, fx:Double):LatestPrice = {
 	new LatestPrice(

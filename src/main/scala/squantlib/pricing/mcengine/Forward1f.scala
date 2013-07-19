@@ -36,19 +36,19 @@ case class Forward1f(
     (dates, List.fill(paths)(apath))
   }  
 
+  override def modelName = this.getClass.toString
   
-  override def modelStatus = {
-    var result = this.getClass.toString + "\n"
+  override def spotref = List(forward(0.0))
+  
+  override def scheduledDescription = {
     val dates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
 	
-	result += "forward rates\n"
-	result += "spot: " + forward(0.0) + "\n"
-	result += List("date", "fwd").mkString("\t") + "\n"
-	result += dates.map(d => {
-	  List(d, forward(d)).map(_.asDouble).mkString("\t")
-	}).mkString("\n")
+	val title = List("valuedate", "forward")
+	val schedule = dates.map(d => {
+	  List(d, forward(d)).map(_.asDouble)
+	})
 	
-    result
+    (title, schedule)
   }  
 }
 

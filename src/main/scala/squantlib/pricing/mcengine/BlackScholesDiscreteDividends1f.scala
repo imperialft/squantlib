@@ -92,8 +92,11 @@ case class BlackScholesDiscreteDividends1f(
     (sortedEventDates, genpaths)
   }
   
-  override def modelStatus = {
-    var result = this.getClass.toString + "\n"
+  override def modelName = this.getClass.toString
+  
+  override def spotref = List(spot)
+  
+  override def scheduledDescription = {
     val eventDates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
     
     val relavantDivs:Map[Double, Double] = dividends.filter(d => d._1 > 0.0 && d._1 <= eventDates.max).toMap
@@ -101,33 +104,35 @@ case class BlackScholesDiscreteDividends1f(
     
     val eventDivs:List[(Double, Double)] = (eventWithDivs ++ relavantDivs).toList.sortBy(_._1)
     val dates:List[Double] = eventDivs.map(_._1)
+    val divs = eventDivs.map(_._2)
     
     val steps = dates.size
     val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
 
     val ratedom = dates.map(rate)
-    val ratefor = dates.map(d => repoYield(d))
+    val reporate = dates.map(d => repoYield(d))
     val sigma = dates.map(volatility)
     
     val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
         (if (stepsize(i) == 0.0) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
     
-    val fratefor = ratefor.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else (ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
+    val freporate = reporate.head :: (for (i <- (1 to steps-1).toList) yield 
+        (if (stepsize(i) == 0.0) 0.0 else (reporate(i) * dates(i) - reporate(i-1) * dates(i-1)) / stepsize(i)))
     
     val fsigma = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
         (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
     
-	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - freporate(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
 	
-	result += "forward rates\n"
-	result += "spot: " + spot + "\n"
-	result += List("date", "rate", "repo", "sigma", "drift", "div").mkString("\t") + "\n"
-	result += (0 to steps - 1).map(i => {
-	  List(dates(i), fratedom(i), fratefor(i), fsigma(i), drift(i), relavantDivs.get(dates(i)).getOrElse(0.0)).map(_.asDouble).mkString("\t")
-	}).mkString("\n")
+	val title = List("valuedate", "forward", "rate", "repo", "sigma", "drift", "div")
 	
-    result
+	var spotprice = spot
+	val schedule:List[List[String]] = (0 to steps - 1).toList.map(i => {
+	  spotprice = spotprice * scala.math.exp((fratedom(i) - freporate(i)) * stepsize(i)) - divs(i)
+	  List(dates(i).asDouble, spotprice.asDouble, fratedom(i).asPercent(2), freporate(i).asPercent(2), fsigma(i).asPercent(2), drift(i).asDouble, relavantDivs.get(dates(i)).getOrElse(0.0).asDouble)
+	})
+	
+    (title, schedule)
   }
 
 }

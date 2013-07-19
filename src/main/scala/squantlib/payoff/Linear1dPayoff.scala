@@ -21,7 +21,7 @@ case class Linear1dPayoff(
   
 	override val variables:Set[String] = if (variable == null) Set.empty else Set(variable)
 	
-	override val isPriceable = true
+	override val isPriceable = payoff.coeff.collect{case c => !c.isNaN}.getOrElse(true) && payoff.constant.collect{case c => !c.isNaN}.getOrElse(true)
 	
 	override def priceImpl(fixings:Map[String, Double]) = fixings.get(variable) match {
 	  case Some(v) if !v.isNaN && !v.isInfinity => payoff.price(v)

@@ -25,7 +25,7 @@ case class LEPS1dPayoff(
   
 	override val variables:Set[String] = Set(variable)
 	
-	override val isPriceable = true
+	override val isPriceable = !payoff.isEmpty
 	
 	override def priceImpl(fixings:Map[String, Double]) = fixings.get(variable) match {
 	  case Some(f) if !f.isNaN && !f.isInfinity => price(f)

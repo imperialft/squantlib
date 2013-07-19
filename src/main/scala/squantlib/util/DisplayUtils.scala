@@ -43,6 +43,7 @@ object DisplayUtils {
 	      case '＆' => '&'
 	      case '，' => ','
 	      case '、' => ','
+	      case '：' => ':'
 	      case c => c
 	    }
 	    result

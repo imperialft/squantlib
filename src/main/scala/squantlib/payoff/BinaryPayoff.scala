@@ -22,7 +22,7 @@ case class BinaryPayoff(
   
 	override val variables = binaryVariables.toSet
 	
-	val isInvalid:Boolean = payoff.exists{
+	val isInvalid:Boolean = payoff.isEmpty || payoff.exists{
 	  case (v, Some(lst)) => lst.exists(v => v.isNaN || v.isInfinity) || v.isNaN || v.isInfinity
 	  case (v, None) => v.isNaN || v.isInfinity
 	}

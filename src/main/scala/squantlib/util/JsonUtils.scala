@@ -12,7 +12,7 @@ object JsonUtils {
   
 	val mapper = new ObjectMapper
   
-	val jsonDateFormat = new java.text.SimpleDateFormat("y/M/d")
+	def jsonDateFormat = new java.text.SimpleDateFormat("y/M/d")
 	
 	def newObjectNode = mapper.createObjectNode
 	
@@ -50,15 +50,18 @@ object JsonUtils {
 	    r
 	  }
 
-	  def parseDate:Option[qlDate] = try{Some(new qlDate(jsonDateFormat.parse(node.parseString.orNull)))} catch {case _:Throwable => None}
+	  def parseDate:Option[qlDate] = try{
+	    Some(new qlDate(jsonDateFormat.parse(node.parseString.orNull)))
+	  } catch {case _:Throwable => None}
+	  
 	  def parseDate(name:String):Option[qlDate] = 
 	    if (name == null) None
 	    else node.parseString(name) match {
 	      case None => None
 	      case Some(s) if s.size < 8 || !s.contains("/") => None
 	      case Some(s) => ignoreErr {
-	        try{Some(new qlDate(jsonDateFormat.parse(s)))} 
-	        catch {case e:Throwable => println(s + " could not be parsed"); e.printStackTrace; None}
+	         try{ Some(new qlDate(jsonDateFormat.parse(s)))} 
+	        catch { case e:Throwable => println(s + " could not be parsed"); e.printStackTrace; None}
 	      }
 	    }
 	  

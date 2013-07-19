@@ -37,7 +37,7 @@ case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Dou
   override def toString:String = 
     List(
 	    if (bermudan) "call " else "",
-	    if (isTrigger) ("trig " + triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
+	    if (isTrigger) (triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
 	    if (bonus != 0.0) "bonus " + bonus.asPercent(3) else "",
 	    if (isEmpty) "no call" else ""
 	    ).mkString("") 

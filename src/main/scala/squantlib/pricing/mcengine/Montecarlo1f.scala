@@ -5,7 +5,11 @@ import squantlib.math.statistical.NormSInv
 
 trait MontecarloEngine {
   
-  def modelStatus:String = ""
+  def modelName:String
+  
+  def spotref:List[Double]
+  
+  def scheduledDescription:(List[String], List[List[String]])
   
 }
 

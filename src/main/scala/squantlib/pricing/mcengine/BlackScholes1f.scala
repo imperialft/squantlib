@@ -81,9 +81,11 @@ case class BlackScholes1f(
     (dates, genpaths)
   }
   
+  override def modelName = this.getClass.toString
   
-  override def modelStatus = {
-    var result = this.getClass.toString + "\n"
+  override def spotref = List(spot)
+  
+  override def scheduledDescription = {
     val dates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
     
     val steps = dates.size
@@ -104,14 +106,14 @@ case class BlackScholes1f(
     
 	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
 	
-	result += "forward rates\n"
-	result += "spot: " + spot + "\n"
-	result += List("date", "rdom", "rfor", "sigma", "drift").mkString("\t") + "\n"
-	result += (0 to steps - 1).map(i => {
-	  List(dates(i), fratedom(i), fratefor(i), fsigma(i), drift(i)).map(_.asDouble).mkString("\t")
-	}).mkString("\n")
+	var spotprice = spot
+	val title = List("valuedate", "forward", "rate ccy1", "rate ccy2", "sigma", "drift")
+	val schedule = (0 to steps - 1).toList.map(i => {
+	  spotprice *= scala.math.exp((fratedom(i) - fratefor(i)) * stepsize(i))
+	  List(dates(i).asDouble, spotprice.asDouble, fratedom(i).asPercent(2), fratefor(i).asPercent(2), fsigma(i).asPercent(2), drift(i).asDouble)
+	})
 	
-    result
+    (title, schedule)
   }
 
 }
