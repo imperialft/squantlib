@@ -79,6 +79,7 @@ class Bond(@Column("ID")					override var id: String,
       "pricetype", 
       "defaultvol", 
       "cpnnotice",
+      "redemnotice",
       "bondname",
       "shortname")
   

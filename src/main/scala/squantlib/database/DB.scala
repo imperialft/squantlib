@@ -342,6 +342,10 @@ object DB extends Schema {
     from(historicalprices)(b => where(b.paramdate === d) select(b)).toSet
   }
   
+  def getHistoricalPrices(bondid:String):Set[HistoricalPrice] = transaction {
+    from(historicalprices)(b => where(b.bondid === bondid) select(b)).toSet
+  }
+  
   def getHistoricalPriceIDs(d:JavaDate):Set[String] = transaction {
     from(historicalprices)(b => where(b.paramdate === d) select(&(b.bondid))).toSet
   }
