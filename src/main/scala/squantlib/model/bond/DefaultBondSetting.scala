@@ -16,6 +16,7 @@ object DefaultBondSetting extends BondSetting {
 	  "STEPUP" -> NoModelSetting,
 	  
 	  "FRN" -> ForwardModelSetting,
+	  "FXFORWARD" -> ForwardModelSetting,
 	  
 	  "JGBR10F" -> JGBRModelSetting,
 	  "JGBR10N" -> JGBRModelSetting,

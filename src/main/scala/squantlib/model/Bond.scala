@@ -853,11 +853,14 @@ case class Bond(
 	          fixedamount = fixedamount.collect{case v => BigDecimal(v, defaultMathContext)},
 		      spotrate = spotrate.collect{case v => BigDecimal(v, defaultMathContext)},
 		      spotamount = spotamount.collect{case v => BigDecimal(v, defaultMathContext)},
+		      spotorfixedrate = (if (fixedrate.isDefined) fixedrate else spotrate).collect{case v => BigDecimal(v, defaultMathContext)},
+		      spotorfixedamount = (if (fixedamount.isDefined) fixedamount else spotamount).collect{case v => BigDecimal(v, defaultMathContext)},
 	          jsonformat = payoffs(i).jsonString,
 	          display = p.display(paytype == "REDEMPTION"),
 	          comment = p.description,
 	          daycount = s.daycounter.toString,
 	          paymenttype = paytype,
+	          paymenttype2 = if (paytype == null) null else paytype.toLowerCase.capitalize,
 			  lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
 			  )}).toSet
 	}

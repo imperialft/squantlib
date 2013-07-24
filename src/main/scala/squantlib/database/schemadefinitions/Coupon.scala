@@ -20,11 +20,14 @@ class Coupon(@Column("ID")				override var id:String,
 			@Column("FixedAmount")		var fixedamount:Option[BigDecimal],
 			@Column("SpotRate")			var spotrate:Option[BigDecimal],
 			@Column("SpotAmount")		var spotamount:Option[BigDecimal],
+			@Column("CurrentCouponRate")	var spotorfixedrate:Option[BigDecimal],
+			@Column("CurrentCouponAmount")	var spotorfixedamount:Option[BigDecimal],
 			@Column("JsonFormat")		var jsonformat:String,
 			@Column("Display")			var display:String,
 			@Column("Comment")			var comment:String,
 			@Column("Daycount")			var daycount:String,
 			@Column("PaymentType")		var paymenttype:String,
+			@Column("PaymentType_Rails")	var paymenttype2:String,
 			@Column("LastModified")		var lastmodified:Option[Date]
               ) extends StringEntity {
   
@@ -42,11 +45,14 @@ class Coupon(@Column("ID")				override var id:String,
       fixedamount = Some(-999.0),
       spotrate = Some(-999.0),
       spotamount = Some(-999.0),
+      spotorfixedrate = Some(-999.0),
+      spotorfixedamount = Some(-999.0),
       jsonformat = null,
       display = null,
       comment = null,
       daycount = null,
       paymenttype = null,
+      paymenttype2 = null,
       lastmodified = None)
       
   
