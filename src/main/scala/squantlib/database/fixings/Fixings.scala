@@ -2,17 +2,18 @@ package squantlib.database.fixings
 
 import squantlib.database.DB
 import squantlib.util.initializer.Currencies
+import squantlib.util.AutoTimedCache
 import org.jquantlib.time.{Date => qlDate}
 import java.util.{Date => JavaDate}
 import squantlib.util.UnderlyingParser
 
 object Fixings {
   
-	val fixingcache = new scala.collection.mutable.WeakHashMap[String, Option[Map[qlDate, Double]]]
+    val cache = new AutoTimedCache(10000)
 	
 	lazy val latestParamDate = new qlDate(DB.getLatestParamSet._2)
   
-	def apply(id:String):Option[Map[qlDate, Double]] = fixingcache.getOrElseUpdate(id, getHistorical(id))
+	def apply(id:String):Option[Map[qlDate, Double]] = cache.get(id, getHistorical(id))
 	
 	def byDate(id:String, vd:JavaDate):Option[(qlDate, Double)] = byDate(id, new qlDate(vd))
 	

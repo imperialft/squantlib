@@ -8,9 +8,11 @@ import squantlib.util.DisplayUtils._
 
 object UnderlyingInfo {
   
-	val cache = new WeakHashMap[String, Option[Underlying]]
+//	val cache = new WeakHashMap[String, Option[Underlying]]
+  
+    val cache = new AutoTimedCache(30000)
 	
-	def apply(id:String):Option[Underlying] = cache.getOrElseUpdate(id, DB.getUnderlying(id))
+	def apply(id:String):Option[Underlying] = cache.get(id, DB.getUnderlying(id))
 	
 	def name(id:String):String = apply(id) match {
 	  case Some(v) => v.name
