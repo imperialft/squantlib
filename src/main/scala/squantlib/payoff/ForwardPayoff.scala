@@ -62,19 +62,17 @@ case class ForwardPayoff(
 	  
 	  if (isRedemption) {
 	    if (multiple) 
-	      (List("最終参照日の" + varnames.mkString("、") + "によって、下記の低い（パフォーマンスが悪い）ほうの金額が支払われます。") ++ 
+	      (List("下記の低い（パフォーマンスが悪い）ほうの金額が支払われます。") ++ 
 	          strikeMap.map{case (v, k) => "・ 額面 x " + v + " / " + k}).mkString(sys.props("line.separator"))
 	    else
-	      List("最終参照日の" + varnames.head + "によって決定されます。", 
-	          strikeMap.head match {case (v, k) => "額面 x " + v + " / " + k}).mkString(sys.props("line.separator"))
+	      strikeMap.head match {case (v, k) => "額面 x " + v + " / " + k}
 	  }
 	  else {
 	    if (multiple) 
-	      (List("利率決定日の" + varnames.mkString("、") + "によって、下記の低い（パフォーマンスが悪い）ほうの金額が支払われます。") ++ 
+	      (List("下記の低い（パフォーマンスが悪い）ほうの金額が支払われます。") ++ 
 	          strikeMap.map{case (v, k) => "・ " + v + " / " + k + " （年率）"}).mkString(sys.props("line.separator"))
 	    else
-	      List("利率決定日の" + varnames.head + "によって決定されます。", 
-	          strikeMap.head match {case (v, k) => "額面 x " + v + " / " + k + " （年率）"}).mkString(sys.props("line.separator"))
+	      strikeMap.head match {case (v, k) => "額面 x " + v + " / " + k + " （年率）"}
 	  }
 	    
 	}

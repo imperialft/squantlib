@@ -462,7 +462,8 @@ object Market {
 	  
 	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
 	  if (!discountcurves.exists(_.currency.code == "USD")) {
-	    println("Error creating market : USD curve not found")
+	    println("Error creating market : USD curve not found - found:")
+	    if (discountcurves.isEmpty) println("no curve") else discountcurves.foreach(c => println(c.currency.code))
 	    return None}
 	  
 	  val cdscurves = CDSCurve(cdsparams, valuedate)

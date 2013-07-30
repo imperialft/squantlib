@@ -55,7 +55,6 @@ case class GeneralPayoff(
 
 	override def display(isRedemption:Boolean):String = 
 	  if (isRedemption) {
-	    "最終参照日の" + variables.mkString("、") + "によって、額面に対して下記の金額が支払われます。" + sys.props("line.separator") + 
 	    formula.toList.sortBy{case (s, _) => s.size}.reverse.map{
 	      case (vars, coeff) if vars.size > 0 && coeff == 1.0 => 
 	        (vars.head match {
@@ -82,7 +81,6 @@ case class GeneralPayoff(
 	  })}
 	  
 	  else {
-	    "利率決定日の" + variables.mkString("、") + "によって決定されます。" + sys.props("line.separator") + 
 	    formula.toList.sortBy{case (s, _) => s.size}.reverse.map{
 	      case (vars, coeff) if vars.size > 0 && coeff == 1.0 => 
 	        (vars.head match {

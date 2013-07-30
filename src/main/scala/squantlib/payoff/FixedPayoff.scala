@@ -33,9 +33,7 @@ case class FixedPayoff(payoff:Double, description:String = null) extends Payoff 
 	  (new ObjectMapper).writeValueAsString(infoMap)	  
 	}
 	
-	override def display(isRedemption:Boolean):String = 
-	  if (isRedemption) "額面 " + (if(payoff == 1.0) "100%" else payoff.asPercent) + "で償還されます " + (if(payoff >= 1.00) " （元本確保）" else "")
-	  else "年率 " + payoff.asPercent + "の固定利率が支払われます。"
+	override def display(isRedemption:Boolean):String = null
 	
 }
 

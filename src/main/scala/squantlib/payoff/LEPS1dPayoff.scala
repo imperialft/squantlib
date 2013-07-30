@@ -43,8 +43,6 @@ case class LEPS1dPayoff(
 	  val vardisp = (v:Double) => UnderlyingInfo.displayValue(variable, v)
 	  
 	  if (isRedemption) {
-	    "最終参照日の" + varname + "によって、下記の金額で償還されます。" + 
-	    sys.props("line.separator") + 
 	    payoff.sortBy{case LEPS1dComponent(_, _, m, _) => m.getOrElse(-9999.0)}.map(p => 
 	    (p match {
 	      case LEPS1dComponent(_, _, Some(min), Some(max)) => 
@@ -65,8 +63,6 @@ case class LEPS1dPayoff(
 	  }
 	  
 	  else {
-	    "利率決定日の" + varname + "によって決定されます。" + 
-	    sys.props("line.separator") + 
 	    payoff.sortBy{case LEPS1dComponent(_, _, m, _) => m.getOrElse(-9999.0)}.map(p => 
 	    (p match {
 	      case LEPS1dComponent(_, _, Some(min), Some(max)) => 

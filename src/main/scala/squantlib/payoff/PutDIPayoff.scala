@@ -56,7 +56,7 @@ case class PutDIPayoff(
 	  val multiple = variables.size > 1
 	  
 	  if (isRedemption){
-	    List("最終参照日の" + varnames.mkString("、") + "によって、下記の金額で償還されます。", 
+	    List(
 	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "がノックイン価格を上回っている場合 ： 額面 " + amount.asPercent,
 	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "がノックイン価格を下回っている場合 ： ",
 	        "  " + strikeMap.map{case (v, k) => "額面 x " + v + " / " + k}.mkString("、") + (if(multiple) "の低いほう" else ""),
@@ -66,7 +66,7 @@ case class PutDIPayoff(
 	  }
 
 	  else {
-	    List("利率決定日の" + varnames.mkString("、") + "によって決定されます。", 
+	    List(
 	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "がノックイン価格を上回っている場合 ： " + amount.asPercent + " (年率）",
 	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "がノックイン価格を下回っている場合 ： ",
 	        "  " + strikeMap.map{case (v, k) => amount.asPercent + " x " + v + " / " + k}.mkString("、") + (if(multiple) "の低いほう" else "")  + " (年率）",

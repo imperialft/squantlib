@@ -39,8 +39,6 @@ case class Linear1dPayoff(
 	  val vardisp = (v:Double) => UnderlyingInfo.displayValue(variable, v)
 	  
 	  if (isRedemption) {
-	    "最終参照日の" + varname + "によって、下記の金額が支払われます。" + 
-	    sys.props("line.separator") + 
 	    (payoff match {
 	      case Linear1dFormula(None, None, _, _, _) => "額面 " + (0.0).asPercent
 	      case Linear1dFormula(Some(coeff), None, _, _, _) => "額面に対して " + coeff.asDouble + " * " + varname
@@ -55,8 +53,6 @@ case class Linear1dPayoff(
 	  }
 	  
 	  else{
-	    "利率決定日の" + varname + "によって決定されます。" + 
-	    sys.props("line.separator") + " " + 
 	    (payoff match {
 	      case Linear1dFormula(None, None, _, _, _) => (0.0).asPercent
 	      case Linear1dFormula(Some(coeff), None, _, _, _) => coeff.asDouble + " * " + varname

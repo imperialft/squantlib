@@ -84,7 +84,6 @@ case class BinaryPayoff(
 	  val dispValue = (v:String, s:Double) => UnderlyingInfo.displayValue(v, s)
 	  
 	  if (isRedemption)
-	    "最終参照日の参照価格によって決定されます。" + sys.props("line.separator") + 
 	    payoff.sortBy{case (amt, stk) => amt}.reverse.map{
 	      case (amt, Some(stks)) => (binaryVariables, stks).zipped.map{
 	      case (v, s) => "・ " + varnames(v) + "が " + dispValue(v, s) + "以上"}.mkString("、") + "の場合 ： 額面 " + amt.asPercent
@@ -92,7 +91,6 @@ case class BinaryPayoff(
 	    }.mkString(sys.props("line.separator"))
 	  
 	  else
-	    "利率決定日の参照価格によって決定されます。" + sys.props("line.separator") + 
 	    payoff.sortBy{case (amt, stk) => amt}.reverse.map{
 	      case (amt, Some(stks)) => (binaryVariables, stks).zipped.map{
 	      case (v, s) => "・ " + varnames(v) + "が " + dispValue(v, s) + "以上"}.mkString("、") + "の場合 ： 年率 " + amt.asPercent

@@ -105,7 +105,7 @@ case class PutDIAmericanPayoff(
 	  val end = if (refEnd == null) "" else "%tY年%<tm月%<td日".format(refEnd.longDate)
 	  
 	  if (isRedemption) {
-	      List("判定期間中の" + varnames.mkString("、") + "に応じて、最終参照日に決定されます。", 
+	      List(
 	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "が常にノックイン価格を上回った場合 ： " + (if (knockedIn) "(ノックイン済み）" else "額面 " + amount.asPercent),
 	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "が一度でもノックイン価格を下回った場合 ： ",
 	        "  " + strikeMap.map{case (v, k) => "額面 x " + v + " / " + k}.mkString("、") + (if(multiple) "の低いほう" else ""),
@@ -116,7 +116,7 @@ case class PutDIAmericanPayoff(
 	  }
 	  
 	  else {
-	    List("判定期間中の" + varnames.mkString("、") + "に応じて、利率決定日に決定されます。", 
+	    List(
 	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "が常にノックイン価格を上回った場合 ： " + (if (knockedIn) "(ノックイン済み）" else amount.asPercent),
 	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "が一度でもノックイン価格を下回った場合 ： ",
 	        "  " + strikeMap.map{case (v, k) => amount.asPercent + " x " + v + " / " + k + " （年率）"}.mkString("、") + (if(multiple) "の低いほう" else ""),
