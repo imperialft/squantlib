@@ -735,23 +735,25 @@ case class Bond(
 	    price.currentrate = currentRate.flatMap{case p if p.isNaN || p.isInfinity => None; case p => Some(p * 100)}
 	    price.nextamount = nextPayment.flatMap{case (_, p) if p.isNaN || p.isInfinity => None; case (_, p) => Some(p * 100)}
 	    price.nextdate = nextPayment.collect{case (d, p) => d.longDate}
-	    price.dur_modified = modifiedDuration
-	    price.dur_macauley = macaulayDuration
 	    price.volatility = historicalVolLatest(260).getOrElse(db.defaultvol)
 	    if (isTerminated.getOrElse(false)) price.pricetype = "MATURED"
+	    val issueprice = issuePrice.getOrElse(100.0) / 100.0
+	    
+	    val defaultduration:Double = discountCurve.collect{case c => c.duration(maturity)}.getOrElse(price.remaininglife)
+	    price.dur_modified = Some(modifiedDuration.getOrElse(defaultduration))
+	    price.dur_macauley = Some(macaulayDuration.getOrElse(defaultduration))
+	    price.dur_simple = Some(effectiveDuration.getOrElse(defaultduration))
 	    
 	    if (mkt.valuedate le issueDate){
-	      val preissue = issuePrice.getOrElse(100.0) / 100.0
-	      price.pricedirty = preissue * 100.0
-	      price.priceclean = preissue * 100.0
+	      price.pricedirty = issueprice * 100.0
+	      price.priceclean = issueprice * 100.0
 	      price.accrued = 0.0
-	      price.yield_continuous = getYield(preissue, Compounding.Continuous, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
-	      price.yield_annual = getYield(preissue, Compounding.Compounded, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
-	      price.yield_semiannual = getYield(preissue, Compounding.Compounded, Frequency.Semiannual, mkt.valuedate).collect{case p => p * 100}
-	      price.yield_simple = getYield(preissue, Compounding.None, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
+	      price.yield_continuous = getYield(issueprice, Compounding.Continuous, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
+	      price.yield_annual = getYield(issueprice, Compounding.Compounded, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
+	      price.yield_semiannual = getYield(issueprice, Compounding.Compounded, Frequency.Semiannual, mkt.valuedate).collect{case p => p * 100}
+	      price.yield_simple = getYield(issueprice, Compounding.None, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
 	      price.bpvalue = bpvalue.collect{case p => p * 10000}
-	      price.irr = getYield(preissue, Compounding.Compounded, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
-	      price.dur_simple = effectiveDuration
+	      price.irr = getYield(issueprice, Compounding.Compounded, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
 	      price.yieldvaluebp = yieldValueBasisPoint
 	      price.convexity = convexity
 	      price.parMtMYield = parMtMYield
@@ -779,7 +781,6 @@ case class Bond(
 	      price.yield_simple = yieldSimple.collect{case p => p * 100}
 	      price.bpvalue = bpvalue.collect{case p => p * 10000}
 	      price.irr = irr.collect{case p => p * 100}
-	      price.dur_simple = effectiveDuration
 	      price.yieldvaluebp = yieldValueBasisPoint
 	      price.convexity = convexity
 	      price.parMtMYield = parMtMYield
@@ -834,10 +835,6 @@ case class Bond(
 	  
 	  (0 to pos.size - 1).map(i => {
 	      val (s, p, t) = pos(i)
-//	      val fixedrate = p match {
-//	        case po:FixedPayoff if !po.payoff.isNaN && !po.payoff.isInfinity => Some(po.payoff) 
-//	        case _ => None }
-	      
 	      val fixedrate = if (p.isFixed && !p.price.isNaN && !p.price.isInfinity) Some(p.price) else None
 	      val fixedamount = fixedrate.collect{case r => r * s.dayCount}
 	      val paytype = if (s isAbsolute) "REDEMPTION" else "COUPON"

@@ -1,7 +1,6 @@
 package squantlib.model.rates
 
 import squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-//import squantlib.jquantlib.termstructures.ZCImpliedYieldTermStructure
 import squantlib.util.DateUtils
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.instruments
@@ -10,6 +9,7 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Calendar, Date => qlDate, Period => qlPeriod, Frequency, BusinessDayConvention}
 import org.jquantlib.time.calendars.NullCalendar
 import java.lang.UnsupportedOperationException
+import squantlib.model.rates.convention.RateConvention
 
 /**
  * Encapsulates cashflow discounting curve and discount spread on 3m float rate.
@@ -78,6 +78,11 @@ case class DiscountCurve(
     def volatility(expiry:Long, maturity:Long):Option[Double] = vol.collect{case v => v(expiry, maturity)}
     def volatility(expiry:qlDate, maturity:qlDate):Option[Double] = vol.collect{case v => v(expiry, maturity)}
     def volatility(expiry:qlPeriod, maturity:qlPeriod):Option[Double] = vol.collect{case v => v(expiry, maturity)}
+    
+    def duration(maturity:qlDate):Double = RateConvention(currency.code) match {
+      case Some(conv) => duration(maturity, if (conv.swapFixPeriod == null) new qlPeriod("3M") else conv.swapFixPeriod.toPeriod, if (conv.swapFixDaycount == null) new Actual365Fixed else conv.swapFixDaycount, BusinessDayConvention.ModifiedFollowing)
+      case None => duration(maturity, new qlPeriod("3M"), new Actual365Fixed, BusinessDayConvention.ModifiedFollowing)
+    }
     
     def duration(maturity:qlPeriod, period:qlPeriod, daycount:DayCounter, convention:BusinessDayConvention):Double = 
       duration(valuedate.add(maturity), period, daycount, convention)
