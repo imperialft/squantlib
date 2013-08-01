@@ -61,6 +61,7 @@ object DB extends Schema {
   val impliedrates = table[ImpliedRate]("ImpliedRates")
   val underlyings = table[Underlying]("Underlyings")
   val jsdaprices = table[JsdaPrice]("JSDAPrice")
+  val callabilities = table[Callability]("Callabilities")
   
   val fxrates = table[FXRate]("FXRates")
   val ratefxparameters = table[RateFXParameter]("RateFXParameters")
@@ -1404,6 +1405,7 @@ object DB extends Schema {
       case "Issuer" => Some(issuers)
       case "Product" => Some(products)
       case "Equity" => Some(equities)
+      case "Callability" => Some(callabilities)
       case _ => None
     }
   

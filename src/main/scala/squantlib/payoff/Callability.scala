@@ -27,9 +27,10 @@ case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Dou
   def fixedTrigger:Option[Boolean] = if (isFixed) Some(triggers.forall{case (k, v) => v <= getFixings(k)}) else None
   
   def isTriggered(f:Map[String, Double]):Boolean = 
-    if (!isTrigger) false
-    else if (isFixed) triggers.forall{case (k, v) => v <= getFixings(k)}
-    else if ((triggers.keySet subsetOf f.keySet)) triggers.forall{case (k, v) => v <= f(k)}
+    isTriggered || ((triggers.keySet subsetOf f.keySet) && triggers.forall{case (k, v) => v <= f(k)})
+    
+  def isTriggered:Boolean = 
+    if (isTrigger && isFixed) triggers.forall{case (k, v) => v <= getFixings(k)}
     else false
     
   def redemptionAmount:Double = 1.0 + bonus

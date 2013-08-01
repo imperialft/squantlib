@@ -5,7 +5,7 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedul
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
 import squantlib.database.DB
-import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon, ForwardPrice, LatestPrice, HistoricalPrice}
+import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon, ForwardPrice, LatestPrice, HistoricalPrice, Callability => dbCallability}
 import squantlib.payoff._
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.bond.BondSetting
@@ -714,8 +714,8 @@ case class Bond(
     /*
      * Output to BondPrice object
      */
-	def mapToJsonString(params:Map[String, Double]):String = {
-	  val javamap:java.util.Map[String, Double] = params
+	def mapToJsonString(params:Map[String, Any]):String = {
+	  val javamap:java.util.Map[String, Any] = params
 	  (new ObjectMapper).writeValueAsString(javamap)
 	}
 	
@@ -834,7 +834,11 @@ case class Bond(
 	  
 	  (0 to pos.size - 1).map(i => {
 	      val (s, p, t) = pos(i)
-	      val fixedrate = p match {case po:FixedPayoff if !po.payoff.isNaN && !po.payoff.isInfinity => Some(po.payoff) case _ => None }
+//	      val fixedrate = p match {
+//	        case po:FixedPayoff if !po.payoff.isNaN && !po.payoff.isInfinity => Some(po.payoff) 
+//	        case _ => None }
+	      
+	      val fixedrate = if (p.isFixed && !p.price.isNaN && !p.price.isInfinity) Some(p.price) else None
 	      val fixedamount = fixedrate.collect{case r => r * s.dayCount}
 	      val paytype = if (s isAbsolute) "REDEMPTION" else "COUPON"
 	      val spotrate = spot(i) match {case v if v.isNaN || v.isInfinity || fixedrate.isDefined => None case _ => Some(spot(i)) }
@@ -865,6 +869,40 @@ case class Bond(
 			  )}).toSet
 	}
 	
+	def toCallabilities:Set[dbCallability] = {
+	  val pos = allPayoffs
+	  
+	  (0 to pos.size - 1).map(i => {
+	      val (s, p, t) = pos(i)
+	      val calltype = (t.isBermuda, t.isTrigger) match {
+	        case (true, true) => "issuer,trigger"
+	        case (true, false) => "issuer"
+	        case (false, true) => "trigger"
+	        case (false, false) => "none"
+	      }
+	      
+	      val jsontrigger:Map[String, String] = 
+	        if (t isTrigger) t.triggers.map{
+	          case (k, v) => (UnderlyingInfo.nameJpn(k), if(v.isNaN || v.isInfinity) "不明" else UnderlyingInfo.displayValue(k, v))} 
+	        else Map.empty
+	      
+	      val jsonfixings:Map[String, String] = 
+	        if (t isTrigger) t.getFixings.map{case (k, v) => (UnderlyingInfo.nameJpn(k), if(v.isNaN || v.isInfinity) "不明" else UnderlyingInfo.displayValue(k, v))}
+	        else Map.empty
+	      
+	      new dbCallability(
+	          id = id + ":" + i + ":" + calltype.toUpperCase,
+	          bondid = id,
+	          eventdate = s.eventDate.longDate,
+	          valuedate = s.paymentDate.longDate,
+	          calltype = calltype,
+	          trigger = if (jsontrigger.isEmpty) null else mapToJsonString(jsontrigger), 
+	          fixings = if (jsonfixings.isEmpty) null else mapToJsonString(jsonfixings),
+	          istriggered = if (t isTriggered) 1 else if (t.isTrigger && t.isPriceable) 0 else -1,
+	          redemptionamount = t.redemptionAmount,
+	          lastmodified = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
+			  )}).filter(c => c.calltype != "none").toSet
+	}
 	
 	def toForwardPrice(vd:qlDate, fwdfx:Double):Option[ForwardPrice] = (market, cleanPrice) match {
 	  case (Some(mkt), Some(cp)) => Some(new ForwardPrice(
