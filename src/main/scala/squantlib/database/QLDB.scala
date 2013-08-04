@@ -38,7 +38,17 @@ object QLDB {
   def getMarket(paramset:String, valueDate:qlDate):Option[Market] = 
     Market(DB.getRateFXParameters(paramset), DB.getCDSParameters(paramset), valueDate)
 	
-  def getBond(id:String):Option[sBond] = DB.getBonds(Set(id)).headOption.flatMap{bond => sBond.withSetting(bond, bondSetting)}
+  def getBond(id:String):Option[sBond] = getBond(id, false)
+  
+  def getBond(id:String, withMarket:Boolean) = {
+    val bond = DB.getBonds(Set(id)).headOption.flatMap{bond => sBond.withSetting(bond, bondSetting)}
+    val mkt = getMarket
+    (bond, mkt) match {
+      case (Some(b), Some(m)) => b.market = m; Some(b)
+      case (Some(b), None) => Some(b)
+      case (None, _) => None
+    }
+  }
 	
   def getBonds(ids:Set[String]):Set[sBond] = DB.getBonds(ids).map(b => sBond.withSetting(b, bondSetting)).flatMap(s => s)
 	

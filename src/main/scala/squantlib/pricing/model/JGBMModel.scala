@@ -20,7 +20,7 @@ case class JGBMModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 	override def price(curve:DiscountCurve):Option[Double] = price
 	  
 	override def price:Option[Double] = {
-	  if (valueDate ge bond.maturity) None
+	  if (valueDate ge bond.scheduledMaturity) None
 	  else if (valueDate lt bond.issueDate) bond.issuePrice.collect{case p => p / 100.0}
 	  else {
 	    if (storedPrice.isEmpty) {

@@ -39,7 +39,7 @@ object OneTimeSwaptionModel {
 	  val scheduledPayoffs = bond.livePayoffs(valuedate)
 	  if (scheduledPayoffs.underlyings.size != 0) { return None }
 	  
-	  val maturity = bond.maturity
+	  val maturity = bond.scheduledMaturity
 	  
 	  val nextPayment = bond.nextPayment.collect{case (d, _) => d}.orNull
 	  if (nextPayment == null) {return None}

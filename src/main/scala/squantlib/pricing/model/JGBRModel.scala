@@ -17,7 +17,7 @@ case class JGBRModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 	var storedPrice:Option[Double] = None
 	
 	override def price(curve:DiscountCurve):Option[Double] = {
-	  if (valueDate ge bond.maturity) None
+	  if (valueDate ge bond.scheduledMaturity) None
 	  else {
 	    if (storedPrice.isEmpty) {
 	      val accrued:Double = bond.accruedAmount.getOrElse(Double.NaN)

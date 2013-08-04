@@ -61,7 +61,7 @@ case class Bond(
 	
 	val issueDate:qlDate = schedule.head.startDate
 	
-	val maturity:qlDate = schedule.last.endDate
+	val scheduledMaturity:qlDate = schedule.last.endDate
 	
 	val bermudan:List[Boolean] = calls.bermudans
 	
@@ -101,7 +101,7 @@ case class Bond(
 	  if (amount.isNaN || amount.isInfinity) None else Some(amount)
 	}
 	
-	def isMatured:Option[Boolean] = valueDate.collect { case vd => vd ge maturity}
+	def isScheduleMatured:Option[Boolean] = valueDate.collect { case vd => vd ge scheduledMaturity}
 	
 	lazy val (earlyTerminationPeriod:Option[CalculationPeriod], earlyTerminationAmount:Option[Double]) = 
 	  scheduledPayoffs.triggeredDate.collect{case (p, a) => (Some(p), Some(a))}.getOrElse((None, None))
@@ -114,10 +114,12 @@ case class Bond(
 	  case _ => None
 	}
 	
-	def isTerminated:Option[Boolean] = (isMatured, isEarlyTerminated) match {
+	def isTerminated:Option[Boolean] = (isScheduleMatured, isEarlyTerminated) match {
 	  case (Some(m), Some(t)) => Some(m || t)
 	  case _ => None
 	}
+	
+	def terminationDate:qlDate = earlyTerminationDate.getOrElse(scheduledMaturity)
 	
 	def getUnderlyings:Map[String, Option[Underlying]] = market match {
 	  case None => underlyings.map(u => (u, None)) (collection.breakOut)
@@ -209,6 +211,7 @@ case class Bond(
 
 	def livePayoffs(vd:qlDate):ScheduledPayoffs = {
 	  val p = (earlyTerminationDate,earlyTerminationAmount) match {
+	    case (Some(d), _) if vd ge d => ScheduledPayoffs.empty
 	    case (Some(d), Some(a)) => scheduledPayoffs.after(vd).called(d, a, calendar, db.paymentAdjust).withValueDate(vd)
 	    case _ => scheduledPayoffs.after(vd).withValueDate(vd)
 	  }
@@ -548,7 +551,7 @@ case class Bond(
 	/*	
 	 * Returns Macauley duration defined as Sum {tV} / Sum{V}
 	 */
-    def macaulayDuration:Option[Double] = discountCurve.flatMap{case curve => 
+    def macaulayDuration:Option[Double] = if (isTerminated == Some(true)) Some(0.0) else discountCurve.flatMap{case curve => 
       val mac = Duration.macaulay(spotCashflowDayfrac(new Actual365Fixed), (d:Double) => curve(d * 365.25))
       if (mac.isNaN || mac.isInfinity) None else Some(mac)
     }
@@ -557,7 +560,8 @@ case class Bond(
 	 * Returns modified duration defined as Macauley duration / (1 + yield / freq)
 	 */
 	def modifiedDuration:Option[Double] = modifiedDuration(Compounding.Compounded, Frequency.Annual)
-	def modifiedDuration(comp:Compounding, freq:Frequency):Option[Double] = macaulayDuration.flatMap { case dur =>
+	def modifiedDuration(comp:Compounding, freq:Frequency):Option[Double] = if (isTerminated == Some(true)) Some(0.0) 
+	  else macaulayDuration.flatMap { case dur =>
 	    comp match {
 	      case Compounding.Continuous => Some(dur)
 	      case Compounding.Compounded | Compounding.SimpleThenCompounded => getYield(comp, freq).collect{case y => dur / (1.0 + y / freq.toInteger.toDouble)}
@@ -568,7 +572,7 @@ case class Bond(
 	/*	
 	 * Returns effective duration defined as 1bp rate delta * 10000
 	 */
-	def effectiveDuration:Option[Double] = rateDelta(-0.0001).collect{case d => d * 10000} // TO BE COMPUTED AS RATE DELTA
+	def effectiveDuration:Option[Double] = if (isTerminated == Some(true)) Some(0.0) else rateDelta(-0.0001).collect{case d => d * 10000} // TO BE COMPUTED AS RATE DELTA
 	
 	/*	
 	 * List of underlying currencies
@@ -708,7 +712,7 @@ case class Bond(
     /*
      * Remaining life in number of years
      */
-	def remainingLife:Option[Double] = valueDate.collect{ case d => (new Actual365Fixed).yearFraction(d, maturity)}
+	def remainingLife:Option[Double] = valueDate.collect{ case d => (new Actual365Fixed).yearFraction(d, terminationDate).max(0.0)}
 	
 	
     /*
@@ -738,8 +742,9 @@ case class Bond(
 	    price.volatility = historicalVolLatest(260).getOrElse(db.defaultvol)
 	    if (isTerminated.getOrElse(false)) price.pricetype = "MATURED"
 	    val issueprice = issuePrice.getOrElse(100.0) / 100.0
+	    price.remaininglife = remainingLife.getOrElse(price.remaininglife)
 	    
-	    val defaultduration:Double = discountCurve.collect{case c => c.duration(maturity)}.getOrElse(price.remaininglife)
+	    val defaultduration:Double = discountCurve.collect{case c => c.duration(scheduledMaturity)}.getOrElse(price.remaininglife)
 	    price.dur_modified = Some(modifiedDuration.getOrElse(defaultduration))
 	    price.dur_macauley = Some(macaulayDuration.getOrElse(defaultduration))
 	    price.dur_simple = Some(effectiveDuration.getOrElse(defaultduration))
