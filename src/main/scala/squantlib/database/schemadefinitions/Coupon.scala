@@ -70,6 +70,6 @@ class Coupon(@Column("ID")				override var id:String,
     }
   }
       
-  override def toString():String = format("%-10s %-5s %tF %tF %-10s %-10s %-15s %-10s", bondid, currency, eventdate, paymentdate, fixedrate.getOrElse("no fixing"), spotrate.getOrElse("no spot"), rate, comment)
+  override def toString():String = format("%-10s %-5s %tF %tF %-10s %-10s %-15s", bondid, currency, eventdate, paymentdate, fixedrate.getOrElse("no fixing"), spotrate.getOrElse("no spot"), rate)
       
 }

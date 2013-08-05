@@ -3,7 +3,7 @@ package squantlib.database.schemadefinitions
 import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
-
+import squantlib.util.DisplayUtils
 
 class Underlying(@Column("ID")				override var id:String,
               @Column("NAME")				var name:String,
@@ -21,7 +21,9 @@ class Underlying(@Column("ID")				override var id:String,
       stringformat = null, 
       unit = null)
       
-  def display(v:Double):String = stringformat.format(v * multiple.toDouble) + unit
+  def display(v:Double, ifNaN:String = DisplayUtils.defaultNaNdisplay):String = 
+    if (v.isNaN || v.isInfinity) ifNaN + " " + unit
+    else stringformat.format(v * multiple.toDouble) + unit
 
   override def toString():String = format("%-5s %-15s %-15s %-15s", id, name, namejpn, display(1.00))
 }

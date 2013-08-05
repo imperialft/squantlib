@@ -4,6 +4,8 @@ import org.codehaus.jackson.JsonNode
 
 object DisplayUtils {
   
+	var defaultNaNdisplay = "[]"
+  
 	implicit def stringToExtendedString(s:String) = ExtendedString(s)
 	case class ExtendedString(s:String) {
 	  def or(t:String) = if (s == null) t else s
@@ -53,25 +55,25 @@ object DisplayUtils {
 	
 	implicit def doubleToExtendedDouble(d:Double) = ExtendedDouble(d)
 	case class ExtendedDouble(d:Double) {
-	  def asPercent:String = "%.4f".format(d * 100.0).trimZeros + "%"
-	  def asPercent(decimals:Int):String = ("%." + decimals + "f").format(d * 100.0).trimZeros + "%"
+	  def asPercent:String = (if (d.isNaN || d.isInfinity) defaultNaNdisplay else "%.4f".format(d * 100.0).trimZeros) + "%"
+	  def asPercent(decimals:Int):String = (if (d.isNaN || d.isInfinity) defaultNaNdisplay else ("%." + decimals + "f").format(d * 100.0).trimZeros) + "%"
 	  
-	  def asDouble:String = "%,.4f".format(d).trimZeros
-	  def asDouble(decimals:Int):String = ("%,." + decimals + "f").format(d).trimZeros
+	  def asDouble:String = if (d.isNaN || d.isInfinity) defaultNaNdisplay else "%,.4f".format(d).trimZeros
+	  def asDouble(decimals:Int):String = if (d.isNaN || d.isInfinity) defaultNaNdisplay else ("%,." + decimals + "f").format(d).trimZeros
 	}
 	
 	implicit def doubleToExtendedDoubleOpt(d:Option[Double]) = ExtendedDoubleOpt(d)
 	case class ExtendedDoubleOpt(d:Option[Double]) {
 	  
 	  def asPercentOr(alternative:String, prefix:String, suffix:String):String = d match {
-	    case Some(r) => prefix + "%.4f".format(r * 100.0).trimZeros + "%" + suffix
+	    case Some(r) if !r.isNaN && !r.isInfinity => prefix + "%.4f".format(r * 100.0).trimZeros + "%" + suffix
 	    case None => alternative
 	  }
 	  def asPercentOr(alternative:String):String = asPercentOr(alternative, "", "")
 	  def asPercent = asPercentOr("")
 	  
 	  def asDoubleOr(alternative:String, prefix:String, suffix:String):String = d match {
-	    case Some(r) => prefix + "%,.4f".format(r).trimZeros + suffix
+	    case Some(r) if !r.isNaN && !r.isInfinity => prefix + "%,.4f".format(r).trimZeros + suffix
 	    case None => alternative
 	  }
 	  def asDoubleOr(alternative:String):String = asDoubleOr(alternative, "", "")
