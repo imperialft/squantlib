@@ -7,7 +7,7 @@ import squantlib.database.schemadefinitions.Equity
 
 trait DbRepository {
   
-  val latestParamDate:qlDate
+  def latestParamDate:qlDate
   
   def getHistorical(id:String, startDate:qlDate, endDate:qlDate, assetId:String = null):Map[qlDate, Double]
   

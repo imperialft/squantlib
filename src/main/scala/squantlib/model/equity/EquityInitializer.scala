@@ -33,14 +33,13 @@ object EquityInitializer {
     
   def getInitializers(params:Set[RateFXParameter]):Map[String, EquityInitializer] = {
     val eqlist = equitylist
+    val modelMap:Map[String, Set[RateFXParameter] => EquityInitializer] = 
+      eqlist.map{case (name, eqty) => (name, (p:Set[RateFXParameter]) => SimpleInitializer(name, p, eqty, eqty.currencyid, 0.0))}
+    
     val paramsets:Map[String, Set[RateFXParameter]] = params.filter(p => (eqlist contains p.asset)).groupBy(_.asset)
     paramsets.map{case (name, ps) => (name, modelMap(name)(ps))}
   }
   
-  val modelMap:Map[String, Set[RateFXParameter] => EquityInitializer] = {
-    val eqlist = equitylist
-    eqlist.map{case (name, eqty) => (name, (p:Set[RateFXParameter]) => SimpleInitializer(name, p, eqty, eqty.currencyid, 0.0))}
-  }
 }
 
 case class EmptyInitializer extends EquityInitializer {
