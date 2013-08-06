@@ -8,8 +8,7 @@ import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
 import org.jquantlib.time.{Date => qlDate}
-import squantlib.database.fixings.Fixings
-import squantlib.util.UnderlyingInfo
+import squantlib.database.DB
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -96,35 +95,6 @@ case class PutDIAmericanPayoff(
 	override def toString =
 	  amount.asPercent + " [" + trigger.mkString(",") + "](Amer) " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])" 
 	
-	override def display(isRedemption:Boolean):String = {
- 	  val varnames = putVariables.map(UnderlyingInfo.nameJpn)
-	  val strikeMap = (putVariables, strike).zipped.map{case (v, k) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, k))}
-	  val triggerMap = (putVariables, trigger).zipped.map{case (v, t) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, t))}
-	  val multiple = strike.size > 1
-	  val start = if (refStart == null) "" else "%tY年%<tm月%<td日".format(refStart.longDate)
-	  val end = if (refEnd == null) "" else "%tY年%<tm月%<td日".format(refEnd.longDate)
-	  
-	  if (isRedemption) {
-	      List(
-	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "が常にノックイン価格を上回った場合 ： " + (if (knockedIn) "(ノックイン済み）" else "額面 " + amount.asPercent),
-	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "が一度でもノックイン価格を下回った場合 ： ",
-	        "  " + strikeMap.map{case (v, k) => "額面 x " + v + " / " + k}.mkString("、") + (if(multiple) "の低いほう" else ""),
-	        "ノックイン価格 ： " + triggerMap.map{case (v, k) => v + " ＝ " + k}.mkString("、"),
-	        "判定期間 ： " + start + " ～ " + end)
-	        .mkString(sys.props("line.separator"))
-	  }
-	  
-	  else {
-	    List(
-	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "が常にノックイン価格を上回った場合 ： " + (if (knockedIn) "(ノックイン済み）" else amount.asPercent),
-	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "が一度でもノックイン価格を下回った場合 ： ",
-	        "  " + strikeMap.map{case (v, k) => amount.asPercent + " x " + v + " / " + k + " （年率）"}.mkString("、") + (if(multiple) "の低いほう" else ""),
-	        "ノックイン価格 ： " + triggerMap.map{case (v, k) => v + " ＝ " + k}.mkString("、"),
-	        "判定期間 ： " + start + " ～ " + end)
-	        .mkString(sys.props("line.separator"))
-	  }
-	}
-	
 	override def jsonString = {
 	  
 	  val infoMap:JavaMap[String, Any] = Map(
@@ -155,9 +125,9 @@ object PutDIAmericanPayoff {
 	  
 	  val knockedIn:Boolean = 
 	    if (refStart == null || refEnd == null) false
-	    else (variable zip trigger).exists{case (v, trig) => Fixings.getHistorical(v, refStart, refEnd) match {
-	      case Some(h) => h.exists{case (_, x) => x <= trig}
-	      case None => false
+	    else (variable zip trigger).exists{case (v, trig) => DB.getHistorical(v, refStart, refEnd) match {
+	      case h if h.isEmpty => false
+	      case h => h.exists{case (_, x) => x <= trig}
 	    }}
 	  
 	  PutDIAmericanPayoff(variable, trigger, strike, refStart, refEnd, knockedIn, amount, description)

@@ -2,8 +2,6 @@ package squantlib.database.schemadefinitions
 
 import java.util.Date
 import org.squeryl.annotations.Column
-import org.squeryl.KeyedEntity
-
 
 class RateFXParameter(@Column("ID")			override var id: Int,
               @Column("PARAMSET")			var paramset: String,

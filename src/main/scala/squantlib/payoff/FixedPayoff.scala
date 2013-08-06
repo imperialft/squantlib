@@ -33,8 +33,6 @@ case class FixedPayoff(payoff:Double, description:String = null) extends Payoff 
 	  (new ObjectMapper).writeValueAsString(infoMap)	  
 	}
 	
-	override def display(isRedemption:Boolean):String = null
-	
 }
 
 

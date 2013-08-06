@@ -2,15 +2,14 @@ package squantlib.model.equity
 
 import squantlib.model.Market
 import squantlib.model.yieldparameter.YieldParameter
-import squantlib.database.schemadefinitions.{RateFXParameter, Equity => EquityInfo}
+import squantlib.util.initializer.Calendars
 import squantlib.database.DB
-import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
-import org.jquantlib.time.BusinessDayConvention
+import squantlib.database.schemadefinitions.{Equity => EquityInfo, RateFXParameter}
+import org.jquantlib.time.{BusinessDayConvention, Period => qlPeriod, Date => qlDate}
 import org.jquantlib.time.calendars.NullCalendar
 import scala.collection.mutable.{Map => MutableMap}
-import org.jquantlib.time.Calendar
 import scala.annotation.tailrec
-import squantlib.util.initializer.Calendars
+import org.jquantlib.time.Calendar
 
 /**
  * Equity specific discount curve calibration.
@@ -26,17 +25,21 @@ trait EquityInitializer {
   def addDividend(x:Double):EquityInitializer
 }
 
+
+
 object EquityInitializer {
   
-  val equitylist:Map[String, EquityInfo] = DB.getEquities.map(e => (e.id, e)) (collection.breakOut)
+  def equitylist:Map[String, EquityInfo] = DB.getEquities.map(e => (e.id, e)) (collection.breakOut)
     
   def getInitializers(params:Set[RateFXParameter]):Map[String, EquityInitializer] = {
-    val paramsets:Map[String, Set[RateFXParameter]] = params.filter(p => (equitylist contains p.asset)).groupBy(_.asset)
+    val eqlist = equitylist
+    val paramsets:Map[String, Set[RateFXParameter]] = params.filter(p => (eqlist contains p.asset)).groupBy(_.asset)
     paramsets.map{case (name, ps) => (name, modelMap(name)(ps))}
   }
   
-  val modelMap:Map[String, Set[RateFXParameter] => EquityInitializer] = 
-    equitylist.map{case (name, eqty) => (name, (p:Set[RateFXParameter]) => SimpleInitializer(name, p, eqty, eqty.currencyid, 0.0))
+  val modelMap:Map[String, Set[RateFXParameter] => EquityInitializer] = {
+    val eqlist = equitylist
+    eqlist.map{case (name, eqty) => (name, (p:Set[RateFXParameter]) => SimpleInitializer(name, p, eqty, eqty.currencyid, 0.0))}
   }
 }
 
@@ -167,6 +170,7 @@ object SimpleInitializer {
   }
 
 }
+
 
 
 

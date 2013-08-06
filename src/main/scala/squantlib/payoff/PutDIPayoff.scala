@@ -7,7 +7,6 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
-import squantlib.util.UnderlyingInfo
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -48,33 +47,6 @@ case class PutDIPayoff(
 	  amount.asPercent + " [" + trigger.mkString(",") + "] " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])"
 	
 	override def priceImpl = Double.NaN
-	
-	override def display(isRedemption:Boolean):String = {
- 	  val varnames = putVariables.map(UnderlyingInfo.nameJpn)
-	  val strikeMap = (putVariables, strike).zipped.map{case (v, k) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, k))}
-	  val triggerMap = (putVariables, trigger).zipped.map{case (v, t) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, t))}
-	  val multiple = variables.size > 1
-	  
-	  if (isRedemption){
-	    List(
-	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "がノックイン価格を上回っている場合 ： 額面 " + amount.asPercent,
-	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "がノックイン価格を下回っている場合 ： ",
-	        "  " + strikeMap.map{case (v, k) => "額面 x " + v + " / " + k}.mkString("、") + (if(multiple) "の低いほう" else ""),
-	        "",
-	        "ノックイン価格 ： " + triggerMap.map{case (v, k) => v + " ＝ " + k}.mkString("、"))
-	        .mkString(sys.props("line.separator"))
-	  }
-
-	  else {
-	    List(
-	        "・" + (if(multiple) "全ての参照指数" else varnames.head) + "がノックイン価格を上回っている場合 ： " + amount.asPercent + " (年率）",
-	        "・" + (if(multiple) "いずれかの参照指数" else varnames.head) + "がノックイン価格を下回っている場合 ： ",
-	        "  " + strikeMap.map{case (v, k) => amount.asPercent + " x " + v + " / " + k}.mkString("、") + (if(multiple) "の低いほう" else "")  + " (年率）",
-	        "",
-	        "ノックイン価格 ： " + triggerMap.map{case (v, k) => v + " ＝ " + k}.mkString("、"))
-	        .mkString(sys.props("line.separator"))
-	  }
-	}
 	
 	override def jsonString = {
 	  

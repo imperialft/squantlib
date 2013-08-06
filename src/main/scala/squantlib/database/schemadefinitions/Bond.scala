@@ -6,14 +6,13 @@ import org.squeryl.KeyedEntity
 import squantlib.util.JsonUtils._
 import squantlib.payoff.Schedule
 import squantlib.util.initializer._
-import squantlib.database.fixings.Fixings
+import squantlib.database.DB
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
 import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
 
-
-class Bond(@Column("ID")					override var id: String,
+class Bond(	  @Column("ID")					override var id: String,
               @Column("REF_NUMBER")			var ref_number: Int,
               @Column("FILING")				var filing: Date,
               @Column("SELLSTART")			var sellstart: Date,
@@ -191,95 +190,23 @@ class Bond(@Column("ID")					override var id: String,
     if (n == null) None
     else Some(n.parseDouble.getOrElse(Double.NaN))
     
-  def defaultPrice(vd:qlDate):Double = 
-    if (isMatured(vd)) 0.0 
-    else if (issueDateQl ge vd) issueprice.getOrElse(100.0)
-    else try {
-      val r = redemprice.toDouble * 100.0
-      val i = issueprice.get
-      val comp = math.pow(r / i, 1.0 / maturityQl.sub(issueDateQl).toDouble)
-      i * math.pow(comp, vd.sub(issueDateQl).toDouble)
-    } catch {case e:Throwable => issueprice.getOrElse(100.0)}
-    
   def isMatured(vd:qlDate):Boolean = (vd ge endDate) 
   
   def getInitialFixings:Map[String, Double] = 
     if (!fixingMap.isEmpty) fixingMap
-    else if (fixingdate.isDefined && fixingdate.get.after(Fixings.latestParamDate.longDate)) Fixings.latestList(underlyingList)
-	else Map.empty
-    
-  def getLatestPrice(paramset:String, valuedate:qlDate, fx:Double):LatestPrice = {
-	new LatestPrice(
-		id = id,
-		bondid = id,
-		currencyid = currencyid,
-		comment = null,
-		paramset = paramset,
-		paramdate = valuedate.longDate,
-		fxjpy = fx,
-		pricedirty = defaultPrice(valuedate),
-		priceclean = defaultPrice(valuedate),
-		accrued = 0.0,
-		pricedirty_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
-		priceclean_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
-		accrued_jpy = 0.0,
-		yield_continuous = None,
-		yield_annual = None,
-		yield_semiannual = None,
-		yield_simple = None,
-		bpvalue = None,
-		irr = None,
-		currentrate = None,
-		nextamount = None,
-		nextdate = None,
-		dur_simple = None,
-		dur_modified = None,
-		dur_macauley = None,
-		yieldvaluebp = None,
-		convexity = None,
-		remaininglife = math.max(0.0, maturityQl.sub(valuedate).toDouble / 365.25),
-		parMtMYield = None,
-		parMtMfx = None,
-		rateDelta = null,
-		rateVega = null,
-		fxDelta = null,
-		fxDeltaJpy = null,
-		fxVega = null,
-		deltas = null,
-		vegas = null,
-		parmtm = null,
-		pricetype = if (isMatured(valuedate)) "MATURED" else "NOPRICE",
-		volatility = defaultvol,
-		ispriced = 0,
-		created = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime),
-		lastmodified = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
+    else (fixingdate, DB.latestParamDate) match {
+      case (Some(f), Some(p)) if f after p.longDate => DB.getLatestPrices(underlyingList.toSet)
+      case _ => Map.empty
     }
-  
-  def getHistoricalPrice(paramset:String, valuedate:qlDate, fx:Double):HistoricalPrice = {
-    new HistoricalPrice(
-	    id = id + ":" + ("%tY%<tm%<td" format valuedate.longDate),
-		bondid = id,
-		paramdate = valuedate.longDate,
-		currencyid = currencyid,
-		fxjpy = fx,
-		pricedirty = defaultPrice(valuedate),
-		priceclean = defaultPrice(valuedate),
-		pricedirty_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
-		priceclean_jpy = defaultPrice(valuedate) * (if (initialfx > 0) fx / initialfx else 1.0),
-		pricetype = if (isMatured(valuedate)) "MATURED" else "NOPRICE",
-		ispriced = 0,
-		created = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
-  }
-  
 
   def this() = this(
 		id = null,
 		ref_number = 0,
-		filing = new Date,
-		sellstart = new Date,
-		sellend = new Date,
-		issuedate = new Date,
-		maturity = new Date,
+		filing = null,
+		sellstart = null,
+		sellend = null,
+		issuedate = null,
+		maturity = null,
 		terminationdate = None,
 		ismatured = 0,
 		nominal = Some(-9999),

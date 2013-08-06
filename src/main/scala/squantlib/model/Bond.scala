@@ -5,14 +5,13 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedul
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
 import squantlib.database.DB
-import squantlib.database.schemadefinitions.{Bond => dbBond, Coupon => dbCoupon, ForwardPrice, LatestPrice, HistoricalPrice, Callability => dbCallability}
+import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.payoff._
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.bond.BondSetting
 import squantlib.util.initializer.{DayAdjustments, Currencies, Daycounters}
 import squantlib.util.JsonUtils._
-import squantlib.util.{CurrencyParser, FxParser, UnderlyingParser, UnderlyingInfo}
-import squantlib.database.fixings.Fixings
+import squantlib.util.UnderlyingParser
 import squantlib.pricing.model.{PricingModel, NoModel}
 import squantlib.math.solver._
 import squantlib.math.financial.{BondYield, Duration}
@@ -24,9 +23,9 @@ import org.codehaus.jackson.`type`.TypeReference
 import scala.collection.JavaConversions._
 import scala.collection.breakOut
 import scala.collection.mutable.{Set => mutableSet, WeakHashMap}
-import java.math.{MathContext => JMC, RoundingMode}
 import java.util.{Map => JavaMap}
 import scala.collection.LinearSeq
+
 
 /**
  * Bond class with enclosed risk analysis functions.
@@ -57,7 +56,7 @@ case class Bond(
   
 	val id = db.id
 	
-	val assetID = "PRICE"
+	override val assetID = "PRICE"
 	
 	val issueDate:qlDate = schedule.head.startDate
 	
@@ -401,7 +400,10 @@ case class Bond(
 	 */
 	def nextPayment:Option[(qlDate, Double)] = 
 	  if (liveCoupons.isEmpty || market.isEmpty) None
-	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => Some(d.paymentDate, d.dayCount * p.price(market.get))}
+	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => (d.dayCount * p.price(market.get)) match {
+	    case pr if pr.isNaN || pr.isInfinity => None
+	    case pr => Some(d.paymentDate, pr)
+	 }}
 	
 	/*	
 	 * Continuous rate at which MtM exceeds 100% at next call date.
@@ -462,7 +464,10 @@ case class Bond(
 	 */
 	def currentRate:Option[Double] = 
 	  if (liveCoupons.isEmpty || market.isEmpty) None
-	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (_, p, _) => Some(p.price(market.get))}
+	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (_, p, _) => p.price(market.get) match {
+	    case pr if pr.isNaN || pr.isInfinity => None
+	    case pr => Some(pr)
+	  }}
 
 	
 	/*	
@@ -581,9 +586,9 @@ case class Bond(
 	def currencyList:Set[String] = {
 	  val ulset:Set[String] = underlyings.toSet
 	  val ulccys:Set[String] = ulset.map(ul => {
-	    UnderlyingParser.getParser(ul) match {
-	    case Some(p:CurrencyParser) => Set(ul)
-	    case Some(p:FxParser) => Set(ul take 3, ul takeRight 3)
+	    UnderlyingParser.getParser(ul).collect{case p => p.getType} match {
+	    case Some(UnderlyingParser.typeCcy) => Set(ul)
+	    case Some(UnderlyingParser.typeFX) => Set(ul take 3, ul takeRight 3)
 	    case _ => Set.empty
 	  }}).flatten
 	  ulccys + currency.code
@@ -715,215 +720,6 @@ case class Bond(
 	def remainingLife:Option[Double] = valueDate.collect{ case d => (new Actual365Fixed).yearFraction(d, terminationDate).max(0.0)}
 	
 	
-    /*
-     * Output to BondPrice object
-     */
-	def mapToJsonString(params:Map[String, Any]):String = {
-	  val javamap:java.util.Map[String, Any] = params
-	  (new ObjectMapper).writeValueAsString(javamap)
-	}
-	
-	private def removeNaN(v:Option[Double]):Option[Double] = v match {
-	  case Some(vv) if !vv.isNaN && !vv.isInfinity => Some(vv)
-	  case _ => None
-	}
-	
-	def getLatestPrice:Option[LatestPrice] = market match {
-	  case None => None
-	  
-	  case Some(mkt) => 
-	    val fxs = fxjpy.getOrElse(0.0)
-	    val fxinit = if(db.initialfx > 0) db.initialfx else fxs
-	    
-	    val price = db.getLatestPrice(mkt.paramset, mkt.valuedate, fxs)
-	    price.currentrate = currentRate.flatMap{case p if p.isNaN || p.isInfinity => None; case p => Some(p * 100)}
-	    price.nextamount = nextPayment.flatMap{case (_, p) if p.isNaN || p.isInfinity => None; case (_, p) => Some(p * 100)}
-	    price.nextdate = nextPayment.collect{case (d, p) => d.longDate}
-	    price.volatility = historicalVolLatest(260).getOrElse(db.defaultvol)
-	    if (isTerminated.getOrElse(false)) price.pricetype = "MATURED"
-	    val issueprice = issuePrice.getOrElse(100.0) / 100.0
-	    price.remaininglife = remainingLife.getOrElse(price.remaininglife)
-	    
-	    val defaultduration:Double = discountCurve.collect{case c => c.duration(scheduledMaturity)}.getOrElse(price.remaininglife)
-	    price.dur_modified = Some(modifiedDuration.getOrElse(defaultduration))
-	    price.dur_macauley = Some(macaulayDuration.getOrElse(defaultduration))
-	    price.dur_simple = Some(effectiveDuration.getOrElse(defaultduration))
-	    
-	    if (mkt.valuedate le issueDate){
-	      price.pricedirty = issueprice * 100.0
-	      price.priceclean = issueprice * 100.0
-	      price.accrued = 0.0
-	      price.yield_continuous = getYield(issueprice, Compounding.Continuous, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
-	      price.yield_annual = getYield(issueprice, Compounding.Compounded, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
-	      price.yield_semiannual = getYield(issueprice, Compounding.Compounded, Frequency.Semiannual, mkt.valuedate).collect{case p => p * 100}
-	      price.yield_simple = getYield(issueprice, Compounding.None, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
-	      price.bpvalue = bpvalue.collect{case p => p * 10000}
-	      price.irr = getYield(issueprice, Compounding.Compounded, Frequency.Annual, mkt.valuedate).collect{case p => p * 100}
-	      price.yieldvaluebp = yieldValueBasisPoint
-	      price.convexity = convexity
-	      price.parMtMYield = parMtMYield
-	      price.parMtMfx = parMtMfx
-	      price.rateDelta = mapToJsonString(rateDeltas(0.001))
-	      price.rateVega = null
-	      price.fxDelta = mapToJsonString(fxDeltas(1.01))
-	      price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
-	      price.fxVega = mapToJsonString(fxVegas(0.01))
-	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v * 100.0)})
-	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v)})
-	      price.pricetype = "PREISSUE"
-	      if (cleanPrice.isDefined) {
-	        price.ispriced = 1
-	      }
-	    }
-	      
-	    else if (cleanPrice.isDefined){
-	      price.pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(0.0)
-	      price.priceclean = cleanPrice.collect{case p => p * 100}.getOrElse(0.0)
-	      price.accrued = accruedAmount.collect{case p => p * 100}.getOrElse(0.0)
-	      price.yield_continuous = yieldContinuous.collect{case p => p * 100}
-	      price.yield_annual = yieldAnnual.collect{case p => p * 100}
-	      price.yield_semiannual = yieldSemiannual.collect{case p => p * 100}
-	      price.yield_simple = yieldSimple.collect{case p => p * 100}
-	      price.bpvalue = bpvalue.collect{case p => p * 10000}
-	      price.irr = irr.collect{case p => p * 100}
-	      price.yieldvaluebp = yieldValueBasisPoint
-	      price.convexity = convexity
-	      price.parMtMYield = parMtMYield
-	      price.parMtMfx = parMtMfx
-	      price.rateDelta = mapToJsonString(rateDeltas(0.001))
-	      price.rateVega = null
-	      price.fxDelta = mapToJsonString(fxDeltas(1.01))
-	      price.fxDeltaJpy = mapToJsonString(fxDeltaOneJpy)
-	      price.fxVega = mapToJsonString(fxVegas(0.01))
-	      price.deltas = mapToJsonString(underlyingDeltas(1.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v * 100.0)})
-	      price.vegas = mapToJsonString(underlyingVegas(0.01).collect{case (k, Some(v)) => (UnderlyingInfo.nameJpn(k), v)})
-	      price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")	       
-	      price.ispriced = 1
-	    }
-	    
-	    price.pricedirty_jpy = price.pricedirty * (if (fxs > 0.0) fxs / fxinit else 1.0)
-	    price.priceclean_jpy = price.priceclean * (if (fxs > 0.0) fxs / fxinit else 1.0)
-	    price.accrued_jpy = price.accrued * (if (fxs > 0.0) fxs / fxinit else 1.0)
-	   
-	    Some(price)
-	}
-	
-	
-	def getHistoricalPrice:Option[HistoricalPrice] = {
-	  market match {
-	    case None => None
-	    case Some(mkt) => 
-	      val fxs = fxjpy.getOrElse(0.0)
-	      val fxinit = if(db.initialfx > 0) db.initialfx else fxs
-	      val price = db.getHistoricalPrice(mkt.paramset, mkt.valuedate, fxs)
-	      
-	      if (cleanPrice.isDefined) {
-	        price.pricedirty = dirtyPrice.collect{case p => p * 100}.getOrElse(0.0)
-	        price.priceclean = cleanPrice.collect{case p => p * 100}.getOrElse(0.0)
-	        price.pricetype = model.collect{case m => m.priceType}.getOrElse("MODEL")
-	        price.ispriced = 1
-	      }
-	      
-	      price.pricedirty_jpy = price.pricedirty * (if (fxs > 0.0) fxs / fxinit else 1.0)
-	      price.priceclean_jpy = price.priceclean * (if (fxs > 0.0) fxs / fxinit else 1.0)
-	      
-	      Some(price)
-	  }
-	}
-
-	
-	val defaultMathContext = new JMC(34, RoundingMode.HALF_UP)
-	
-	def toCoupons:Set[dbCoupon] = {
-	  val pos = allPayoffs
-	  val spot:List[Double] = spotFixedRatesAll.unzip._2
-	  
-	  (0 to pos.size - 1).map(i => {
-	      val (s, p, t) = pos(i)
-	      val fixedrate = if (p.isFixed && !p.price.isNaN && !p.price.isInfinity) Some(p.price) else None
-	      val fixedamount = fixedrate.collect{case r => r * s.dayCount}
-	      val paytype = if (s isAbsolute) "REDEMPTION" else "COUPON"
-	      val spotrate = spot(i) match {case v if v.isNaN || v.isInfinity || fixedrate.isDefined => None case _ => Some(spot(i)) }
-	      val spotamount = spotrate.collect{case r => r * s.dayCount}
-	      
-	      new dbCoupon(
-	          id = id + ":" + i + ":" + paytype,
-	          bondid = id,
-	          currency = currency.code,
-	          rate = payoffs(i).toString,
-	          eventdate = s.eventDate.longDate,
-	          startdate = s.startDate.longDate,
-	          enddate = s.endDate.longDate,
-	          paymentdate = s.paymentDate.longDate,
-	          fixedrate = fixedrate.collect{case v => BigDecimal(v, defaultMathContext)},
-	          fixedamount = fixedamount.collect{case v => BigDecimal(v, defaultMathContext)},
-		      spotrate = spotrate.collect{case v => BigDecimal(v, defaultMathContext)},
-		      spotamount = spotamount.collect{case v => BigDecimal(v, defaultMathContext)},
-		      spotorfixedrate = (if (fixedrate.isDefined) fixedrate else spotrate).collect{case v => BigDecimal(v, defaultMathContext)},
-		      spotorfixedamount = (if (fixedamount.isDefined) fixedamount else spotamount).collect{case v => BigDecimal(v, defaultMathContext)},
-	          jsonformat = payoffs(i).jsonString,
-	          display = p.display(paytype == "REDEMPTION"),
-	          comment = p.description,
-	          daycount = s.daycounter.toString,
-	          paymenttype = paytype,
-	          paymenttype2 = if (paytype == null) null else paytype.toLowerCase.capitalize,
-			  lastmodified = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
-			  )}).toSet
-	}
-	
-	def toCallabilities:Set[dbCallability] = {
-	  val pos = allPayoffs
-	  
-	  (0 to pos.size - 1).map(i => {
-	      val (s, p, t) = pos(i)
-	      val calltype = (t.isBermuda, t.isTrigger) match {
-	        case (true, true) => "issuer,trigger"
-	        case (true, false) => "issuer"
-	        case (false, true) => "trigger"
-	        case (false, false) => "none"
-	      }
-	      
-	      val jsontrigger:Map[String, String] = 
-	        if (t isTrigger) t.triggers.map{
-	          case (k, v) => (UnderlyingInfo.nameJpn(k), if(v.isNaN || v.isInfinity) "不明" else UnderlyingInfo.displayValue(k, v))} 
-	        else Map.empty
-	      
-	      val jsonfixings:Map[String, String] = 
-	        if (t isTrigger) t.getFixings.map{case (k, v) => (UnderlyingInfo.nameJpn(k), if(v.isNaN || v.isInfinity) "不明" else UnderlyingInfo.displayValue(k, v))}
-	        else Map.empty
-	      
-	      new dbCallability(
-	          id = id + ":" + i + ":" + calltype.toUpperCase,
-	          bondid = id,
-	          eventdate = s.eventDate.longDate,
-	          valuedate = s.paymentDate.longDate,
-	          calltype = calltype,
-	          trigger = if (jsontrigger.isEmpty) null else mapToJsonString(jsontrigger), 
-	          fixings = if (jsonfixings.isEmpty) null else mapToJsonString(jsonfixings),
-	          istriggered = if (t isTriggered) 1 else if (t.isTrigger && t.isPriceable) 0 else -1,
-	          redemptionamount = t.redemptionAmount,
-	          lastmodified = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
-			  )}).filter(c => c.calltype != "none").toSet
-	}
-	
-	def toForwardPrice(vd:qlDate, fwdfx:Double):Option[ForwardPrice] = (market, cleanPrice) match {
-	  case (Some(mkt), Some(cp)) => Some(new ForwardPrice(
-	      id = "BOND:" + id + ":" + mkt.paramset + ":" + ("%tY%<tm%<td" format mkt.valuedate.longDate),
-	      paramset = mkt.paramset,
-	      paramdate = vd.longDate,
-	      valuedate = mkt.valuedate.longDate,
-	      underlying = "BOND:" + id,
-	      underlyingasset = "Bond",
-	      underlyingtype = "BOND",
-	      underlyingname = id,
-	      value = cp,
-	      valuejpy = if (db.initialfx == 0 || fwdfx == 0) None else Some(cp * fwdfx / db.initialfx),
-	      price = if (db.initialfx == 0 || fwdfx == 0) cp else cp * fwdfx / db.initialfx,
-	      created = Some(new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime))
-	      ))
-	  case _ => None
-	}
-	  
 	override def toString:String = id
 	
 	private def disp(name:String, f: => Any) = println(name + (" " * math.max(10 - name.size, 0)) + "\t" + (f match {
@@ -932,20 +728,15 @@ case class Bond(
 	  case s => s.toString
 	}))
 	
-	override def getPriceHistory = {
-	  val fx = if (initialFX > 0.0) initialFX else 1.0
-	  DB.getJPYPriceTimeSeries(id, fx).map{case (k, v) => (new qlDate(k), v)}
-	}
+	override def getPriceHistory = DB.getHistorical("BONDJPY:" + id)
 	
-	lazy val latestPriceParam:Option[LatestPrice] = DB.getLatestPrice(this.id)
+	override def latestPrice:Option[Double] = dirtyPrice
 	
-	override def latestPrice = latestPriceParam.flatMap(p => Some(p.pricedirty_jpy / 100.0))
-	
-	override def expectedYield:Option[Double] = latestPriceParam.flatMap(p => p.yield_continuous)
+	override def expectedYield:Option[Double] = yieldContinuous
   
-    override def expectedCoupon:Option[Double] = latestPriceParam.flatMap(p => p.currentrate)
-    
-    override protected def getDbForwardPrice = DB.getForwardPricesTimeSeries("BOND", id).map{case (k, v) => (new qlDate(k), v)}
+    override def expectedCoupon:Option[Double] = currentRate
+	
+    protected def getDbForwardPrice = DB.getForwardPrices("BOND", id)
 	
 	def checkPayoffs:List[Boolean] = scheduledPayoffs.map{case (s, p, c) => 
 	  p.isPriceable && 
@@ -966,14 +757,6 @@ case class Bond(
 	    println(scheduledPayoffs.toString)
 	  }
 	
-	def showAll:Unit = {
-	  show
-	  println("Price Details:") 
-	  getLatestPrice match {
-	    case Some(p) => p.getFieldMap.toList.sortBy(_._1).foreach{case (k, v) => disp(k, v)}
-	    case None => {}
-	  }
-	}
 	
 	def showUnderlyingInfo:Unit = {
 	  val eventDates:List[qlDate] = scheduledPayoffs.schedule.eventDates

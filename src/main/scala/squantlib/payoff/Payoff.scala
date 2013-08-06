@@ -2,7 +2,7 @@ package squantlib.payoff
 
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
-import squantlib.database.fixings.Fixings
+import squantlib.database.DB
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.model.Market
 
@@ -90,7 +90,7 @@ trait Payoff extends FixingLeg {
 	def assignFixings(eventDate:qlDate):Unit = 
 	  if (variables.size == 0) {}
 	  else {
-	    val fixings:Map[String, Double] = variables.map(v => Fixings.byDate(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x) (collection.breakOut)
+	    val fixings:Map[String, Double] = variables.map(v => DB.getPriceOn(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x) (collection.breakOut)
 	    assignFixings(fixings)
 	  }
 	
@@ -103,8 +103,6 @@ trait Payoff extends FixingLeg {
 	def missingInputs:Map[String, Double => Payoff] = Map.empty
 	
 	def description:String
-	
-	def display(isRedemption:Boolean):String
 	
 	def jsonString:String
 	

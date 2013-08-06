@@ -4,7 +4,7 @@ import squantlib.model.Market
 import squantlib.payoff.ScheduledPayoffs
 import squantlib.model.Bond
 import org.jquantlib.time.{Date => qlDate}
-import squantlib.database.fixings.Fixings
+import squantlib.database.DB
 import squantlib.model.rates.DiscountCurve
 
 case class JGBMModel(bond:Bond, valueDate:qlDate) extends PricingModel {
@@ -24,7 +24,7 @@ case class JGBMModel(bond:Bond, valueDate:qlDate) extends PricingModel {
 	  else if (valueDate lt bond.issueDate) bond.issuePrice.collect{case p => p / 100.0}
 	  else {
 	    if (storedPrice.isEmpty) {
-	      val dbPrice = Fixings.byDate(bond.id, valueDate)
+	      val dbPrice = DB.getPriceOn(bond.id, valueDate)
 	      storedPrice = dbPrice.flatMap{case (d, p) => if(d == valueDate) Some(p / 100.0 + bond.accruedAmount.getOrElse(0.0)) else None} 
 	    }
 	    storedPrice

@@ -3,7 +3,6 @@ package squantlib.payoff
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
-import squantlib.util.UnderlyingInfo
 
 /**
  * Interprets general formula as the sum of weighted variables + constant, with cap and floor.
@@ -51,62 +50,7 @@ case class GeneralPayoff(
 	override def toString:String = 
 	  	  formula.map{case (variables, coeff) => 
 	    ((if (variables.size > 0) variables.mkString("*") + "*" + coeff.toDouble else coeff.asPercent) )}.mkString("+").replace("+-", "+")
-	    
 
-	override def display(isRedemption:Boolean):String = 
-	  if (isRedemption) {
-	    formula.toList.sortBy{case (s, _) => s.size}.reverse.map{
-	      case (vars, coeff) if vars.size > 0 && coeff == 1.0 => 
-	        (vars.head match {
-	          case v if v.take(1) == "/" => " 1 / " + UnderlyingInfo.nameJpn(v drop 1)
-	          case v => UnderlyingInfo.nameJpn(v)
-	        }) + vars.tail.map{
-	          case v if v.take(1) == "/" => " / " + UnderlyingInfo.nameJpn(v drop 1)
-	          case v => " * " + UnderlyingInfo.nameJpn(v)
-	        }.mkString("")
-	        
-	      case (vars, coeff) if vars.size > 0 => 
-	        coeff.asDouble + vars.map{ 
-	          case v if v.take(1) == "/" => " / " + UnderlyingInfo.nameJpn(v drop 1)
-	          case v => " * " + UnderlyingInfo.nameJpn(v)
-	      }.mkString("")
-	    
-	      case (_, coeff) => coeff.asPercent
-	    
-	    }.mkString(" + ").replace("+ -", "- ") + sys.props("line.separator") + ((cap, floor) match {
-	      case (Some(c), None) => "ただし" + c.asPercent + "を上回りません。"
-	      case (None, Some(f)) => "ただし" + f.asPercent + "を下回りません。"
-	      case (Some(c), Some(f)) => "ただし" + c.asPercent + "を上回らず、" + f.asPercent + "を下回りません。"
-	      case (None, None) => ""	    
-	  })}
-	  
-	  else {
-	    formula.toList.sortBy{case (s, _) => s.size}.reverse.map{
-	      case (vars, coeff) if vars.size > 0 && coeff == 1.0 => 
-	        (vars.head match {
-	          case v if v.take(1) == "/" => " 1 / " + UnderlyingInfo.nameJpn(v drop 1)
-	          case v => UnderlyingInfo.nameJpn(v)
-	        }) + vars.tail.map{
-	          case v if v.take(1) == "/" => " / " + UnderlyingInfo.nameJpn(v drop 1)
-	          case v => " * " + UnderlyingInfo.nameJpn(v)
-	        }.mkString("")
-	        
-	      case (vars, coeff) if vars.size > 0 => 
-	        coeff.asDouble + vars.map{ 
-	          case v if v.take(1) == "/" => " / " + UnderlyingInfo.nameJpn(v drop 1)
-	          case v => " * " + UnderlyingInfo.nameJpn(v)
-	      }.mkString("")
-	    
-	      case (_, coeff) => coeff.asPercent
-	    
-	    }.mkString(" + ").replace("+ -", "- ") + " （年率）" + sys.props("line.separator") + ((cap, floor) match {
-	      case (Some(c), None) => "ただし" + c.asPercent + "を上回りません。"
-	      case (None, Some(f)) => "ただし" + f.asPercent + "を下回りません。"
-	      case (Some(c), Some(f)) => "ただし" + c.asPercent + "を上回らず、" + f.asPercent + "を下回りません。"
-	      case (None, None) => ""
-	  })}
-	    
-	
 	override def jsonString = formula.map{
 	  case (variables, coeff) => 
 	    ((if (variables.size > 0) variables.mkString("*") + "*" + coeff else coeff) )}.mkString("+").replace("+-", "+")

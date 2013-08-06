@@ -6,7 +6,6 @@ import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
-import squantlib.util.UnderlyingInfo
 import java.util.{Map => JavaMap}
 
 /**
@@ -54,28 +53,6 @@ case class ForwardPayoff(
 	  
 	  (new ObjectMapper).writeValueAsString(infoMap)	  
 	}	
-	
-	override def display(isRedemption:Boolean):String = {
- 	  val varnames = fwdVariables.map(UnderlyingInfo.nameJpn)
-	  val strikeMap = (fwdVariables, strike).zipped.map{case (v, k) => (UnderlyingInfo.nameJpn(v), UnderlyingInfo.displayValue(v, k))}
-	  val multiple = variables.size > 1
-	  
-	  if (isRedemption) {
-	    if (multiple) 
-	      (List("下記の低い（パフォーマンスが悪い）ほうの金額が支払われます。") ++ 
-	          strikeMap.map{case (v, k) => "・ 額面 x " + v + " / " + k}).mkString(sys.props("line.separator"))
-	    else
-	      strikeMap.head match {case (v, k) => "額面 x " + v + " / " + k}
-	  }
-	  else {
-	    if (multiple) 
-	      (List("下記の低い（パフォーマンスが悪い）ほうの金額が支払われます。") ++ 
-	          strikeMap.map{case (v, k) => "・ " + v + " / " + k + " （年率）"}).mkString(sys.props("line.separator"))
-	    else
-	      strikeMap.head match {case (v, k) => "額面 x " + v + " / " + k + " （年率）"}
-	  }
-	    
-	}
 	
 }
 

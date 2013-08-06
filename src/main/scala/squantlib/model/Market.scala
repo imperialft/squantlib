@@ -380,28 +380,28 @@ class Market(
 	  new Market(paramset, curves, cdscurves, fxInitializers, newInitializers, equityInitializers, fixings)
 	}
 	
-	def getSpot(id:String):Option[Double] = UnderlyingParser.getParser(id) match {
-	  case Some(p:squantlib.util.EquityParser) => getEquity(id).collect{case e => e.spot}
-	  case Some(p:squantlib.util.CurrencyParser) => fx(id, FXbaseCurrency)
-	  case Some(p:squantlib.util.FxParser) => fx(id take 3, id takeRight 3)
-	  case Some(p:squantlib.util.IndexParser) => getIndex(id).collect{case e => e.spot}
+	def getSpot(id:String):Option[Double] = UnderlyingParser.getParser(id).collect{case p => p.getType} match {
+	  case Some(UnderlyingParser.typeEquity) => getEquity(id).collect{case e => e.spot}
+	  case Some(UnderlyingParser.typeCcy) => fx(id, FXbaseCurrency)
+	  case Some(UnderlyingParser.typeFX) => fx(id take 3, id takeRight 3)
+	  case Some(UnderlyingParser.typeIndex) => getIndex(id).collect{case e => e.spot}
 	  case _ => None
 	}
 	
 	def getUnderlying(id:String):Option[Underlying] = if (id == null) None else UnderlyingParser.getUnderlying(id, this)
 	
-	def underlyingShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id) match {
-	  case Some(p:squantlib.util.EquityParser) => Some(equityShifted(id, shift))
-	  case Some(p:squantlib.util.CurrencyParser) => Some(fxShifted(id, shift))
-	  case Some(p:squantlib.util.FxParser) => Some(fxShifted(id take 3, 1.0/shift))
-	  case Some(p:squantlib.util.IndexParser) => Some(indexShifted(id, shift))
+	def underlyingShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id).collect{case p => p.getType} match {
+	  case Some(UnderlyingParser.typeEquity) => Some(equityShifted(id, shift))
+	  case Some(UnderlyingParser.typeCcy) => Some(fxShifted(id, shift))
+	  case Some(UnderlyingParser.typeFX) => Some(fxShifted(id take 3, 1.0/shift))
+	  case Some(UnderlyingParser.typeIndex) => Some(indexShifted(id, shift))
 	  case _ => None
 	}
 	
-	def underlyingVolShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id) match {
-	  case Some(p:squantlib.util.EquityParser) => Some(equityVolShifted(id, shift))
-	  case Some(p:squantlib.util.FxParser) => Some(fxVolShifted(id, shift))
-	  case Some(p:squantlib.util.IndexParser) => Some(indexVolShifted(id, shift))
+	def underlyingVolShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id).collect{case p => p.getType} match {
+	  case Some(UnderlyingParser.typeEquity) => Some(equityVolShifted(id, shift))
+	  case Some(UnderlyingParser.typeFX) => Some(fxVolShifted(id, shift))
+	  case Some(UnderlyingParser.typeIndex) => Some(indexVolShifted(id, shift))
 	  case _ => None
 	}
 	
@@ -445,7 +445,10 @@ object Market {
   
 	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = if (ratefxparams.isEmpty) None else apply(ratefxparams, cdsparams, new qlDate(ratefxparams.head.paramdate))
 	
-	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter], valuedate:qlDate):Option[Market] = {
+	def apply(
+	    ratefxparams:Set[RateFXParameter], 
+	    cdsparams:Set[CDSParameter], 
+	    valuedate:qlDate):Option[Market] = {
 	  
 	  if (ratefxparams.filter(_.instrument == "FX").size == 0){
 	    println("Error creating market : FX spot not found")

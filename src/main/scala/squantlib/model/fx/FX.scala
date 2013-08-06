@@ -3,7 +3,6 @@ package squantlib.model.fx
 import squantlib.model.Underlying
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.yieldparameter.YieldParameter
-import squantlib.database.DB
 import squantlib.math.timeseries.TimeSeries
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter

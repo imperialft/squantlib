@@ -7,7 +7,6 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
-import squantlib.util.UnderlyingInfo
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -79,24 +78,6 @@ case class BinaryPayoff(
 	  (new ObjectMapper).writeValueAsString(infoMap)	  
 	}	
 	    
-	override def display(isRedemption:Boolean):String = {
-	  val varnames:Map[String, String] = binaryVariables.map(v => (v, UnderlyingInfo.nameJpn(v))) (collection.breakOut)
-	  val dispValue = (v:String, s:Double) => UnderlyingInfo.displayValue(v, s)
-	  
-	  if (isRedemption)
-	    payoff.sortBy{case (amt, stk) => amt}.reverse.map{
-	      case (amt, Some(stks)) => (binaryVariables, stks).zipped.map{
-	      case (v, s) => "・ " + varnames(v) + "が " + dispValue(v, s) + "以上"}.mkString("、") + "の場合 ： 額面 " + amt.asPercent
-	      case (amt, None) => "・ それ以外の場合 ： 額面 "+ amt.asPercent
-	    }.mkString(sys.props("line.separator"))
-	  
-	  else
-	    payoff.sortBy{case (amt, stk) => amt}.reverse.map{
-	      case (amt, Some(stks)) => (binaryVariables, stks).zipped.map{
-	      case (v, s) => "・ " + varnames(v) + "が " + dispValue(v, s) + "以上"}.mkString("、") + "の場合 ： 年率 " + amt.asPercent
-	      case (amt, None) => "・ それ以外の場合 ： 年率 "+ amt.asPercent
-	    }.mkString(sys.props("line.separator"))
-	}
 }
 
 object BinaryPayoff {

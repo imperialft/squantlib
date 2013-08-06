@@ -3,7 +3,7 @@ package squantlib.model
 import org.jquantlib.time.{Weekday, Date => qlDate, Period => qlPeriod}
 import squantlib.model.rates.DiscountCurve
 import squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
-import squantlib.database.schemadefinitions.{Volatility => dbVolatility, Correlation => dbCorrelation}
+import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import java.util.{Date => JavaDate}
 
@@ -14,17 +14,17 @@ trait StaticAsset {
   
   var cachedPrice = new scala.collection.mutable.WeakHashMap[String, TimeSeries] 
   
-  val assetID:String
+  val assetID:String  // to be implemented
   
-  val id:String
+  val id:String  // to be implemented
   
-  def latestPrice:Option[Double]
+  def latestPrice:Option[Double]  // to be implemented
   
-  def expectedYield:Option[Double]
+  def expectedYield:Option[Double]  // to be implemented
   
-  def expectedCoupon:Option[Double]
+  def expectedCoupon:Option[Double]  // to be implemented
   
-  protected def getDbForwardPrice:Map[qlDate, Double]
+  protected def getDbForwardPrice:Map[qlDate, Double]  // to be implemented
   
   def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice.filter{case (d, _) => isWeekday(d)}))
 	
@@ -45,11 +45,6 @@ trait StaticAsset {
 	val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
 	val source = priceHistory takeRight (if(sourcesize > 0) sourcesize else 10000)
     Volatility.calculate(source, nbDays, annualDays)
-  }
-  
-  def volatilities(nbDays:Int, annualDays:Int = 260, nbResult:Int = 0):Set[dbVolatility] = {
-    val volarray = historicalVol(nbDays, annualDays, nbResult)
-    volarray.map { case (d, v) => StaticAsset.getVolatility(this, d.longDate, nbDays, 1, v)} (collection.breakOut)
   }
   
   def historicalCorrelLatest(asset:StaticAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[dbCorrelation] = {
@@ -115,20 +110,5 @@ object StaticAsset {
 	    lastmodified = currenttime)
   
   
-  def getVolatility(asset:StaticAsset, valuedate:JavaDate, nbDays:Int, periodicity:Int, vol:Double):dbVolatility = 
-    getVolatility(asset.assetID, asset.id, valuedate, nbDays, periodicity, vol)
-    
-  def getVolatility(asset:String, id:String, valuedate:JavaDate, nbDays:Int, periodicity:Int, vol:Double):dbVolatility = 
-    new dbVolatility(
-        id = (asset + "-" + id + ":" + ("%tY%<tm%<td" format valuedate) + ":" + 1 + ":" + nbDays),
-	    underlying = asset + "-" + id,
-	    underlyingasset = getAsset(asset),
-	    underlyingtype = asset,
-	    underlyingname = id,
-	    valuedate = valuedate,
-	    periodicity = periodicity,
-	    nbdays = nbDays,
-	    value = vol,
-	    lastmodified = Some(currenttime))
 
 }

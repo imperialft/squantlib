@@ -10,7 +10,6 @@ import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.time.{Date => qlDate}
-import squantlib.database.fixings.Fixings
 import org.jquantlib.daycounters.Actual365Fixed
 
 

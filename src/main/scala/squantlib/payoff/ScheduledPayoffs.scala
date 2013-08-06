@@ -6,7 +6,7 @@ import scala.collection.LinearSeq
 import scala.annotation.tailrec 
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
-import squantlib.database.fixings.Fixings
+import squantlib.database.DB
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{BusinessDayConvention, Calendar, Date => qlDate}
 import org.jquantlib.daycounters.Actual365Fixed
@@ -185,7 +185,7 @@ object ScheduledPayoffs {
   
   def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
-	val fixings:List[Map[String, Option[Double]]] = Fixings.pastFixings(payoffs.underlyings ++ calls.underlyings, schedule.eventDates)
+	val fixings:List[Map[String, Option[Double]]] = DB.pastFixings(payoffs.underlyings ++ calls.underlyings, schedule.eventDates)
 	val fixingMap:List[Map[String, Double]] = fixings.map(_.collect{case (k, Some(v)) => (k, v)})
 	payoffs.assignFixings(fixingMap)
 	calls.assignFixings(fixingMap)
@@ -194,7 +194,7 @@ object ScheduledPayoffs {
     
   def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
-	val fixings:List[Map[String, Option[Double]]] = Fixings.pastFixings(payoffs.underlyings ++ calls.underlyings, schedule.eventDates)
+	val fixings:List[Map[String, Option[Double]]] = DB.pastFixings(payoffs.underlyings ++ calls.underlyings, schedule.eventDates)
 	val fixingMap:List[Map[String, Double]] = fixings.map(_.collect{case (k, Some(v)) => (k, v)})
 	payoffs.assignFixings(fixingMap)
 	calls.assignFixings(fixingMap)

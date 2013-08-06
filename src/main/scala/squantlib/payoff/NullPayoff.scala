@@ -29,8 +29,6 @@ case class NullPayoff(
 	
 	override def toString = description
 	
-	override def display(isRedemption:Boolean):String = description
-	
 	override def jsonString = inputString
 	
 }

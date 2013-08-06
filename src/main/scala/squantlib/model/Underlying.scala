@@ -1,6 +1,5 @@
 package squantlib.model
 
-import squantlib.database.fixings.Fixings
 import squantlib.database.DB
 import squantlib.util.UnderlyingParser
 import squantlib.model.rates.DiscountCurve
@@ -140,9 +139,9 @@ trait Underlying extends StaticAsset {
     protected def toDays(date:qlDate) = (date.serialNumber() - valuedate.serialNumber()).toDouble
     protected def toDays(period:qlPeriod) = period.days(valuedate).toDouble
     
-    override def getPriceHistory = Fixings.getHistorical(id).getOrElse(Map.empty)
+    override def getPriceHistory = DB.getHistorical(id)
     
-    override protected def getDbForwardPrice:Map[qlDate, Double] = DB.getForwardPricesTimeSeries(assetID, id).map{case (k, v) => (new qlDate(k), v)}
+    override protected def getDbForwardPrice:Map[qlDate, Double] = DB.getForwardPrices(assetID, id)
 	
 	def show(vd:List[qlDate]):Unit = {
 	  println("id:\t" + id)
