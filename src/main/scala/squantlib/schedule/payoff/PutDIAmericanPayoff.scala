@@ -94,7 +94,7 @@ case class PutDIAmericanPayoff(
 	override def priceImpl = Double.NaN
 	
 	override def toString =
-	  amount.asPercent + " [" + trigger.mkString(",") + "](Amer) " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])" 
+	  amount.asPercent + " [" + trigger.map(_.asDouble).mkString(",") + "](Amer) " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.map(_.asDouble).mkString(",") + "])" 
 	
 	override def jsonString = {
 	  
