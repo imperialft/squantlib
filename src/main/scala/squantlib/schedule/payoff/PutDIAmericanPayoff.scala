@@ -1,14 +1,15 @@
-package squantlib.payoff
+package squantlib.schedule.payoff
 
 import scala.collection.JavaConversions._
-import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
-import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.database.DB
+import java.util.{Map => JavaMap}
+import org.jquantlib.time.{Date => qlDate}
+import squantlib.schedule.CalculationPeriod
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.

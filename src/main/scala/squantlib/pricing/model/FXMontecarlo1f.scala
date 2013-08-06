@@ -1,16 +1,17 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod, ScheduledPayoffs}
+import squantlib.schedule.payoff.{Payoffs, Payoff}
+import squantlib.schedule.{ScheduledPayoffs, Schedule, CalculationPeriod}
 import squantlib.pricing.mcengine._
 import squantlib.model.fx.FX
 import squantlib.model.Bond
 import squantlib.util.JsonUtils._
-import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
+import org.codehaus.jackson.JsonNode
 import org.jquantlib.time.{Date => qlDate}
 import org.jquantlib.daycounters.Actual365Fixed
-
+import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 
 case class FXMontecarlo1f(valuedate:qlDate, 
 					  mcengine:Montecarlo1f, 
@@ -41,7 +42,7 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	
 	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
 	  
-	val cachedPrice = scala.collection.mutable.WeakHashMap[String, List[Double]]()
+	val cachedPrice = new WeakHashMap[String, List[Double]] with SynchronizedMap[String, List[Double]]
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	

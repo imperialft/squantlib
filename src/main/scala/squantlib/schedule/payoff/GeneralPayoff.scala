@@ -1,8 +1,9 @@
-package squantlib.payoff
+package squantlib.schedule.payoff
 
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
+import scala.collection.JavaConversions._
 
 /**
  * Interprets general formula as the sum of weighted variables + constant, with cap and floor.
@@ -56,8 +57,6 @@ case class GeneralPayoff(
 	    ((if (variables.size > 0) variables.mkString("*") + "*" + coeff else coeff) )}.mkString("+").replace("+-", "+")
 	
 }
-
-import scala.collection.JavaConversions._
 
 object GeneralPayoff {
   

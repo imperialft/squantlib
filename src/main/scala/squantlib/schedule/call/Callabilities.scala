@@ -1,10 +1,8 @@
-package squantlib.payoff
+package squantlib.schedule.call
 
 import scala.collection.LinearSeq
-import scala.annotation.tailrec
-import scala.collection.immutable.ListMap
-import scala.collection.breakOut
 import squantlib.util.DisplayUtils._
+import squantlib.schedule.FixingLegs
 
 case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] with FixingLegs[Callability]{
   
@@ -67,14 +65,14 @@ object Callabilities {
 	
 	def apply(bermudans:List[Boolean], triggers:List[List[Option[Double]]], underlyings:List[String], bonus:List[Double]):Callabilities = {
 	  val trigmap = triggers.map(trigs => {
-	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(breakOut); t})
+	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut); t})
 	  Callabilities((bermudans, trigmap, bonus).zipped.map{case (b, t, n) => Callability(b, t, n)}
 	  )
 	}
 	  
 	def apply(bermudans:List[Boolean], triggers:List[List[Option[Double]]], underlyings:List[String]):Callabilities = {
 	  val trigmap = triggers.map(trigs => {
-	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(breakOut); t})
+	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut); t})
 	  Callabilities((bermudans, trigmap).zipped.map{case (b, t) => Callability(b, t, 0.0)})
 	}
 	

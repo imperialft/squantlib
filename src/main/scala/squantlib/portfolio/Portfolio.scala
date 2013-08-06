@@ -1,7 +1,7 @@
 package squantlib.portfolio
 
 import squantlib.model.StaticAsset
-import collection.mutable.{Map => MutableMap, WeakHashMap}
+import collection.mutable.{Map => MutableMap, WeakHashMap, SynchronizedMap}
 import squantlib.util.DisplayUtils._
 import squantlib.math.timeseries.TimeSeries
 
@@ -30,14 +30,14 @@ case class Portfolio(assets:Map[StaticAsset, Double]) extends Map[StaticAsset, D
 //    val dates = assets.foldLeft((a, b) => (a.forwad ))
 //  }
   
-  val correlationCache = WeakHashMap.empty[Int, SymmetricMatrix[StaticAsset]]
+  val correlationCache = new WeakHashMap[Int, SymmetricMatrix[StaticAsset]] with SynchronizedMap[Int, SymmetricMatrix[StaticAsset]]
   
   def correlationMatrix(nbDays:Int = defaultNbDays):SymmetricMatrix[StaticAsset] = correlationCache.getOrElseUpdate(nbDays, 
     SymmetricMatrix(priceableWeights.keySet, (a:StaticAsset, b:StaticAsset) => a.historicalCorrelLatest(b, nbDays).collect{case c => c.value}.getOrElse(0.0)))
     
   def correlation(a:StaticAsset, b:StaticAsset, nbDays:Int = defaultNbDays):Double = correlationMatrix(nbDays).get(a, b)
     
-  val covarianceCache = WeakHashMap.empty[Int, SymmetricMatrix[StaticAsset]]
+  val covarianceCache = new WeakHashMap[Int, SymmetricMatrix[StaticAsset]] with SynchronizedMap[Int, SymmetricMatrix[StaticAsset]]
   
   def covarianceMatrix(nbDays:Int = defaultNbDays):SymmetricMatrix[StaticAsset] = covarianceCache.getOrElseUpdate(nbDays, 
     SymmetricMatrix(priceableWeights.keySet, (a:StaticAsset, b:StaticAsset) => 

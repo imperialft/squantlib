@@ -1,4 +1,4 @@
-package squantlib.payoff
+package squantlib.schedule.payoff
 
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
@@ -7,10 +7,9 @@ import scala.annotation.tailrec
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import scala.collection.JavaConversions._
-import org.jquantlib.time.{Date => qlDate}
-import scala.Predef.{DummyImplicit => DI, _}
-import com.sun.beans.decoder.FalseElementHandler
-import com.sun.beans.decoder.FalseElementHandler
+import scala.Predef._
+import squantlib.schedule.FixingLegs
+import scala.Predef.{DummyImplicit => DI}
 
 case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLegs[Payoff] {
   
@@ -226,11 +225,8 @@ object Payoffs {
 	
 	def getPayoff(f:String):List[Payoff] = payoffType(f) match {
 	      case "fixed" => List(FixedPayoff(f))
-		  case "fixedseries" => FixedPayoffSeries(f)
 		  case "leps1d" => List(LEPS1dPayoff(f))
-		  case "leps1dseries" => LEPS1dPayoffSeries(f) 
 		  case "linear1d" => List(Linear1dPayoff(f))
-		  case "linear1dseries" => Linear1dPayoffSeries(f)
 		  case "putdi" => List(PutDIPayoff(f))
 		  case "forward" => List(ForwardPayoff(f))
 		  case "null" => List(NullPayoff(f))

@@ -1,7 +1,7 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.ScheduledPayoffs
+import squantlib.schedule.ScheduledPayoffs
 import squantlib.model.Bond
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.model.rates.DiscountCurve

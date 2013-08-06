@@ -4,7 +4,7 @@ import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 import squantlib.util.JsonUtils._
-import squantlib.payoff.Schedule
+import squantlib.schedule.Schedule
 import squantlib.util.initializer._
 import squantlib.database.DB
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}

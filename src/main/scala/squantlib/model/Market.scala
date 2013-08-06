@@ -1,6 +1,6 @@
 package squantlib.model
 
-import scala.collection.mutable.{HashMap, WeakHashMap}
+import scala.collection.mutable.{HashMap, WeakHashMap, SynchronizedMap}
 import scala.collection.breakOut
 import squantlib.model.yieldparameter.{YieldParameter, FlatVector}
 import squantlib.model.rates._
@@ -67,7 +67,7 @@ class Market(
 	 * Stores already calculated discount curves.
 	 * Assumption: for each key, value contains discount curve for both discount and pivot currency.
 	 */
-	var repository = new WeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]]
+	var repository = new WeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]] with SynchronizedMap[String, scala.collection.mutable.Map[String, DiscountCurve]]
 	
 	/**
 	 * Returns FX spot ccy1 / ccy2

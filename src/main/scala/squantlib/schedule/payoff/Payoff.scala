@@ -1,10 +1,14 @@
-package squantlib.payoff
+package squantlib.schedule.payoff
 
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.database.DB
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.model.Market
+import org.jquantlib.time.{Date => qlDate}
+import scala.Option.option2Iterable
+import squantlib.schedule.CalculationPeriod
+import squantlib.schedule.FixingLeg
 
 trait Payoff extends FixingLeg {
 	

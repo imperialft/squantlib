@@ -6,7 +6,7 @@ import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
 import squantlib.database.DB
 import squantlib.database.schemadefinitions.{Bond => dbBond}
-import squantlib.payoff._
+import squantlib.schedule.payoff._
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.bond.BondSetting
 import squantlib.util.initializer.{DayAdjustments, Currencies, Daycounters}
@@ -22,9 +22,14 @@ import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.`type`.TypeReference
 import scala.collection.JavaConversions._
 import scala.collection.breakOut
-import scala.collection.mutable.{Set => mutableSet, WeakHashMap}
+import scala.collection.mutable.{Set => mutableSet, WeakHashMap, SynchronizedMap}
 import java.util.{Map => JavaMap}
 import scala.collection.LinearSeq
+import squantlib.schedule.call.Callabilities
+import squantlib.schedule.payoff.Payoff
+import squantlib.schedule.payoff.Payoffs
+import squantlib.schedule.ScheduledPayoffs
+import squantlib.schedule.CalculationPeriod
 
 
 /**
@@ -195,7 +200,7 @@ case class Bond(
 	  case None => {}
 	}
 	
-	val calibrationCache = new WeakHashMap[String, Any]
+	val calibrationCache = new WeakHashMap[String, Any] with SynchronizedMap[String, Any]
 	
 	def getCalibrationCache(k:String):Option[Any] = calibrationCache.get(k)
 	
@@ -260,7 +265,7 @@ case class Bond(
 	/*
 	 * Temporal cache to store spot and forward coupons.
 	 */
-	val cpncache = new scala.collection.mutable.WeakHashMap[String, List[(CalculationPeriod, Double)]]
+	val cpncache = new WeakHashMap[String, List[(CalculationPeriod, Double)]] with SynchronizedMap[String, List[(CalculationPeriod, Double)]]
 	
 	
 	/*	

@@ -1,4 +1,4 @@
-package squantlib.payoff
+package squantlib.schedule
 
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.daycounters._

@@ -1,15 +1,15 @@
-package squantlib.payoff
+package squantlib.schedule.payoff
 
 import scala.collection.JavaConversions._
-import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
-import squantlib.util.FormulaParser
+import java.util.{Map => JavaMap}
 import java.util.{Map => JavaMap}
 
 /**
- * Interprets JSON formula specification for sum of linear formulas with discrete range.
+ * Interprets JSON formuimport squantlib.schedule.payoff.Payoff
+la specification for sum of linear formulas with discrete range.
  * JSON format:
  *  {type:"binary", variable:[string], payoff:[{amount:double, strike:[double]}], description:String}, 
  * No strike is considered as no low boundary

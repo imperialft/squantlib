@@ -1,6 +1,7 @@
 package squantlib.pricing.model
 
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod, ScheduledPayoffs}
+import squantlib.schedule.{CalculationPeriod, Schedule, ScheduledPayoffs}
+import squantlib.schedule.payoff.{Payoffs, Payoff}
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.mcengine.MontecarloEngine
 

@@ -5,6 +5,7 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
 import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
+import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import java.util.{Date => JavaDate}
 
 /**
@@ -12,7 +13,7 @@ import java.util.{Date => JavaDate}
  */
 trait StaticAsset {
   
-  var cachedPrice = new scala.collection.mutable.WeakHashMap[String, TimeSeries] 
+  var cachedPrice = new WeakHashMap[String, TimeSeries] with SynchronizedMap[String, TimeSeries]
   
   val assetID:String  // to be implemented
   

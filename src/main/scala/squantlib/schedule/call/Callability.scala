@@ -1,10 +1,7 @@
-package squantlib.payoff
-
-import scala.collection.LinearSeq
-import scala.annotation.tailrec
+package squantlib.schedule.call
 import scala.collection.immutable.ListMap
-import scala.collection.breakOut
 import squantlib.util.DisplayUtils._
+import squantlib.schedule.FixingLeg
 
 case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Double) extends FixingLeg {
   

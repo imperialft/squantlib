@@ -1,4 +1,4 @@
-package squantlib.payoff
+package squantlib.schedule
 
 import scala.collection.LinearSeq
 

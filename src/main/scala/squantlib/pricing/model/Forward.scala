@@ -1,14 +1,16 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.payoff.{Payoff, Payoffs, Schedule, CalculationPeriod, ScheduledPayoffs}
+import squantlib.schedule.payoff.{Payoffs}
+import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod, Schedule}
 import squantlib.pricing.mcengine._
 import squantlib.model.index.Index
 import squantlib.model.Underlying
 import squantlib.model.Bond
 import squantlib.util.JsonUtils._
-import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
+import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
+import org.codehaus.jackson.JsonNode
 import org.jquantlib.time.{Date => qlDate}
 import org.jquantlib.daycounters.Actual365Fixed
 
@@ -18,7 +20,7 @@ case class Forward(
     scheduledPayoffs:ScheduledPayoffs,
     underlyings:List[Underlying]) extends PricingModel {
 	
-	val cachedPrice = scala.collection.mutable.WeakHashMap[String, List[Double]]()
+	val cachedPrice = new WeakHashMap[String, List[Double]] with SynchronizedMap[String, List[Double]]
 	
 	override def calculatePrice:List[Double] = scheduledPayoffs.map{case (d, p, c) => p.price(underlyings.map(_.forward(d.eventDate)))} (collection.breakOut)
 	

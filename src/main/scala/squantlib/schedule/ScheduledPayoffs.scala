@@ -1,15 +1,16 @@
-package squantlib.payoff
+package squantlib.schedule
 
-import org.codehaus.jackson.JsonNode
-import org.codehaus.jackson.map.ObjectMapper
 import scala.collection.LinearSeq
-import scala.annotation.tailrec 
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.database.DB
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{BusinessDayConvention, Calendar, Date => qlDate}
 import org.jquantlib.daycounters.Actual365Fixed
+import org.jquantlib.time.{Date => qlDate}
+import scala.runtime.ZippedTraversable3.zippedTraversable3ToTraversable
+import squantlib.schedule.call.{Callabilities, Callability}
+import squantlib.schedule.payoff.{Payoff, Payoffs}
 
 case class ScheduledPayoffs(
     scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],

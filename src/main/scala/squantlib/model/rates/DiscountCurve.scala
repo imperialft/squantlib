@@ -1,7 +1,7 @@
 package squantlib.model.rates
 
 import squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import squantlib.util.DateUtils
+import squantlib.schedule.Schedule
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.instruments
 import org.jquantlib.daycounters.{DayCounter, Thirty360, Actual365Fixed}
@@ -88,7 +88,7 @@ case class DiscountCurve(
       duration(valuedate.add(maturity), period, daycount, convention)
     
     def duration(maturity:qlDate, period:qlPeriod, daycount:DayCounter, convention:BusinessDayConvention):Double = {
-      val dates = DateUtils.periodicalDates(valuedate, maturity, period, convention, new NullCalendar)
+      val dates = Schedule.periodicalDates(valuedate, maturity, period, convention, new NullCalendar)
       (for (i <- 1 to dates.size - 1) yield (daycount.yearFraction(dates(i-1), dates(i)) * value(dates(i)))).sum
     }
     

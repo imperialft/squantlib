@@ -1,14 +1,14 @@
-package squantlib.payoff
+package squantlib.schedule
 
 import scala.collection.mutable.MutableList
 import scala.collection.LinearSeq
-import squantlib.model.rates.DiscountCurve
 import org.jquantlib.daycounters._
 import org.jquantlib.time.{Date => qlDate, _}
 import org.jquantlib.time.calendars.NullCalendar
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.DateGeneration.Rule._
 import java.util.{Date => JavaDate}
+import squantlib.model.rates.DiscountCurve
 
 class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationPeriod] {
  
@@ -69,14 +69,14 @@ class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationP
 }
 
 object Schedule{
-	
-	def empty:Schedule = new Schedule(List.empty)
   
-	def apply(inputDates:List[CalculationPeriod]):Schedule = new Schedule(inputDates)
+  def empty:Schedule = new Schedule(List.empty)
+  
+  def apply(inputDates:List[CalculationPeriod]):Schedule = new Schedule(inputDates)
 	
-	def apply(dates:LinearSeq[CalculationPeriod]):Schedule = new Schedule(dates.toList)
+  def apply(dates:LinearSeq[CalculationPeriod]):Schedule = new Schedule(dates.toList)
 	
-	def apply(
+  def apply(
 	    effectiveDate:qlDate,
 		terminationDate:qlDate,
 		tenor:Period,
@@ -163,7 +163,7 @@ object Schedule{
 	    new Schedule(couponLegs ++ redemptionLegs)
 	}
 
-	def apply(
+  def apply(
 	    effectiveDate:JavaDate,
 		terminationDate:JavaDate,
 		tenor:Period,
@@ -195,6 +195,27 @@ object Schedule{
 		    collect{case d => new qlDate(d)}, 
 		    nextToLastDate.collect{case d => new qlDate(d)}, 
 		    addRedemption, 
-		    maturityNotice)	
+		    maturityNotice)
+
+		    
+  def periodicalDates(
+      startDate:qlDate, 
+      endDate:qlDate, 
+      period:Period, 
+      convention:BusinessDayConvention, 
+      calendar:Calendar):List[qlDate] = {
+	  
+	  var periods = 1
+	  var currentPeriod = 0
+	  var currentDate = startDate
+	  var tempdates:MutableList[qlDate] = MutableList(currentDate)
+	  do {
+        currentDate = calendar.advance(startDate, period.mul(periods), convention)
+        tempdates += (if (currentDate ge endDate) endDate else currentDate)
+        periods = periods + 1
+	  } while (endDate gt currentDate)
+	  tempdates.toList
+  }
+
 }
 

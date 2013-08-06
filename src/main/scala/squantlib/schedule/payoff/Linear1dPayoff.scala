@@ -1,13 +1,13 @@
-package squantlib.payoff
+package squantlib.schedule.payoff
 
 import scala.collection.JavaConversions._
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
-import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 
 /**
- * Interprets JSON formula specification for a linear formula with cap & floor.
+ * Interprets JSON forimport squantlib.schedule.payoff.Payoff
+mula specification for a linear formula with cap & floor.
  * JSON format:
  * - {type:"linear1d", variable:string, payoff:formula}, where
  *   formula = {min:double, max:double, mult:double, add:double, description:XXX}
