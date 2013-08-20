@@ -1,6 +1,6 @@
 package squantlib.pricing.mcengine
 
-object BlackScholesFormula {
+object BsFormula {
   
   /* Standard Black-Scholes calculation
    * @param spot 	current underlying price

@@ -90,19 +90,19 @@ case class LiborDiscountCurve (
 	  def getZC(spread : YieldParameter) : DiscountCurve = {
 	    
 	    @tailrec def zcRec(dates:List[(Int, qlPeriod)], zc:List[Double], duration:Double):List[Double] = {
-	      if (dates.isEmpty) zc
+	      if (dates.isEmpty) zc.reverse
 	      else dates.head match {
-	        case (m, p) if m == 0 => zcRec(dates.tail, zc :+ 1.00, duration)
+	        case (m, p) if m == 0 => zcRec(dates.tail, 1.00 :: zc, duration)
 	        
 	        case (m, p) if m < swapstart => 
 	          val zcXm:Double = 1 / (1 + (cash(p) + spread(p) - bs3m6madjust(m)) * floatfraction * m / 12)
 	          val newDur:Double = if (m % fixperiod == 0) zcXm * fixdaycounts(m) else 0.0
-	          zcRec(dates.tail, zc :+ zcXm, duration + newDur)
+	          zcRec(dates.tail, zcXm :: zc, duration + newDur)
 	          
 	        case (m, p) =>
 	          val realrate = swap(p) + (spread(p) - bs3m6madjust(m)) * floatfraction / fixfraction
 	          val zcXm = (1 - realrate * duration) / (1 + realrate * fixdaycounts(m)) 
-	          zcRec(dates.tail, zc :+ zcXm, duration + zcXm * fixdaycounts(m))
+	          zcRec(dates.tail, zcXm :: zc, duration + zcXm * fixdaycounts(m))
 	      }
 	    }
 	    

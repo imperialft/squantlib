@@ -45,7 +45,7 @@ case class BinaryPayoff(
 	  }
 	  
 	override def priceImpl(fixing:Double) =
-	  if (payoff.isEmpty || isInvalid || variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
+	  if (isInvalid || variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
 	  else payoff.map{
 	    case (v, None) => v 
 	    case (v, Some(l)) if fixing > l.head => v

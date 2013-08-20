@@ -116,8 +116,8 @@ object SwaptionModelSetting extends BondSetting {
 object FXBulletModelSetting extends BondSetting {
   
   override def apply(bond:Bond) = {
-    val engine = (fx:FX) => BlackScholes1f(fx)
-	bond.defaultModel = (m:Market, b:Bond) => FXMontecarlo1f(m, b, engine, 100000)
+    val engine = (fx:FX) => Bs1fContinuous(fx)
+	bond.defaultModel = (m:Market, b:Bond) => FxMc1f(m, b, engine, 100000)
 	bond.forceModel = true
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = false
@@ -129,8 +129,8 @@ object FXBulletModelSetting extends BondSetting {
 object FXCallableModelSetting extends BondSetting {
   
   override def apply(bond:Bond) = {
-    val engine = (fx:FX) => BlackScholes1f(fx)
-	bond.defaultModel = (m:Market, b:Bond) => FXMontecarlo1f(m, b, engine, 100000)
+    val engine = (fx:FX) => Bs1fContinuous(fx)
+	bond.defaultModel = (m:Market, b:Bond) => FxMc1f(m, b, engine, 100000)
 	bond.forceModel = true
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = true
@@ -142,8 +142,8 @@ object FXCallableModelSetting extends BondSetting {
 object IndexMcModelSetting extends BondSetting {
   
   override def apply(bond:Bond) = {
-    val engine = (index:Index) => BlackScholesWithRepo(index)
-	bond.defaultModel = (m:Market, b:Bond) => IndexMontecarlo1f(m, b, engine, 50000)
+    val engine = (index:Index) => Bs1fContinuous(index)
+	bond.defaultModel = (m:Market, b:Bond) => IndexMc1f(m, b, engine, 100000)
 	bond.forceModel = true
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = false
@@ -154,8 +154,8 @@ object IndexMcModelSetting extends BondSetting {
 object EquityMcModelSetting extends BondSetting {
   
   override def apply(bond:Bond) = {
-    val engine = (equity:Equity) => BlackScholesDiscreteDividends1f(equity)
-	bond.defaultModel = (m:Market, b:Bond) => EquityMontecarlo1f(m, b, engine, 50000)
+    val engine = (equity:Equity) => Bs1fDiscrete(equity)
+	bond.defaultModel = (m:Market, b:Bond) => EquityMc1f(m, b, engine, 100000)
 	bond.forceModel = true
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = false

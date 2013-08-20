@@ -60,16 +60,16 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	
 	@tailrec private def priceRec[T](paylist:List[Payoff], fixlist:List[T], acc:List[Double])
 	(implicit fi:FixingInterpreter[T, _]):List[Double] = {
-	  if (paylist.isEmpty) acc
-	  else priceRec(paylist.tail, fixlist.tail, acc :+ fi.price(fixlist.head, paylist.head))
+	  if (paylist.isEmpty) acc.reverse
+	  else priceRec(paylist.tail, fixlist.tail, fi.price(fixlist.head, paylist.head) :: acc)
 	}
 	
 	@tailrec private def priceTrig[T, U](paylist:List[Payoff], fixlist:List[T], acc:List[Double], triglist:List[Option[U]], trigamt:List[Double], triggered:Boolean)
 	(implicit fi:FixingInterpreter[T, U]):List[Double] = {
-	  if (paylist.isEmpty) acc
-	  else if (triggered) acc ++ List.fill(paylist.tail.size)(0.0)
-	  else if (fi.triggered(fixlist.head, triglist.head)) (acc :+ (fi.price(fixlist.head, paylist.head) + trigamt.head)) ++ List.fill(paylist.tail.size)(0.0)
-	  else priceTrig(paylist.tail, fixlist.tail, acc :+ fi.price(fixlist.head, paylist.head), triglist.tail, trigamt.tail, false)
+	  if (paylist.isEmpty) acc.reverse
+	  else if (triggered) acc.reverse ++ List.fill(paylist.tail.size)(0.0)
+	  else if (fi.triggered(fixlist.head, triglist.head)) ((fi.price(fixlist.head, paylist.head) + trigamt.head)::acc).reverse ++ List.fill(paylist.tail.size)(0.0)
+	  else priceTrig(paylist.tail, fixlist.tail, fi.price(fixlist.head, paylist.head) :: acc, triglist.tail, trigamt.tail, false)
 	}
 	
 	/*

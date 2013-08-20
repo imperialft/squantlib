@@ -23,10 +23,8 @@ trait MontecarloEngine {
 
 trait Montecarlo1f extends MontecarloEngine {
   
-  var randomGenerator:RandomGenerator
+  def getRandomGenerator:RandomGenerator
   
-  def reset:Unit
-
   /* Generates paths.
    * @param eventdates observation dates as number of years
    * @param paths 	Number of Montecarlo paths to be generated
@@ -36,7 +34,7 @@ trait Montecarlo1f extends MontecarloEngine {
    * ie. Order of output paths might not correspond to order of input eventDates if it's not sorted.
   */
   
-  def generatePaths(eventDates:List[Double], paths:Int):(List[Double], List[List[Double]])
+  def generatePaths(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[List[Double]]) = null
   
   def analyzePaths(dates:List[Double], paths:List[List[Double]]):Unit = {
     val average = paths.transpose.map(_.sum).map(_ / paths.size)

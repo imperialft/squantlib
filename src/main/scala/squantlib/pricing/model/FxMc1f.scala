@@ -13,7 +13,7 @@ import org.jquantlib.time.{Date => qlDate}
 import org.jquantlib.daycounters.Actual365Fixed
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 
-case class FXMontecarlo1f(valuedate:qlDate, 
+case class FxMc1f(valuedate:qlDate, 
 					  mcengine:Montecarlo1f, 
 					  scheduledPayoffs:ScheduledPayoffs, 
 					  fx:FX,
@@ -23,20 +23,21 @@ case class FXMontecarlo1f(valuedate:qlDate,
 					  parameterRepository:Any => Unit) extends PricingModel {
   
 	mcPaths = defaultPaths
+	val redemamt = scheduledPayoffs.bonusAmount.takeRight(trigger.size)
 
 	override def modelPaths(paths:Int):List[List[Double]] = {
 	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
-	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths)
+	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, p => scheduledPayoffs.price(p, trigger, redemamt))
 	  if (mcdates.sameElements(mcYears)) mcpaths
 	  else { println("invalid mc dates"); List.empty}
 	}
 	 
 	def mcPrice(paths:Int):List[Double] = {
-	  val redemamt = scheduledPayoffs.bonusAmount.takeRight(trigger.size)
 	  try { 
 	    val mpaths = modelPaths(paths)
 	    if (mpaths.isEmpty) scheduledPayoffs.price
-	    else mpaths.map(p => scheduledPayoffs.price(p , trigger, redemamt)).transpose.map(_.sum / paths.toDouble) }
+	    else mpaths.transpose.map(_.sum).map(_ / paths.toDouble) 
+	  }
 	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
@@ -48,10 +49,10 @@ case class FXMontecarlo1f(valuedate:qlDate,
 	
 	def calculatePrice(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", mcPrice(paths))
 	
-	override def calibrate:FXMontecarlo1f = {
+	override def calibrate:FxMc1f = {
 	  val frontier = frontierFunction()
 	  parameterRepository(frontier)  
-	  FXMontecarlo1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository)
+	  FxMc1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository)
 	}
 	
 	override val priceType = "MODEL"
@@ -61,16 +62,16 @@ case class FXMontecarlo1f(valuedate:qlDate,
 }
 
 
-object FXMontecarlo1f {
+object FxMc1f {
 	
-	var defaultPaths = 100000
-	var frontierPaths = 10000
+	var defaultPaths = 300000
+	var frontierPaths = 30000
 	
-	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f]):Option[FXMontecarlo1f] = apply(market, bond, mcengine, defaultPaths)
+	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths)
   
-	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FXMontecarlo1f] = apply(market, bond, mcengine, defaultPaths, triggers)
+	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, triggers)
 	
-	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], paths:Int):Option[FXMontecarlo1f] = {
+	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], paths:Int):Option[FxMc1f] = {
 	  val trig = bond.getCalibrationCache("FXMontecarlo1f") match {
 	    case Some(t:List[Any]) => t.map{
 	      case Some(v:Double) => Some(v)
@@ -86,7 +87,7 @@ object FXMontecarlo1f {
 	    bond:Bond, 
 	    mcengine:FX => Option[Montecarlo1f], 
 	    paths:Int, 
-	    triggers:List[Option[Double]]):Option[FXMontecarlo1f] = {
+	    triggers:List[Option[Double]]):Option[FxMc1f] = {
 	  
 	  val valuedate = market.valuedate
 	  
@@ -118,7 +119,7 @@ object FXMontecarlo1f {
 	  
 	  val paramRepository = (obj:Any) => bond.calibrationCache.update("FXMontecarlo1f", obj)
 	  
-	  Some(FXMontecarlo1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction, paramRepository))
+	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction, paramRepository))
 	}
 }
 

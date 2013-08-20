@@ -82,7 +82,7 @@ case class ScheduledPayoffs(
   def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = 
     if (calls.isTrigger) {
       if (calls.isPriceable){
-        val trig:List[Option[Double]] = calls.toList.map(_.triggers.values.headOption)
+        val trig:List[Option[Double]] = calls.calls.map(_.triggers.values.headOption)
         payoffs.price(priceMapper(fixings), trig, bonusRate)
       }
       else List.fill(fixings.size)(Double.NaN)

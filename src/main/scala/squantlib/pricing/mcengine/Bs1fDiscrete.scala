@@ -4,7 +4,7 @@ import squantlib.math.random.{RandomGenerator, MersenneTwister}
 import squantlib.math.statistical.NormSInv
 import squantlib.model.equity.Equity
 import squantlib.util.DisplayUtils._
-
+import scala.annotation.tailrec
 
 /* Black-Scholes montecarlo generator with discrete dividends
  * - Discrete dividend
@@ -17,7 +17,7 @@ import squantlib.util.DisplayUtils._
 *  * @param sigma(t)	volatility of the underlying index
  */
 
-case class BlackScholesDiscreteDividends1f(
+case class Bs1fDiscrete(
     var spot:Double, 
     var rate: Double => Double, 
     var dividends: Map[Double, Double], 
@@ -25,12 +25,8 @@ case class BlackScholesDiscreteDividends1f(
     var volatility: Double => Double) 
     extends Montecarlo1f{
   
-  var normSInv: Double => Double = (x:Double) => NormSInv(x)
+  override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
   
-  override var randomGenerator:RandomGenerator = new MersenneTwister(1)
-  
-  override def reset = randomGenerator = new MersenneTwister(1)
-
   /* Generates paths.
    * @param eventdates	observation dates as number of years
    * @param paths 	Number of Montecarlo paths to be generated
@@ -40,10 +36,11 @@ case class BlackScholesDiscreteDividends1f(
    * Check with first tuple argument for the order of dates.
   */
   
-  override def generatePaths(eventDates:List[Double], paths:Int):(List[Double], List[List[Double]]) = {
+  override def generatePaths(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[List[Double]]) = {
     if (eventDates.isEmpty) {return (List.empty, List.empty)}
     
-    reset
+    val randomGenerator = getRandomGenerator
+    var normSInv: Double => Double = (x:Double) => NormSInv(x)
     
     val relavantDivs = dividends.filter(d => d._1 > 0.0 && d._1 <= eventDates.max)
     val eventWithDivs = eventDates.map(d => (d, 0.0)).toMap
@@ -62,32 +59,40 @@ case class BlackScholesDiscreteDividends1f(
     val ratefor = dates.map(d => repoYield(d))
     val sigma = dates.map(volatility)
     
-    val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
+    @tailrec def acc[A](r:List[A], t:List[Double], f:(A, A, Double, Double) => A, d:A, current:List[A]):List[A] = 
+      if (r.isEmpty || r.tail.isEmpty) current.reverse
+      else acc(r.tail, t.tail, f, d, f(r.tail.head, r.head, t.tail.head, t.head) :: current)
     
-    val fratefor = ratefor.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else (ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
+    val fratedom:List[Double] = ratedom.head :: acc[Double](ratedom, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val fsigma = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
+    val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt((a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0)), 0.0, List.empty)
+    
+	@tailrec def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
+	  if (rd.isEmpty) current.reverse
+	  else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
 	
-	val sigt = for (i <- 0 to steps-1) yield fsigma(i) * scala.math.sqrt(stepsize(i))
+	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
 	
-    val genpaths = for (path <- (0 to paths-1).toList) yield {
-      var spotprice = spot
-      val apath = for (d <- (0 to steps-1).toList) yield {
-        if (stepsize(d) == 0.0) spotprice
-        else {
+	val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
+	
+    @tailrec def getApath(steps:List[Double], drft:List[Double], siggt:List[Double], divv:List[Double], current:List[Double]):List[Double] = {
+      if (steps.isEmpty) payoff(pathmapper.map(current.reverse.tail))
+      else {
           val rnd = randomGenerator.sample
           val ninv1 = normSInv(rnd)
-          spotprice = spotprice * scala.math.exp(drift(d) + (sigt(d) * ninv1)) - divs(d)
-          spotprice
-          }
+          val spot = current.head * scala.math.exp(drft.head + (siggt.head * ninv1)) - divv.head
+          getApath(steps.tail, drft.tail, siggt.tail, divv.tail, spot :: current)
+        }
       }
-      pathmapper.map(apath)
+    
+    @tailrec def getPathes(nbpath:Int, current:List[List[Double]]):List[List[Double]] = {
+      if (nbpath == 0) current
+      else getPathes(nbpath - 1, getApath(stepsize, drift, sigt, divs, List(spot))::current)
     }
+	
+    val genpaths = getPathes(paths, List.empty)   
     
     (sortedEventDates, genpaths)
   }
@@ -137,10 +142,10 @@ case class BlackScholesDiscreteDividends1f(
 
 }
 
-object BlackScholesDiscreteDividends1f {
+object Bs1fDiscrete {
   
-  def apply(equity:Equity):Option[BlackScholesDiscreteDividends1f] = 
-	try { Some(new BlackScholesDiscreteDividends1f(equity.spot, equity.interestRateY, equity.dividendYears, equity.repoRateY, equity.volatilityY)) } 
+  def apply(equity:Equity):Option[Bs1fDiscrete] = 
+	try { Some(new Bs1fDiscrete(equity.spot, equity.interestRateY, equity.dividendYears, equity.repoRateY, equity.volatilityY)) } 
 	catch { case _ :Throwable=> None}
 	
 }

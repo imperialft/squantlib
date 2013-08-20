@@ -33,14 +33,19 @@ case class PutDIAmericanPayoff(
  	
 	val triggerMap:Map[String, Double] = (putVariables zip trigger) (collection.breakOut)
 	
-	override val isPriceable:Boolean = !trigger.exists(v => v.isNaN || v.isInfinity) && !strike.exists(v => v.isNaN || v.isInfinity)
+	override val isPriceable:Boolean = 
+	  !trigger.exists(v => v.isNaN || v.isInfinity) && 
+	  !strike.exists(v => v.isNaN || v.isInfinity) && 
+	  refStart != null && 
+	  refEnd != null &&
+	  (refStart le refEnd)
 	
 	var mcPeriod6m = 30
 	var mcPeriod1y = 90
 	var mcPeriodbefore = 180
 	
 	override def eventDates(period:CalculationPeriod):List[qlDate] = {
-	  if (refStart == null || refEnd == null || (refStart gt refEnd)) {return List(period.endDate)}
+	  if (!isPriceable) {return List(period.endDate)}
 	  val basemod = refEnd.serialNumber % mcPeriod6m
 	  val start = refStart.serialNumber
 	  val end = refEnd.serialNumber
@@ -65,7 +70,7 @@ case class PutDIAmericanPayoff(
 	    variables.exists(p => fixings.get(p) match { case Some(v) => v <= triggerMap(p) case None => false})
 	  
 	  override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
-	    if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && refStart != null && refEnd != null) {
+	    if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
 	      if (isKnockedIn) amount * math.min(1.00, variables.map(v => fixings(v) / strikeMap(v)).min)
 	      else amount
 	    } else Double.NaN
@@ -74,7 +79,7 @@ case class PutDIAmericanPayoff(
 	implicit object DoubleInterpreter extends FixingInterpreter[Double] {
 	  override def isKnockIn(fixing:Double):Boolean = fixing <= trigger.head
 	  override def price(fixing:Double, isKnockedIn:Boolean):Double = 
-	    if (fixing.isNaN || fixing.isInfinity || variables.size != 1) Double.NaN
+	    if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
 	    else if (isKnockedIn) amount * math.min(1.0, fixing / strike.head)
 	    else amount
 	  }

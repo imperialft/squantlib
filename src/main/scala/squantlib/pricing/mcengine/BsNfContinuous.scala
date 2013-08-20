@@ -4,6 +4,7 @@ import squantlib.math.random.{RandomGenerator, MersenneTwister}
 import squantlib.math.statistical.NormSInv
 import squantlib.model.fx.FX
 import squantlib.util.DisplayUtils._
+import scala.annotation.tailrec
 
 /* Simple Black-Scholes montecarlo pricer.
  * - Continuous dividend
@@ -15,20 +16,14 @@ import squantlib.util.DisplayUtils._
  * @param sigma(t)	volatility of the underlying FX
  */
 
-case class BlackScholes1f(
+case class BsNfContinuous(
     var spot:Double, 
     var rate: Double => Double, 
     var dividendYield: Double => Double, 
     var volatility: Double => Double) 
     extends Montecarlo1f{
   
-  var normSInv: Double => Double = (x:Double) => NormSInv(x)
-  
-  override var randomGenerator:RandomGenerator = new MersenneTwister(1)
-  
-  override def reset = randomGenerator = new MersenneTwister(1)
-  
-  val smallvalue = 0.00001
+  override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
 
   /* Generates FX paths.
    * @param eventdates	FX observation dates as number of years
@@ -39,10 +34,12 @@ case class BlackScholes1f(
    * Check with first tuple argument for the order of dates.
   */
   
-  override def generatePaths(eventDates:List[Double], paths:Int):(List[Double], List[List[Double]]) = {
+  override def generatePaths(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[List[Double]]) = {
     if (eventDates.isEmpty) {return (List.empty, List.empty)}
     
-    reset 
+    val randomGenerator = getRandomGenerator
+    def normSInv(x:Double) = NormSInv(x)
+    val smallvalue = 0.00001
     
     val dates = eventDates.sorted
     val steps = dates.size
@@ -51,33 +48,42 @@ case class BlackScholes1f(
     val ratedom = dates.map(rate)
     val ratefor = dates.map(dividendYield)
     val sigma = dates.map(volatility)
+
+    @tailrec def acc[A](r:List[A], t:List[Double], f:(A, A, Double, Double) => A, d:A, current:List[A]):List[A] = 
+      if (r.isEmpty || r.tail.isEmpty) current.reverse
+      else if (t.tail.head - t.head < smallvalue)  acc(r.tail, t.tail, f, d, d :: current)
+      else acc(r.tail, t.tail, f, d, f(r.tail.head, r.head, t.tail.head, t.head) :: current)
     
-    val fratedom:List[Double] = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) <= smallvalue) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
+    val fratedom:List[Double] = ratedom.head :: acc[Double](ratedom, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val fratefor:List[Double] = ratefor.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) <= smallvalue) 0.0 else (ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
+    val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val fsigma:List[Double] = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) <= smallvalue) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
+    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt((a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0)), 0.0, List.empty)
     
-	val drift:IndexedSeq[Double] = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+	@tailrec def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
+	  if (rd.isEmpty) current.reverse
+	  else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
 	
-	val sigt = for (i <- 0 to steps-1) yield fsigma(i) * scala.math.sqrt(stepsize(i))
+	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
 	
-    val genpaths = for (path <- (0 to paths-1).toList) yield {
-      var spotprice = spot
-      for (d <- (0 to steps-1).toList) yield {
-        if (stepsize(d) <= smallvalue) spotprice
-        else {
+	val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
+	
+    @tailrec def getApath(steps:List[Double], drft:List[Double], siggt:List[Double], current:List[Double]):List[Double] = {
+      if (steps.isEmpty) payoff(current.reverse.tail)
+      else {
           val rnd = randomGenerator.sample
           val ninv1 = normSInv(rnd)
-          spotprice *= scala.math.exp(drift(d) + (sigt(d) * ninv1))
-          spotprice
-          }
+          val spot = if (steps.head < smallvalue) current.head else current.head * scala.math.exp(drft.head + (siggt.head * ninv1))
+          getApath(steps.tail, drft.tail, siggt.tail, spot :: current)
+        }
       }
-    }
     
+    @tailrec def getPathes(nbpath:Int, current:List[List[Double]]):List[List[Double]] = {
+      if (nbpath == 0) current
+      else getPathes(nbpath - 1, getApath(stepsize, drift, sigt, List(spot))::current)
+    }
+	
+    val genpaths = getPathes(paths, List.empty)
     (dates, genpaths)
   }
   
@@ -118,10 +124,10 @@ case class BlackScholes1f(
 
 }
 
-object BlackScholes1f {
+object BsNfContinuous {
   
-  def apply(fx:FX):Option[BlackScholes1f] = 
-	try { Some(new BlackScholes1f(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY)) } 
+  def apply(fx:FX):Option[BsNfContinuous] = 
+	try { Some(new BsNfContinuous(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY)) } 
 	catch { case _:Throwable => None}
 	
 }

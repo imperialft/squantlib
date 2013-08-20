@@ -14,7 +14,7 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	
 	def triggerValues(variables:List[String]):List[List[Option[Double]]] = calls.map(_.triggerValues(variables))
 	
-	def isPriceable:Boolean = calls.forall(_.isPriceable)
+	val isPriceable:Boolean = calls.forall(_.isPriceable)
 	
 	val bonus:List[Double] = calls.map(_.bonus)
 	
@@ -34,7 +34,7 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
     
     def isBermuda:Boolean = calls.exists(_.bermudan)
     
-    def isTrigger = calls.exists(_.isTrigger)
+    val isTrigger = calls.exists(_.isTrigger)
     
 	def triggerCheck(fixings:List[Map[String, Double]]):List[Boolean] = (fixings, calls).zipped.map{case (f, c) => c.isTriggered(f)}
 	

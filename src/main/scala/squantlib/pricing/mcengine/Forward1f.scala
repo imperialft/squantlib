@@ -16,7 +16,7 @@ case class Forward1f(
     var forward:Double => Double)
     extends Montecarlo1f {
   
-  var randomGenerator:RandomGenerator = null
+  def getRandomGenerator:RandomGenerator = null
   def reset:Unit = {}
   
   /* Generates FX paths.

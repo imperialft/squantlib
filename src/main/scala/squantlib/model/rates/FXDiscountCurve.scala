@@ -44,10 +44,10 @@ case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
 	 val fwdfxvector = swapptperiods.mapValues(swappoint.value(_, fx))
 		  
 	  @tailrec def zcRec(dates:List[(Int, qlPeriod)], zc:List[Double]):List[Double] = {
-	    if (dates.isEmpty) zc
+	    if (dates.isEmpty) zc.reverse
 	    else dates.head match {
-	      case (m, p) if m == 0 => zcRec(dates.tail, zc :+ 1.00)
-	      case (m, p) => zcRec(dates.tail, zc :+ (refinZCvector(m) * fx / fwdfxvector(m)))
+	      case (m, p) if m == 0 => zcRec(dates.tail, 1.00 :: zc)
+	      case (m, p) => zcRec(dates.tail, (refinZCvector(m) * fx / fwdfxvector(m)) :: zc)
 	    }
 	  }
 	    

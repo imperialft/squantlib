@@ -22,7 +22,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.`type`.TypeReference
 import scala.collection.JavaConversions._
 import scala.collection.breakOut
-import scala.collection.mutable.{Set => mutableSet, WeakHashMap, SynchronizedMap}
+import scala.collection.mutable.{Set => mutableSet, WeakHashMap, SynchronizedMap, ArrayBuffer}
 import java.util.{Map => JavaMap}
 import scala.collection.LinearSeq
 import squantlib.schedule.call.Callabilities
@@ -381,7 +381,7 @@ case class Bond(
       			.sortBy{case (date, _) => date}
       			.reverse
       
-      val tempTrigger = scala.collection.mutable.ArrayBuffer(liveTriggers:_*)
+      val tempTrigger = ArrayBuffer(liveTriggers:_*)
       println("FX frontiers : " + id)
       
       valuedates.foreach{case (vd, index) => 
