@@ -25,6 +25,8 @@ trait Underlying extends StaticAsset {
   
   val daysPerYr = 365.25
   
+  val currency:Currency // TO BE DEFINED IN SUBCLASS
+  
   /**
    * Returns the discounting rate (risk-free rate on the currency)
    * @param days observation date as the number of calendar days after value date.

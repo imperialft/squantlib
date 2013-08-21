@@ -74,6 +74,8 @@ case class ScheduledPayoffs(
     
   implicit object mapValue extends withDefault[Map[String, Double]] { def defaultValue = Map.empty[String, Double]}
   
+  implicit object listValue extends withDefault[List[Double]] { def defaultValue = List.fill(underlyings.size)(Double.NaN)}
+  
   implicit object doubleValue extends withDefault[Double] { def defaultValue = Double.NaN}
   
   def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = dateMapper.map(d => {
@@ -96,12 +98,26 @@ case class ScheduledPayoffs(
     }
     else payoffs.price(priceMapper(fixings))
     }
+  
+//  def price(fixings:List[List[Double]]):List[Double] = {
+//    if (calls.isTrigger) {
+//      if (calls.isPriceable) payoffs.price(priceMapper(fixings), calls.triggers, bonusRate)
+//      else List.fill(fixings.size)(Double.NaN)
+//    }
+//    else payoffs.price(priceMapper(fixings))
+//    }
     
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]]):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, bonusRate)
     
+//  def price(fixings:List[List[Double]], trigger:List[Option[List[Double]]]):List[Double] = 
+//    payoffs.price(priceMapper(fixings), trigger, bonusRate)
+    
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double]):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
+    
+//  def price(fixings:List[List[Double]], trigger:List[Option[List[Double]]], trigAmount:List[Double]):List[Double] = 
+//    payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
     
   def price(fixings:List[Double], trigger:List[Option[Double]])(implicit d:DummyImplicit):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, bonusRate)

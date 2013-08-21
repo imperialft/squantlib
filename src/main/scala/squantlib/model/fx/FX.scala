@@ -20,6 +20,7 @@ trait FX extends Underlying {
 	
 	val currencyDom:Currency = curveDom.currency
 	val currencyFor:Currency = curveFor.currency
+	override val currency = currencyDom
 	
 	require (curveDom.valuedate eq curveFor.valuedate)
 	val valuedate = curveDom.valuedate

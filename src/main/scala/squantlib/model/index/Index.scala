@@ -23,7 +23,7 @@ trait Index extends Underlying {
 	
 	val rateCurve:DiscountCurve
 	
-	val currency:Currency = rateCurve.currency
+	override val currency:Currency = rateCurve.currency
 	
 	val discontinousDates:Set[qlDate]
 	

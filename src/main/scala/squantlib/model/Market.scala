@@ -240,6 +240,9 @@ class Market(
 	  getFXCurve(ccy).flatMap(c => try {Some(c.swappoint(maturity))} catch { case _:Throwable => None })
 	
 	def getFixings(ids:Set[String]):Map[String, Double] = ids.map(p => (p, getFixing(p))).collect{case (n, Some(p)) => (n, p)} (breakOut)
+
+	def getFixings(ids:List[String]):List[Double] = ids.map(p => getFixing(p).getOrElse(Double.NaN))
+
 	
 	def getFixing(id:String):Option[Double] = 
 	  if (id == null) None

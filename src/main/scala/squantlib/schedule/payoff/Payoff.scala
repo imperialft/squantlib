@@ -61,7 +61,7 @@ trait Payoff extends FixingLeg {
 	def priceImpl:Double
 	
 	/*
-	 * Price in case of multiple event dates.
+	 * Price in case of multiple event dates and multiple variables.
 	 * Only refers to the last variable by default but can be overridden.
 	 */	
 	final def price(fixings:List[Map[String, Double]]):Double = 
@@ -70,6 +70,8 @@ trait Payoff extends FixingLeg {
 	  else Double.NaN
 	
 	def priceImpl(fixings:List[Map[String, Double]]):Double = if (fixings.isEmpty) price else price(fixings.last)
+	
+	
 	
 	/*
 	 * Price in case of multiple event dates with only one variable.

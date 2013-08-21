@@ -6,6 +6,7 @@ import squantlib.model.Underlying
 import squantlib.util.DisplayUtils._
 import squantlib.math.statistical.{Mathematical, Cholesky}
 import scala.annotation.tailrec
+import squantlib.util.DisplayUtils
 
 /* Simple Black-Scholes montecarlo pricer.
  * - Continuous dividend
@@ -18,6 +19,7 @@ import scala.annotation.tailrec
  */
 
 case class BsNf(
+    variables:List[String],
     spot: List[Double], 
     rate: Double => Double, 
     dividendYield: List[Double => Double],
@@ -82,7 +84,7 @@ case class BsNf(
     (fratedom, fratefor, fsigma)
   }
   
-  override def generatePaths(eventDates:List[Double], paths:Int, payoff:List[List[Double]] => List[Double]):(List[Double], List[List[Double]]) = {
+  override def generatePaths[A](eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[A]):(List[Double], List[List[A]]) = {
     if (eventDates.isEmpty) {return (List.empty, List.empty)}
     
     val chol = getCholeskyMatrix
@@ -118,16 +120,30 @@ case class BsNf(
       else iter(sp.tail, gauss.tail, dev.tail, drft.tail, divv.tail, (sp.head * math.exp(gauss.head * dev.head + drft.head) - divv.head) :: current)
       
     val randomGenerator = getRandomGenerator
+    def normSInv(x:Double) = NormSInv(x)
+
+    def printA(title:String, a:List[Double]) = {println(title); (mcdates, a).zipped.foreach((d, aa) => println(d.asDouble(4) + ": " + aa.asDouble(4)))}
+    def printM(title:String, a:List[List[Double]]) = {println(title); (mcdates, a).zipped.foreach((d, aa) => println(d.asDouble(4) + ": " + aa.map(_.asDouble(4)).mkString(", ")))}
+    printA("spot", spot)
+    printA("fratedom", fratedom)
+    printM("fratefor", fratefor)
+    printM("fsigma", fsigma)
+    printM("drift", drift)
+    printM("sigt", sigt)
+    printM("divs", divs)
     
-    @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[Double] = 
-      if (steps.isEmpty) payoff(pathmapper.map(current.reverse.tail))
+    @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[A] = 
+      if (steps.isEmpty) {
+        val pathmap = pathmapper.map(current.reverse.tail).map(l => (variables zip l).toMap)
+        payoff(pathmap)
+      }
       else {
-        val independentGaussian = List.fill(uls)(randomGenerator.sample)
+        val independentGaussian = List.fill(uls)(normSInv(randomGenerator.sample))
         val correlatedGaussian = Mathematical.lowerTriangleMatrixMult(chol, independentGaussian)
         getApath(steps.tail, drft.tail, siggt.tail, divv.tail, iter(current.head, correlatedGaussian, siggt.head, drft.head, divv.head, List.empty) :: current)
       }
     
-    @tailrec def getPathes(nbpath:Int, current:List[List[Double]]):List[List[Double]] = 
+    @tailrec def getPathes(nbpath:Int, current:List[List[A]]):List[List[A]] = 
       if (nbpath == 0) current else getPathes(nbpath - 1, getApath(stepsize, drift, sigt, divs, List(spot))::current)
 	
     (eventDates.sorted, getPathes(paths, List.empty))
@@ -183,6 +199,7 @@ object BsNf {
   
   def apply(uls:List[Underlying]):Option[BsNf] = 
 	try {
+	  val variables:List[String] = uls.map(_.id)
 	  val spots:List[Double] = uls.map(_.spot)
 	  val rates:Double => Double = uls.head.discountRateY
 	  val dividendyield:List[Double => Double] = uls.map(ul => {val q:Double => Double = ul.assetYieldY; q})
@@ -190,8 +207,15 @@ object BsNf {
 	  val dividends:List[Map[Double, Double]] = uls.map(_.dividendsY)
 	  val volatility:List[Double => Double] = uls.map(ul => (d:Double) => ul.volatilityY(d))
 	  val correl:Array[Array[Double]] = uls.map(ul => uls.map(u => u.impliedCorrelation(ul).getOrElse(Double.NaN)).toArray).toArray
+	  
+	  println(uls.map(_.id).mkString(", "))
+	  println("vol")
+	  println(volatility.map(_(1.0)).mkString(","))
+	  println("correl:")
+	  correl.foreach(c => println(c.mkString(",")))
+	  
 	  if (correl.exists(c => c.exists(d => d.isNaN))) None
-	  else Some(new BsNf(spots, rates, dividendyield, repoyield, dividends, volatility, correl)) 
+	  else Some(new BsNf(variables, spots, rates, dividendyield, repoyield, dividends, volatility, correl)) 
 	 } 
 	catch { case _:Throwable => None}
 	

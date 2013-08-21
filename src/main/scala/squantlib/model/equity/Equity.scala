@@ -23,11 +23,11 @@ trait Equity extends Underlying {
 	
 	val rateCurve:DiscountCurve
 	
-	val currency:Currency = rateCurve.currency
+	override val currency:Currency = rateCurve.currency
 	
 	val dividendDates:Map[qlDate, Double] // TO BE DEFINED IN SUBCLASS
 	
-    override val dividends:Map[Double, Double] = dividendDates.filter{case (d, _) => d ge valuedate}.map{case (d, v) => (toDays(d), v)}
+    override lazy val dividends:Map[Double, Double] = dividendDates.filter{case (d, _) => d ge valuedate}.map{case (d, v) => (toDays(d), v)}
     
     override def assetYield(days:Double):Double = 0.0
     

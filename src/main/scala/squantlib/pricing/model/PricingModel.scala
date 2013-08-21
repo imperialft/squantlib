@@ -88,6 +88,7 @@ trait PricingModel {
    */
   val mcEngine:Option[MontecarloEngine] = None
     
+  def generatePaths(paths:Int):List[Any] = List.empty
   
 }
 

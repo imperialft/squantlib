@@ -1,7 +1,7 @@
 package squantlib.model.bond
 
 import squantlib.pricing.model._
-import squantlib.model.{Market, Bond}
+import squantlib.model.{Market, Bond, Underlying}
 import squantlib.pricing.mcengine._
 import squantlib.model.fx.FX
 import squantlib.model.index.Index
@@ -40,7 +40,9 @@ object DefaultBondSetting extends BondSetting {
 	  "NKY" -> IndexMcModelSetting,
 	      
 	  "EB" -> EquityMcModelSetting,
-	  "ETF" -> EquityMcModelSetting
+	  "ETF" -> EquityMcModelSetting,
+	  
+	  "EBW" -> NfMcModelSetting
 	  
   )
   
@@ -156,6 +158,18 @@ object EquityMcModelSetting extends BondSetting {
   override def apply(bond:Bond) = {
     val engine = (equity:Equity) => Bs1fDiscrete(equity)
 	bond.defaultModel = (m:Market, b:Bond) => EquityMc1f(m, b, engine, 100000)
+	bond.forceModel = true
+	bond.useCouponAsYield = false
+	bond.requiresCalibration = false
+  }
+  
+}
+
+object NfMcModelSetting extends BondSetting {
+  
+  override def apply(bond:Bond) = {
+    val engine = (underlyings:List[Underlying]) => BsNf(underlyings)
+	bond.defaultModel = (m:Market, b:Bond) => McNf(m, b, engine, 100000)
 	bond.forceModel = true
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = false
