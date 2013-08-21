@@ -29,7 +29,11 @@ trait FX extends Underlying {
     override def expectedYield:Option[Double] = Some(curveFor.impliedRate(360) - curveDom.impliedRate(360))
     
     override def expectedCoupon:Option[Double] = expectedYield
+    
+    override def repoRate(days:Double) = 0.0
 	
+    override val dividends:Map[Double, Double] = Map.empty
+
 	/**
 	 * Returns FX spot rate
 	 */
@@ -74,6 +78,9 @@ trait FX extends Underlying {
     def rateFor(period:qlPeriod) = curveFor.impliedRate(period)
     def rateFor(dayfrac:Double, dayCounter:DayCounter) = curveFor.impliedRate(dayfrac, dayCounter)
     def rateForY(years:Double) = curveFor.impliedRate(years * 365)
+    
+    override def discountRate(days:Double) = rateDom(days)
+    override def assetYield(days:Double) = rateFor(days)
     
     override val maxDays = curveDom.maxdays.min(curveFor.maxdays)
     

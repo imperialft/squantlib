@@ -6,13 +6,13 @@ import org.jquantlib.time.{Date => qlDate}
 
 object Covariance{
   
-    def calculate(quotes1:IndexedSeq[Double], quotes2:IndexedSeq[Double]) : Double = {
-		require (quotes1.size == quotes2.size)
-        val datacount = quotes1.size
-        val sumlog1 = quotes1.sum
-        val sumlog2 = quotes2.sum
-        val summult = ((0 to datacount-1) map (i => quotes1(i) * quotes2(i))).sum
-        summult / datacount - sumlog1 / datacount * sumlog2 / datacount
-    }
-
+  def calculate(x:Seq[Double], y:Seq[Double]):Double = {
+    val elems = x.size.toDouble
+    val mult = (x, y).zipped.map(_ * _).sum
+    val ax = x.sum
+    val ay = y.sum
+    (mult - ax * ay / elems) / (elems - 1.0)
+  }
+  
+    
 }

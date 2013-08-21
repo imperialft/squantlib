@@ -17,12 +17,12 @@ import scala.annotation.tailrec
 *  * @param sigma(t)	volatility of the underlying index
  */
 
-case class Bs1fDiscrete(
-    var spot:Double, 
-    var rate: Double => Double, 
-    var dividends: Map[Double, Double], 
-    var repoYield: Double => Double, 
-    var volatility: Double => Double) 
+class Bs1fDiscrete(
+    spot:Double, 
+    rate: Double => Double, 
+    dividends: Map[Double, Double], 
+    repoYield: Double => Double, 
+    volatility: Double => Double) 
     extends Montecarlo1f{
   
   override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
@@ -145,7 +145,7 @@ case class Bs1fDiscrete(
 object Bs1fDiscrete {
   
   def apply(equity:Equity):Option[Bs1fDiscrete] = 
-	try { Some(new Bs1fDiscrete(equity.spot, equity.interestRateY, equity.dividendYears, equity.repoRateY, equity.volatilityY)) } 
+	try { Some(new Bs1fDiscrete(equity.spot, equity.discountRateY, equity.dividendsY, equity.repoRateY, equity.volatilityY)) } 
 	catch { case _ :Throwable=> None}
 	
 }

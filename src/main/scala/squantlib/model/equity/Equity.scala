@@ -25,14 +25,12 @@ trait Equity extends Underlying {
 	
 	val currency:Currency = rateCurve.currency
 	
-	val dividends:Map[qlDate, Double]
+	val dividendDates:Map[qlDate, Double] // TO BE DEFINED IN SUBCLASS
 	
-    lazy val dividendDays:Map[Double, Double] = dividends.filter{case (d, _) => d ge valuedate}.map{case (d, v) => (toDays(d), v)}
-    lazy val dividendDaysList:List[(Double, Double)] = dividendDays.toList.sortBy(_._1)
+    override val dividends:Map[Double, Double] = dividendDates.filter{case (d, _) => d ge valuedate}.map{case (d, v) => (toDays(d), v)}
     
-    def dividendYears:Map[Double, Double] = dividendDays.map{case (d, v) => (d/365.25, v)}
-    def dividendYearsList:List[(Double, Double)] = dividendDaysList.map{case (d, v) => (d/365.25, v)}
-	
+    override def assetYield(days:Double):Double = 0.0
+    
 	/**
 	 * Returns spot price
 	 */
@@ -58,29 +56,11 @@ trait Equity extends Underlying {
     def zc(dayfrac:Double, dayCounter:DayCounter) = rateCurve(dayfrac, dayCounter)
     def zcY(years:Double) = rateCurve(years * 365.25)
     
-    def interestRate(days:Double) = rateCurve.impliedRate(days)
-    def interestRate(date:qlDate) = rateCurve.impliedRate(date)
-    def interestRate(period:qlPeriod) = rateCurve.impliedRate(period)
-    def interestRate(dayfrac:Double, dayCounter:DayCounter) = rateCurve.impliedRate(dayfrac, dayCounter)
-    def interestRateY(years:Double) = rateCurve.impliedRate(years * 365.25)
-    
-    def fwdInterestRate(valuedate:Double, maturity:Double):Double = (interestRate(maturity) * maturity - interestRate(valuedate) * valuedate) / (maturity - valuedate)
-    def fwdInterestRate(valuedate:qlDate, maturity:qlDate):Double = fwdInterestRate(toDays(valuedate), toDays(maturity))
-    def fwdInterestRate(valuedate:qlPeriod, maturity:qlPeriod):Double = fwdInterestRate(toDays(valuedate), toDays(valuedate) + toDays(maturity))
-    def fwdInterestRateY(valuedateY:Double, maturityY:Double) = fwdInterestRate(valuedateY * 365.25, maturityY * 365.25)
+    def discountRate(days:Double) = rateCurve.impliedRate(days)
     
     def repoRate(days:Double):Double // To be implemented
-    def repoRate(date:qlDate):Double = repoRate(toDays(date))
-    def repoRate(period:qlPeriod):Double = repoRate(toDays(period))
-    def repoRate(dayfrac:Double, dayCounter:DayCounter):Double = repoRate(toDays(dayfrac, dayCounter))
-    def repoRateY(years:Double) = repoRate(years * 365.25)
-    
-    def fwdRepoRate(valuedate:Double, maturity:Double):Double = (repoRate(maturity) * maturity - repoRate(valuedate) * valuedate) / (maturity - valuedate)
-    def fwdRepoRate(valuedate:qlDate, maturity:qlDate):Double = fwdRepoRate(toDays(valuedate), toDays(maturity))
-    def fwdRepoRate(valuedate:qlPeriod, maturity:qlPeriod):Double = fwdRepoRate(toDays(valuedate), toDays(valuedate) + toDays(maturity))
-    def fwdRepoRateY(valuedateY:Double, maturityY:Double) = fwdRepoRate(valuedateY * 365.25, maturityY * 365.25)
      
-    def dividendYield(days:Double):Double = interestRate(days) - repoRate(days) - math.log(forward(days) / spot) / (days / 365.25)
+    def dividendYield(days:Double):Double = discountRate(days) - repoRate(days) - math.log(forward(days) / spot) / (days / 365.25)
     def dividendYield(date:qlDate):Double = dividendYield(toDays(date))
     def dividendYield(period:qlPeriod):Double = dividendYield(toDays(period))
     def dividendYield(dayfrac:Double, dayCounter:DayCounter):Double = dividendYield(toDays(dayfrac, dayCounter))

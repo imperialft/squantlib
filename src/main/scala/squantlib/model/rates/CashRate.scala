@@ -79,6 +79,14 @@ case class CashRate(
 	
     override val maxDays = curve.maxdays
     
+    override def discountRate(days:Double):Double = curve.impliedRate(days)
+    
+    override def assetYield(days:Double):Double = 0.0
+
+    override def repoRate(days:Double):Double = 0.0
+  
+    override val dividends:Map[Double, Double] = Map.empty
+    
 }
 
 

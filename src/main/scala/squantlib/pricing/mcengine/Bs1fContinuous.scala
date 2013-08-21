@@ -17,11 +17,11 @@ import squantlib.model.index.Index
  * @param sigma(t)	volatility of the underlying FX
  */
 
-case class Bs1fContinuous(
-    var spot:Double, 
-    var rate: Double => Double, 
-    var dividendYield: Double => Double, 
-    var volatility: Double => Double) 
+class Bs1fContinuous(
+    spot:Double, 
+    rate: Double => Double, 
+    dividendYield: Double => Double, 
+    volatility: Double => Double) 
     extends Montecarlo1f{
   
   override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
@@ -132,7 +132,7 @@ object Bs1fContinuous {
 	catch { case _:Throwable => None}
 	
   def apply(index:Index):Option[Bs1fContinuous] = 
-	try { Some(new Bs1fContinuous(index.spot, index.interestRateY, d => index.dividendYieldY(d) + index.repoRateY(d), index.volatilityY)) } 
+	try { Some(new Bs1fContinuous(index.spot, index.discountRateY, d => index.dividendYieldY(d) + index.repoRateY(d), index.volatilityY)) } 
 	catch { case _:Throwable => None}
 	
 }

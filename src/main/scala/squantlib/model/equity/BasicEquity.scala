@@ -14,7 +14,7 @@ case class BasicEquity(
     override val id:String,
 	override var spot:Double,
     override val rateCurve:DiscountCurve, 
-    override val dividends:Map[qlDate, Double], 
+    override val dividendDates:Map[qlDate, Double], 
     repo:RepoCurve, 
     vol:(Double, Double) => Double
     ) extends Equity {
@@ -36,14 +36,14 @@ case class BasicEquity(
 	 * @param observation date as the number of calendar days after value date.
 	 */ 
     override def forward(days:Double):Double = {
-	  val divList = dividendDaysList.filter(_._1 <= days).toList.sortBy(_._1)
+	  val divList = dividendList.filter(_._1 <= days).toList.sortBy(_._1)
 	  val periods = if (!divList.isEmpty && divList.last._1 == days) divList else divList :+ (days, 0.0)
 	  
 	  @tailrec def fwdRec(s:Double, lastd:Double, dates:List[(Double, Double)]):Double = {
 	    if (dates.isEmpty) s
 	    else {
 	      val (d, div) = dates.head
-	      val newspot = s * math.exp((fwdInterestRate(lastd, d) - fwdRepoRate(lastd, d)) * (d - lastd) / 365.25) - div
+	      val newspot = s * math.exp((fwdDiscountRate(lastd, d) - fwdRepoRate(lastd, d)) * (d - lastd) / 365.25) - div
 	      fwdRec(newspot, d, dates.tail)
 	    }
 	  }
@@ -52,14 +52,13 @@ case class BasicEquity(
 	}
 	
     override def repoRate(days:Double):Double = repo(days)
-    
 
     override def expectedYield:Option[Double] = 
       if (rateCurve == null) None else Some(rateCurve.impliedRate(365.0))
     
     override def expectedCoupon:Option[Double] = 
-      if (dividendDaysList.isEmpty) None
-      else Some(dividendDaysList.filter(_._1 <= 365).map(_._2).sum / spot)
+      if (dividendList.isEmpty) None
+      else Some(dividendList.filter(_._1 <= 365).map(_._2).sum / spot)
       
 } 
 

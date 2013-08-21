@@ -15,17 +15,17 @@ trait StaticAsset {
   
   var cachedPrice = new WeakHashMap[String, TimeSeries] with SynchronizedMap[String, TimeSeries]
   
-  val assetID:String  // to be implemented
+  val assetID:String  // to be implemented in subclass
   
-  val id:String  // to be implemented
+  val id:String  // to be implemented in subclass
   
-  def latestPrice:Option[Double]  // to be implemented
+  def latestPrice:Option[Double]  // to be implemented in subclass
   
-  def expectedYield:Option[Double]  // to be implemented
+  def expectedYield:Option[Double]  // to be implemented in subclass
   
-  def expectedCoupon:Option[Double]  // to be implemented
+  def expectedCoupon:Option[Double]  // to be implemented in subclass
   
-  protected def getDbForwardPrice:Map[qlDate, Double]  // to be implemented
+  protected def getDbForwardPrice:Map[qlDate, Double]  // to be implemented in subclass
   
   def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice.filter{case (d, _) => isWeekday(d)}))
 	
@@ -48,18 +48,20 @@ trait StaticAsset {
     Volatility.calculate(source, nbDays, annualDays)
   }
   
-  def historicalCorrelLatest(asset:StaticAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[dbCorrelation] = {
-    if (this == asset) {return Some(getCorrelation(asset, StaticAsset.currenttime, nbDays, 1, 1.0))}
-    
+  def historicalCorrelLatestValue(asset:StaticAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[Double] = {
+    if (this == asset) {return Some(1.0)}
     val intersection:SortedMap[qlDate, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory)
     if (intersection.size < minDays) {None}
-    
     val source = intersection takeRight math.min(intersection.size, nbDays)
+    
     Correlation.calculate(source, source.size).headOption match {
-      case Some(v) if !v._2.isNaN && !v._2.isInfinity => Some(getCorrelation(asset, StaticAsset.currenttime, nbDays, 1, v._2))
+      case Some(v) if !v._2.isNaN && !v._2.isInfinity => Some(v._2)
       case _ => None
     }
   }
+  
+  def historicalCorrelLatest(asset:StaticAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[dbCorrelation] = 
+    historicalCorrelLatestValue(asset, nbDays, periodicity, minDays).collect{case v => getCorrelation(asset, StaticAsset.currenttime, nbDays, 1, v)}
   
   def getCorrelation(asset:StaticAsset, valuedate:JavaDate, nbDays:Int, periodicity:Int, correl:Double) = StaticAsset.getCorrelation(this, asset, valuedate, nbDays, periodicity, correl)
   

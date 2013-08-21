@@ -28,7 +28,7 @@ case class Forward1f(
    * ie. Order of output paths might not correspond to order of input eventDates if it's not sorted.
   */
   
-  def generatePaths(eventDates:List[Double], paths:Int):(List[Double], List[List[Double]]) = {
+  def generatePaths(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[List[Double]]) = {
     require(!eventDates.isEmpty)
     
     val dates = eventDates.sorted
