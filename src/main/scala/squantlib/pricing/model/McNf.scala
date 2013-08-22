@@ -39,11 +39,9 @@ case class McNf(
 	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
-	val cachedPrice = new WeakHashMap[String, List[Double]] with SynchronizedMap[String, List[Double]]
-	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
-	def calculatePrice(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", mcPrice(paths))
+	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE", mcPrice(paths))
 	
 	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
 	

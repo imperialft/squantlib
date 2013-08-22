@@ -1,6 +1,6 @@
 package squantlib.pricing.mcengine
 
-import squantlib.math.random.{RandomGenerator, MersenneTwister}
+import squantlib.math.random.{RandomGenerator, MersenneTwister, ParkMiller}
 import squantlib.math.statistical.NormSInv
 import squantlib.model.Underlying
 import squantlib.util.DisplayUtils._
@@ -109,7 +109,7 @@ case class BsNf(
     
     @tailrec def driftacc2(rd:Double, rf:List[Double], sig:List[Double], stepp:Double, current:List[Double]):List[Double] = 
       if (rf.isEmpty) current.reverse
-      else driftacc2(rd, rf.tail, sig.tail, stepp, (rd - rf.head - ((sig.head * sig.head) / 2.0)) * stepp :: current)
+      else driftacc2(rd, rf.tail, sig.tail, stepp, (rd - rf.head - (sig.head * sig.head) / 2.0) * stepp :: current)
 	
 	val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
 	
@@ -121,17 +121,7 @@ case class BsNf(
       
     val randomGenerator = getRandomGenerator
     def normSInv(x:Double) = NormSInv(x)
-
-    def printA(title:String, a:List[Double]) = {println(title); (mcdates, a).zipped.foreach((d, aa) => println(d.asDouble(4) + ": " + aa.asDouble(4)))}
-    def printM(title:String, a:List[List[Double]]) = {println(title); (mcdates, a).zipped.foreach((d, aa) => println(d.asDouble(4) + ": " + aa.map(_.asDouble(4)).mkString(", ")))}
-    printA("spot", spot)
-    printA("fratedom", fratedom)
-    printM("fratefor", fratefor)
-    printM("fsigma", fsigma)
-    printM("drift", drift)
-    printM("sigt", sigt)
-    printM("divs", divs)
-    
+ 
     @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[A] = 
       if (steps.isEmpty) {
         val pathmap = pathmapper.map(current.reverse.tail).map(l => (variables zip l).toMap)
@@ -204,15 +194,10 @@ object BsNf {
 	  val rates:Double => Double = uls.head.discountRateY
 	  val dividendyield:List[Double => Double] = uls.map(ul => {val q:Double => Double = ul.assetYieldY; q})
 	  val repoyield:List[Double => Double] = uls.map(ul => {val q:Double => Double = ul.repoRateY; q})
+
 	  val dividends:List[Map[Double, Double]] = uls.map(_.dividendsY)
 	  val volatility:List[Double => Double] = uls.map(ul => (d:Double) => ul.volatilityY(d))
 	  val correl:Array[Array[Double]] = uls.map(ul => uls.map(u => u.impliedCorrelation(ul).getOrElse(Double.NaN)).toArray).toArray
-	  
-	  println(uls.map(_.id).mkString(", "))
-	  println("vol")
-	  println(volatility.map(_(1.0)).mkString(","))
-	  println("correl:")
-	  correl.foreach(c => println(c.mkString(",")))
 	  
 	  if (correl.exists(c => c.exists(d => d.isNaN))) None
 	  else Some(new BsNf(variables, spots, rates, dividendyield, repoyield, dividends, volatility, correl)) 

@@ -20,8 +20,6 @@ case class Forward(
     scheduledPayoffs:ScheduledPayoffs,
     underlyings:List[Underlying]) extends PricingModel {
 	
-	val cachedPrice = new WeakHashMap[String, List[Double]] with SynchronizedMap[String, List[Double]]
-	
 	override def calculatePrice:List[Double] = scheduledPayoffs.map{case (d, p, c) => p.price(underlyings.map(_.forward(d.eventDate)))} (collection.breakOut)
 	
 	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)

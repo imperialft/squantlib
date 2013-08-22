@@ -4,6 +4,7 @@ import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 import squantlib.model.rates.CDSCurve
+import org.jquantlib.time.{Date => qlDate}
 
 class CDSParameter(@Column("ID")			override var id: Int,
               @Column("PARAMSET")			var paramset: String,
@@ -31,5 +32,22 @@ class CDSParameter(@Column("ID")			override var id: Int,
       created = None)
 
   override def toString():String = format("%-5s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, issuerid, currencyid, spread)
+  
+}
+
+object CDSParameter {
+  
+  def apply(id: Int,
+            paramset: String,
+            paramdate: qlDate,
+            instrument: String,
+            issuerid: String,
+            currencyid: String,
+            spread: Double,
+            maturity: String,
+            comment: String,
+            created: Option[qlDate]
+            ) = new CDSParameter(id, paramset, paramdate.longDate, instrument, issuerid, currencyid, spread, maturity, comment, created.collect{case d => d.longDate})
+  
   
 }

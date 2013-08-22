@@ -4,6 +4,7 @@ import squantlib.schedule.{CalculationPeriod, Schedule, ScheduledPayoffs}
 import squantlib.schedule.payoff.{Payoffs, Payoff}
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.mcengine.MontecarloEngine
+import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 
 trait PricingModel {
   
@@ -89,6 +90,17 @@ trait PricingModel {
   val mcEngine:Option[MontecarloEngine] = None
     
   def generatePaths(paths:Int):List[Any] = List.empty
+  
+  
+  /*
+   * cache to store intermediary values used in the model
+   */
+  val modelCache= new WeakHashMap[String, Any] with SynchronizedMap[String, Any]
+  
+  def getCache[A](k:String):Option[A] = modelCache.get(k).collect{case v => v.asInstanceOf[A]}
+  def getOrUpdateCache[A](k:String, f: => A):A = modelCache.getOrElseUpdate(k, f).asInstanceOf[A]
+  def clearCache = modelCache.clear
+  
   
 }
 

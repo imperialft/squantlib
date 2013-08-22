@@ -43,11 +43,9 @@ case class FxMc1f(valuedate:qlDate,
 	
 	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
 	  
-	val cachedPrice = new WeakHashMap[String, List[Double]] with SynchronizedMap[String, List[Double]]
-	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
-	def calculatePrice(paths:Int):List[Double] = cachedPrice.getOrElseUpdate("PRICE", mcPrice(paths))
+	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE", mcPrice(paths))
 	
 	override def calibrate:FxMc1f = {
 	  val frontier = frontierFunction()

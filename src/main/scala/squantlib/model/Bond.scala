@@ -11,25 +11,23 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.model.bond.BondSetting
 import squantlib.util.initializer.{DayAdjustments, Currencies, Daycounters}
 import squantlib.util.JsonUtils._
-import squantlib.util.UnderlyingParser
+import squantlib.util.{UnderlyingParser, SimpleCache, TypedCache}
 import squantlib.pricing.model.{PricingModel, NoModel}
 import squantlib.math.solver._
 import squantlib.math.financial.{BondYield, Duration}
 import squantlib.math.timeseries.TimeSeries
+import squantlib.schedule.call.Callabilities
+import squantlib.schedule.payoff.{Payoff, Payoffs}
+import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.node.{JsonNodeFactory, ObjectNode, ArrayNode}
 import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.`type`.TypeReference
 import scala.collection.JavaConversions._
 import scala.collection.breakOut
-import scala.collection.mutable.{Set => mutableSet, WeakHashMap, SynchronizedMap, ArrayBuffer}
+import scala.collection.mutable.{Set => mutableSet, ArrayBuffer}
 import java.util.{Map => JavaMap}
 import scala.collection.LinearSeq
-import squantlib.schedule.call.Callabilities
-import squantlib.schedule.payoff.Payoff
-import squantlib.schedule.payoff.Payoffs
-import squantlib.schedule.ScheduledPayoffs
-import squantlib.schedule.CalculationPeriod
 
 
 /**
@@ -135,7 +133,7 @@ case class Bond(
 	 */
 	override def clone:Bond = {
 	  val bond = new Bond(db, scheduledPayoffs, underlyings, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model) 
-	  calibrationCache.foreach{case (a, b) => bond.calibrationCache.update(a, b)}
+	  calibrationCache.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
 	  bond
 	}
 	
@@ -180,7 +178,7 @@ case class Bond(
 	    case _ => if (defaultModel == null) None else defaultModel(market.get, this)
 	  } else None
 	  
-	  cpncache.clear
+	  cache.clear
 	  if (requiresCalibration && !modelCalibrated) { modelCalibrated = true; calibrateModel}
 	}
 	
@@ -196,15 +194,16 @@ case class Bond(
 	 * True if necessary to run calibrateModel to get accurate price.
 	 */
 	def calibrateModel = model match {
-	  case Some(m) => {model = Some(m.calibrate); cpncache.clear}
+	  case Some(m) => {model = Some(m.calibrate); cache.clear}
 	  case None => {}
 	}
 	
-	val calibrationCache = new WeakHashMap[String, Any] with SynchronizedMap[String, Any]
-	
-	def getCalibrationCache(k:String):Option[Any] = calibrationCache.get(k)
-	
-	
+	/*
+	 * Cache to store temporary values (currently used for spot and forward coupons)
+	 */
+	val cache = new SimpleCache
+	val calibrationCache = new SimpleCache
+	def getCalibrationCache(k:String):Option[Any] = calibrationCache.get(k)	
 	
 	/*	
 	 * Returns "live" payment schedules
@@ -262,16 +261,10 @@ case class Bond(
 	  case _ => None
 	}
 
-	/*
-	 * Temporal cache to store spot and forward coupons.
-	 */
-	val cpncache = new WeakHashMap[String, List[(CalculationPeriod, Double)]] with SynchronizedMap[String, List[(CalculationPeriod, Double)]]
-	
-	
 	/*	
 	 * Returns coupons fixed with current spot market (not forward!). 
 	 */
-	def spotFixedRates:List[(CalculationPeriod, Double)] = cpncache.getOrElseUpdate("SPOTFIXEDRATES",
+	def spotFixedRates:List[(CalculationPeriod, Double)] = cache.getOrUpdate("SPOTFIXEDRATES",
 	    livePayoffs.map{case (d, p, _) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})}(collection.breakOut)
 	  )
 	  
@@ -281,7 +274,7 @@ case class Bond(
 	
 	def spotFixedAmount(vd:qlDate):List[(qlDate, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
 	  
-	def spotFixedRatesAll:List[(CalculationPeriod, Double)] = cpncache.getOrElseUpdate("SPOTFIXEDRATESALL",
+	def spotFixedRatesAll:List[(CalculationPeriod, Double)] = cache.getOrUpdate("SPOTFIXEDRATESALL",
 	    allPayoffs.map{case (d, p, _) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})} (collection.breakOut)
 	  )
 	  

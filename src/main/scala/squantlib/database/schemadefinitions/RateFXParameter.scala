@@ -2,6 +2,7 @@ package squantlib.database.schemadefinitions
 
 import java.util.Date
 import org.squeryl.annotations.Column
+import org.jquantlib.time.{Date => qlDate}
 
 class RateFXParameter(@Column("ID")			override var id: Int,
               @Column("PARAMSET")			var paramset: String,
@@ -30,4 +31,31 @@ class RateFXParameter(@Column("ID")			override var id: Int,
   override def toString():String = format("%-15s %-15s %-15s %-15s %-15s %-15s", id, paramset, instrument, asset, maturity, value)
   
   def toMaturityValuePair = Map(maturity -> value)
+}
+
+
+object RateFXParameter {
+ 
+  def apply(id: Int,
+            paramset: String,
+            paramdate: qlDate,
+            instrument: String,
+            asset: String,
+            maturity: String,
+            value: Double,
+            option: String,
+            comment: String,
+            created: Option[qlDate]) 
+  	= new RateFXParameter(
+  	    id, 
+  	    paramset, 
+  	    paramdate.longDate, 
+  	    instrument, 
+  	    asset, 
+  	    maturity, 
+  	    value, 
+  	    option, 
+  	    comment, 
+  	    created.collect{case d => d.longDate})
+  
 }
