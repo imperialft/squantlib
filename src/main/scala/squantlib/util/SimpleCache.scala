@@ -8,7 +8,7 @@ class SimpleCache {
   
   def get[A](name:String):Option[A]= cache.get(name).collect{case v => v.asInstanceOf[A]}
   
-  def get(name:String):Option[Any]= cache.get(name)
+  def getAny(name:String):Option[Any]= cache.get(name)
   
   def getOrUpdate[A](name:String, retriever: => A):A = 
     if (cache.contains(name)) cache(name).asInstanceOf[A]

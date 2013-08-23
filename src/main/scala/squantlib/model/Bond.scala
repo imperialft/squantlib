@@ -203,7 +203,7 @@ case class Bond(
 	 */
 	val cache = new SimpleCache
 	val calibrationCache = new SimpleCache
-	def getCalibrationCache(k:String):Option[Any] = calibrationCache.get(k)	
+	def getCalibrationCache(k:String):Option[Any] = calibrationCache.get[Any](k)	
 	
 	/*	
 	 * Returns "live" payment schedules
