@@ -42,7 +42,9 @@ object DefaultBondSetting extends BondSetting {
 	  "EB" -> EquityMcModelSetting,
 	  "ETF" -> EquityMcModelSetting,
 	  
-	  "EBW" -> NfMcModelSetting
+	  "EBW" -> NfMcModelSetting,
+	  "INDEXW" -> NfMcModelSetting,
+	  "FXW" -> NfMcModelSetting
 	  
   )
   
