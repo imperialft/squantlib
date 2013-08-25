@@ -6,6 +6,7 @@ import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.pricing.mcengine._
 import squantlib.model.index.Index
 import squantlib.model.Bond
+import squantlib.model.fx.FX
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
@@ -13,10 +14,11 @@ import org.jquantlib.time.{Date => qlDate}
 import org.jquantlib.daycounters.Actual365Fixed
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 
-case class IndexMc1f(valuedate:qlDate, 
+case class IndexQtoMc1f(valuedate:qlDate, 
 					  mcengine:Montecarlo1f, 
 					  scheduledPayoffs:ScheduledPayoffs, 
 					  index:Index,
+					  fx:FX,
 					  defaultPaths:Int) extends PricingModel {
   
 	mcPaths = defaultPaths
@@ -50,17 +52,17 @@ case class IndexMc1f(valuedate:qlDate,
 }
 
 
-object IndexMc1f {
+object IndexQtoMc1f {
 	
 	var defaultPaths = 200000
 	
-	def apply(market:Market, bond:Bond, mcengine:Index => Option[Montecarlo1f]):Option[IndexMc1f] = apply(market, bond, mcengine, defaultPaths)
+	def apply(market:Market, bond:Bond, mcengine:(Index, FX) => Option[Montecarlo1f]):Option[IndexQtoMc1f] = apply(market, bond, mcengine, defaultPaths)
 	
 	def apply(
 	    market:Market, 
 	    bond:Bond, 
-	    mcengine:Index => Option[Montecarlo1f], 
-	    paths:Int):Option[IndexMc1f] = {
+	    mcengine:(Index, FX) => Option[Montecarlo1f], 
+	    paths:Int):Option[IndexQtoMc1f] = {
 	  
 	  val valuedate = market.valuedate
 	  
@@ -82,17 +84,23 @@ object IndexMc1f {
 	    println(bond.id + " : invalid index underlying - " + variable + " in market " + market.paramset)
 	    return None}
 	  
-	  if (index.currency != bond.currency) {
-	    println(bond.id + " : quanto product not supported by this model IndexMc1f - " + variable)
+	  if (index.currency == bond.currency) {
+	    println(bond.id + " : non-quanto products not supported by this model IndexQtoMc1f - " + variable)
 	    return None}
 	  
-	  val mcmodel = mcengine(index).orNull
+	  val fx = market.getFX(bond.currency.code, index.currency.code).orNull
+
+	  if (fx == null) {
+	    println(bond.id + " : invalid fx underlying for quanto model - " + fx.id + " in market " + market.paramset)
+	    return None}
+	  
+	  val mcmodel = mcengine(index, fx).orNull
 	  
 	  if (mcmodel == null) {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
 	  
-	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths))
+	  Some(IndexQtoMc1f(valuedate, mcmodel, scheduledPayoffs, index, fx, paths))
 	}
 }
 

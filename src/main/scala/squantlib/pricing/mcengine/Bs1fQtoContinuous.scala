@@ -132,13 +132,22 @@ class Bs1fQtoContinuous(
 
 object Bs1fQtoContinuous {
   
-  def apply(fx:FX):Option[Bs1fContinuous] = 
-	try { Some(new Bs1fContinuous(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY)) } 
+  def apply(fx:FX, qtofx:FX):Option[Bs1fQtoContinuous] = 
+	try { 
+	  fx.historicalCorrelLatestValue(qtofx, 260).collect{case c => 
+	    new Bs1fQtoContinuous(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY, qtofx.volatilityY, -c)
+	  }
+	}
 	catch { case _:Throwable => None}
 	
-  def apply(index:Index):Option[Bs1fContinuous] = 
-	try { Some(new Bs1fContinuous(index.spot, index.discountRateY, d => index.dividendYieldY(d) + index.repoRateY(d), index.volatilityY)) } 
+  def apply(index:Index, fx:FX):Option[Bs1fQtoContinuous] = 
+	try { 
+	  index.historicalCorrelLatestValue(fx, 260).collect{case c => 
+	    new Bs1fQtoContinuous(index.spot, index.discountRateY, d => index.dividendYieldY(d) + index.repoRateY(d), index.volatilityY, fx.volatilityY, -c)
+	  }
+	}
 	catch { case _:Throwable => None}
+	
 	
 }
 
