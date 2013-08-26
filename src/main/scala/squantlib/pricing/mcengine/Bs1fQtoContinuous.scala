@@ -106,6 +106,7 @@ class Bs1fQtoContinuous(
     val ratedom = dates.map(rate)
     val ratefor = dates.map(dividendYield)
     val sigma = dates.map(volatility)
+    val sigmafx = dates.map(volatilityfx)
     
     val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
         (if (stepsize(i) == 0.0) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
@@ -116,7 +117,10 @@ class Bs1fQtoContinuous(
     val fsigma = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
         (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
     
-	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+    val fsigmafx = sigmafx.head :: (for (i <- (1 to steps-1).toList) yield 
+        (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigmafx(i) * sigmafx(i) - dates(i-1) * sigmafx(i-1) * sigmafx(i-1)) / stepsize(i))))
+        
+	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - correl * fsigma(i) * fsigmafx(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
 	
 	var spotprice = spot
 	val title = List("valuedate", "forward", "rate ccy1", "rate ccy2", "sigma", "drift")

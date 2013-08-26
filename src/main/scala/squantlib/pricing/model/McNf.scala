@@ -120,19 +120,19 @@ object McNf {
 }
 
 
-object McQtoNf {
+object McNfQto {
 	
 	var defaultPaths = 50000
 	
 	def apply(market:Market, 
 	    bond:Bond, 
-	    mcengine:List[(Underlying, FX)] => Option[MontecarloNf]
+	    mcengine:(List[Underlying], List[Option[FX]]) => Option[MontecarloNf]
 	    ):Option[McNf] = apply(market, bond, mcengine, defaultPaths)
 	
 	def apply(
 	    market:Market, 
 	    bond:Bond, 
-	    mcengine:List[(Underlying, FX)] => Option[MontecarloNf], 
+	    mcengine:(List[Underlying], List[Option[FX]]) => Option[MontecarloNf], 
 	    paths:Int):Option[McNf] = {
 	  
 	  val valuedate = market.valuedate
@@ -161,13 +161,15 @@ object McQtoNf {
 	    println(bond.id + " : non-quanto model not supported - " + qtovariables.mkString(", "))
 	    return None}
 	  
-	  val fxs = underlyings.map(ul => market.getFX(bond.currency.code, ul.currency.code).orNull)
+	  val fxs:List[Option[FX]] = underlyings.map(ul => 
+	    if (ul.currency == bond.currency) None 
+	    else Some(market.getFX(bond.currency.code, ul.currency.code).orNull))
 
-	  if (fxs.exists(_ == null)) {
-	    println(bond.id + " : invalid fx underlying for quanto model - " + fxs.map(_.id).mkString(", ") + " in market " + market.paramset)
+	  if (fxs.exists(_ == Some(null))) {
+	    println(bond.id + " : invalid fx underlying for quanto model - " + underlyings.map(_.currency.code).mkString(", ") + " in market " + market.paramset)
 	    return None}
 	  
-	  val mcmodel = mcengine(underlyings zip fxs).orNull
+	  val mcmodel = mcengine(underlyings, fxs).orNull
 	  
 	  if (mcmodel == null) {
 	    println(bond.id + " : model name not found or model calibration error")

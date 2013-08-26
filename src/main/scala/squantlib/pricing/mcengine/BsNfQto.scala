@@ -5,6 +5,7 @@ import squantlib.math.statistical.NormSInv
 import squantlib.model.Underlying
 import squantlib.util.DisplayUtils._
 import squantlib.math.statistical.{Mathematical, Cholesky}
+import squantlib.model.fx.FX
 import scala.annotation.tailrec
 import squantlib.util.DisplayUtils
 
@@ -26,7 +27,10 @@ case class BsNfQto(
     repoYield: List[Double => Double], 
     dividends: List[Map[Double, Double]], 
     volatility: List[Double => Double],
-    correl:Array[Array[Double]])
+    correl:Array[Array[Double]],
+    isQuanto:List[Boolean],
+    volatilityfx: List[Double => Double],
+    correlfx:List[Double])
     extends MontecarloNf{
   
   override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
@@ -57,7 +61,8 @@ case class BsNfQto(
       mcdates:List[Double], 
       ratedom:List[Double], 
       ratefor:List[List[Double]], 
-      sigma:List[List[Double]]):(List[Double], List[List[Double]], List[List[Double]]) = {
+      sigma:List[List[Double]],
+      sigmafx:List[List[Double]]):(List[Double], List[List[Double]], List[List[Double]], List[List[Double]]) = {
     
     val uls = spot.size
     
@@ -81,7 +86,12 @@ case class BsNfQto(
         List.fill(uls)(0.0), List.empty
     )
     
-    (fratedom, fratefor, fsigma)
+    val fsigmafx:List[List[Double]] = sigmafx.head :: acc[List[Double]](sigmafx, mcdates, 
+        (r0, r1, t0, t1) => acc2(r0, r1, t0, t1, (a0, a1, b0, b1) => math.sqrt((a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0)), List.empty),
+        List.fill(uls)(0.0), List.empty
+    )
+    
+    (fratedom, fratefor, fsigma, fsigmafx)
   }
   
   override def generatePaths[A](eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[A]):(List[Double], List[List[A]]) = {
@@ -100,18 +110,19 @@ case class BsNfQto(
     val ratedom = mcdates.map(rate)
     val ratefor:List[List[Double]] = mcdates.map(d => (dividendYield, repoYield).zipped.map{case (dy, ry) => dy(d) + ry(d)})
     val sigma:List[List[Double]] = mcdates.map(d => volatility.map(_(d)))
+    val sigmafx:List[List[Double]] = mcdates.map(d => volatilityfx.map(_(d)))
 
-    val (fratedom, fratefor, fsigma) = getForwards(mcdates, ratedom, ratefor, sigma)
+    val (fratedom, fratefor, fsigma, fsigmafx) = getForwards(mcdates, ratedom, ratefor, sigma, sigmafx)
     
-	@tailrec def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
+	@tailrec def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], sigfx:List[List[Double]],stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
 	  if (rd.isEmpty) current.reverse
-	  else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, driftacc2(rd.head, rf.head, sig.head, stepp.head, List.empty) :: current)
+	  else driftacc(rd.tail, rf.tail, sig.tail, sigfx.tail, stepp.tail, driftacc2(rd.head, rf.head, sig.head, sigfx.head, correlfx, stepp.head, List.empty) :: current)
     
-    @tailrec def driftacc2(rd:Double, rf:List[Double], sig:List[Double], stepp:Double, current:List[Double]):List[Double] = 
+    @tailrec def driftacc2(rd:Double, rf:List[Double], sig:List[Double], sigfx:List[Double], corrfx:List[Double], stepp:Double, current:List[Double]):List[Double] = 
       if (rf.isEmpty) current.reverse
-      else driftacc2(rd, rf.tail, sig.tail, stepp, (rd - rf.head - (sig.head * sig.head) / 2.0) * stepp :: current)
+      else driftacc2(rd, rf.tail, sig.tail, sigfx.tail, corrfx.tail, stepp, (rd - rf.head - corrfx.head * sig.head * sigfx.head - (sig.head * sig.head) / 2.0) * stepp :: current)
 	
-	val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
+	val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, fsigmafx, stepsize, List.empty)
 	
 	val sigt:List[List[Double]] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig.map(s => s * math.sqrt(ss))}
     
@@ -155,8 +166,9 @@ case class BsNfQto(
     val ratedom = dates.map(rate)
     val ratefor:List[List[Double]] = dates.map(d => (dividendYield, repoYield).zipped.map{case (dy, ry) => dy(d) + ry(d)})
     val sigma:List[List[Double]] = dates.map(d => volatility.map(_(d)))
+    val sigmafx:List[List[Double]] = dates.map(d => volatilityfx.map(_(d)))
     
-    val (fratedom, fratefor, fsigma) = getForwards(dates, ratedom, ratefor, sigma)
+    val (fratedom, fratefor, fsigma, fsigmafx) = getForwards(dates, ratedom, ratefor, sigma, sigmafx)
     
 	val title = List("valuedate", "forward", "rate", "repo", "divrate", "sigma", "drift", "div")
 	
@@ -187,7 +199,7 @@ case class BsNfQto(
 
 object BsNfQto {
   
-  def apply(uls:List[(Underlying, FX)]):Option[BsNf] = 
+  def apply(uls:List[Underlying], fxs:List[Option[FX]]):Option[BsNfQto] = 
 	try {
 	  val variables:List[String] = uls.map(_.id)
 	  val spots:List[Double] = uls.map(_.spot)
@@ -199,8 +211,23 @@ object BsNfQto {
 	  val volatility:List[Double => Double] = uls.map(ul => (d:Double) => ul.volatilityY(d))
 	  val correl:Array[Array[Double]] = uls.map(ul => uls.map(u => u.impliedCorrelation(ul).getOrElse(Double.NaN)).toArray).toArray
 	  
-	  if (correl.exists(c => c.exists(d => d.isNaN))) None
-	  else Some(new BsNf(variables, spots, rates, dividendyield, repoyield, dividends, volatility, correl)) 
+	  if (correl.exists(c => c.exists(d => d.isNaN))) {return None}
+	  
+	  val isQto = fxs.map(_.isDefined)
+	  
+	  val fxvol:List[Double => Double] = fxs.map{
+	    case Some(fx) => (d:Double) => fx.volatilityY(d)
+	    case None => (d:Double) => Double.NaN
+	  }
+	  
+	  val correlfx:List[Double] = (uls, fxs).zipped.map{
+	    case (ul, Some(fx)) => -ul.historicalCorrelLatestValue(fx, 260).getOrElse(Double.NaN)
+	    case (ul, None) => 0.0
+	  }
+	  
+	  if (correlfx.exists(_.isNaN)) {return None}
+	  
+	  Some(new BsNfQto(variables, spots, rates, dividendyield, repoyield, dividends, volatility, correl, isQto, fxvol, correlfx)) 
 	 } 
 	catch { case _:Throwable => None}
 	

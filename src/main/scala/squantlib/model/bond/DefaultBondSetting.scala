@@ -38,18 +38,28 @@ object DefaultBondSetting extends BondSetting {
 	  "RDC" -> FXCallableModelSetting,
 	      
 	  "NKY" -> IndexMcModelSetting,
+	  "INDEX" -> IndexMcModelSetting,
 	      
 	  "EB" -> EquityMcModelSetting,
 	  "ETF" -> EquityMcModelSetting,
-	  "EBQ" -> EquityQtoMcModelSetting,
-	  "ETFQ" -> EquityQtoMcModelSetting,
 	  
 	  "EBW" -> NfMcModelSetting,
 	  "INDEXW" -> NfMcModelSetting,
 	  "FXW" -> NfMcModelSetting,
+	  "ETFW" -> NfMcModelSetting,
+	  "HYBRIDW" -> NfMcModelSetting,
 	  
+	  "EBQ" -> EquityQtoMcModelSetting,
 	  "NKYQ" -> IndexQtoMcModelSetting,
-	  "INDEXQ" -> IndexQtoMcModelSetting
+	  "INDEXQ" -> IndexQtoMcModelSetting,
+	  "ETFQ" -> EquityQtoMcModelSetting,
+	  "FXQ" -> FxQtoMcModelSetting,
+	  
+	  "EBWQ" -> NfMcModelSetting,
+	  "INDEXWQ" -> NfMcModelSetting,
+	  "FXWQ" -> NfMcModelSetting,
+	  "ETFWQ" -> NfMcModelSetting,
+	  "HYBRIDWQ" -> NfMcModelSetting
 	  
   )
   
@@ -181,7 +191,6 @@ object NfMcModelSetting extends BondSetting {
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = false
   }
-  
 }
 
 object IndexQtoMcModelSetting extends BondSetting {
@@ -193,7 +202,6 @@ object IndexQtoMcModelSetting extends BondSetting {
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = false
   }
-  
 }
 
 object EquityQtoMcModelSetting extends BondSetting {
@@ -201,6 +209,28 @@ object EquityQtoMcModelSetting extends BondSetting {
   override def apply(bond:Bond) = {
     val engine = (equity:Equity, fx:FX) => Bs1fQtoDiscrete(equity, fx)
 	bond.defaultModel = (m:Market, b:Bond) => EquityQtoMc1f(m, b, engine, 100000)
+	bond.forceModel = true
+	bond.useCouponAsYield = false
+	bond.requiresCalibration = false
+  }
+}
+
+object FxQtoMcModelSetting extends BondSetting {
+  
+  override def apply(bond:Bond) = {
+    val engine = (fx:FX, qtofx:FX) => Bs1fQtoContinuous(fx, qtofx)
+	bond.defaultModel = (m:Market, b:Bond) => FxQtoMc1f(m, b, engine, 100000)
+	bond.forceModel = true
+	bond.useCouponAsYield = false
+	bond.requiresCalibration = false
+  }
+}
+
+object NfQtoMcModelSetting extends BondSetting {
+  
+  override def apply(bond:Bond) = {
+    val engine = (underlyings:List[Underlying], fxs:List[Option[FX]]) => BsNfQto(underlyings, fxs)
+	bond.defaultModel = (m:Market, b:Bond) => McNfQto(m, b, engine, 100000)
 	bond.forceModel = true
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = false
