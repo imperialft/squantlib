@@ -41,6 +41,8 @@ object DefaultBondSetting extends BondSetting {
 	      
 	  "EB" -> EquityMcModelSetting,
 	  "ETF" -> EquityMcModelSetting,
+	  "EBQ" -> EquityQtoMcModelSetting,
+	  "ETFQ" -> EquityQtoMcModelSetting,
 	  
 	  "EBW" -> NfMcModelSetting,
 	  "INDEXW" -> NfMcModelSetting,
@@ -187,6 +189,18 @@ object IndexQtoMcModelSetting extends BondSetting {
   override def apply(bond:Bond) = {
     val engine = (index:Index, fx:FX) => Bs1fQtoContinuous(index, fx)
 	bond.defaultModel = (m:Market, b:Bond) => IndexQtoMc1f(m, b, engine, 100000)
+	bond.forceModel = true
+	bond.useCouponAsYield = false
+	bond.requiresCalibration = false
+  }
+  
+}
+
+object EquityQtoMcModelSetting extends BondSetting {
+  
+  override def apply(bond:Bond) = {
+    val engine = (equity:Equity, fx:FX) => Bs1fQtoDiscrete(equity, fx)
+	bond.defaultModel = (m:Market, b:Bond) => EquityQtoMc1f(m, b, engine, 100000)
 	bond.forceModel = true
 	bond.useCouponAsYield = false
 	bond.requiresCalibration = false

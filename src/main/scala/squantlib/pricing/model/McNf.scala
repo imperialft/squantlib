@@ -5,6 +5,7 @@ import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.schedule.{CalculationPeriod, ScheduledPayoffs, Schedule}
 import squantlib.pricing.mcengine._
 import squantlib.model.{Bond, Underlying}
+import squantlib.model.fx.FX
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
@@ -118,6 +119,63 @@ object McNf {
 	}
 }
 
+
+object McQtoNf {
+	
+	var defaultPaths = 50000
+	
+	def apply(market:Market, 
+	    bond:Bond, 
+	    mcengine:List[(Underlying, FX)] => Option[MontecarloNf]
+	    ):Option[McNf] = apply(market, bond, mcengine, defaultPaths)
+	
+	def apply(
+	    market:Market, 
+	    bond:Bond, 
+	    mcengine:List[(Underlying, FX)] => Option[MontecarloNf], 
+	    paths:Int):Option[McNf] = {
+	  
+	  val valuedate = market.valuedate
+	  
+	  val scheduledPayoffs = bond.livePayoffs(valuedate)
+	  
+	  val variables:List[String] = bond.underlyings
+	  
+	  if (variables.size <= 1) { 
+	    println(bond.id + " : payoff not compatible with EquityNd model - need more than 2 variables")
+	    return None}
+	  
+	  if (scheduledPayoffs.calls.isBermuda) { 
+	    println(bond.id + " : callability not supported on McNd model")
+	    return None}
+	  
+	  val underlyings = variables.map(v => market.getUnderlying(v).orNull)
+	  
+	  if (underlyings.exists(ul => ul == null)) {
+	    val nullvariables = (variables, underlyings).zipped.withFilter{case (vv, uu) => uu == null}.map(_._1)
+	    println(bond.id + " : invalid underlying - " + nullvariables.mkString(", ") + " in market " + market.paramset)
+	    return None}
+	  
+	  if (!underlyings.exists(ul => ul.currency != bond.currency)) {
+	    val qtovariables = (variables, underlyings).zipped.withFilter{case (vv, uu) => uu == null}.map(_._1)
+	    println(bond.id + " : non-quanto model not supported - " + qtovariables.mkString(", "))
+	    return None}
+	  
+	  val fxs = underlyings.map(ul => market.getFX(bond.currency.code, ul.currency.code).orNull)
+
+	  if (fxs.exists(_ == null)) {
+	    println(bond.id + " : invalid fx underlying for quanto model - " + fxs.map(_.id).mkString(", ") + " in market " + market.paramset)
+	    return None}
+	  
+	  val mcmodel = mcengine(underlyings zip fxs).orNull
+	  
+	  if (mcmodel == null) {
+	    println(bond.id + " : model name not found or model calibration error")
+	    return None} 
+	  
+	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths))
+	}
+}
 
 
 

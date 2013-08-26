@@ -6,6 +6,7 @@ import squantlib.schedule.{CalculationPeriod, ScheduledPayoffs, Schedule}
 import squantlib.pricing.mcengine._
 import squantlib.model.equity.Equity
 import squantlib.model.Bond
+import squantlib.model.fx.FX
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
@@ -103,6 +104,59 @@ object EquityMc1f {
 	  Some(EquityMc1f(valuedate, mcmodel, scheduledPayoffs, equity, paths))
 	}
 }
+
+object EquityQtoMc1f {
+	
+	var defaultPaths = 50000
+	
+	def apply(market:Market, bond:Bond, mcengine:(Equity, FX) => Option[Montecarlo1f]):Option[EquityMc1f] = apply(market, bond, mcengine, defaultPaths)
+	
+	def apply(
+	    market:Market, 
+	    bond:Bond, 
+	    mcengine:(Equity, FX) => Option[Montecarlo1f], 
+	    paths:Int):Option[EquityMc1f] = {
+	  
+	  val valuedate = market.valuedate
+	  
+	  val scheduledPayoffs = bond.livePayoffs(valuedate)
+	  
+	  if (scheduledPayoffs.underlyings.size != 1) { 
+	    println(bond.id + " : payoff not compatible with Equity1d model")
+	    return None}
+	  
+	  if (scheduledPayoffs.calls.isBermuda) { 
+	    println(bond.id + " : callability not supported on Equity1d model")
+	    return None}
+	  
+	  val variable = scheduledPayoffs.underlyings.head
+	  
+	  val equity = market.getEquity(variable).orNull
+	  
+	  if (equity == null) {
+	    println(bond.id + " : invalid Equity underlying - " + variable + " in market " + market.paramset)
+	    return None}
+	  
+	  if (equity.currency == bond.currency) {
+	    println(bond.id + " : non-quanto model not supported - " + variable)
+	    return None}
+	  
+	  val fx = market.getFX(bond.currency.code, equity.currency.code).orNull
+
+	  if (fx == null) {
+	    println(bond.id + " : invalid fx underlying for quanto model - " + fx.id + " in market " + market.paramset)
+	    return None}
+	  
+	  val mcmodel = mcengine(equity, fx).orNull
+	  
+	  if (mcmodel == null) {
+	    println(bond.id + " : model name not found or model calibration error")
+	    return None}
+	  
+	  Some(EquityMc1f(valuedate, mcmodel, scheduledPayoffs, equity, paths))
+	}
+}
+
 
 
 

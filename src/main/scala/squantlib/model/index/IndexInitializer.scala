@@ -28,7 +28,9 @@ object IndexInitializer {
   }
   
   val modelMap:Map[String, Set[RateFXParameter] => IndexInitializer] = Map(
-      "NKY" -> (p => IndexATMContinuous("NKY", p, "JPY", "JPY", 0.00))
+      "NKY" -> (p => IndexATMContinuous("NKY", p, "JPY", "JPY", 0.00)),
+      "S&P" -> (p => IndexATMContinuous("S&P", p, "USD", "USD", 0.00)),
+      "INDU" -> (p => IndexATMContinuous("INDU", p, "USD", "USD", 0.00))
   )
   
 }
