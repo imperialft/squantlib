@@ -63,7 +63,7 @@ case class FxMc1f(valuedate:qlDate,
 object FxMc1f {
 	
 	var defaultPaths = 300000
-	var frontierPaths = 30000
+	var frontierPaths = 15000
 	
 	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths)
   
@@ -125,7 +125,7 @@ object FxMc1f {
 object FxQtoMc1f {
 	
 	var defaultPaths = 300000
-	var frontierPaths = 30000
+	var frontierPaths = 15000
 	
 	def apply(market:Market, bond:Bond, mcengine:(FX, FX) => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths)
   
