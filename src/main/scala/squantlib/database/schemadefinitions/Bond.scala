@@ -187,7 +187,7 @@ class Bond(	  @Column("ID")					override var id: String,
   }
   
   private def optionalDouble(n:JsonNode):Option[Double] = 
-    if (n == null) None
+    if (n == null || n.isNull) None
     else Some(n.parseDouble.getOrElse(Double.NaN))
     
   def isMatured(vd:qlDate):Boolean = (vd ge endDate) 

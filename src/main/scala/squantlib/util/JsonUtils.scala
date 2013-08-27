@@ -34,7 +34,7 @@ object JsonUtils {
     def parseInt(name:String):Option[Int] = if (hasName(name)) node.get(name).parseInt else None
     
     def parseDouble:Option[Double] = node match {
-      case null => None
+      case n if n == null || n.isNull => None
       case n if n.isNumber => Some(n.getDoubleValue)
     case n => FormulaParser.calculate(n.asText)
     }

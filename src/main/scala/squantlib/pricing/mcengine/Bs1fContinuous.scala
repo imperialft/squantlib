@@ -59,7 +59,12 @@ class Bs1fContinuous(
     
     val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt((a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0)), 0.0, List.empty)
+    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.000001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
+    
+    def printA(title:String, a:List[Double]) = {
+        println(title)
+        a.foreach(println)
+      }
     
 	@tailrec def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
 	  if (rd.isEmpty) current.reverse
@@ -93,7 +98,7 @@ class Bs1fContinuous(
   override def spotref = List(spot)
   
   override def scheduledDescription = {
-    val dates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
+    val dates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList ++ List(12.0, 15.0, 20.0)
     
     val steps = dates.size
     val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)

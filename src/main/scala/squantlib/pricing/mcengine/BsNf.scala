@@ -77,7 +77,7 @@ case class BsNf(
     )
     
     val fsigma:List[List[Double]] = sigma.head :: acc[List[Double]](sigma, mcdates, 
-        (r0, r1, t0, t1) => acc2(r0, r1, t0, t1, (a0, a1, b0, b1) => math.sqrt((a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0)), List.empty),
+        (r0, r1, t0, t1) => acc2(r0, r1, t0, t1, (a0, a1, b0, b1) => math.sqrt(math.max(0.00001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), List.empty),
         List.fill(uls)(0.0), List.empty
     )
     
