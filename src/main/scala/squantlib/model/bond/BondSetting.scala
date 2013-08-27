@@ -1,6 +1,5 @@
 package squantlib.model.bond
 
-import squantlib.model.Bond
 
 trait BondSetting {
   
@@ -8,8 +7,3 @@ trait BondSetting {
   
 }
 
-object BondSetting {
-  
-  def getDefault:BondSetting = DefaultBondSetting
-  
-}

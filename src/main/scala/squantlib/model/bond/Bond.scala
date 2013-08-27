@@ -1,33 +1,31 @@
-package squantlib.model
+package squantlib.model.bond
 
 import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Schedule => qlSchedule, _}
+import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, _}
 import org.jquantlib.termstructures.Compounding
-import org.jquantlib.daycounters.{Absolute, Actual365Fixed, Thirty360, DayCounter}
+import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
 import squantlib.database.DB
 import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.schedule.payoff._
-import squantlib.model.rates.DiscountCurve
-import squantlib.model.bond.BondSetting
-import squantlib.util.initializer.{DayAdjustments, Currencies, Daycounters}
+import squantlib.util.initializer.Currencies
 import squantlib.util.JsonUtils._
-import squantlib.util.{UnderlyingParser, SimpleCache, TypedCache}
-import squantlib.pricing.model.{PricingModel, NoModel}
+import squantlib.util.SimpleCache
+import squantlib.pricing.model.PricingModel
 import squantlib.math.solver._
 import squantlib.math.financial.{BondYield, Duration}
-import squantlib.math.timeseries.TimeSeries
 import squantlib.schedule.call.Callabilities
 import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
+import squantlib.pricing.model.NoModel
+import squantlib.model.Market
+import squantlib.model.rates.DiscountCurve
+import squantlib.model.asset.{StaticAsset, Underlying}
+import squantlib.util.UnderlyingParser
 import org.codehaus.jackson.JsonNode
-import org.codehaus.jackson.node.{JsonNodeFactory, ObjectNode, ArrayNode}
 import org.codehaus.jackson.map.ObjectMapper
-import org.codehaus.jackson.`type`.TypeReference
 import scala.collection.JavaConversions._
 import scala.collection.breakOut
-import scala.collection.mutable.{Set => mutableSet, ArrayBuffer}
-import java.util.{Map => JavaMap}
-import scala.collection.LinearSeq
+import scala.collection.mutable.ArrayBuffer
 
 
 /**
@@ -803,12 +801,6 @@ object Bond {
 	  if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {println(db.id + ": cannot initialize scheduled payoffs"); return None}
 		
 	  Some(Bond(db, scheduledPayoffs, underlyings))
-	}
-	
-	def withSetting(db:dbBond, setting:BondSetting = BondSetting.getDefault) = {
-	  val bond = apply(db)
-	  if (bond.isDefined) setting(bond.get)
-	  bond
 	}
   
 }

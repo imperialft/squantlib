@@ -1,6 +1,6 @@
 package squantlib.portfolio
 
-import squantlib.model.StaticAsset
+import squantlib.model.asset.StaticAsset
 import collection.mutable.{Map => MutableMap, WeakHashMap, SynchronizedMap}
 import squantlib.util.DisplayUtils._
 import squantlib.math.timeseries.TimeSeries

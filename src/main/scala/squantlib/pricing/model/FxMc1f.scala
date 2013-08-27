@@ -5,7 +5,7 @@ import squantlib.schedule.payoff.{Payoffs, Payoff}
 import squantlib.schedule.{ScheduledPayoffs, Schedule, CalculationPeriod}
 import squantlib.pricing.mcengine._
 import squantlib.model.fx.FX
-import squantlib.model.Bond
+import squantlib.model.bond.Bond
 import squantlib.util.JsonUtils._
 import squantlib.model.rates.DiscountCurve
 import org.codehaus.jackson.JsonNode

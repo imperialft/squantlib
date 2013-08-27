@@ -7,7 +7,7 @@ import org.jquantlib.indexes.IborIndex
 import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
 import squantlib.model.yieldparameter._
 import squantlib.model.rates.convention.RateConvention
-import squantlib.model.Underlying
+import squantlib.model.asset.Underlying
 
 /**
  * Cash rate as underlying

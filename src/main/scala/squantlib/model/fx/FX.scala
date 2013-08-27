@@ -1,6 +1,6 @@
 package squantlib.model.fx
 
-import squantlib.model.Underlying
+import squantlib.model.asset.Underlying
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.yieldparameter.YieldParameter
 import squantlib.math.timeseries.TimeSeries

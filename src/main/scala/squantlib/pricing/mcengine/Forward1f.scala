@@ -1,7 +1,7 @@
 package squantlib.pricing.mcengine
 
 import squantlib.math.random.RandomGenerator
-import squantlib.model.Underlying
+import squantlib.model.asset.Underlying
 import squantlib.util.DisplayUtils._
 
 /* Simple Black-Scholes montecarlo pricer for FX

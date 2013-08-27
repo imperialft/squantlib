@@ -1,6 +1,6 @@
 package squantlib.model.index
 
-import squantlib.model.Underlying
+import squantlib.model.asset.Underlying
 import squantlib.model.yieldparameter.YieldParameter
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.currencies.Currency
