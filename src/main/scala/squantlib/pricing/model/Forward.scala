@@ -5,8 +5,8 @@ import squantlib.schedule.payoff.{Payoffs}
 import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod, Schedule}
 import squantlib.pricing.mcengine._
 import squantlib.model.index.Index
-import squantlib.model.Underlying
-import squantlib.model.Bond
+import squantlib.model.asset.Underlying
+import squantlib.model.bond.Bond
 import squantlib.util.JsonUtils._
 import squantlib.model.rates.DiscountCurve
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}

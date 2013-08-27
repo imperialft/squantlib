@@ -15,6 +15,7 @@ import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.termstructures.YieldTermStructure
 import squantlib.model.index.IndexInitializer
 import squantlib.util.UnderlyingParser
+import squantlib.model.asset.Underlying
 
 /** 
  * Stores market information and initialize discount curves as requested.

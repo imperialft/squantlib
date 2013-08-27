@@ -1,6 +1,5 @@
 package squantlib.model.asset
 
-import squantlib.model.StaticAsset
 import org.jquantlib.time.{Date => qlDate}
 
 case class GenericAsset(

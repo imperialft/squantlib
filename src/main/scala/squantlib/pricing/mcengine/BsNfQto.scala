@@ -2,7 +2,7 @@ package squantlib.pricing.mcengine
 
 import squantlib.math.random.{RandomGenerator, MersenneTwister, ParkMiller}
 import squantlib.math.statistical.NormSInv
-import squantlib.model.Underlying
+import squantlib.model.asset.Underlying
 import squantlib.util.DisplayUtils._
 import squantlib.math.statistical.{Mathematical, Cholesky}
 import squantlib.model.fx.FX

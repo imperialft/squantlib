@@ -1,14 +1,12 @@
-package squantlib.model
+package squantlib.model.asset
 
-import squantlib.database.DB
-import squantlib.util.UnderlyingParser
-import squantlib.model.rates.DiscountCurve
-import squantlib.util.initializer.Currencies
 import squantlib.util.DisplayUtils._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
-import java.util.{Date => JavaDate}
+import squantlib.model.Market
+import squantlib.util.UnderlyingParser
+import squantlib.database.DB
 
 
 /**

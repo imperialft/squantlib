@@ -4,7 +4,8 @@ import squantlib.model.Market
 import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.schedule.{CalculationPeriod, ScheduledPayoffs, Schedule}
 import squantlib.pricing.mcengine._
-import squantlib.model.{Bond, Underlying}
+import squantlib.model.bond.Bond
+import squantlib.model.asset.Underlying
 import squantlib.model.fx.FX
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
