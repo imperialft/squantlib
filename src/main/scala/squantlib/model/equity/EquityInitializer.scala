@@ -124,7 +124,7 @@ object SimpleInitializer {
     discountSpread:Double = 0.0):EquityInitializer = {
     
     val params = equityparams.groupBy(_.instrument)
-    if (!params.contains(dividendid) || !params.contains(spotid)) {return new EmptyInitializer}
+    if (!params.contains(spotid) || (!params.contains(dividendid) && !params.contains(volid))) {return new EmptyInitializer}
     
     val baseDivDate = new qlDate(equityinfo.basedivdate)
     val lastDivDate = baseDivDate.add(new qlPeriod("30Y"))
@@ -133,7 +133,7 @@ object SimpleInitializer {
 
     val spot:Double = params(spotid).head.value
     
-    val annualdiv:Double = params(dividendid).head.value
+    val annualdiv:Double = if (params contains dividendid) params(dividendid).head.value else 0.0
     val divfreq = equityinfo.divfreq
     val dividends:Map[qlDate, Double] = constractDividend(baseDivDate, lastDivDate, annualdiv, divfreq, Set(ccy))
     if (dividends == null || dividends.isEmpty) {return new EmptyInitializer}
