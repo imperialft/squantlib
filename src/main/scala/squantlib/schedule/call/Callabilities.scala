@@ -10,7 +10,11 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	
 	def bermudans:List[Boolean] = calls.map(_.bermudan)
 	
-	def triggers:List[Option[Map[String, Double]]] = calls.map(c => if (c isTrigger) Some(c.triggers) else None)
+	def triggers:List[Option[Map[String, Double]]] = calls.map(c => 
+	  if (c.isTriggered) Some(c.triggers.map{case (k, v) => (k, 0.0)})
+	  else if (c.isFixed) None
+	  else if (c isTrigger) Some(c.triggers) 
+	  else None)
 	
 	def triggerValues(variables:List[String]):List[List[Option[Double]]] = calls.map(_.triggerValues(variables))
 	

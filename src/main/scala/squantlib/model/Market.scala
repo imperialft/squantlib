@@ -7,7 +7,6 @@ import squantlib.model.rates._
 import squantlib.model.fx._
 import squantlib.model.index._
 import squantlib.model.equity._
-import squantlib.database.schemadefinitions.{CDSParameter, RateFXParameter}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
 import org.jquantlib.instruments.{Bond => qlBond}
@@ -445,60 +444,3 @@ class Market(
 }
 
 
-object Market {
-  
-	def apply(ratefxparams:Set[RateFXParameter], cdsparams:Set[CDSParameter]):Option[Market] = if (ratefxparams.isEmpty) None else apply(ratefxparams, cdsparams, new qlDate(ratefxparams.head.paramdate))
-	
-	def apply(
-	    ratefxparams:Set[RateFXParameter], 
-	    cdsparams:Set[CDSParameter], 
-	    valuedate:qlDate):Option[Market] = {
-	  
-	  if (ratefxparams.filter(_.instrument == "FX").size == 0){
-	    println("Error creating market : FX spot not found")
-	    return None}
-	  
-	  val liborCurves:Set[LiborDiscountCurve] = LiborDiscountCurve(ratefxparams, valuedate)
-	  
-	  val fxCurves:Set[FXDiscountCurve] = FXDiscountCurve(ratefxparams, valuedate)
-	  
-	  val ndsCurves:Set[NDSDiscountCurve] = liborCurves.find(_.currency.code == "USD") match {
-	    case None => Set.empty
-	    case Some(curve) => NDSDiscountCurve(ratefxparams, curve.getZC(new FlatVector(curve.valuedate, 0.0)), curve.tenorbasis, valuedate)
-	  }
-	  
-	  val discountcurves:Set[DiscountableCurve] = liborCurves ++ fxCurves ++ ndsCurves
-	  if (!discountcurves.exists(_.currency.code == "USD")) {
-	    println("Error creating market : USD curve not found - found:")
-	    if (discountcurves.isEmpty) println("no curve") else discountcurves.foreach(c => println(c.currency.code))
-	    return None}
-	  
-	  val cdscurves = CDSCurve(cdsparams, valuedate)
-	  
-	  val fxparams = FXInitializer(ratefxparams)
-
-	  val indices = IndexInitializer.getInitializers(ratefxparams)
-	  
-	  val equities = EquityInitializer.getInitializers(ratefxparams)
-	  
-	  val paramset = ratefxparams.head.paramset
-	  
-	  val fixingParams = Set("Fixing", "Index", "Equity")
-	  val fixingset:Map[String, Double] = ratefxparams.withFilter(p => fixingParams contains p.instrument)
-	  	.map(p => (p.asset + (if (p.maturity != null) p.maturity else "").trim, p.value)) (breakOut)
-	  
-	  if (discountcurves.size == 0 || cdscurves.size == 0) {
-	    println("Error creating market from " + discountcurves.size + " discount curve + " + cdscurves.size + " cds curves")
-	    None}
-	  
-	  else Some(new Market(
-		    paramset,
-		    discountcurves.map(c => (c.currency.code, c)) (breakOut), 
-		    cdscurves.map(c => (c.issuerid, c)) (breakOut), 
-		    fxparams,
-		    indices, 
-		    equities,
-		    fixingset))
-	}
-  
-}

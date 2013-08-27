@@ -3,7 +3,6 @@ package squantlib.model.rates
 import squantlib.model.yieldparameter._
 import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
-import squantlib.database.schemadefinitions.RateFXParameter
 import squantlib.model.rates.convention.RateConvention
 import scala.annotation.tailrec
 import scala.collection.breakOut
@@ -183,71 +182,6 @@ case class LiborDiscountCurve (
 
 }
 
-
-
-
-object LiborDiscountCurve {
-  
-	val cashKey = "Cash"
-	val swapKey = "Swap"
-	val basisKey = "BasisSwap"
-	val basis36Key = "BS3M6M"
-	val fxKey = "FX"
-	val swaptionKey = "Swaption"
-
-	/**
-	 * Constructs LiborDiscountCurve from InputParameter per each combination of currency & paramset.
-	 * Invalid input parameter sets are ignored.
-	 * @param set of InputParameter
-	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
-	 */
-  	def apply(params:Set[RateFXParameter], valuedate:qlDate):Set[LiborDiscountCurve] = {
-    
-	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useRateDiscount }.keySet
-	  
-  	  val nonemptyinstruments:Map[String, Map[String, Map[qlPeriod, Double]]] = 
- 	    params
- 	    .groupBy(_.asset)
- 	    .filter{case(asset, _) => currencies contains asset}
-   	    .map{ case (asset, p) => (asset, p.groupBy(_.instrument))} 
-  	    .filter{ case (_, instruments) => (instruments contains swapKey) && (instruments contains fxKey)}
-  	    .mapValues(_.mapValues(_.map(r => {
-  	      if (r.maturity == null || r.maturity.trim.isEmpty) (null, r.value)
-  	      else (new qlPeriod(r.maturity.trim), r.value)
-  	    }).toMap))
-  	  
-  	  nonemptyinstruments.map{ case (ccy, values) => 
-  		  val swapcurve = SwapCurve(valuedate, ccy, values(swapKey)).orNull
-  		   
-  		  val cashcurve:CashCurve = if (values contains cashKey) CashCurve(valuedate, ccy, values(cashKey)).orNull
-  		  				  else CashCurve(valuedate, ccy, swapcurve.rate.value(0)).orNull
-  		  				  
-  		  val basiscurve = if (values contains basisKey) BasisSwapCurve(valuedate, ccy, values(basisKey)).orNull else null
-  		  
-  		  val basis36curve = if (values contains basis36Key) TenorBasisSwapCurve(valuedate, ccy, values(basis36Key)).orNull else null
-  		  
-  		  val swaptionCurve = {
-  		    if (values.keySet.exists(_ startsWith swaptionKey)) {
-  		      val swaptionpts = values.filterKeys(_ startsWith swaptionKey).map{
-  		        case (mat, vec) => {
-  		          val matperiod = new qlPeriod(mat.replace(swaptionKey, "").trim)
-  		          vec.map{ case (k, v) => ((k, matperiod), v)}
-  		      }}.flatten.toMap
-  		      Some(RateVolatility(valuedate, swaptionpts))
-  		    }
-  		    else None
-  		  }
-  		  
-  		  val fxvalue = values(fxKey).head._2
-  		  
-  		  LiborDiscountCurve(cashcurve, swapcurve, basiscurve, basis36curve, fxvalue, swaptionCurve)
-  		  
-  	  	} (collection.breakOut)
-  	}
-	
-	def apply(cash:CashCurve, swap:SwapCurve, basis:BasisSwapCurve, tenorbasis:TenorBasisSwapCurve, vol:Option[RateVolatility]):Set[LiborDiscountCurve] = 
-	  Set(LiborDiscountCurve(cash, swap, basis, tenorbasis, 0.0, vol))  
-} 
 
 
 

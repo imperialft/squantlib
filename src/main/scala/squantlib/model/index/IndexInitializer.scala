@@ -2,8 +2,6 @@ package squantlib.model.index
 
 import squantlib.model.Market
 import squantlib.model.yieldparameter.YieldParameter
-import squantlib.database.schemadefinitions.RateFXParameter
-import org.jquantlib.time.{Period => qlPeriod}
 import org.jquantlib.time.{Period => qlPeriod}
 
 /**
@@ -20,20 +18,6 @@ trait IndexInitializer {
   def addDividend(x:Double):IndexInitializer
 }
 
-object IndexInitializer {
-  
-  def getInitializers(params:Set[RateFXParameter]):Map[String, IndexInitializer] = {
-    val paramsets:Map[String, Set[RateFXParameter]] = params.filter(p => (modelMap contains p.asset)).groupBy(_.asset)
-    paramsets.map{case (name, ps) => (name, modelMap(name)(ps))}
-  }
-  
-  val modelMap:Map[String, Set[RateFXParameter] => IndexInitializer] = Map(
-      "NKY" -> (p => IndexATMContinuous("NKY", p, "JPY", "JPY", 0.00)),
-      "S&P" -> (p => IndexATMContinuous("S&P", p, "USD", "USD", 0.00)),
-      "INDU" -> (p => IndexATMContinuous("INDU", p, "USD", "USD", 0.00))
-  )
-  
-}
 
 case class EmptyInitializer extends IndexInitializer {
   override def getModel(market:Market):Option[Index] = None
@@ -103,36 +87,6 @@ case class IndexATMContinuous(
     discountCcy,
     discountSpread
   )
-}
-
-object IndexATMContinuous {
-  
-  val yieldid = "Yield"
-  val spotid = "Index"
-  val volid = "IndexVol"
-  val repoid = "Repo"
-  
-  def apply(
-    name:String, 
-    indexparams:Set[RateFXParameter], 
-    ccy:String,
-    discountCcy:String = "USD",
-    discountSpread:Double = 0.00):IndexInitializer = {
-    
-    val params = indexparams.groupBy(_.instrument)
-    if (!params.contains(yieldid) || !params.contains(spotid)) {return new EmptyInitializer}
-    
-    val yldparam:Map[qlPeriod, Double] = params(yieldid).map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
-    
-    val spot:Double = params(spotid).head.value
-    
-    val repo:Map[qlPeriod, Double] = params.get(repoid).collect{case rs => rs.map(p => (new qlPeriod(p.maturity), p.value)).toMap}.getOrElse(Map.empty)
-    
-    val vol:Map[qlPeriod, Double] = params.get(volid).collect{case vs => vs.map(p => (new qlPeriod(p.maturity), p.value)).toMap}.getOrElse(Map.empty)
-     
-    new IndexATMContinuous(name, ccy, spot, yldparam, repo, vol, discountCcy, discountSpread)
-  }
-
 }
 
 

@@ -2,14 +2,11 @@ package squantlib.model.equity
 
 import squantlib.model.Market
 import squantlib.model.yieldparameter.YieldParameter
-import squantlib.util.initializer.Calendars
 import squantlib.database.DB
-import squantlib.database.schemadefinitions.{Equity => EquityInfo, RateFXParameter}
+import squantlib.database.schemadefinitions.{Equity => EquityInfo}
 import org.jquantlib.time.{BusinessDayConvention, Period => qlPeriod, Date => qlDate}
-import org.jquantlib.time.calendars.NullCalendar
 import scala.collection.mutable.{Map => MutableMap}
 import scala.annotation.tailrec
-import org.jquantlib.time.Calendar
 
 /**
  * Equity specific discount curve calibration.
@@ -25,22 +22,6 @@ trait EquityInitializer {
   def addDividend(x:Double):EquityInitializer
 }
 
-
-
-object EquityInitializer {
-  
-  def equitylist:Map[String, EquityInfo] = DB.getEquities.map(e => (e.id, e)) (collection.breakOut)
-    
-  def getInitializers(params:Set[RateFXParameter]):Map[String, EquityInitializer] = {
-    val eqlist = equitylist
-    val modelMap:Map[String, Set[RateFXParameter] => EquityInitializer] = 
-      eqlist.map{case (name, eqty) => (name, (p:Set[RateFXParameter]) => SimpleInitializer(name, p, eqty, eqty.currencyid, 0.0))}
-    
-    val paramsets:Map[String, Set[RateFXParameter]] = params.filter(p => (eqlist contains p.asset)).groupBy(_.asset)
-    paramsets.map{case (name, ps) => (name, modelMap(name)(ps))}
-  }
-  
-}
 
 case class EmptyInitializer extends EquityInitializer {
   override def getModel(market:Market):Option[Equity] = None
@@ -110,65 +91,6 @@ case class FlatDivATM(
 }
 
 
-object SimpleInitializer {
-  val dividendid = "Dividend12M"
-  val spotid = "Equity"
-  val volid = "EquityVol"
-  val repoid = "Repo"
-  
-  def apply(
-    name:String, 
-    equityparams:Set[RateFXParameter], 
-    equityinfo:EquityInfo,
-    discountCurve:String,
-    discountSpread:Double = 0.0):EquityInitializer = {
-    
-    val params = equityparams.groupBy(_.instrument)
-    if (!params.contains(spotid) || (!params.contains(dividendid) && !params.contains(volid))) {return new EmptyInitializer}
-    
-    val baseDivDate = new qlDate(equityinfo.basedivdate)
-    val lastDivDate = baseDivDate.add(new qlPeriod("30Y"))
-    
-    val ccy = equityinfo.currencyid
-
-    val spot:Double = params(spotid).head.value
-    
-    val annualdiv:Double = if (params contains dividendid) params(dividendid).head.value else 0.0
-    val divfreq = equityinfo.divfreq
-    val dividends:Map[qlDate, Double] = constractDividend(baseDivDate, lastDivDate, annualdiv, divfreq, Set(ccy))
-    if (dividends == null || dividends.isEmpty) {return new EmptyInitializer}
-    
-    val repo:Map[qlPeriod, Double] = (params.get(repoid) match {
-      case Some(rs) => rs.map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
-      case None => Map.empty
-    })
-    
-    val vol:Map[qlPeriod, Double] = (params.get(volid) match {
-      case Some(vols) => vols.map(p => (new qlPeriod(p.maturity), p.value)).toMap
-      case None => if (equityinfo.volatility > 0) Map(new qlPeriod("3M") -> equityinfo.volatility) else Map.empty
-    })
-     
-    FlatDivATM(name, ccy, spot, dividends, repo, vol, discountCurve, discountSpread)
-  }
-  
-  def constractDividend(baseDate:qlDate, endDate:qlDate, annualAmount:Double, payFreq:Int, calendars:Set[String]):Map[qlDate, Double] = {
-    val cdr = Calendars(calendars).getOrElse(new NullCalendar)
-    val tenor = new qlPeriod(payFreq + "M")
-    var currentdate = baseDate
-    var periods = 1
-    var divamount = annualAmount / 12.0 * payFreq.toDouble
-    
-    @tailrec def scheduleIter(currentPeriod:Int, currentmap:Map[qlDate, Double]):Map[qlDate, Double] = {
-      val nextDate = cdr.advance(baseDate, tenor.mul(currentPeriod), BusinessDayConvention.Following)
-      if (nextDate ge endDate) currentmap ++ Map((nextDate, divamount), (baseDate, divamount))
-      else scheduleIter(currentPeriod + 1, currentmap + (nextDate -> divamount))
-    }
-    
-    scheduleIter(1, Map.empty)
-    
-  }
-
-}
 
 
 

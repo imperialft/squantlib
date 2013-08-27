@@ -4,7 +4,6 @@ import scala.collection.immutable.{TreeMap, SortedSet}
 import squantlib.model.yieldparameter.{FlatVector, YieldParameter, SplineEExtrapolation, SplineNoExtrapolation, LinearNoExtrapolation}
 import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
-import squantlib.database.schemadefinitions.RateFXParameter
 import squantlib.model.rates.convention.RateConvention
 
  
@@ -181,41 +180,4 @@ extends DiscountableCurve {
 }
 
 
-
-
-object NDSDiscountCurve {
-  
-	val ndsKey = "NDS"
-	val fxKey = "FX"
-
-	/**
-	 * Constructs LiborDiscountCurve from InputParameter per each combination of currency & paramset.
-	 * Invalid input parameter sets are ignored.
-	 * @param set of InputParameter
-	 * @returns map from (Currency, ParamSet) to LiborDiscountCurve
-	 */
-  	def apply(params:Set[RateFXParameter], pivotDiscount:DiscountCurve, pivotTenorBS:TenorBasisSwapCurve, valuedate:qlDate):Set[NDSDiscountCurve] = {
-    
-	  val currencies = RateConvention.toMap.filter{case (k, v) => v.useNDSdiscount }.keySet
-	  
-  	  val nonemptyinstruments:Map[String, Map[String, Map[qlPeriod, Double]]] = 
- 	    params
- 	    .groupBy(_.asset)
- 	    .filter{case(asset, _) => currencies contains asset}
-   	    .map{ case (asset, p) => (asset, p.groupBy(_.instrument))} 
-  	    .filter{ case (_, instruments) => (instruments contains ndsKey) && (instruments contains fxKey)}
-  	    .mapValues(_.mapValues(_.map(r => {
-  	      if (r.maturity == null || r.maturity.trim.isEmpty) (null, r.value)
-  	      else (new qlPeriod(r.maturity.trim), r.value)
-  	    }).toMap))
-  	  
-  	  nonemptyinstruments.map{ case (ccy, values) => 
-  		  val ndscurve = NDSCurve(valuedate, ccy, values(ndsKey)).orNull
-  		  val fxvalue = values(fxKey).head._2
-  		  NDSDiscountCurve(ndscurve, pivotDiscount, pivotTenorBS, fxvalue, None)
-  	  	}.toSet
-  	}
-  
-  
-} 
 
