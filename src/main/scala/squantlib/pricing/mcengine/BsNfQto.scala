@@ -114,15 +114,6 @@ case class BsNfQto(
 
     val (fratedom, fratefor, fsigma, fsigmafx) = getForwards(mcdates, ratedom, ratefor, sigma, sigmafx)
     
-	@tailrec def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], sigfx:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
-	  if (rd.isEmpty) current.reverse
-	  else driftacc(rd.tail, rf.tail, sig.tail, sigfx.tail, stepp.tail, driftacc2(rd.head, rf.head, sig.head, isQuanto, sigfx.head, correlfx, stepp.head, List.empty) :: current)
-    
-    @tailrec def driftacc2(rd:Double, rf:List[Double], sig:List[Double], isqto:List[Boolean], sigfx:List[Double], corrfx:List[Double], stepp:Double, current:List[Double]):List[Double] = 
-      if (rf.isEmpty) current.reverse
-      else if (isqto.head) driftacc2(rd, rf.tail, sig.tail, isqto.tail, sigfx.tail, corrfx.tail, stepp, (rd - rf.head - 0* corrfx.head * sig.head * sigfx.head - (sig.head * sig.head) / 2.0) * stepp :: current)
-      else driftacc2(rd, rf.tail, sig.tail, isqto.tail, sigfx.tail, corrfx.tail, stepp, (rd - rf.head - (sig.head * sig.head) / 2.0) * stepp :: current)
-	
 	val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, fsigmafx, stepsize, List.empty)
 	
 	val sigt:List[List[Double]] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig.map(s => s * math.sqrt(ss))}
@@ -151,49 +142,68 @@ case class BsNfQto(
     (eventDates.sorted, getPathes(paths, List.empty))
   }
   
+  @tailrec def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], sigfx:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
+	if (rd.isEmpty) current.reverse
+	else driftacc(rd.tail, rf.tail, sig.tail, sigfx.tail, stepp.tail, driftacc2(rd.head, rf.head, sig.head, isQuanto, sigfx.head, correlfx, stepp.head, List.empty) :: current)
+    
+  @tailrec def driftacc2(rd:Double, rf:List[Double], sig:List[Double], isqto:List[Boolean], sigfx:List[Double], corrfx:List[Double], stepp:Double, current:List[Double]):List[Double] = 
+    if (rf.isEmpty) current.reverse
+    else if (isqto.head) driftacc2(rd, rf.tail, sig.tail, isqto.tail, sigfx.tail, corrfx.tail, stepp, (rd - rf.head - corrfx.head * sig.head * sigfx.head - (sig.head * sig.head) / 2.0) * stepp :: current)
+    else driftacc2(rd, rf.tail, sig.tail, isqto.tail, sigfx.tail, corrfx.tail, stepp, (rd - rf.head - (sig.head * sig.head) / 2.0) * stepp :: current)
+  
   override def modelName = this.getClass.toString
   
   override def spotref = spot
   
   override def scheduledDescription = {
-    val basedates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
-    val dates:List[Double] = getEventDates(basedates)
-    val divs:List[List[Double]] = dates.map(d => (d, dividends.map(dd => dd.get(d).getOrElse(0.0)))).map(_._2)
+    val eventDates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
+    val chol = getCholeskyMatrix
+    if (chol.isEmpty) {(List("Correlation matrix is not definite positive"), List.empty)}
     
-    val steps = dates.size
-    val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
+    val mcdates:List[Double] = getEventDates(eventDates)
+    val divs:List[List[Double]] = mcdates.map(d => (d, dividends.map(dd => dd.get(d).getOrElse(0.0)))).map(_._2)
+    
+    val stepsize = mcdates.head :: (mcdates.tail, mcdates).zipped.map(_ - _)
+    val pathmapper = eventDates.sorted.map(mcdates.indexOf(_))
+    
     val uls = spot.size
+    val ratedom = mcdates.map(rate)
+    val ratefor:List[List[Double]] = mcdates.map(d => (dividendYield, repoYield).zipped.map{case (dy, ry) => dy(d) + ry(d)})
+    val sigma:List[List[Double]] = mcdates.map(d => volatility.map(_(d)))
+    val sigmafx:List[List[Double]] = mcdates.map(d => volatilityfx.map(_(d)))
 
-    val ratedom = dates.map(rate)
-    val ratefor:List[List[Double]] = dates.map(d => (dividendYield, repoYield).zipped.map{case (dy, ry) => dy(d) + ry(d)})
-    val sigma:List[List[Double]] = dates.map(d => volatility.map(_(d)))
-    val sigmafx:List[List[Double]] = dates.map(d => volatilityfx.map(_(d)))
+    val (fratedom, fratefor, fsigma, fsigmafx) = getForwards(mcdates, ratedom, ratefor, sigma, sigmafx)
     
-    val (fratedom, fratefor, fsigma, fsigmafx) = getForwards(dates, ratedom, ratefor, sigma, sigmafx)
+	val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, fsigmafx, stepsize, List.empty)
     
-	val title = List("valuedate", "forward", "rate", "repo", "divrate", "sigma", "drift", "div")
+	val title = List("valuedate", "forward", "rate", "repo", "divrate", "sigma", "drift", "div", "sigmafx")
 	
-	var spotprice = spot
+	val s = Range(0, uls).map{i => 
+	  var spotprice = spot(i)
 	
-	@tailrec def accr(adate:Double, aspots:List[Double], aratedom:Double, aratefors:List[Double], asiggs:List[Double], adivvs:List[Double], current:List[List[String]]):List[List[String]] = 
-	  if (aspots.isEmpty) current.reverse
-	  else {
-	    val msg = List(adate.asDouble, aspots.head.asDouble, aratedom.asPercent(2), aratefors.head.asPercent(2), asiggs.head.asPercent(2), adivvs.head.asDouble)
-	    accr(adate, aspots.tail, aratedom, aratefors.tail, asiggs.tail, adivvs.tail, msg :: current)
-	  }
+	  @tailrec def accr(adate:Double, aspots:List[Double], aratedom:Double, aratefors:List[Double], asiggs:List[Double], adivvs:List[Double], siggfx:List[Double], current:List[List[String]]):List[List[String]] = 
+	    if (aspots.isEmpty) current.reverse
+	    else {
+	      val msg = List(adate.asDouble, aspots(i).asDouble, aratedom.asPercent(2), aratefors(i).asPercent(2), asiggs(i).asPercent(2), adivvs(i).asDouble, siggfx(i).asPercent(2))
+	      accr(adate, aspots.tail, aratedom, aratefors.tail, asiggs.tail, adivvs.tail, siggfx.tail, msg :: current)
+	    }
     
-	@tailrec def schedule(sp:List[Double], datez:List[Double], steps:List[Double], rd:List[Double], rf:List[List[Double]], sigg:List[List[Double]], divvs:List[List[Double]], acc:List[List[List[String]]]):List[List[List[String]]] = 
-	  if (steps.isEmpty) acc.reverse
-	  else {
-	    val spp = (sp, rf.head, divvs.head).zipped.map{case (ssp, rrf, dvv) => ssp * scala.math.exp((rd.head - rrf) * steps.head) - dvv}
-	    val msgs = accr(datez.head, spp, rd.head, rf.head, sigg.head, divvs.head, List.empty)
-	    schedule(spp, datez.tail, steps.tail, rd.tail, rf.tail, sigg.tail, divvs.tail, msgs::acc)
-	}
+ 	  @tailrec def schedule(sp:List[Double], datez:List[Double], steps:List[Double], rd:List[Double], rf:List[List[Double]], sigg:List[List[Double]], divvs:List[List[Double]], siggfx:List[List[Double]], acc:List[List[List[String]]]):List[List[List[String]]] = 
+	    if (steps.isEmpty) acc.reverse
+	    else {
+	      val spp = (sp, rf.head, divvs.head).zipped.map{case (ssp, rrf, dvv) => ssp * scala.math.exp((rd.head - rrf) * steps.head) - dvv}
+	      val msgs = accr(datez.head, spp, rd.head, rf.head, sigg.head, divvs.head, siggfx.head, List.empty)
+	      schedule(spp, datez.tail, steps.tail, rd.tail, rf.tail, sigg.tail, divvs.tail, siggfx.tail, msgs::acc)
+	   }
 	
-	val aschedule = schedule(spot, dates, stepsize, fratedom, fratefor, fsigma, divs, List.empty)
-	val s = aschedule.transpose.flatten
+	  val aschedule = schedule(spot, mcdates, stepsize, fratedom, fratefor, fsigma, divs, fsigmafx, List.empty)
+	  aschedule.transpose.flatten
+    }.foldLeft(List.empty[List[String]])((a, b) => a ++ b)
+    
+    val correlmatrix = correl.map(_.map(_.asPercent(2)).toList).toList
+    val cholmatrix = chol.map(_.map(_.asPercent(2)).toList).toList
 
-    (title, s)
+    (title, s ++ List(List("correlation")) ++ correlmatrix ++ List(List("cholesky")) ++ cholmatrix)
   }
 
 }

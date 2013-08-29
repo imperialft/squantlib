@@ -59,20 +59,12 @@ class Bs1fDiscrete(
     val ratefor = dates.map(d => repoYield(d))
     val sigma = dates.map(volatility)
     
-    @tailrec def acc[A](r:List[A], t:List[Double], f:(A, A, Double, Double) => A, d:A, current:List[A]):List[A] = 
-      if (r.isEmpty || r.tail.isEmpty) current.reverse
-      else acc(r.tail, t.tail, f, d, f(r.tail.head, r.head, t.tail.head, t.head) :: current)
-    
     val fratedom:List[Double] = ratedom.head :: acc[Double](ratedom, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
     val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
     val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.00001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
     
-	@tailrec def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
-	  if (rd.isEmpty) current.reverse
-	  else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
-	
 	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
 	
 	val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
@@ -97,6 +89,15 @@ class Bs1fDiscrete(
     (sortedEventDates, genpaths)
   }
   
+  
+  @tailrec private def acc[A](r:List[A], t:List[Double], f:(A, A, Double, Double) => A, d:A, current:List[A]):List[A] = 
+    if (r.isEmpty || r.tail.isEmpty) current.reverse
+    else acc(r.tail, t.tail, f, d, f(r.tail.head, r.head, t.tail.head, t.head) :: current)
+    
+  @tailrec private def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
+	if (rd.isEmpty) current.reverse
+	else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
+	
   override def modelName = this.getClass.toString
   
   override def spotref = List(spot)
@@ -104,37 +105,37 @@ class Bs1fDiscrete(
   override def scheduledDescription = {
     val eventDates:List[Double] = (for(i <- 1 to 120 if (i <= 12 && i % 3 == 0)|| i % 12 == 0) yield i.toDouble / 12.0).toList
     
-    val relavantDivs:Map[Double, Double] = dividends.filter(d => d._1 > 0.0 && d._1 <= eventDates.max).toMap
-    val eventWithDivs:Map[Double, Double] = eventDates.map(d => (d, 0.0)).toMap
+    val relavantDivs = dividends.filter(d => d._1 > 0.0 && d._1 <= eventDates.max)
+    val eventWithDivs = eventDates.map(d => (d, 0.0)).toMap
     
     val eventDivs:List[(Double, Double)] = (eventWithDivs ++ relavantDivs).toList.sortBy(_._1)
-    val dates:List[Double] = eventDivs.map(_._1)
+    val dates = eventDivs.map(_._1)
     val divs = eventDivs.map(_._2)
     
+    val sortedEventDates = eventDates.sorted
+    val pathmapper = sortedEventDates.map(dates.indexOf(_))
+        
     val steps = dates.size
     val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
 
     val ratedom = dates.map(rate)
-    val reporate = dates.map(d => repoYield(d))
+    val ratefor = dates.map(d => repoYield(d))
     val sigma = dates.map(volatility)
     
-    val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
+    val fratedom:List[Double] = ratedom.head :: acc[Double](ratedom, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val freporate = reporate.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else (reporate(i) * dates(i) - reporate(i-1) * dates(i-1)) / stepsize(i)))
+    val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val fsigma = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
+    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.00001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
     
-	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - freporate(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
 	
 	val title = List("valuedate", "forward", "rate", "repo", "sigma", "drift", "div")
 	
 	var spotprice = spot
 	val schedule:List[List[String]] = (0 to steps - 1).toList.map(i => {
-	  spotprice = spotprice * scala.math.exp((fratedom(i) - freporate(i)) * stepsize(i)) - divs(i)
-	  List(dates(i).asDouble, spotprice.asDouble, fratedom(i).asPercent(2), freporate(i).asPercent(2), fsigma(i).asPercent(2), drift(i).asDouble, relavantDivs.get(dates(i)).getOrElse(0.0).asDouble)
+	  spotprice = spotprice * scala.math.exp((fratedom(i) - fratefor(i)) * stepsize(i)) - divs(i)
+	  List(dates(i).asDouble, spotprice.asDouble, fratedom(i).asPercent(2), fratefor(i).asPercent(2), fsigma(i).asPercent(2), drift(i).asDouble, relavantDivs.get(dates(i)).getOrElse(0.0).asDouble)
 	})
 	
     (title, schedule)

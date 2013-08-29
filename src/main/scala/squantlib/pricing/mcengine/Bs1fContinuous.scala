@@ -26,6 +26,8 @@ class Bs1fContinuous(
   
   override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
 
+  val smallvalue = 0.00001
+  
   /* Generates FX paths.
    * @param eventdates	FX observation dates as number of years
    * @param paths 	Number of Montecarlo paths to be generated
@@ -40,7 +42,6 @@ class Bs1fContinuous(
     
     val randomGenerator = getRandomGenerator
     def normSInv(x:Double) = NormSInv(x)
-    val smallvalue = 0.00001
     
     val dates = eventDates.sorted
     val steps = dates.size
@@ -50,29 +51,16 @@ class Bs1fContinuous(
     val ratefor = dates.map(dividendYield)
     val sigma = dates.map(volatility)
 
-    @tailrec def acc[A](r:List[A], t:List[Double], f:(A, A, Double, Double) => A, d:A, current:List[A]):List[A] = 
-      if (r.isEmpty || r.tail.isEmpty) current.reverse
-      else if (t.tail.head - t.head < smallvalue)  acc(r.tail, t.tail, f, d, d :: current)
-      else acc(r.tail, t.tail, f, d, f(r.tail.head, r.head, t.tail.head, t.head) :: current)
-    
     val fratedom:List[Double] = ratedom.head :: acc[Double](ratedom, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
     val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
     val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.000001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
     
-	@tailrec def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
-	  if (rd.isEmpty) current.reverse
-	  else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
-	
 	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
 	
 	val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
     
-    def printA(title:String, a:List[Double]) = {
-        println(title)
-        a.foreach(println)
-      }
     
 //    printA("fratedom", fratedom)
 //    printA("fratefor", fratefor)
@@ -98,6 +86,20 @@ class Bs1fContinuous(
     val genpaths = getPathes(paths, List.empty)
     (dates, genpaths)
   }
+
+  @tailrec private def acc[A](r:List[A], t:List[Double], f:(A, A, Double, Double) => A, d:A, current:List[A]):List[A] = 
+    if (r.isEmpty || r.tail.isEmpty) current.reverse
+    else if (t.tail.head - t.head < smallvalue)  acc(r.tail, t.tail, f, d, d :: current)
+    else acc(r.tail, t.tail, f, d, f(r.tail.head, r.head, t.tail.head, t.head) :: current)
+    
+  @tailrec private def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
+	if (rd.isEmpty) current.reverse
+	else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
+	
+  def printA(title:String, a:List[Double]) = {
+	println(title)
+    a.foreach(println)
+  }
   
   override def modelName = this.getClass.toString
   
@@ -112,17 +114,16 @@ class Bs1fContinuous(
     val ratedom = dates.map(rate)
     val ratefor = dates.map(dividendYield)
     val sigma = dates.map(volatility)
+
+    val fratedom:List[Double] = ratedom.head :: acc[Double](ratedom, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val fratedom = ratedom.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else (ratedom(i) * dates(i) - ratedom(i-1) * dates(i-1)) / stepsize(i)))
+    val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val fratefor = ratefor.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else (ratefor(i) * dates(i) - ratefor(i-1) * dates(i-1)) / stepsize(i)))
+    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.000001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
     
-    val fsigma = sigma.head :: (for (i <- (1 to steps-1).toList) yield 
-        (if (stepsize(i) == 0.0) 0.0 else math.sqrt((dates(i) * sigma(i) * sigma(i) - dates(i-1) * sigma(i-1) * sigma(i-1)) / stepsize(i))))
-    
-	val drift = for (i <- 0 to steps-1) yield (fratedom(i) - fratefor(i) - ((fsigma(i) * fsigma(i)) / 2.0)) * stepsize(i)
+	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
+	
+	val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
 	
 	var spotprice = spot
 	val title = List("valuedate", "forward", "rate ccy1", "rate ccy2", "sigma", "drift")
