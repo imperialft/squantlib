@@ -142,11 +142,11 @@ case class BsNfQto(
     (eventDates.sorted, getPathes(paths, List.empty))
   }
   
-  @tailrec def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], sigfx:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
+  @tailrec private def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], sigfx:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
 	if (rd.isEmpty) current.reverse
 	else driftacc(rd.tail, rf.tail, sig.tail, sigfx.tail, stepp.tail, driftacc2(rd.head, rf.head, sig.head, isQuanto, sigfx.head, correlfx, stepp.head, List.empty) :: current)
     
-  @tailrec def driftacc2(rd:Double, rf:List[Double], sig:List[Double], isqto:List[Boolean], sigfx:List[Double], corrfx:List[Double], stepp:Double, current:List[Double]):List[Double] = 
+  @tailrec private def driftacc2(rd:Double, rf:List[Double], sig:List[Double], isqto:List[Boolean], sigfx:List[Double], corrfx:List[Double], stepp:Double, current:List[Double]):List[Double] = 
     if (rf.isEmpty) current.reverse
     else if (isqto.head) driftacc2(rd, rf.tail, sig.tail, isqto.tail, sigfx.tail, corrfx.tail, stepp, (rd - rf.head - corrfx.head * sig.head * sigfx.head - (sig.head * sig.head) / 2.0) * stepp :: current)
     else driftacc2(rd, rf.tail, sig.tail, isqto.tail, sigfx.tail, corrfx.tail, stepp, (rd - rf.head - (sig.head * sig.head) / 2.0) * stepp :: current)
