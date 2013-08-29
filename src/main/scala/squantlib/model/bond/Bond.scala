@@ -47,47 +47,49 @@ case class Bond(
 	/*
 	 * Basic access functions
 	 */
-	val schedule = scheduledPayoffs.schedule
+	def schedule = scheduledPayoffs.schedule
 	
-	val payoffs = scheduledPayoffs.payoffs
+	def payoffs = scheduledPayoffs.payoffs
 	
-	val calls = scheduledPayoffs.calls
+	def calls = scheduledPayoffs.calls
 	
-	val coupon = scheduledPayoffs.coupon
+	def coupon = scheduledPayoffs.coupon
   
-	val id = db.id
+	override val id = db.id
 	
 	override val assetID = "PRICE"
 	
-	val issueDate:qlDate = schedule.head.startDate
+	def issueDate:qlDate = schedule.head.startDate
 	
-	val scheduledMaturity:qlDate = schedule.last.endDate
+	def isIssued:Option[Boolean] = market.collect{case mkt => mkt.valuedate ge issueDate}
 	
-	val bermudan:List[Boolean] = calls.bermudans
+	def scheduledMaturity:qlDate = schedule.last.endDate
 	
-	val trigger:List[List[Option[Double]]] = calls.triggerValues(underlyings)
+	def bermudan:List[Boolean] = calls.bermudans
 	
-	val nominal:Option[Double] = db.nominal
+	def trigger:List[List[Option[Double]]] = calls.triggerValues(underlyings)
 	
-	val currency:Currency = Currencies(db.currencyid).orNull
+	def nominal:Option[Double] = db.nominal
 	
-	val denomination:Option[Double] = db.denomination
+	def currency:Currency = Currencies(db.currencyid).orNull
 	
-	val period:qlPeriod = (db.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
+	def denomination:Option[Double] = db.denomination
+	
+	def period:qlPeriod = (db.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
-	val calendar:Calendar = db.calendar
+	def calendar:Calendar = db.calendar
 	
-	val issuePrice:Option[Double] = db.issueprice
+	def issuePrice:Option[Double] = db.issueprice
 	
-	val call:String = db.call
+	def call:String = db.call
 	
-	val initialFX:Double = db.initialfx
+	def initialFX:Double = db.initialfx
 	
-	var issuer:String = db.issuerid
+	def issuer:String = db.issuerid
 	
-	val settings:JsonNode = db.settingsJson
+	def settings:JsonNode = db.settingsJson
 	
-	val isFixedRateBond = payoffs.underlyings.size == 0
+	def isFixedRateBond = payoffs.underlyings.size == 0
 	
 	def redemption:Payoff = {
 	  val abslegs = scheduledPayoffs.filter{case (s, p, t) => s.isAbsolute}
@@ -452,6 +454,7 @@ case class Bond(
 	
 	def modelPriceJpy:Option[Double] = (modelPrice, fxjpy, db.initialfx) match { 
 	  case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+	  case (Some(p), Some(fx), init) if isIssued == Some(false) => Some(p)
 	  case _ => None
 	}
 	

@@ -61,11 +61,6 @@ class Bs1fContinuous(
     
     val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.000001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
     
-    def printA(title:String, a:List[Double]) = {
-        println(title)
-        a.foreach(println)
-      }
-    
 	@tailrec def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
 	  if (rd.isEmpty) current.reverse
 	  else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
@@ -73,6 +68,17 @@ class Bs1fContinuous(
 	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
 	
 	val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
+    
+    def printA(title:String, a:List[Double]) = {
+        println(title)
+        a.foreach(println)
+      }
+    
+//    printA("fratedom", fratedom)
+//    printA("fratefor", fratefor)
+//    printA("fsigma", fsigma)
+//    printA("drift", drift)
+//    printA("sigt", sigt)
 	
     @tailrec def getApath(steps:List[Double], drft:List[Double], siggt:List[Double], current:List[Double]):List[Double] = {
       if (steps.isEmpty) payoff(current.reverse.tail)

@@ -396,7 +396,11 @@ class Market(
 	def underlyingShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id).collect{case p => p.getType} match {
 	  case Some(UnderlyingParser.typeEquity) => Some(equityShifted(id, shift))
 	  case Some(UnderlyingParser.typeCcy) => Some(fxShifted(id, shift))
-	  case Some(UnderlyingParser.typeFX) => Some(fxShifted(id take 3, 1.0/shift))
+	  case Some(UnderlyingParser.typeFX) => (curves.get(id take 3), curves.get(id drop 3)) match {
+	    case (Some(a:FXCurve), Some(b:FXCurve)) => Some(fxShifted(id take 3, 1.0/shift))
+	    case (Some(a:FXCurve), _) => Some(fxShifted(id drop 3, shift))
+	    case _ => Some(fxShifted(id take 3, 1.0/shift))
+	  }
 	  case Some(UnderlyingParser.typeIndex) => Some(indexShifted(id, shift))
 	  case _ => None
 	}
