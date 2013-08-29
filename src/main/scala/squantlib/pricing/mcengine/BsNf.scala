@@ -164,26 +164,24 @@ case class BsNf(
     
 	val title = List("valuedate", "forward", "rate", "repo", "divrate", "sigma", "drift", "div")
 	
-	val s = Range(0, uls).map{i => 
-  	  @tailrec def accr(adate:Double, aspots:List[Double], aratedom:Double, aratefors:List[Double], asiggs:List[Double], adivvs:List[Double], current:List[List[String]]):List[List[String]] = 
+  	@tailrec def accr(adate:Double, aspots:List[Double], aratedom:Double, aratefors:List[Double], asiggs:List[Double], adivvs:List[Double], current:List[List[String]]):List[List[String]] = 
 	    if (aspots.isEmpty) current.reverse
 	    else {
-	      val msg = List(adate.asDouble, aspots(i).asDouble, aratedom.asPercent(2), aratefors(i).asPercent(2), asiggs(i).asPercent(2), adivvs(i).asDouble)
+	      val msg = List(adate.asDouble, aspots.head.asDouble, aratedom.asPercent(2), aratefors.head.asPercent(2), asiggs.head.asPercent(2), adivvs.head.asDouble)
 	      accr(adate, aspots.tail, aratedom, aratefors.tail, asiggs.tail, adivvs.tail, msg :: current)
-	  }
+	}
     
-	  @tailrec def schedule(sp:List[Double], datez:List[Double], steps:List[Double], rd:List[Double], rf:List[List[Double]], sigg:List[List[Double]], divvs:List[List[Double]], acc:List[List[List[String]]]):List[List[List[String]]] = 
+	@tailrec def schedule(sp:List[Double], datez:List[Double], steps:List[Double], rd:List[Double], rf:List[List[Double]], sigg:List[List[Double]], divvs:List[List[Double]], acc:List[List[List[String]]]):List[List[List[String]]] = 
 	    if (steps.isEmpty) acc.reverse
 	    else {
 	      val spp = (sp, rf.head, divvs.head).zipped.map{case (ssp, rrf, dvv) => ssp * scala.math.exp((rd.head - rrf) * steps.head) - dvv}
 	      val msgs = accr(datez.head, spp, rd.head, rf.head, sigg.head, divvs.head, List.empty)
 	      schedule(spp, datez.tail, steps.tail, rd.tail, rf.tail, sigg.tail, divvs.tail, msgs::acc)
-	  }
+	}
 	  
-	  var spotprice = spot(i)
-	  val aschedule = schedule(spot, mcdates, stepsize, fratedom, fratefor, fsigma, divs, List.empty)
-	  aschedule.transpose.flatten
-    }.foldLeft(List.empty[List[String]])((a, b) => a ++ b)
+	var spotprice = spot
+	val aschedule = schedule(spot, mcdates, stepsize, fratedom, fratefor, fsigma, divs, List.empty)
+	val s = aschedule.transpose.flatten
     
     val correlmatrix = correl.map(_.map(_.asPercent(2)).toList).toList
     val cholmatrix = chol.map(_.map(_.asPercent(2)).toList).toList
