@@ -85,7 +85,7 @@ case class Bond(
 	
 	var issuer:String = db.issuerid
 	
-	val settings:JsonNode = db.settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
+	val settings:JsonNode = db.settingsJson
 	
 	val isFixedRateBond = payoffs.underlyings.size == 0
 	

@@ -11,6 +11,7 @@ import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
 import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
+import org.codehaus.jackson.map.ObjectMapper
 
 class Bond(	  @Column("ID")					override var id: String,
               @Column("REF_NUMBER")			var ref_number: Int,
@@ -199,6 +200,8 @@ class Bond(	  @Column("ID")					override var id: String,
       case _ => Map.empty
     }
 
+  def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
+  
   def this() = this(
 		id = null,
 		ref_number = 0,

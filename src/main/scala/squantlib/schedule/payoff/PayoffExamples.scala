@@ -69,7 +69,7 @@ object PayoffExamples {
 	    }""")
 
       val forward = Payoff("""
-	    {"type" : "putdi", 
+	    {"type" : "forward", 
 	    "variable" : ["usdjpy", "NKY"], 
 	    "strike" : [100, 10000], 
 	    "description" : "Forward"
