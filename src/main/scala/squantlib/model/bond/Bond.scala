@@ -9,7 +9,7 @@ import squantlib.database.schemadefinitions.{Bond => dbBond}
 import squantlib.schedule.payoff._
 import squantlib.util.initializer.Currencies
 import squantlib.util.JsonUtils._
-import squantlib.util.SimpleCache
+import squantlib.util.{SimpleCache, FormulaParser}
 import squantlib.pricing.model.PricingModel
 import squantlib.math.solver._
 import squantlib.math.financial.{BondYield, Duration}
@@ -672,14 +672,16 @@ case class Bond(
 	def underlyingDelta(id:String, shift:Double):Option[Double] = greek((b:Bond) => b.modelPriceJpy, (m:Market) => m.underlyingShifted(id, shift))
 	
 	def underlyingDeltas(shift:Double):Map[String, Option[Double]] = {
-	  val uls = underlyings ++ currencyList.filter(_ != "JPY").map(_ + "JPY")
+	  val modifieduls = underlyings.map(u => if(FormulaParser.isFX(u) && u.take(3) == "JPY") u.takeRight(3) + u.take(3) else u)
+	  val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
 	  uls.map(ul => (ul, underlyingDelta(ul, shift)))(collection.breakOut)
 	}
 	
 	def underlyingVega(id:String, shift:Double):Option[Double] = greek((b:Bond) => b.modelPriceJpy, (m:Market) => m.underlyingVolShifted(id, shift))
 	
 	def underlyingVegas(shift:Double):Map[String, Option[Double]] = {
-	  val uls = underlyings ++ currencyList.filter(_ != "JPY").map(_ + "JPY")
+	  val modifieduls = underlyings.map(u => if(FormulaParser.isFX(u) && u.take(3) == "JPY") u.takeRight(3) + u.take(3) else u)
+	  val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
 	  uls.map(ul => (ul, underlyingVega(ul, shift))) (collection.breakOut)
 	}
 	

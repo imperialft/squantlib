@@ -307,7 +307,10 @@ class Market(
 	      paramset, 
 	      curves, 
 	      cdscurves, 
-	      fxInitializers.map{case (c, v) => if (shift contains c) (c, v.addFXVol(shift(c))) else (c, v)}, 
+	      fxInitializers.map{case (c, v) => 
+	        if (shift.contains(c)) (c, v.addFXVol(shift(c)))
+	        else if (shift.contains(c.takeRight(3) + c.take(3))) (c, v.addFXVol(shift(c.takeRight(3) + c.take(3))))
+	        else (c, v)}, 
 	      indexInitializers, 
 	      equityInitializers, 
 	      fixings)
