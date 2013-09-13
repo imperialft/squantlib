@@ -82,7 +82,8 @@ class Bond(	  @Column("ID")					override var id: String,
       "cpnnotice",
       "bondname",
       "shortname",
-      "description_jpn")
+      "description_jpn",
+      "description_eng")
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
