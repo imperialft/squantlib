@@ -176,9 +176,9 @@ case class BsNfQto(
     
 	val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, fsigmafx, stepsize, List.empty)
     
-	val title = List("valuedate", "forward", "rate", "repo", "divrate", "sigma", "drift", "div", "sigmafx")
+	val title = List("valuedate", "forward", "rate", "repo", "sigma", "div", "sigmafx")
 	
-	  var spotprice = spot
+	var spotprice = spot
 	
 	@tailrec def accr(adate:Double, aspots:List[Double], aratedom:Double, aratefors:List[Double], asiggs:List[Double], adivvs:List[Double], siggfx:List[Double], current:List[List[String]]):List[List[String]] = 
 	  if (aspots.isEmpty) current.reverse

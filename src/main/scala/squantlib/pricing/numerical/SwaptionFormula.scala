@@ -1,4 +1,4 @@
-package squantlib.pricing.mcengine
+package squantlib.pricing.numerical
 
 import org.apache.commons.math3.distribution.NormalDistribution
 

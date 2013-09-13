@@ -162,7 +162,7 @@ case class BsNf(
 
     val (fratedom, fratefor, fsigma) = getForwards(mcdates, ratedom, ratefor, sigma)
     
-	val title = List("valuedate", "forward", "rate", "repo", "divrate", "sigma", "drift", "div")
+	val title = List("valuedate", "forward", "rate", "repo", "sigma", "div")
 	
   	@tailrec def accr(adate:Double, aspots:List[Double], aratedom:Double, aratefors:List[Double], asiggs:List[Double], adivvs:List[Double], current:List[List[String]]):List[List[String]] = 
 	    if (aspots.isEmpty) current.reverse
