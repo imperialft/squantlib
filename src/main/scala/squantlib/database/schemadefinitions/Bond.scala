@@ -155,7 +155,7 @@ class Bond(	  @Column("ID")					override var id: String,
   def redemptionNotice:Int = redemnotice.getOrElse(couponNotice)
 
   def schedule:Option[Schedule] = try {
-    Some(Schedule(
+    val schedule = Schedule(
         effectiveDate = issueDateQl,
 		terminationDate = maturityQl,
 		tenor = period,
@@ -171,7 +171,8 @@ class Bond(	  @Column("ID")					override var id: String,
 		nextToLastDate = None,
 		addRedemption = true,
 		maturityNotice = redemptionNotice
-    ))
+    )
+    if (schedule == null) None else Some(schedule)
   }
   catch { case _:Throwable => None}
   
