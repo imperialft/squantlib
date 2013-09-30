@@ -105,9 +105,9 @@ object Schedule{
       if(addRedemption) List(CalculationPeriod(effectiveDate, terminationDate, maturityNotice, true, new Absolute, calendar, terminationDateConvention))
       else List.empty
     
-    if (tenor.length == 0) {return null}
-      
-    val couponLegs:List[CalculationPeriod] = rule match {
+    val couponLegs:List[CalculationPeriod] = 
+      if (tenor.length == 0) List.empty
+      else rule match {
 	  
 	  case Zero => List(calcperiod(effectiveDate, terminationDate))
 

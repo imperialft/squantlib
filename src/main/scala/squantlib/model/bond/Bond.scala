@@ -309,6 +309,7 @@ case class Bond(
 	 */
 	def accruedAmount:Option[Double] = market.flatMap(mkt => 
 	  if (issueDate ge mkt.valuedate) Some(0.0)
+	  else if (coupon isEmpty) Some(0.0)
 	  else livePayoffs.filter{case (d, p, _) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)} match {
 	    case pos if pos.isEmpty => None
 	    case pos => Some(pos.map{case (d, p, _) => (d.accrued(mkt.valuedate)) * p.price(mkt) }.sum)

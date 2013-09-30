@@ -195,8 +195,9 @@ object Payoffs {
 	
 	def apply(payoffs:LinearSeq[Payoff]) = new Payoffs(payoffs.toList)
 	
-	def apply(formula:String, legs:Int = 0):Option[Payoffs] =	{
-	  if (formula == null || formula.trim.isEmpty) {
+	def apply(formula:String, legs:Int = 1):Option[Payoffs] =	{
+	  if (legs == 0) Some(Payoffs(List.empty))
+	  else if (formula == null || formula.trim.isEmpty) {
 	    def getNullPayoff = new NullPayoff
 	    Some(Payoffs(List.fill(legs)(getNullPayoff)))
 	  }
