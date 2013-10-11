@@ -6,7 +6,8 @@ import org.codehaus.jackson.node.{ObjectNode, ArrayNode}
 import scala.collection.JavaConversions._
 import org.jquantlib.time.{Date => qlDate}
 import org.codehaus.jackson.`type`.TypeReference;
-
+import java.util.{List => JavaList, Map => JavaMap}
+import java.lang.{String => JavaString}
 
 object JsonUtils {
   
@@ -204,17 +205,31 @@ object JsonUtils {
     
     def getString(key:String):Option[String] = Some(map(key).toString)
   }
-
   
-  def jsonString[T](map:Map[String, T]):String = {
-    val infoMap:java.util.Map[java.lang.String, T] = map
-    (new ObjectMapper).writeValueAsString(infoMap)    
+  def scalaStringtoJavaString(s:String):JavaString = s
+  
+  def scalaMapToJavaMap(m:Map[String, Any]):JavaMap[JavaString, Any] = m
+  
+  def scalaListToJavaList(m:Seq[Any]):JavaList[Any] = m
+    
+  def toJavaCollection(colset:Any):Any = colset match {
+    case c:Map[String, Any] => scalaMapToJavaMap(c.map{case (k, v) => (k, toJavaCollection(v))})
+    case c:Traversable[Any] => scalaListToJavaList(c.toSeq.map(cc => toJavaCollection(cc)))
+    case c:String => val js:JavaString = c; js
+    case c => c
   }
   
-  def jsonString[T](coll:Traversable[T]):String = {
-    val infoArray:java.util.Collection[T] = coll.toSeq
-    (new ObjectMapper).writeValueAsString(infoArray)    
-  }
+  def jsonString(obj:Any):String = try {(new ObjectMapper).writeValueAsString(toJavaCollection(obj))} catch {case e:Throwable => ""}
+  
+//  def jsonString[T](map:Map[String, T]):String = {
+//    val infoMap:java.util.Map[java.lang.String, T] = map
+//    (new ObjectMapper).writeValueAsString(infoMap)    
+//  }
+//  
+//  def jsonString[T](coll:Traversable[T]):String = {
+//    val infoArray:java.util.Collection[T] = coll.toSeq
+//    (new ObjectMapper).writeValueAsString(infoArray)    
+//  }
 
 } 
 
