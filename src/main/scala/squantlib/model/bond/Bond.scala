@@ -19,7 +19,7 @@ import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import squantlib.pricing.model.NoModel
 import squantlib.model.Market
 import squantlib.model.rates.DiscountCurve
-import squantlib.model.asset.{StaticAsset, Underlying}
+import squantlib.model.asset.{AnalyzedAsset, Underlying}
 import squantlib.util.UnderlyingParser
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
@@ -42,7 +42,7 @@ case class Bond(
 		var modelCalibrated:Boolean = false,
 		var _market:Option[Market] = None,
 		var model:Option[PricingModel] = None
-		) extends StaticAsset {
+		) extends AnalyzedAsset {
 	
 	/*
 	 * Basic access functions
@@ -71,7 +71,7 @@ case class Bond(
 	
 	def nominal:Option[Double] = db.nominal
 	
-	def currency:Currency = Currencies(db.currencyid).orNull
+	val currency:Currency = Currencies(db.currencyid).orNull
 	
 	def denomination:Option[Double] = db.denomination
 	
@@ -295,6 +295,10 @@ case class Bond(
 	      case (Some(m), None) => println(id + " : missing discount curve"); m.price
 	      case _ => println(id + " : missing model"); None
 	}}
+	
+	override def isPriced: Boolean = dirtyPrice.isDefined
+	
+	override def latestPriceLocalCcy: Option[Double] = dirtyPrice
 	
 	/*	
 	 * Returns clean price of the bond (ie. Dirty price - accrued coupon)

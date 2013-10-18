@@ -209,11 +209,12 @@ object JsonUtils {
   def scalaStringtoJavaString(s:String):JavaString = s
   
   def scalaMapToJavaMap(m:Map[String, Any]):JavaMap[JavaString, Any] = m
+  def scalaAnyMapToJavaMap(m:Map[Any, Any]):JavaMap[Any, Any] = m
   
   def scalaListToJavaList(m:Seq[Any]):JavaList[Any] = m
     
   def toJavaCollection(colset:Any):Any = colset match {
-    case c:Map[String, Any] => scalaMapToJavaMap(c.map{case (k, v) => (k, toJavaCollection(v))})
+    case c:Map[_, _] => scalaAnyMapToJavaMap(c.map{case (k, v) => (k, toJavaCollection(v))})
     case c:Traversable[Any] => scalaListToJavaList(c.toSeq.map(cc => toJavaCollection(cc)))
     case c:String => val js:JavaString = c; js
     case c => c

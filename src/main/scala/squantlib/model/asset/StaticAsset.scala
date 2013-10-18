@@ -1,4 +1,5 @@
 package squantlib.model.asset
+
 import org.jquantlib.time.{Weekday, Date => qlDate}
 import squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
 import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
@@ -27,11 +28,11 @@ trait StaticAsset {
   
   protected def getDbForwardPrice:Map[qlDate, Double]  // to be implemented in subclass
   
-  def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice.filter{case (d, _) => isWeekday(d)}))
+  def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice).getFilledTimeSeries(true))
 	
   protected def getPriceHistory:Map[qlDate, Double]
   
-  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getPriceHistory.filter{case (d, _) => isWeekday(d)}))
+  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getPriceHistory).getFilledTimeSeries(true))
   
   def historicalVolLatest(nbDays:Int, annualDays:Double = 260, minDays:Int = 100):Option[Double] = {
     if (priceHistory.size < minDays) {return None}
@@ -79,11 +80,6 @@ trait StaticAsset {
     correlarray.map{ case (d, v) => getCorrelation(asset, d.longDate, nbDays, 1, v)} (collection.breakOut)
   }
   
-  def isWeekday(d:qlDate):Boolean = d.weekday match {
-    case Weekday.Saturday | Weekday.Sunday => false
-    case _ => true
-  }
-    
 } 
 
 object StaticAsset {

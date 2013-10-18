@@ -3,6 +3,9 @@ package squantlib.math.timeseries
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod }
 import scala.collection.{SortedSet, SortedMap}
 import java.util.{Date => JavaDate}
+import org.jquantlib.time.{Weekday, Date => qlDate}
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
+import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
 
 case class TimeSeries(ts:SortedMap[qlDate, Double]) extends SortedMap[qlDate, Double] {
   
@@ -26,7 +29,25 @@ case class TimeSeries(ts:SortedMap[qlDate, Double]) extends SortedMap[qlDate, Do
   override def rangeImpl(from: Option[qlDate], until: Option[qlDate]) = TimeSeries(ts.rangeImpl(from, until)) 
   
   override def ordering = ts.ordering
-	  
+  
+  def firstDate:qlDate = ts.head._1
+  
+  def lastDate:qlDate = ts.last._1
+  
+  def getFilledTimeSeries(skipWeekends:Boolean = true, startDate:qlDate = firstDate, endDate:qlDate = lastDate):TimeSeries = {
+    val linearfunction:PolynomialSplineFunction = {
+      val keysarray = ts.keySet.map(_.serialNumber.toDouble).toArray
+      val valarray = ts.values.toArray
+      new LinearInterpolator().interpolate(keysarray, valarray)
+    }
+    val realStartDate = if(startDate ge firstDate) startDate else firstDate
+    val dates = for(d <- realStartDate.serialNumber to endDate.serialNumber) yield (new qlDate(d))
+    val valuedates:Map[qlDate, Double] = (if (skipWeekends) dates.withFilter(d => isWeekday(d)) else dates).map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
+    TimeSeries(valuedates)
+  }
+  
+  def isWeekday(d:qlDate):Boolean = d.weekday != Weekday.Saturday && d.weekday != Weekday.Sunday
+    
 }
 
 object TimeSeries {
