@@ -1,6 +1,8 @@
 package squantlib.model.asset
 
 import org.jquantlib.time.{Date => qlDate}
+import org.jquantlib.currencies.Currency
+import org.jquantlib.currencies.Asia.JPYCurrency
 
 case class GenericAsset(
   override val assetID:String,

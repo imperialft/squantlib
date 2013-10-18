@@ -5,12 +5,11 @@ import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import java.util.{Date => JavaDate}
-import java.util.{Date => JavaDate}
 import org.jquantlib.time.{Date => qlDate}
 import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 
 /**
- * Underlying to be used for pricing models.
+ * Simple asset model (no currency)
  */
 trait StaticAsset {
   
