@@ -61,7 +61,9 @@ case class Bond(
 	
 	def issueDate:qlDate = schedule.head.startDate
 	
-	def isIssued:Option[Boolean] = market.collect{case mkt => mkt.valuedate ge issueDate}
+	def isIssuedOn(d:qlDate):Boolean = d ge issueDate
+	
+	def isIssued:Option[Boolean] = valueDate.collect{case d => isIssuedOn(d)}
 	
 	def scheduledMaturity:qlDate = schedule.last.endDate
 	
@@ -103,25 +105,30 @@ case class Bond(
 	  if (amount.isNaN || amount.isInfinity) None else Some(amount)
 	}
 	
-	def isScheduleMatured:Option[Boolean] = valueDate.collect { case vd => vd ge scheduledMaturity}
+	def isScheduleMaturedOn(d:qlDate):Boolean = d ge scheduledMaturity
+	
+	def isScheduleMatured:Option[Boolean] = valueDate.collect { case vd => isScheduleMaturedOn(vd)}
 	
 	lazy val (earlyTerminationPeriod:Option[CalculationPeriod], earlyTerminationAmount:Option[Double]) = 
 	  scheduledPayoffs.triggeredDate.collect{case (p, a) => (Some(p), Some(a))}.getOrElse((None, None))
 	
 	lazy val earlyTerminationDate:Option[qlDate] = earlyTerminationPeriod.collect{case p => p.paymentDate}
 	
-	def isEarlyTerminated:Option[Boolean] = (valueDate, earlyTerminationDate) match {
-	  case (Some(vd), Some(td)) => Some(vd ge td)
-	  case (Some(vd), None) => Some(false)
-	  case _ => None
-	}
+	def isEarlyTerminatedOn(d:qlDate):Boolean = earlyTerminationDate.collect{case dd => d ge dd}.getOrElse(false)
+	  
+	def isEarlyTerminated:Option[Boolean] = valueDate.collect{case d => isEarlyTerminatedOn(d)}
 	
-	def isTerminated:Option[Boolean] = (isScheduleMatured, isEarlyTerminated) match {
-	  case (Some(m), Some(t)) => Some(m || t)
-	  case _ => None
-	}
+	def isTerminatedOn(d:qlDate):Boolean = isScheduleMaturedOn(d) || isEarlyTerminatedOn(d)
+	  
+	def isTerminated:Option[Boolean] = valueDate.collect{case d => isScheduleMaturedOn(d) || isEarlyTerminatedOn(d)}
 	
 	def terminationDate:qlDate = earlyTerminationDate.getOrElse(scheduledMaturity)
+	
+	override val assetStartDate = Some(issueDate)
+	
+	override val assetEndDate = Some(terminationDate)
+	
+	def isAlive(d:qlDate):Option[Boolean] = valueDate.collect{case d => isAliveOn(d)}
 	
 	def getUnderlyings:Map[String, Option[Underlying]] = market match {
 	  case None => underlyings.map(u => (u, None)) (collection.breakOut)

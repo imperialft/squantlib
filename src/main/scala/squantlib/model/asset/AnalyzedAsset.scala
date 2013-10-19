@@ -1,12 +1,7 @@
 package squantlib.model.asset
+
 import org.jquantlib.time.{Weekday, Date => qlDate}
-import squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
-import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
-import scala.collection.SortedMap
-import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
-import java.util.{Date => JavaDate}
-import org.jquantlib.time.{Date => qlDate}
-import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
+import squantlib.math.timeseries.TimeSeries
 import org.jquantlib.currencies.Currency
 
 /**
@@ -18,7 +13,23 @@ trait AnalyzedAsset extends StaticAsset {
   
   def latestPriceLocalCcy:Option[Double]  // to be implemented in subclass
   
+  def assetStartDate:Option[qlDate] = None // to be implemented in subclass
+  
+  def assetEndDate:Option[qlDate] = None // to be implemented in subclass
+  
+  lazy val firstData = priceHistory.firstDate
+
+  lazy val lastData = priceHistory.lastDate
+  
+  lazy val startDate:qlDate = assetStartDate.collect{case d => if (d ge firstData) d else firstData}.getOrElse(firstData)
+  
+  lazy val endDate:qlDate = assetEndDate.collect{case d => if (d le lastData) d else lastData}.getOrElse(lastData)
+  
+  def isAliveOn(d:qlDate):Boolean = (d ge startDate) && (d le endDate)
+  
   def isPriced:Boolean
+  
+  def getLivePriceHistory:TimeSeries = TimeSeries(priceHistory.filterKeys(d => (d ge startDate) && (d le endDate)))
   
 } 
 
