@@ -18,6 +18,10 @@ case class TimeSeries(ts:SortedMap[qlDate, Double]) extends SortedMap[qlDate, Do
 	SortedMap(commonkeys.map(k => (k, (ts(k), ts2(k)))).toSeq :_*)
   }
   
+  def tmap(f:SortedMap[qlDate, Double] => SortedMap[qlDate, Double]):TimeSeries = TimeSeries(f(ts))
+  
+  def tmapValues(f:Double => Double):TimeSeries = TimeSeries(ts.mapValues(f))
+  
   override def +[T >: Double](ts2:(qlDate, T)):SortedMap[qlDate, T] = ts + ts2
   
   override def -(key:qlDate):SortedMap[qlDate, Double] = ts.-(key)
@@ -29,6 +33,12 @@ case class TimeSeries(ts:SortedMap[qlDate, Double]) extends SortedMap[qlDate, Do
   override def rangeImpl(from: Option[qlDate], until: Option[qlDate]) = TimeSeries(ts.rangeImpl(from, until)) 
   
   override def ordering = ts.ordering
+  
+  def add(ts1:TimeSeries):TimeSeries = {
+    val dates = ts1.keySet ++ ts.keySet
+    val datemap = dates.map(d => (d, (ts.getOrElse(d, 0.0) + ts1.getOrElse(d, 0.0))))
+    TimeSeries(datemap)
+  }
   
   def firstDate:qlDate = ts.head._1
   
@@ -52,8 +62,11 @@ case class TimeSeries(ts:SortedMap[qlDate, Double]) extends SortedMap[qlDate, Do
 
 object TimeSeries {
   
-  def apply(ts:Map[qlDate, Double]):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
+//  def apply(ts:Map[qlDate, Double]):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
   
-  def apply(ts:Map[JavaDate, Double])(implicit d:DummyImplicit):TimeSeries = TimeSeries(SortedMap(ts.map{case (k, v) => (new qlDate(k), v)}.toSeq : _*))
+  def apply[A<:Iterable[(qlDate, Double)]](ts:A):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
+  
+  def apply[A<:Iterable[(JavaDate, Double)]](ts:A)(implicit d:DummyImplicit):TimeSeries = TimeSeries(SortedMap(ts.map{case (k, v) => (new qlDate(k), v)}.toSeq : _*))
   
 }
+
