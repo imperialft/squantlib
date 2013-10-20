@@ -55,6 +55,12 @@ object Date {
   def apply(d:JavaDate):Date = new JavaDateImpl(d)
   def apply(d:qlDate):Date = new QlDateImpl(d)
   def apply(d:Long):Date = new QlDateImpl(new qlDate(d))
+  def apply(day:Int, month:Int, year:Int):Date = {
+    // (year, month, day)
+    if (day >= 1900) new QlDateImpl(new qlDate(year, month, day))
+    // (day, month, year)
+    else new QlDateImpl(new qlDate(day, month, year))
+  }
   
   def currentDate:Date = apply(currentTime)
   def currentTime:JavaDate = java.util.Calendar.getInstance.getTime
