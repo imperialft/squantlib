@@ -2,7 +2,6 @@ package squantlib.math.timeseries
 
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.TreeMap
-import org.jquantlib.time.{Date => qlDate}
 
 object Covariance{
   

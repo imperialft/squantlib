@@ -6,8 +6,9 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
+import org.jquantlib.time.{TimeUnit, Date => jDate, Period => qlPeriod, Frequency }
 import squantlib.model.yieldparameter._
+import squantlib.util.Date
 import squantlib.model.rates.convention.RateConvention
 
 
@@ -33,14 +34,14 @@ case class TenorBasisSwapCurve (
 
 object TenorBasisSwapCurve{
   
-	def defaultCurve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter	
+	def defaultCurve(valuedate:Date, values:Map[qlPeriod, Double]):YieldParameter	
 		= (values.keySet.size) match {
 			case 1 => FlatVector(valuedate, values)
 			case 2 => LinearNoExtrapolation(valuedate, values)
 			case _ => SplineNoExtrapolation(valuedate, values, 2)
   		} 
 	
-	def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[TenorBasisSwapCurve]
+	def apply(valuedate:Date, currency:String, values:Map[qlPeriod, Double]):Option[TenorBasisSwapCurve]
 		= apply(defaultCurve(valuedate, values), currency)
 	
 	def apply(curve:YieldParameter, currency:String):Option[TenorBasisSwapCurve]

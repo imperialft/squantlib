@@ -2,8 +2,8 @@ package squantlib.model.rates
 
 import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{ Date => JDate }
-
+import org.jquantlib.time.{ Date => jDate }
+import squantlib.util.Date
 
 /**
  * Encapsulates a full FX curve. Should implement getZC() in superclass.
@@ -13,7 +13,7 @@ trait FXCurve extends DiscountableCurve{
   val pivotcurrency : Currency
   val fx : Double
   val swappoint : SwapPointCurve
-  val valuedate : JDate
+  val valuedate : Date
   
     /**
    * View
@@ -25,6 +25,6 @@ trait FXCurve extends DiscountableCurve{
 	  Array(currency.code, "pivot: " + pivotcurrency.code, "fx: " + fx).mkString(sys.props("line.separator"))
   }
   
-  def describe = (currency.code + " : " + fx + " : " + valuedate.shortDate + " - " + swappoint.points.maxdate.shortDate + (if (swappoint != null) " swappt" else ""))
+  def describe = (currency.code + " : " + fx + " : " + valuedate.toString + " - " + swappoint.points.maxdate.toString + (if (swappoint != null) " swappt" else ""))
 }
 

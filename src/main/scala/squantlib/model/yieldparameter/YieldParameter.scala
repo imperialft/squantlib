@@ -1,18 +1,19 @@
 package squantlib.model.yieldparameter
 
 import scala.collection.mutable.MutableList
-import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit }
+import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit }
 import org.jquantlib.daycounters.DayCounter
+import squantlib.util.Date
 
 /**
  * Encapsulate time series vector parameter with interpolation, extrapolation and other adjustments functions.
  */
-trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
+trait YieldParameter extends Iterable[Pair[Date, Double]] {
   
 	/**
 	 * Returns base date of this vector. 
 	 */
-	var valuedate : qlDate
+	var valuedate : Date
 	/**
 	 * Returns number of days between value date and first defined point.
 	 * This point is the low boundary between interpolation & extrapolation.
@@ -29,7 +30,7 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
 	 * Returns date of final defined point. 
 	 * This point is the high boundary between interpolation & extrapolation.
 	 */
-	def maxdate : qlDate = new qlDate(valuedate.serialNumber() + maxdays.toLong)
+	def maxdate : Date = Date(valuedate.serialNumber + maxdays.toLong)
 	
 	/**
 	 * Returns period between valueDate and final defined point. 
@@ -62,14 +63,14 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
 	 * Returns the value corresponding to the given date.
 	 * @param observation date
 	 */
-    def value(date : qlDate) : Double = value(date.serialNumber() - valuedate.serialNumber())
-    def apply(date : qlDate) = value(date)
+    def value(date : Date) : Double = value(date.serialNumber - valuedate.serialNumber)
+    def apply(date : Date) = value(date)
     
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the period from value date.
 	 */
-    def value(period : qlPeriod) : Double = value(period.days(valuedate))
+    def value(period : qlPeriod) : Double = value(valuedate.days(period))
     def apply(date:qlPeriod) = value(date)
     
 	/**
@@ -81,9 +82,9 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
   /**
    * Returns an Iterator that provides data during mindays..maxdays incremented by 1 day
    */
-    def iterator:Iterator[Pair[qlDate, Double]] = {
+    def iterator:Iterator[Pair[Date, Double]] = {
       // FIXME: This could be inefficient.
-      val list = MutableList[Pair[qlDate, Double]]()
+      val list = MutableList[Pair[Date, Double]]()
       for (i <- mindays.toLong to maxdays.toLong)
         list += Pair(valuedate.add(i.toInt), value(i)) // .toInt, srsly?
       return list.iterator
@@ -101,23 +102,23 @@ trait YieldParameter extends Iterable[Pair[qlDate, Double]] {
 
 object YieldParameter {
   
-  def apply(valuedate:qlDate, data:Map[Double, Double]):Option[YieldParameter] = data.size match {
+  def apply(valuedate:Date, data:Map[Double, Double]):Option[YieldParameter] = data.size match {
     case s if s > 2 => Some(SplineNoExtrapolation(valuedate, data))
     case 2 => Some(LinearNoExtrapolation(valuedate, data))
     case 1 => Some(FlatVector(valuedate, data.head._2))
     case _ => None
   }
   
-  def apply(valuedate:qlDate, data:Map[qlDate, Double])(implicit d:DummyImplicit):Option[YieldParameter] = {
+  def apply(valuedate:Date, data:Map[Date, Double])(implicit d:DummyImplicit):Option[YieldParameter] = {
     val values = data.withFilter{case (d, v) => (d ge valuedate)}
     			.map{case (k, v) => (k.serialNumber.toDouble - valuedate.serialNumber.toDouble, v)}.toMap
     apply(valuedate, values)
   }
   
-  def apply(valuedate:qlDate, data:Map[qlPeriod, Double])(implicit d:DummyImplicit, e:DummyImplicit):Option[YieldParameter] = {
-    val values = data.map{case (k, v) => (k.days(valuedate).toDouble, v)}.toMap
+  def apply(valuedate:Date, data:Map[qlPeriod, Double])(implicit d:DummyImplicit, e:DummyImplicit):Option[YieldParameter] = {
+    val values = data.map{case (p, v) => (valuedate.days(p).toDouble, v)}.toMap
     apply(valuedate, values)
   }
 	
-  def apply(valuedate:qlDate, value:Double):Option[YieldParameter] = Some(FlatVector(valuedate, value))
+  def apply(valuedate:Date, value:Double):Option[YieldParameter] = Some(FlatVector(valuedate, value))
 }

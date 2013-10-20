@@ -5,10 +5,9 @@ import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import java.util.{Map => JavaMap}
-import org.jquantlib.time.{Date => qlDate}
+import org.jquantlib.time.{Date => jDate}
 import squantlib.database.DB
-import java.util.{Map => JavaMap}
-import org.jquantlib.time.{Date => qlDate}
+import squantlib.util.Date
 import squantlib.schedule.CalculationPeriod
 
 /**
@@ -21,8 +20,8 @@ case class PutDIAmericanPayoff(
     putVariables:List[String], 
     trigger:List[Double], 
     strike:List[Double], 
-    refStart:qlDate, 
-    refEnd:qlDate, 
+    refStart:Date, 
+    refEnd:Date, 
     knockedIn:Boolean, 
     amount:Double = 1.0, 
     description:String = null) extends Payoff {
@@ -44,15 +43,15 @@ case class PutDIAmericanPayoff(
 	var mcPeriod1y = 90
 	var mcPeriodbefore = 180
 	
-	override def eventDates(period:CalculationPeriod):List[qlDate] = {
+	override def eventDates(period:CalculationPeriod):List[Date] = {
 	  if (!isPriceable) {return List(period.endDate)}
 	  val basemod = refEnd.serialNumber % mcPeriod6m
 	  val start = refStart.serialNumber
 	  val end = refEnd.serialNumber
-	  val dates:List[qlDate] = (for (i <- (start to end) 
+	  val dates:List[Date] = (for (i <- (start to end) 
 	      if (i >= end - 180 && i % mcPeriod6m == basemod)
 	      || (i >= end - 360 && i % mcPeriod1y == basemod)
-	      || (i % mcPeriodbefore == basemod)) yield new qlDate(i)) (collection.breakOut)
+	      || (i % mcPeriodbefore == basemod)) yield Date(i)) (collection.breakOut)
 	  if (dates.head == refStart) dates else refStart :: dates
 	}
 	
@@ -108,8 +107,8 @@ case class PutDIAmericanPayoff(
 	      "variable" -> putVariables.toArray, 
 	      "trigger" -> trigger.toArray, 
 	      "strike" -> strike.toArray,
-	      "refstart" -> (if (refStart == null) null else "%tY/%<tm/%<td".format(refStart.longDate)),
-	      "refend" -> (if (refEnd == null) null else "%tY/%<tm/%<td".format(refEnd.longDate)),
+	      "refstart" -> (if (refStart == null) null else refStart.toString),
+	      "refend" -> (if (refEnd == null) null else refEnd.toString),
 	      "description" -> description)
 	  
 	  (new ObjectMapper).writeValueAsString(infoMap)	  
@@ -125,8 +124,8 @@ object PutDIAmericanPayoff {
 	  val trigger:List[Double] = node.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
 	  val strike:List[Double] = node.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
 	  val amount:Double = node.parseJsonDouble("amount").getOrElse(1.0)
-	  val refStart:qlDate = node.parseJsonDate("refstart").orNull
-	  val refEnd:qlDate = node.parseJsonDate("refend").orNull
+	  val refStart:Date = node.parseJsonDate("refstart").orNull
+	  val refEnd:Date = node.parseJsonDate("refend").orNull
 	  val description:String = node.parseJsonString("description").orNull
 	  
 	  val knockedIn:Boolean = 

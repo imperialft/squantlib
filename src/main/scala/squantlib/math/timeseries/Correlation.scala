@@ -1,7 +1,7 @@
 package squantlib.math.timeseries
 
 import scala.collection.SortedMap
-import org.jquantlib.time.{ Date => qlDate }
+import squantlib.util.Date
 
 object Correlation {
   
@@ -29,7 +29,7 @@ object Correlation {
     
     def calculate(quotes1:IndexedSeq[Double], quotes2:IndexedSeq[Double]):IndexedSeq[Double] = calculate(quotes1, quotes2, quotes1.size)
     
-    def calculate(quotes:SortedMap[qlDate, (Double, Double)], nbData:Int):SortedMap[qlDate, Double] = {
+    def calculate(quotes:SortedMap[Date, (Double, Double)], nbData:Int):SortedMap[Date, Double] = {
       val correl = calculate(quotes.unzip._2.toIndexedSeq, nbData).toSeq
       SortedMap((quotes.unzip._1.takeRight(correl.size) zip correl)(collection.breakOut) :_*)
     }

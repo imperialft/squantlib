@@ -3,7 +3,8 @@ package squantlib.schedule
 import scala.collection.mutable.MutableList
 import scala.collection.LinearSeq
 import org.jquantlib.daycounters._
-import org.jquantlib.time.{Date => qlDate, _}
+import squantlib.util.Date
+import org.jquantlib.time.{Date => jDate, _}
 import org.jquantlib.time.calendars.NullCalendar
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.DateGeneration.Rule._
@@ -28,28 +29,28 @@ class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationP
 
     def get(i:Int):CalculationPeriod = dates(i)
     
-    val effectiveDate:Option[qlDate] = if (isEmpty) None else Some(dates.minBy(_.startDate).startDate)
-    val terminationDate:Option[qlDate] = if (isEmpty) None else Some(dates.maxBy(_.endDate).endDate)
+    val effectiveDate:Option[Date] = if (isEmpty) None else Some(dates.minBy(_.startDate).startDate)
+    val terminationDate:Option[Date] = if (isEmpty) None else Some(dates.maxBy(_.endDate).endDate)
     
     var defaultDaycounter = new Actual365Fixed
     
-    def startDate(i:Int):qlDate = dates(i).startDate
-    val startDates:List[qlDate] = dates.map(_.startDate)
-    def startYears(baseDate:qlDate):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.startDate))
+    def startDate(i:Int):Date = dates(i).startDate
+    val startDates:List[Date] = dates.map(_.startDate)
+    def startYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.startDate, defaultDaycounter))
     
-    def endDate(i:Int):qlDate = dates(i).endDate
-    val endDates:List[qlDate] = dates.map(_.endDate)
-    def endYears(baseDate:qlDate):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.endDate))
+    def endDate(i:Int):Date = dates(i).endDate
+    val endDates:List[Date] = dates.map(_.endDate)
+    def endYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.endDate, defaultDaycounter))
     
-    def eventDate(i:Int):qlDate = dates(i).eventDate
-    val eventDates:List[qlDate] = dates.map(_.eventDate)
-    def eventYears(baseDate:qlDate):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.eventDate))
+    def eventDate(i:Int):Date = dates(i).eventDate
+    val eventDates:List[Date] = dates.map(_.eventDate)
+    def eventYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.eventDate, defaultDaycounter))
     
-    def paymentDate(i:Int):qlDate = dates(i).paymentDate
-    val paymentDates:List[qlDate] = dates.map(_.paymentDate)
-    def paymentYears(baseDate:qlDate):List[Double] = dates.map(d => defaultDaycounter.yearFraction(baseDate, d.paymentDate))
+    def paymentDate(i:Int):Date = dates(i).paymentDate
+    val paymentDates:List[Date] = dates.map(_.paymentDate)
+    def paymentYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.paymentDate, defaultDaycounter))
 
-    def currentPeriods(ref:qlDate):List[CalculationPeriod] = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
+    def currentPeriods(ref:Date):List[CalculationPeriod] = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
     
     def dayCount(i:Int):Double = dates(i).dayCount
     val dayCounts:List[Double] = dates.map(_.dayCount)
@@ -77,8 +78,8 @@ object Schedule{
   def apply(dates:LinearSeq[CalculationPeriod]):Schedule = new Schedule(dates.toList)
 	
   def apply(
-    effectiveDate:qlDate,
-	terminationDate:qlDate,
+    effectiveDate:Date,
+	terminationDate:Date,
 	tenor:Period,
 	calendar:Calendar,
 	calendarConvention:BusinessDayConvention,
@@ -88,8 +89,8 @@ object Schedule{
 	fixingInArrears:Boolean,
 	noticeDay:Int,
 	daycount:DayCounter,
-	firstDate:Option[qlDate],
-	nextToLastDate:Option[qlDate],
+	firstDate:Option[Date],
+	nextToLastDate:Option[Date],
 	addRedemption:Boolean,
 	maturityNotice:Int):Schedule = {
   
@@ -98,7 +99,7 @@ object Schedule{
 	
     val nullCalendar = new NullCalendar
     
-    def calcperiod(startdate:qlDate, enddate:qlDate):CalculationPeriod = 
+    def calcperiod(startdate:Date, enddate:Date):CalculationPeriod = 
       CalculationPeriod(startdate, enddate, noticeDay, fixingInArrears, daycount, calendar, if (enddate == terminationDate) terminationDateConvention else paymentConvention)
     
     val redemptionLegs:List[CalculationPeriod] = 
@@ -120,12 +121,12 @@ object Schedule{
         }
         
         var periods=1
-        var startDate:qlDate = initialDate
-        var endDate:qlDate = terminationDate
+        var startDate:Date = initialDate
+        var endDate:Date = terminationDate
 
         do {
           endDate = startDate
-          startDate = nullCalendar.advance(initialDate, tenor.mul(periods).negative, calendarConvention)
+          startDate = initialDate.advance(nullCalendar, tenor.mul(periods).negative, calendarConvention)
           if (Math.abs(effectiveDate.sub(startDate)) < 14) {startDate = effectiveDate}
           tempdates += calcperiod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate)
           periods = periods + 1
@@ -142,12 +143,12 @@ object Schedule{
         }
         
         var periods=1
-        var startDate:qlDate = effectiveDate
-        var endDate:qlDate = initialDate
+        var startDate:Date = effectiveDate
+        var endDate:Date = initialDate
 
         do {
           startDate = endDate
-          endDate = nullCalendar.advance(initialDate, tenor.mul(periods), calendarConvention)
+          endDate = initialDate.advance(nullCalendar, tenor.mul(periods), calendarConvention)
           if (Math.abs(terminationDate.sub(endDate)) < 14) {endDate = terminationDate}
           tempdates += calcperiod(startDate, if (endDate ge terminationDate) terminationDate else endDate)
           periods = periods + 1
@@ -180,8 +181,8 @@ object Schedule{
 	addRedemption:Boolean,
 	maturityNotice:Int):Schedule 
 	= apply(
-	    new qlDate(effectiveDate), 
-	    new qlDate(terminationDate), 
+	    Date(effectiveDate), 
+	    Date(terminationDate), 
 	    tenor, 
 	    calendar, 
 	    calendarConvention, 
@@ -191,26 +192,25 @@ object Schedule{
 	    fixingInArrears, 
 	    noticeDay, 
 	    daycount, 
-	    firstDate.
-	    collect{case d => new qlDate(d)}, 
-	    nextToLastDate.collect{case d => new qlDate(d)}, 
+	    firstDate.collect{case d => Date(d)}, 
+	    nextToLastDate.collect{case d => Date(d)}, 
 	    addRedemption, 
 	    maturityNotice)
 
 		    
   def periodicalDates(
-    startDate:qlDate, 
-    endDate:qlDate, 
+    startDate:Date, 
+    endDate:Date, 
     period:Period, 
     convention:BusinessDayConvention, 
-    calendar:Calendar):List[qlDate] = {
+    calendar:Calendar):List[Date] = {
 	  
 	var periods = 1
 	var currentPeriod = 0
 	var currentDate = startDate
-	var tempdates:MutableList[qlDate] = MutableList(currentDate)
+	var tempdates:MutableList[Date] = MutableList(currentDate)
 	do {
-      currentDate = calendar.advance(startDate, period.mul(periods), convention)
+      currentDate = Date(calendar.advance(startDate.ql, period.mul(periods), convention))
       tempdates += (if (currentDate ge endDate) endDate else currentDate)
       periods = periods + 1
 	} while (endDate gt currentDate)

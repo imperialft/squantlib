@@ -1,7 +1,8 @@
 package squantlib.model.rates
 
 import squantlib.model.yieldparameter.YieldParameter
-import org.jquantlib.time.{Date => qlDate}
+import org.jquantlib.time.{Date => jDate}
+import squantlib.util.Date
 
 /**
  * Encapsulates a full rate curve. Should implement getZC() in superclass.
@@ -11,7 +12,7 @@ trait RateCurve extends DiscountableCurve{
   val swap : SwapCurve
   val basis : BasisSwapCurve
   val tenorbasis : TenorBasisSwapCurve
-  val valuedate : qlDate
+  val valuedate : Date
   
     /**
    * View
@@ -25,7 +26,7 @@ trait RateCurve extends DiscountableCurve{
 	  Array(cash.currency.code, "cash: " + cashdescribe(cash), "swap: " + swapdescribe(swap), "bs: " + basisdescribe(basis), "bs3m6m: " + basis36describe(tenorbasis)).mkString(sys.props("line.separator"))
   }
   
-  def describe = (cash.currency.code + " : " + fx + " : " + valuedate.shortDate + " - " + swap.rate.maxdate.shortDate +  
+  def describe = (cash.currency.code + " : " + fx + " : " + valuedate.toString + " - " + swap.rate.maxdate.toString +  
       (if (cash != null) " cash" else "") + (if (swap != null) " swap" else "") +
       (if (basis != null) " basis" else "") + (if (tenorbasis != null) " bs3m6m" else ""))
   

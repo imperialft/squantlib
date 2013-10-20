@@ -1,7 +1,8 @@
 package squantlib.model.rates
 
 import squantlib.model.yieldparameter._
-import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
+import squantlib.util.Date
+import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.model.rates.convention.RateConvention
 import scala.annotation.tailrec
@@ -43,7 +44,7 @@ case class LiborDiscountCurve (
 	  /**
 	   * day count initialization, for swap fixed leg convention. (not to be used for cash rate)
 	   */
-	  val maxmaturity = qlPeriod.months(swap.rate.maxperiod, valuedate).toInt
+	  val maxmaturity = valuedate.months(swap.rate.maxperiod).toInt
 	  
 	  val zcmonths = (for (m <- (List(0, 3, 6, 9) ++ (12 to maxmaturity by fixperiod))) yield m).sorted
 	  
@@ -51,13 +52,13 @@ case class LiborDiscountCurve (
 	  
 	  val sortedperiods = zcperiods.toList.sortBy(_._1)
 	  
-	  val maturities:Map[Int, qlDate] = zcmonths.map(m => (m, valuedate.add(zcperiods(m)))) (breakOut)
+	  val maturities:Map[Int, Date] = zcmonths.map(m => (m, valuedate.add(zcperiods(m)))) (breakOut)
 	  
 	  val fixdaycounts:Map[Int, Double] = zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
-			  		.map(m => (m, swap.fixdaycount.yearFraction(maturities(m-fixperiod), maturities(m))))(breakOut)
+			  		.map(m => (m, Date.daycount(maturities(m-fixperiod), maturities(m), swap.fixdaycount)))(breakOut)
 			  		
 	  val floatdaycounts:Map[Int, Double] = zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
-	  				.map(m => (m, swap.floatindex.dayCounter().yearFraction(maturities(m-fixperiod), maturities(m))))(breakOut)
+	  				.map(m => (m, Date.daycount(maturities(m-fixperiod), maturities(m), swap.floatindex.dayCounter)))(breakOut)
 	  				
 	  /**
 	   * using cash rate to compute zero coupon < 12 months.

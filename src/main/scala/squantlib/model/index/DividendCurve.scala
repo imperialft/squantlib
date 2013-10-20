@@ -2,7 +2,8 @@ package squantlib.model.index
 
 import squantlib.model.yieldparameter.YieldParameter
 import squantlib.util.initializer.Currencies
-import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
+import squantlib.util.Date
+import org.jquantlib.time.{Period => qlPeriod, Date => jDate}
 import org.jquantlib.currencies.Currency
 import squantlib.model.yieldparameter._
 
@@ -25,16 +26,16 @@ case class DividendCurve(rate:YieldParameter) extends YieldParameter {
 
 object DividendCurve{
   
-  def buildCurve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter = 
+  def buildCurve(valuedate:Date, values:Map[qlPeriod, Double]):YieldParameter = 
     (values.keySet.size) match {
     case 1 => FlatVector(valuedate, values)
 	case 2 => LinearNoExtrapolation(valuedate, values)
 	case _ => SplineNoExtrapolation(valuedate, values, 2) } 
 	
-  def apply(valuedate:qlDate, value:Double, name:String):Option[DividendCurve] = 
+  def apply(valuedate:Date, value:Double, name:String):Option[DividendCurve] = 
     apply(valuedate, Map(new qlPeriod("1Y") -> value))
     
-  def apply(valuedate:qlDate, values:Map[qlPeriod, Double]):Option[DividendCurve] = 
+  def apply(valuedate:Date, values:Map[qlPeriod, Double]):Option[DividendCurve] = 
     Some(DividendCurve(buildCurve(valuedate, values)))
 
 }

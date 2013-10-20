@@ -5,16 +5,16 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.database.DB
 import scala.collection.JavaConversions._
-import org.jquantlib.time.{BusinessDayConvention, Calendar, Date => qlDate}
+import squantlib.util.Date
+import org.jquantlib.time.{BusinessDayConvention, Calendar, Date => jDate}
 import org.jquantlib.daycounters.Actual365Fixed
-import org.jquantlib.time.{Date => qlDate}
 import scala.runtime.ZippedTraversable3.zippedTraversable3ToTraversable
 import squantlib.schedule.call.{Callabilities, Callability}
 import squantlib.schedule.payoff.{Payoff, Payoffs}
 
 case class ScheduledPayoffs(
     scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],
-    valuedate:Option[qlDate] = None
+    valuedate:Option[Date] = None
     ) 
     extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   
@@ -36,9 +36,9 @@ case class ScheduledPayoffs(
   
   def amountToRate(amount:List[Double]) = (amount, bonusCoeff).zipped.map(_ / _)
   
-  def currentPayoffs(vd:qlDate):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd)}.map(_._2) (collection.breakOut)
+  def currentPayoffs(vd:Date):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd)}.map(_._2) (collection.breakOut)
   
-  def currentCoupons(vd:qlDate):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd) && !d.isAbsolute}.map(_._2) (collection.breakOut)
+  def currentCoupons(vd:Date):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd) && !d.isAbsolute}.map(_._2) (collection.breakOut)
   
   def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
   
@@ -49,8 +49,8 @@ case class ScheduledPayoffs(
   
   lazy val bonusRate = amountToRate(bonusAmount)
   
-  val eventDateLegs:List[List[qlDate]] = {
-    val dates:List[List[qlDate]] = scheduledPayoffs.map{
+  val eventDateLegs:List[List[Date]] = {
+    val dates:List[List[Date]] = scheduledPayoffs.map{
       case (d, p, t) if p.isFixed && t.isFixed => List.empty
       case (d, p, t) if p.isFixed => List(p.eventDates(d).last)
       case (d, p, t) => p.eventDates(d)
@@ -62,11 +62,11 @@ case class ScheduledPayoffs(
     }
   }
   
-  val eventDates:List[qlDate] = eventDateLegs.flatten.toSet.toList.sorted
+  val eventDates:List[Date] = eventDateLegs.flatten.toSet.toList.sorted
   
   var defaultDaycounter = new Actual365Fixed
   
-  def eventDateYears(basedate:qlDate):List[Double] = eventDates.map(d => defaultDaycounter.yearFraction(basedate, d))
+  def eventDateYears(basedate:Date):List[Double] = eventDates.map(d => Date.daycount(basedate, d, defaultDaycounter))
   
   val dateMapper:List[List[Int]] = eventDateLegs.map(_.map(eventDates.indexOf(_)))
   
@@ -127,22 +127,22 @@ case class ScheduledPayoffs(
   
   def price:List[Double] = if (calls.isTrigger) List.fill(payoffs.size)(Double.NaN) else payoffs.price
 
-  def withValueDate(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs, Some(vd))
+  def withValueDate(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs, Some(vd))
     
-  def after(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate gt vd})
+  def after(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate gt vd})
   
-  def before(vd:qlDate):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate le vd})
+  def before(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate le vd})
 
-  def between(vd:qlDate, lastvd:qlDate):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => (cp.paymentDate le vd) && (cp.paymentDate gt vd)})
+  def between(vd:Date, lastvd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => (cp.paymentDate le vd) && (cp.paymentDate gt vd)})
   
-  def called(vd:qlDate, redemAmount:Double, calendar:Calendar, convention:BusinessDayConvention):ScheduledPayoffs = 
+  def called(vd:Date, redemAmount:Double, calendar:Calendar, convention:BusinessDayConvention):ScheduledPayoffs = 
     before(vd).addCashflow(vd, redemAmount, calendar, convention)
   
   def insert(cp:CalculationPeriod, p:Payoff, c:Callability):ScheduledPayoffs = {
     ScheduledPayoffs(scheduledPayoffs :+ (cp, p, c), valuedate).sorted
   }
   
-  def addCashflow(paymentDate:qlDate, amount:Double, calendar:Calendar, paymentConvention:BusinessDayConvention):ScheduledPayoffs = {
+  def addCashflow(paymentDate:Date, amount:Double, calendar:Calendar, paymentConvention:BusinessDayConvention):ScheduledPayoffs = {
     val cp = CalculationPeriod.simpleCashflow(paymentDate, calendar, paymentConvention)
     val p = Payoff.simpleCashFlow(amount)
     val c = Callability.empty
@@ -156,8 +156,8 @@ case class ScheduledPayoffs(
   def scheduleDescription:(List[String], List[List[String]]) = {
     val title = List("valuedate", "paydate", "payoff", "call", "fixing")
     val sched = scheduledPayoffs.map{case (d, p, c) => 
-      List(d.eventDate.shortDate.toString, 
-          d.paymentDate.shortDate.toString,
+      List(d.eventDate.toString, 
+          d.paymentDate.toString,
           p.toString, 
           c.toString, 
           if (underlyings.isEmpty || (p.variables.isEmpty && c.variables.isEmpty)) "fixed"

@@ -1,7 +1,8 @@
 package squantlib.model.bond
 
 import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, _}
+import squantlib.util.Date
+import org.jquantlib.time.{Date => jDate, Period => qlPeriod, TimeUnit, _}
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
 import squantlib.database.DB
@@ -59,13 +60,13 @@ case class Bond(
 	
 	override val assetID = "PRICE"
 	
-	def issueDate:qlDate = schedule.head.startDate
+	def issueDate:Date = schedule.head.startDate
 	
-	def isIssuedOn(d:qlDate):Boolean = d ge issueDate
+	def isIssuedOn(d:Date):Boolean = d ge issueDate
 	
 	def isIssued:Option[Boolean] = valueDate.collect{case d => isIssuedOn(d)}
 	
-	def scheduledMaturity:qlDate = schedule.last.endDate
+	def scheduledMaturity:Date = schedule.last.endDate
 	
 	def bermudan:List[Boolean] = calls.bermudans
 	
@@ -105,30 +106,30 @@ case class Bond(
 	  if (amount.isNaN || amount.isInfinity) None else Some(amount)
 	}
 	
-	def isScheduleMaturedOn(d:qlDate):Boolean = d ge scheduledMaturity
+	def isScheduleMaturedOn(d:Date):Boolean = d ge scheduledMaturity
 	
 	def isScheduleMatured:Option[Boolean] = valueDate.collect { case vd => isScheduleMaturedOn(vd)}
 	
 	lazy val (earlyTerminationPeriod:Option[CalculationPeriod], earlyTerminationAmount:Option[Double]) = 
 	  scheduledPayoffs.triggeredDate.collect{case (p, a) => (Some(p), Some(a))}.getOrElse((None, None))
 	
-	lazy val earlyTerminationDate:Option[qlDate] = earlyTerminationPeriod.collect{case p => p.paymentDate}
+	lazy val earlyTerminationDate:Option[Date] = earlyTerminationPeriod.collect{case p => p.paymentDate}
 	
-	def isEarlyTerminatedOn(d:qlDate):Boolean = earlyTerminationDate.collect{case dd => d ge dd}.getOrElse(false)
+	def isEarlyTerminatedOn(d:Date):Boolean = earlyTerminationDate.collect{case dd => d ge dd}.getOrElse(false)
 	  
 	def isEarlyTerminated:Option[Boolean] = valueDate.collect{case d => isEarlyTerminatedOn(d)}
 	
-	def isTerminatedOn(d:qlDate):Boolean = isScheduleMaturedOn(d) || isEarlyTerminatedOn(d)
+	def isTerminatedOn(d:Date):Boolean = isScheduleMaturedOn(d) || isEarlyTerminatedOn(d)
 	  
 	def isTerminated:Option[Boolean] = valueDate.collect{case d => isScheduleMaturedOn(d) || isEarlyTerminatedOn(d)}
 	
-	def terminationDate:qlDate = earlyTerminationDate.getOrElse(scheduledMaturity)
+	def terminationDate:Date = earlyTerminationDate.getOrElse(scheduledMaturity)
 	
 	override val assetStartDate = Some(issueDate)
 	
 	override val assetEndDate = Some(terminationDate)
 	
-	def isAlive(d:qlDate):Option[Boolean] = valueDate.collect{case d => isAliveOn(d)}
+	def isAlive(d:Date):Option[Boolean] = valueDate.collect{case d => isAliveOn(d)}
 	
 	def getUnderlyings:Map[String, Option[Underlying]] = market match {
 	  case None => underlyings.map(u => (u, None)) (collection.breakOut)
@@ -172,7 +173,7 @@ case class Bond(
 	  initializeModel(recalib)
 	}
 	
-	def valueDate:Option[qlDate] = market.collect{case mkt => mkt.valuedate}
+	def valueDate:Option[Date] = market.collect{case mkt => mkt.valuedate}
 	
 	/* 
 	 * Reset model
@@ -219,7 +220,7 @@ case class Bond(
 	 */
 	def livePayoffs:ScheduledPayoffs = valueDate.collect {case d => livePayoffs(d)}.getOrElse(ScheduledPayoffs.empty)
 
-	def livePayoffs(vd:qlDate):ScheduledPayoffs = {
+	def livePayoffs(vd:Date):ScheduledPayoffs = {
 	  val p = (earlyTerminationDate,earlyTerminationAmount) match {
 	    case (Some(d), _) if vd ge d => ScheduledPayoffs.empty
 	    case (Some(d), Some(a)) => scheduledPayoffs.after(vd).called(d, a, calendar, db.paymentAdjust).withValueDate(vd)
@@ -230,7 +231,7 @@ case class Bond(
 	
 	def liveCoupons:ScheduledPayoffs = livePayoffs.filtered{case (period, _, _) => !period.isAbsolute}
 	
-	def liveCoupons(vd:qlDate):ScheduledPayoffs = livePayoffs(vd).filtered{case (period, _, _) => !period.isAbsolute}
+	def liveCoupons(vd:Date):ScheduledPayoffs = livePayoffs(vd).filtered{case (period, _, _) => !period.isAbsolute}
 	
 	def allPayoffs:ScheduledPayoffs = scheduledPayoffs
 	
@@ -243,7 +244,7 @@ case class Bond(
 	
 	def liveTriggers:List[List[Option[Double]]] = livePayoffs.calls.triggerValues(underlyings)
 	
-	def liveTriggers(vd:qlDate):List[List[Option[Double]]] = livePayoffs(vd).calls.triggerValues(underlyings)
+	def liveTriggers(vd:Date):List[List[Option[Double]]] = livePayoffs(vd).calls.triggerValues(underlyings)
 	
 	/*	
 	 * Returns "live" bermudan call options
@@ -251,7 +252,7 @@ case class Bond(
 	 */
 	def liveBermudans:List[(CalculationPeriod, Boolean)] = livePayoffs.map{case (d, _, c) => (d, c.isBermuda)} (collection.breakOut)
 		
-	def liveBermudans(vd:qlDate):List[(CalculationPeriod, Boolean)] = livePayoffs(vd).map{case (d, _, c) => (d, c.isBermuda)}(collection.breakOut)
+	def liveBermudans(vd:Date):List[(CalculationPeriod, Boolean)] = livePayoffs(vd).map{case (d, _, c) => (d, c.isBermuda)}(collection.breakOut)
 	
 	/*	
 	 * Returns discount curve.
@@ -263,7 +264,7 @@ case class Bond(
 	 * Returns discount curve.
 	 * 	@returns discount curve created from either pre-set or specified market
 	 */
-	def discountFactors:Option[List[(qlDate, Double)]] = (discountCurve, valueDate) match {
+	def discountFactors:Option[List[(Date, Double)]] = (discountCurve, valueDate) match {
 	  case (Some(curve), Some(vd)) => Some(schedule.paymentDates.withFilter(_ gt vd).map(d => (d, curve(d))))
 	  case _ => None
 	}
@@ -275,20 +276,20 @@ case class Bond(
 	    livePayoffs.map{case (d, p, _) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})}(collection.breakOut)
 	  )
 	  
-	def spotFixedRates(vd:qlDate):List[(CalculationPeriod, Double)] = spotFixedRates.filter{case (p, d) => (p.paymentDate gt vd)}
+	def spotFixedRates(vd:Date):List[(CalculationPeriod, Double)] = spotFixedRates.filter{case (p, d) => (p.paymentDate gt vd)}
 	  
-	def spotFixedAmount:List[(qlDate, Double)] = spotFixedRates.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
+	def spotFixedAmount:List[(Date, Double)] = spotFixedRates.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
 	
-	def spotFixedAmount(vd:qlDate):List[(qlDate, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
+	def spotFixedAmount(vd:Date):List[(Date, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
 	  
 	def spotFixedRatesAll:List[(CalculationPeriod, Double)] = cache.getOrUpdate("SPOTFIXEDRATESALL",
 	    allPayoffs.map{case (d, p, _) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})} (collection.breakOut)
 	  )
 	  
-	def spotFixedAmountAll:List[(qlDate, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
+	def spotFixedAmountAll:List[(Date, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
 	
     def spotCashflowDayfrac(dc:DayCounter):List[(Double, Double)] = spotFixedAmount.map{
-      case (payday, amount) => (dc.yearFraction(valueDate.get, payday), amount)}
+      case (payday, amount) => (Date.daycount(valueDate.get, payday, dc), amount)}
 	
 	/*	
 	 * Returns dirty price of the bond. (ie. including accrued interest)
@@ -342,12 +343,12 @@ case class Bond(
 	  case None => List.fill(underlyings.size)(None)
 	}
 	
-	def fxFrontier(vd:qlDate):List[Option[Double]] = fxFrontier(1.00, 0.001, 20, vd)
+	def fxFrontier(vd:Date):List[Option[Double]] = fxFrontier(1.00, 0.001, 20, vd)
 
     def fxFrontier(target:Double, 
         accuracy:Double, 
         maxIteration:Int, 
-        vd:qlDate, 
+        vd:Date, 
         paths:Int = 0, 
         solver:RangedRootFinder = Bisection, 
         highRange:Double = 10.0, 
@@ -400,7 +401,7 @@ case class Bond(
 	/*	
 	 * Returns next bermudan callable date.
 	 */
-	def nextBermudan:Option[qlDate] = {
+	def nextBermudan:Option[Date] = {
 	  val bermdates = liveBermudans.filter{case (d, c) => c}.map{case (d, c) => d.paymentDate}
 	  if (bermdates.isEmpty) None else Some(bermdates.min)
 	}
@@ -408,7 +409,7 @@ case class Bond(
 	/*	
 	 * Returns next coupon payment date
 	 */
-	def nextPayment:Option[(qlDate, Double)] = 
+	def nextPayment:Option[(Date, Double)] = 
 	  if (liveCoupons.isEmpty || market.isEmpty) None
 	  else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => (d.dayCount * p.price(market.get)) match {
 	    case pr if pr.isNaN || pr.isInfinity => None
@@ -441,16 +442,16 @@ case class Bond(
       if (result == Some(Double.NaN)) None else result
 	}
 	
-    def getYield(price:Double, comp:Compounding, freq:Frequency, vd:qlDate):Option[Double] = 
+    def getYield(price:Double, comp:Compounding, freq:Frequency, vd:Date):Option[Double] = 
       getYield(price, new Actual365Fixed, comp, freq, 0.0001, 20, vd)
 	
     def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = 
       valueDate.flatMap{ case vd => getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)}
 	
-    def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = 
+    def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:Date):Option[Double] = 
       getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)
       
-    def getYield(price:Double, cashflows:List[(Double, Double)], comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:qlDate):Option[Double] = {
+    def getYield(price:Double, cashflows:List[(Double, Double)], comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:Date):Option[Double] = {
       val result = 
         if (cashflows isEmpty) None
         else if (useCouponAsYield) accruedAmount.collect{case acc => BondYield.asAverageCoupon(cashflows, acc)}
@@ -730,7 +731,7 @@ case class Bond(
     /*
      * Remaining life in number of years
      */
-	def remainingLife:Option[Double] = valueDate.collect{ case d => (new Actual365Fixed).yearFraction(d, terminationDate).max(0.0)}
+	def remainingLife:Option[Double] = valueDate.collect{ case d => Date.daycount(d, terminationDate, new Actual365Fixed).max(0.0)}
 	
 	
 	override def toString:String = id
@@ -772,7 +773,7 @@ case class Bond(
 	
 	
 	def showUnderlyingInfo:Unit = {
-	  val eventDates:List[qlDate] = scheduledPayoffs.schedule.eventDates
+	  val eventDates:List[Date] = scheduledPayoffs.schedule.eventDates
 	  getUnderlyings.foreach{
 	    case (k, Some(u)) => println(k); u.show(eventDates)
 	    case (k, None) => println(k); println("not found in market or market not calibrated")

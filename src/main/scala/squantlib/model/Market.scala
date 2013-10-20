@@ -7,8 +7,9 @@ import squantlib.model.rates._
 import squantlib.model.fx._
 import squantlib.model.index._
 import squantlib.model.equity._
+import squantlib.util.Date
 import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, TimeUnit, Calendar}
+import org.jquantlib.time.{Date => jDate, Period => qlPeriod, TimeUnit, Calendar}
 import org.jquantlib.instruments.{Bond => qlBond}
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.termstructures.YieldTermStructure
@@ -34,7 +35,7 @@ class Market(
 	/** 
 	 * Market value date
 	 */ 
-	var valuedate:qlDate = curves.head._2.valuedate
+	var valuedate:Date = curves.head._2.valuedate
 	
 	require(curves.forall(_._2.valuedate == valuedate))
 	
@@ -445,7 +446,7 @@ class Market(
 		val sortedcdscurves = scala.collection.immutable.TreeMap(cdscurves.toArray:_*)	    
 		"Curves:" + eol + sortedcurves.map(c => c._2.valuedate + (if (discountingCurves.contains(c._1)) "(*)" else "") + eol).mkString("") + 
 		"(*) Discounting curves" + eol + eol +
-		"Credit Spreads:" + eol + sortedcdscurves.map(c => c._1 + "\t" + c._2.rate.valuedate.shortDate + "\t" + c._2.rate.maxdate.shortDate + eol).mkString("")
+		"Credit Spreads:" + eol + sortedcdscurves.map(c => c._1 + "\t" + c._2.rate.valuedate.toString + "\t" + c._2.rate.maxdate.toString + eol).mkString("")
 	}
 	
 }

@@ -2,7 +2,8 @@ package squantlib.math.timeseries
 
 import scala.collection.SortedMap
 import scala.collection.immutable.TreeMap
-import org.jquantlib.time.{ Date => JDate }
+import org.jquantlib.time.{ Date => jDate }
+import squantlib.util.Date
 
 
 object Variance {
@@ -20,14 +21,14 @@ object Variance {
 	 * Returns variance
 	 * @return a variance for the full given period
 	 */
-	def calculate(quotes:SortedMap[JDate, Double]):SortedMap[JDate, Double] = calculate(quotes, quotes.size)
+	def calculate(quotes:SortedMap[Date, Double]):SortedMap[Date, Double] = calculate(quotes, quotes.size)
 	
 	/**
 	 * Returns variance
 	 * @param number of historical data per computed variance
 	 * @return running variance over given period.
 	 */
-	def calculate(quotes:SortedMap[JDate, Double], nbData:Int):SortedMap[JDate, Double] = {
+	def calculate(quotes:SortedMap[Date, Double], nbData:Int):SortedMap[Date, Double] = {
 		val keys = quotes.keySet.toIndexedSeq; 
 		TreeMap((nbData to quotes.size).map( i => { 
 				val startdate = keys(i - nbData)

@@ -4,7 +4,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.node.{ObjectNode, ArrayNode}
 import scala.collection.JavaConversions._
-import org.jquantlib.time.{Date => qlDate}
+import org.jquantlib.time.{Date => jDate}
 import org.codehaus.jackson.`type`.TypeReference;
 import java.util.{List => JavaList, Map => JavaMap}
 import java.lang.{String => JavaString}
@@ -55,17 +55,17 @@ object JsonUtils {
       r
     }
 
-    def parseDate:Option[qlDate] = try{
-      Some(new qlDate(jsonDateFormat.parse(node.parseString.orNull)))
+    def parseDate:Option[Date] = try{
+      Some(Date(jsonDateFormat.parse(node.parseString.orNull)))
     } catch {case _:Throwable => None}
     
-    def parseDate(name:String):Option[qlDate] = 
+    def parseDate(name:String):Option[Date] = 
       if (name == null) None
       else node.parseString(name) match {
         case None => None
         case Some(s) if s.size < 8 || !s.contains("/") => None
         case Some(s) => ignoreErr {
-           try{ Some(new qlDate(jsonDateFormat.parse(s)))} 
+           try{ Some(Date(jsonDateFormat.parse(s)))} 
           catch { case e:Throwable => println(s + " could not be parsed"); e.printStackTrace; None}
         }
       }
@@ -159,8 +159,8 @@ object JsonUtils {
     def parseJsonString:Option[String] = jsonParser(_.parseString)
     def parseJsonString(name:String):Option[String] = jsonParser(_.parseString(name))
     
-    def parseJsonDate:Option[qlDate] = jsonParser(_.parseDate)
-    def parseJsonDate(name:String):Option[qlDate] = jsonParser(_.parseDate(name))
+    def parseJsonDate:Option[Date] = jsonParser(_.parseDate)
+    def parseJsonDate(name:String):Option[Date] = jsonParser(_.parseDate(name))
     
     def parseJsonObject[T](constructor:Map[String, Any] => T):Option[T] = jsonParser(_.parseObject(constructor))
     def parseJsonObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = jsonParser(_.parseObject(name, constructor))

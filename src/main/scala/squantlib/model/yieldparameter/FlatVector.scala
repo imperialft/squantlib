@@ -1,13 +1,14 @@
 package squantlib.model.yieldparameter
 
-import org.jquantlib.time.{ TimeUnit, Period => qlPeriod, Date => qlDate }
+import org.jquantlib.time.{ TimeUnit, Period => qlPeriod, Date => jDate }
+import squantlib.util.Date
 import scala.collection.Map
 
 /**
  * Flat vector
  * @param input point
  */
-case class FlatVector(var valuedate : qlDate, value:Double) extends YieldParameter with AbstractYieldParameter {
+case class FlatVector(var valuedate : Date, value:Double) extends YieldParameter with AbstractYieldParameter {
 	
 	override val mindays = 0.0
 	override val maxdays = 0.0
@@ -22,12 +23,12 @@ case class FlatVector(var valuedate : qlDate, value:Double) extends YieldParamet
 
 object FlatVector {
   
-	def apply(valuedate : qlDate, inputvalues:Map[qlPeriod, Double]):FlatVector = {
+	def apply(valuedate : Date, inputvalues:Map[qlPeriod, Double]):FlatVector = {
 	  require(inputvalues.size == 1, "flat curve can have 1 point only : found " + inputvalues.size)
 	  FlatVector(valuedate, inputvalues.head._2)
 	}
 
-	def apply(valuedate : qlDate, inputvalues: => Map[Double, Double]):FlatVector = {
+	def apply(valuedate : Date, inputvalues: => Map[Double, Double]):FlatVector = {
 	  require(inputvalues.size == 1, "flat curve can have 1 point only : found " + inputvalues.size)
 	  FlatVector(valuedate, inputvalues.head._2)
 	}

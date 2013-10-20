@@ -7,14 +7,15 @@ import squantlib.pricing.mcengine._
 import squantlib.model.index.Index
 import squantlib.model.bond.Bond
 import squantlib.model.fx.FX
+import squantlib.util.Date
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
-import org.jquantlib.time.{Date => qlDate}
+import org.jquantlib.time.{Date => jDate}
 import org.jquantlib.daycounters.Actual365Fixed
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 
-case class IndexMc1f(valuedate:qlDate, 
+case class IndexMc1f(valuedate:Date, 
 					  mcengine:Montecarlo1f, 
 					  scheduledPayoffs:ScheduledPayoffs, 
 					  index:Index,

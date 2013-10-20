@@ -4,7 +4,8 @@ import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.daycounters.{DayCounter, Actual360}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.indexes.IborIndex
-import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
+import org.jquantlib.time.{TimeUnit, Date => jDate, Period => qlPeriod, Frequency }
+import squantlib.util.Date
 import squantlib.model.yieldparameter._
 import squantlib.model.rates.convention.RateConvention
 import squantlib.model.asset.Underlying
@@ -31,7 +32,7 @@ case class CashRate(
 	  val adj = tenorbasis.collect{case c => c.rate(days)}.getOrElse(Double.NaN)
 	  val defaultMonths:Int = convention.collect{case c => c.swapFloatIndex.tenor.length}.getOrElse(0)
 	  if (defaultMonths <= 0 || adj.isNaN) {return 0.0}
-	  val periodDays:Int = period.days(valuedate).toInt
+	  val periodDays:Int = valuedate.days(period).toInt
 	  
 	  if (defaultMonths == 6) periodDays match {
 	    case d if d >= 180 => 0.0

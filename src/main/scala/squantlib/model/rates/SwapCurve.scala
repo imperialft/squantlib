@@ -1,10 +1,11 @@
 package squantlib.model.rates
 
 import squantlib.model.yieldparameter._
+import squantlib.util.Date
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.currencies.Currency
 import org.jquantlib.indexes.IborIndex
-import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
+import org.jquantlib.time.{TimeUnit, Date => jDate, Period => qlPeriod, Frequency }
 import squantlib.model.rates.convention.RateConvention
 
 /**
@@ -21,7 +22,7 @@ case class SwapCurve (rate:YieldParameter, floatindex:IborIndex, fixdaycount:Day
 
 object SwapCurve {
   
-  def swap_curve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter
+  def swap_curve(valuedate:Date, values:Map[qlPeriod, Double]):YieldParameter
 	= (values.keySet.size) match {
 		case 1 => FlatVector(valuedate, values)
 		case 2 => LinearNoExtrapolation(valuedate, values)
@@ -30,7 +31,7 @@ object SwapCurve {
   /**
    * Returns swap curve using specified conventions and curve construction method.
    */
-  def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[SwapCurve]
+  def apply(valuedate:Date, currency:String, values:Map[qlPeriod, Double]):Option[SwapCurve]
 	= apply(swap_curve(valuedate, values), currency)
 	
   def apply(curve:YieldParameter, currency:String):Option[SwapCurve]

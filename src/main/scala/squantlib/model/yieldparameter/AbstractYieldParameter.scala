@@ -1,14 +1,15 @@
 package squantlib.model.yieldparameter
 
-import org.jquantlib.time.{ Date => qlDate }
+import org.jquantlib.time.{ Date => jDate }
 import squantlib.chart.LineChart
+import squantlib.util.Date
 
 /**
  * Basic Framework for Long-Double Interpolation
  * Points are interpolated between max and min range, and extrapolated outside.
  */
 trait AbstractYieldParameter{
-	var valuedate : qlDate
+	var valuedate : Date
 	val mindays : Double
 	val maxdays : Double
 

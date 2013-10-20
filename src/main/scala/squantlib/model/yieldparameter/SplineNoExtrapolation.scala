@@ -1,10 +1,11 @@
 package squantlib.model.yieldparameter
 
 import scala.collection.immutable.SortedMap
-import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit }
+import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit }
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator
 import org.apache.commons.math3.analysis.function.{Log, Exp}
+import squantlib.util.Date
 
 /**
  * TimeVector with Spline interpolation and no extrapolation. (ie. y-value is constant after last date)
@@ -15,7 +16,7 @@ import org.apache.commons.math3.analysis.function.{Log, Exp}
  * @param number of extra points (optional)
  */
 
-case class SplineNoExtrapolation(var valuedate : qlDate, values:Map[Double, Double], extrapoints:Int) extends YieldParameter with AbstractYieldParameter {
+case class SplineNoExtrapolation(var valuedate : Date, values:Map[Double, Double], extrapoints:Int) extends YieldParameter with AbstractYieldParameter {
 	require(values.size >= 3, "spline requires at least 3 point : found " + values.size)
 	
 	val sortedValues = SortedMap(values.toSeq:_*)
@@ -55,12 +56,12 @@ case class SplineNoExtrapolation(var valuedate : qlDate, values:Map[Double, Doub
 
 object SplineNoExtrapolation{
   
-  def apply(valuedate:qlDate, values: => Map[qlPeriod, Double], extrapoints:Int):SplineNoExtrapolation = 
-    SplineNoExtrapolation(valuedate, values.map{case (d, v) => (d.days(valuedate).toDouble, v)}, extrapoints)
+  def apply(valuedate:Date, values: => Map[qlPeriod, Double], extrapoints:Int):SplineNoExtrapolation = 
+    SplineNoExtrapolation(valuedate, values.map{case (p, v) => (valuedate.days(p).toDouble, v)}, extrapoints)
     
-  def apply(valuedate:qlDate, values:Map[qlPeriod, Double]):SplineNoExtrapolation = apply(valuedate, values)
+  def apply(valuedate:Date, values:Map[qlPeriod, Double]):SplineNoExtrapolation = apply(valuedate, values)
   
-  def apply(valuedate:qlDate, values: => Map[Double, Double]):SplineNoExtrapolation = SplineNoExtrapolation(valuedate, values, 0)
+  def apply(valuedate:Date, values: => Map[Double, Double]):SplineNoExtrapolation = SplineNoExtrapolation(valuedate, values, 0)
   
 }
   

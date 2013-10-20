@@ -2,7 +2,7 @@ package squantlib.math.timeseries
 
 import scala.collection.SortedMap
 import scala.collection.immutable.TreeMap
-import org.jquantlib.time.{ Date => qlDate }
+import squantlib.util.Date
 
 object MovingAverage {
 	/**
@@ -18,7 +18,7 @@ object MovingAverage {
 	 * Returns daily log return for given period.
 	 * @return array of size n-1 containing ln(Xn / Xn-1)
 	 */
-	def calculate(values: SortedMap[qlDate, Double], nbDays:Int) : SortedMap[qlDate, Double] = {
+	def calculate(values: SortedMap[Date, Double], nbDays:Int) : SortedMap[Date, Double] = {
 	  val keys = values.keySet.toIndexedSeq
 	  TreeMap((nbDays to values.size) map (i => (keys(i-1), ((i-nbDays) to (i-1)).map(j => values(keys(j))).sum / nbDays)) :_*)
 	}

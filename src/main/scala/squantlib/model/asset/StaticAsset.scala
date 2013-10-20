@@ -1,13 +1,10 @@
 package squantlib.model.asset
 
-import org.jquantlib.time.{Weekday, Date => qlDate}
+import squantlib.util.Date
 import squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
 import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
-import java.util.{Date => JavaDate}
-import org.jquantlib.time.{Date => qlDate}
-import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 
 /**
  * Simple asset model (no currency)
@@ -26,11 +23,11 @@ trait StaticAsset {
   
   def expectedCoupon:Option[Double]  // to be implemented in subclass
   
-  protected def getDbForwardPrice:Map[qlDate, Double]  // to be implemented in subclass
+  protected def getDbForwardPrice:Map[Date, Double]  // to be implemented in subclass
   
   def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice).getFilledTimeSeries(true))
 	
-  protected def getPriceHistory:Map[qlDate, Double]
+  protected def getPriceHistory:Map[Date, Double]
   
   def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getPriceHistory).getFilledTimeSeries(true))
   
@@ -43,7 +40,7 @@ trait StaticAsset {
     }
   }
   
-  def historicalVol(nbDays:Int, annualDays:Double = 260, nbResult:Int = 0):SortedMap[qlDate, Double] = {
+  def historicalVol(nbDays:Int, annualDays:Double = 260, nbResult:Int = 0):SortedMap[Date, Double] = {
 	val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
 	val source = priceHistory takeRight (if(sourcesize > 0) sourcesize else 10000)
     Volatility.calculate(source, nbDays, annualDays)
@@ -51,7 +48,7 @@ trait StaticAsset {
   
   def historicalCorrelLatestValue(asset:StaticAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[Double] = {
     if (this == asset) {return Some(1.0)}
-    val intersection:SortedMap[qlDate, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory)
+    val intersection:SortedMap[Date, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory)
     if (intersection.size < minDays) {None}
     val source = intersection takeRight math.min(intersection.size, nbDays)
     
@@ -62,13 +59,13 @@ trait StaticAsset {
   }
   
   def historicalCorrelLatest(asset:StaticAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[dbCorrelation] = 
-    historicalCorrelLatestValue(asset, nbDays, periodicity, minDays).collect{case v => getCorrelation(asset, StaticAsset.currenttime, nbDays, 1, v)}
+    historicalCorrelLatestValue(asset, nbDays, periodicity, minDays).collect{case v => getCorrelation(asset, Date.currentDate, nbDays, 1, v)}
   
-  def getCorrelation(asset:StaticAsset, valuedate:JavaDate, nbDays:Int, periodicity:Int, correl:Double) = StaticAsset.getCorrelation(this, asset, valuedate, nbDays, periodicity, correl)
+  def getCorrelation(asset:StaticAsset, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double) = StaticAsset.getCorrelation(this, asset, valuedate, nbDays, periodicity, correl)
   
-  def historicalCorrel(asset:StaticAsset, nbDays:Int, nbResult:Int = 0):SortedMap[qlDate, Double] = {
+  def historicalCorrel(asset:StaticAsset, nbDays:Int, nbResult:Int = 0):SortedMap[Date, Double] = {
 	val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
-    val intersection:SortedMap[qlDate, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory) takeRight sourcesize
+    val intersection:SortedMap[Date, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory) takeRight sourcesize
     Correlation.calculate(intersection, nbDays)
   }
   
@@ -77,7 +74,7 @@ trait StaticAsset {
     val correlarray = historicalCorrel(asset, nbDays, nbResult)
     val underlying1 = assetID + ":" + id
     val underlying2 = asset.assetID + ":" + asset.id
-    correlarray.map{ case (d, v) => getCorrelation(asset, d.longDate, nbDays, 1, v)} (collection.breakOut)
+    correlarray.map{ case (d, v) => getCorrelation(asset, d, nbDays, 1, v)} (collection.breakOut)
   }
   
 } 
@@ -90,23 +87,21 @@ object StaticAsset {
     case a => a
   }
   
-  private def currenttime = new java.sql.Timestamp(java.util.Calendar.getInstance.getTime.getTime)
-  
-  def getCorrelation(asset1:StaticAsset, asset2:StaticAsset, valuedate:JavaDate, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
+  def getCorrelation(asset1:StaticAsset, asset2:StaticAsset, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
     getCorrelation(asset1.assetID, asset1.id, asset2.assetID, asset2.id, valuedate, nbDays, periodicity, correl)
     
-  def getCorrelation(asset1:String, id1:String, asset2:String, id2:String, valuedate:JavaDate, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
+  def getCorrelation(asset1:String, id1:String, asset2:String, id2:String, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
     new dbCorrelation(
         id = asset1 + "-" + id1 + ":" + asset2 + "-" + id2,
 	    underlying1asset = getAsset(asset1),
 	    underlying1id = id1,
 	    underlying2asset = getAsset(asset2),
 	    underlying2id = id2,
-	    valuedate = valuedate,
+	    valuedate = valuedate.java,
 	    periodicity = periodicity,
 	    nbdays = nbDays,
 	    value = correl,
-	    lastmodified = currenttime)
+	    lastmodified = Date.currentTime)
   
   
 

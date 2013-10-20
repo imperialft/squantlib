@@ -4,7 +4,8 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
+import org.jquantlib.time.{Date => jDate, Period => qlPeriod}
+import squantlib.util.Date
 import scala.annotation.tailrec
 
 /**
@@ -14,7 +15,7 @@ case class BasicEquity(
     override val id:String,
 	override var spot:Double,
     override val rateCurve:DiscountCurve, 
-    override val dividendDates:Map[qlDate, Double], 
+    override val dividendDates:Map[Date, Double], 
     repo:RepoCurve, 
     vol:(Double, Double) => Double
     ) extends Equity {
@@ -64,10 +65,10 @@ case class BasicEquity(
 
 object BasicEquity {
   
-  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:Map[qlDate, Double], repo:RepoCurve, vol:YieldParameter):BasicEquity = 
+  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:Map[Date, Double], repo:RepoCurve, vol:YieldParameter):BasicEquity = 
     BasicEquity(name, spot, rateCurve, dividend, repo, (y:Double, s:Double) => vol(y))
   
-  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:Map[qlDate, Double], repo:RepoCurve, vol:YieldParameter3D):BasicEquity = 
+  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:Map[Date, Double], repo:RepoCurve, vol:YieldParameter3D):BasicEquity = 
     BasicEquity(name, spot, rateCurve, dividend, repo, (y:Double, s:Double) => vol(y, s))
     
 }

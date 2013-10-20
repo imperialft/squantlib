@@ -1,8 +1,9 @@
 package squantlib.model.yieldparameter
 
 import scala.collection.mutable.MutableList
-import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit }
+import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit }
 import org.jquantlib.daycounters.DayCounter
+import squantlib.util.Date
 
 /**
  * Encapsulate time series vector parameter with interpolation, extrapolation and other adjustments functions.
@@ -12,7 +13,7 @@ trait YieldParameter3D {
 	/**
 	 * Returns base date of this vector. 
 	 */
-	var valuedate : qlDate
+	var valuedate : Date
 	
 	/**
 	 * Returns the value corresponding to the given date.
@@ -39,14 +40,14 @@ trait YieldParameter3D {
 	 * Returns the value corresponding to the given date.
 	 * @param observation date
 	 */
-    def value(d1:qlDate, d2:qlDate) : Double = value(d1.serialNumber() - valuedate.serialNumber(), d2.serialNumber() - valuedate.serialNumber())
-    def apply(d1:qlDate, d2:qlDate) = value(d1, d2)
+    def value(d1:Date, d2:Date) : Double = value(d1.serialNumber - valuedate.serialNumber, d2.serialNumber - valuedate.serialNumber)
+    def apply(d1:Date, d2:Date) = value(d1, d2)
     
 	/**
 	 * Returns the value corresponding to the given date.
 	 * @param observation date as the period from value date.
 	 */
-    def value(period1:qlPeriod, period2:qlPeriod):Double = value(period1.days(valuedate), period2.days(valuedate) + period1.days(valuedate))
+    def value(period1:qlPeriod, period2:qlPeriod):Double = value(valuedate.days(period1), valuedate.days(period2) + valuedate.days(period1))
     def apply(period1:qlPeriod, period2:qlPeriod) = value(period1, period2)
     
 	/**
@@ -73,9 +74,9 @@ trait YieldParameter3D {
 
 object YieldParameter3D {
   
-	def apply(valuedate:qlDate, data:Map[(Double, Double), Double]):YieldParameter3D 
+	def apply(valuedate:Date, data:Map[(Double, Double), Double]):YieldParameter3D 
 	= Microsphere3D(valuedate, data)
 	
-	def apply(valuedate:qlDate, data: => Map[(qlPeriod, qlPeriod), Double]):YieldParameter3D 
+	def apply(valuedate:Date, data: => Map[(qlPeriod, qlPeriod), Double]):YieldParameter3D 
 	= Microsphere3D(valuedate, data)
 }

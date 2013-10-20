@@ -2,7 +2,8 @@ package squantlib.model.equity
 
 import squantlib.model.yieldparameter.YieldParameter
 import squantlib.util.initializer.Currencies
-import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
+import squantlib.util.Date
+import org.jquantlib.time.{Period => qlPeriod, Date => jDate}
 import org.jquantlib.currencies.Currency
 import squantlib.model.yieldparameter._
 
@@ -26,18 +27,18 @@ case class RepoCurve(rate:YieldParameter) extends YieldParameter {
 
 object RepoCurve{
   
-	def buildCurve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter
+	def buildCurve(valuedate:Date, values:Map[qlPeriod, Double]):YieldParameter
 		= (values.keySet.size) match {
 			case 1 => FlatVector(valuedate, values)
 			case 2 => LinearNoExtrapolation(valuedate, values)
 			case _ => SplineNoExtrapolation(valuedate, values, 2) } 
 	
-	def apply(valuedate:qlDate, value:Double):Option[RepoCurve] 
+	def apply(valuedate:Date, value:Double):Option[RepoCurve] 
 		= apply(valuedate, Map(new qlPeriod("1Y") -> value))
 		
-	def apply(valuedate:qlDate, values:Map[qlPeriod, Double]):Option[RepoCurve] 
+	def apply(valuedate:Date, values:Map[qlPeriod, Double]):Option[RepoCurve] 
 		= Some(RepoCurve(buildCurve(valuedate, values)))
 		
-	def zeroCurve(valuedate:qlDate):RepoCurve = RepoCurve(FlatVector(valuedate, 0.0))
+	def zeroCurve(valuedate:Date):RepoCurve = RepoCurve(FlatVector(valuedate, 0.0))
 
 }

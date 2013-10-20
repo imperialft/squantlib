@@ -1,7 +1,8 @@
 package squantlib.model.rates
 
+import squantlib.util.Date
 import squantlib.model.yieldparameter.{YieldParameter, SplineEExtrapolation, FlatVector}
-import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
+import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.Thirty360
 import squantlib.model.rates.convention.RateConvention
 import scala.annotation.tailrec
@@ -16,7 +17,7 @@ case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
 	/**
 	 * day count initialization
 	 */
-	val maxmaturity = qlPeriod.months(swappoint.points.maxperiod, valuedate).toInt
+	val maxmaturity = valuedate.months(swappoint.points.maxperiod).toInt
 	val zcfreq = 3
 	val zcmonths = (for (m <- 0 to maxmaturity if m % zcfreq == 0) yield m).sorted
 	val zcperiods:Map[Int, qlPeriod] = zcmonths.map(m => (m, new qlPeriod(m, TimeUnit.Months))) (breakOut)

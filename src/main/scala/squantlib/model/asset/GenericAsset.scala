@@ -1,6 +1,6 @@
 package squantlib.model.asset
 
-import org.jquantlib.time.{Date => qlDate}
+import squantlib.util.Date
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.Asia.JPYCurrency
 
@@ -10,7 +10,7 @@ case class GenericAsset(
   override val latestPrice:Option[Double],
   override val expectedYield:Option[Double],
   override val expectedCoupon:Option[Double],
-  override val getDbForwardPrice:Map[qlDate, Double],
-  override val getPriceHistory:Map[qlDate, Double]
+  override val getDbForwardPrice:Map[Date, Double],
+  override val getPriceHistory:Map[Date, Double]
   ) extends StaticAsset
   

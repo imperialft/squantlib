@@ -1,7 +1,7 @@
 package squantlib.model.rates
 
+import squantlib.util.Date
 import squantlib.model.yieldparameter.YieldParameter
-import org.jquantlib.time.{ Date => JDate }
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.currencies.Currency
 
@@ -13,7 +13,7 @@ trait DiscountableCurve {
   
   val currency : Currency
   val fx : Double
-  val valuedate : JDate
+  val valuedate : Date
   
   def shiftRate(shift:(Double, Double) => Double):DiscountableCurve
   def multFX(shift:Double):DiscountableCurve

@@ -4,7 +4,8 @@ import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.currencies.Currency
 import org.jquantlib.indexes.IborIndex
-import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
+import org.jquantlib.time.{TimeUnit, Date => jDate, Period => qlPeriod, Frequency }
+import squantlib.util.Date
 import squantlib.model.yieldparameter._
 import squantlib.model.rates.convention.RateConvention
 
@@ -22,14 +23,14 @@ case class CashCurve (rate:YieldParameter, floatindex:IborIndex) extends Abstrac
 
 object CashCurve {
   
-  def buildCurve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter = values.keySet.size match {
+  def buildCurve(valuedate:Date, values:Map[qlPeriod, Double]):YieldParameter = values.keySet.size match {
     case 1 => FlatVector(valuedate, values)
 	case 2 => LinearNoExtrapolation(valuedate, values)
 	case _ => SplineNoExtrapolation(valuedate, values, 2) } 
 	
-  def apply(valuedate:qlDate, currency:String, value:Double):Option[CashCurve] = apply(valuedate, currency, Map(new qlPeriod("1Y") -> value))
+  def apply(valuedate:Date, currency:String, value:Double):Option[CashCurve] = apply(valuedate, currency, Map(new qlPeriod("1Y") -> value))
 	
-  def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[CashCurve] 
+  def apply(valuedate:Date, currency:String, values:Map[qlPeriod, Double]):Option[CashCurve] 
 		= apply(buildCurve(valuedate, values), currency)
   
   def apply(curve:YieldParameter, currency:String):Option[CashCurve]

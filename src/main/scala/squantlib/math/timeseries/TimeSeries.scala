@@ -1,36 +1,37 @@
 package squantlib.math.timeseries
 
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod }
+import org.jquantlib.time.{Date => jDate, Period => qlPeriod }
 import scala.collection.{SortedSet, SortedMap}
+import squantlib.util.Date
 import java.util.{Date => JavaDate}
-import org.jquantlib.time.{Weekday, Date => qlDate}
+import org.jquantlib.time.{Weekday}
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
 
-case class TimeSeries(ts:SortedMap[qlDate, Double]) extends SortedMap[qlDate, Double] {
+case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double] {
   
-  implicit def sortedMapToTS(smap:SortedMap[qlDate, Double]) = TimeSeries(ts)
+  implicit def sortedMapToTS(smap:SortedMap[Date, Double]) = TimeSeries(ts)
 		
-  def show = ts.foreach(t => println(t._1.shortDate.toString + "\t" + t._2))
+  def show = ts.foreach(t => println(t._1.toString + "\t" + t._2))
   
-  def intersectionWith(ts2:TimeSeries):SortedMap[qlDate, (Double, Double)] = {
-	val commonkeys:SortedSet[qlDate] = ts.keySet & ts2.keySet
+  def intersectionWith(ts2:TimeSeries):SortedMap[Date, (Double, Double)] = {
+	val commonkeys:SortedSet[Date] = ts.keySet & ts2.keySet
 	SortedMap(commonkeys.map(k => (k, (ts(k), ts2(k)))).toSeq :_*)
   }
   
-  def tmap(f:SortedMap[qlDate, Double] => SortedMap[qlDate, Double]):TimeSeries = TimeSeries(f(ts))
+  def tmap(f:SortedMap[Date, Double] => SortedMap[Date, Double]):TimeSeries = TimeSeries(f(ts))
   
   def tmapValues(f:Double => Double):TimeSeries = TimeSeries(ts.mapValues(f))
   
-  override def +[T >: Double](ts2:(qlDate, T)):SortedMap[qlDate, T] = ts + ts2
+  override def +[T >: Double](ts2:(Date, T)):SortedMap[Date, T] = ts + ts2
   
-  override def -(key:qlDate):SortedMap[qlDate, Double] = ts.-(key)
+  override def -(key:Date):SortedMap[Date, Double] = ts.-(key)
   
-  override def iterator:Iterator[(qlDate, Double)] = ts.iterator
+  override def iterator:Iterator[(Date, Double)] = ts.iterator
   
-  override def get(key:qlDate):Option[Double] = ts.get(key)
+  override def get(key:Date):Option[Double] = ts.get(key)
   
-  override def rangeImpl(from: Option[qlDate], until: Option[qlDate]) = TimeSeries(ts.rangeImpl(from, until)) 
+  override def rangeImpl(from: Option[Date], until: Option[Date]) = TimeSeries(ts.rangeImpl(from, until)) 
   
   override def ordering = ts.ordering
   
@@ -40,33 +41,31 @@ case class TimeSeries(ts:SortedMap[qlDate, Double]) extends SortedMap[qlDate, Do
     TimeSeries(datemap)
   }
   
-  def firstDate:qlDate = ts.head._1
+  def firstDate:Date = ts.head._1
   
-  def lastDate:qlDate = ts.last._1
+  def lastDate:Date = ts.last._1
   
-  def getFilledTimeSeries(skipWeekends:Boolean = true, startDate:qlDate = firstDate, endDate:qlDate = lastDate):TimeSeries = {
+  def getFilledTimeSeries(skipWeekends:Boolean = true, startDate:Date = firstDate, endDate:Date = lastDate):TimeSeries = {
     val linearfunction:PolynomialSplineFunction = {
       val keysarray = ts.keySet.map(_.serialNumber.toDouble).toArray
       val valarray = ts.values.toArray
       new LinearInterpolator().interpolate(keysarray, valarray)
     }
     val realStartDate = if(startDate ge firstDate) startDate else firstDate
-    val dates = for(d <- realStartDate.serialNumber to endDate.serialNumber) yield (new qlDate(d))
-    val valuedates:Map[qlDate, Double] = (if (skipWeekends) dates.withFilter(d => isWeekday(d)) else dates).map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
+    val dates = for(d <- realStartDate.serialNumber to endDate.serialNumber) yield (Date(d))
+    val valuedates:Map[Date, Double] = (if (skipWeekends) dates.withFilter(d => d.isWeekday) else dates).map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
     TimeSeries(valuedates)
   }
-  
-  def isWeekday(d:qlDate):Boolean = d.weekday != Weekday.Saturday && d.weekday != Weekday.Sunday
     
 }
 
 object TimeSeries {
   
-//  def apply(ts:Map[qlDate, Double]):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
+//  def apply(ts:Map[Date, Double]):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
   
-  def apply[A<:Iterable[(qlDate, Double)]](ts:A):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
+  def apply[A<:Iterable[(Date, Double)]](ts:A):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
   
-  def apply[A<:Iterable[(JavaDate, Double)]](ts:A)(implicit d:DummyImplicit):TimeSeries = TimeSeries(SortedMap(ts.map{case (k, v) => (new qlDate(k), v)}.toSeq : _*))
+  def apply[A<:Iterable[(JavaDate, Double)]](ts:A)(implicit d:DummyImplicit):TimeSeries = TimeSeries(SortedMap(ts.map{case (k, v) => (Date(k), v)}.toSeq : _*))
   
 }
 

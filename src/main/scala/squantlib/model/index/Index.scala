@@ -3,9 +3,10 @@ package squantlib.model.index
 import squantlib.model.asset.Underlying
 import squantlib.model.yieldparameter.YieldParameter
 import squantlib.model.rates.DiscountCurve
+import squantlib.util.Date
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
+import org.jquantlib.time.{Date => jDate, Period => qlPeriod}
 
 /**
  * Basic Index framework providing spot, forward and volatility
@@ -17,7 +18,7 @@ trait Index extends Underlying {
   
 	val assetID = "INDEX"
   
-	override val valuedate:qlDate
+	override val valuedate:Date
 	
 	val id:String
 	
@@ -25,7 +26,7 @@ trait Index extends Underlying {
 	
 	override val currency:Currency = rateCurve.currency
 	
-	val discontinousDates:Set[qlDate]
+	val discontinousDates:Set[Date]
 	
 	/**
 	 * Returns spot price
@@ -47,7 +48,7 @@ trait Index extends Underlying {
     override def forward(days : Double) : Double
     
     def zc(days:Double) = rateCurve(days)
-    def zc(date:qlDate) = rateCurve(date)
+    def zc(date:Date) = rateCurve(date)
     def zc(period:qlPeriod) = rateCurve(period)
     def zc(dayfrac:Double, dayCounter:DayCounter) = rateCurve(dayfrac, dayCounter)
     def zcY(years:Double) = rateCurve(years * 365.25)
@@ -57,7 +58,7 @@ trait Index extends Underlying {
     override def repoRate(days:Double):Double // To be implemented
      
     def dividendYield(days:Double):Double = discountRate(days) - repoRate(days) - math.log(forward(days) / spot) / (days / 365.25)
-    def dividendYield(date:qlDate):Double = dividendYield(toDays(date))
+    def dividendYield(date:Date):Double = dividendYield(toDays(date))
     def dividendYield(period:qlPeriod):Double = dividendYield(toDays(period))
     def dividendYield(dayfrac:Double, dayCounter:DayCounter):Double = dividendYield(toDays(dayfrac, dayCounter))
     def dividendYieldY(years:Double) = dividendYield(years * 365.25)

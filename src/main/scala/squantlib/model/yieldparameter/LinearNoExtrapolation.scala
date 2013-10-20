@@ -2,7 +2,8 @@ package squantlib.model.yieldparameter
 
 import scala.collection.SortedMap
 import scala.collection.Map
-import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
+import squantlib.util.Date
+import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit}
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
 
@@ -13,7 +14,7 @@ import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
  * @constructor constructs linear curve from given points. extra flat points are added after final date to manage overshoot.
  * @param input points
  */
-case class LinearNoExtrapolation(var valuedate : qlDate, values:Map[Double, Double]) extends YieldParameter with AbstractYieldParameter {
+case class LinearNoExtrapolation(var valuedate : Date, values:Map[Double, Double]) extends YieldParameter with AbstractYieldParameter {
 	require(values.size >= 2, "linear interpolation requires at least 2 point : found " + values.size)
   
 	val sortedValues = SortedMap(values.toSeq:_*)
@@ -38,7 +39,7 @@ case class LinearNoExtrapolation(var valuedate : qlDate, values:Map[Double, Doub
 
 object LinearNoExtrapolation {
   
-	def apply(valuedate : qlDate, values: => Map[qlPeriod, Double]):LinearNoExtrapolation = 
-	  LinearNoExtrapolation(valuedate, values.map{case (d, v) => (d.days(valuedate).toDouble, v)})
+	def apply(valuedate : Date, values: => Map[qlPeriod, Double]):LinearNoExtrapolation = 
+	  LinearNoExtrapolation(valuedate, values.map{case (p, v) => (valuedate.days(p).toDouble, v)})
   
 }

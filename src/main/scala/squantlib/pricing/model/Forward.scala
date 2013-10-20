@@ -9,14 +9,15 @@ import squantlib.model.asset.Underlying
 import squantlib.model.bond.Bond
 import squantlib.util.JsonUtils._
 import squantlib.model.rates.DiscountCurve
+import squantlib.util.Date
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import org.codehaus.jackson.JsonNode
-import org.jquantlib.time.{Date => qlDate}
+import org.jquantlib.time.{Date => jDate}
 import org.jquantlib.daycounters.Actual365Fixed
 
 
 case class Forward(
-    valuedate:qlDate, 
+    valuedate:Date, 
     scheduledPayoffs:ScheduledPayoffs,
     underlyings:List[Underlying]) extends PricingModel {
 	

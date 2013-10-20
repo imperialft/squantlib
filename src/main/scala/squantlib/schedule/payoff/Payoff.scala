@@ -3,9 +3,9 @@ package squantlib.schedule.payoff
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.database.DB
-import org.jquantlib.time.{Date => qlDate}
+import squantlib.util.Date
+import org.jquantlib.time.{Date => jDate}
 import squantlib.model.Market
-import org.jquantlib.time.{Date => qlDate}
 import scala.Option.option2Iterable
 import squantlib.schedule.CalculationPeriod
 import squantlib.schedule.FixingLeg
@@ -87,13 +87,13 @@ trait Payoff extends FixingLeg {
 	/*
 	 * Event dates, usually used in case of >1 fixing dates.
 	 */	
-	def eventDates(d:CalculationPeriod):List[qlDate] = List(d.eventDate)
+	def eventDates(d:CalculationPeriod):List[Date] = List(d.eventDate)
 	
 	/*
 	 * Returns FixedPayoff if all variables fixing are available on given date. 
 	 * Returns this object if any variables are missing.
 	 */	
-	def assignFixings(eventDate:qlDate):Unit = 
+	def assignFixings(eventDate:Date):Unit = 
 	  if (variables.size == 0) {}
 	  else {
 	    val fixings:Map[String, Double] = variables.map(v => DB.getPriceOn(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x) (collection.breakOut)

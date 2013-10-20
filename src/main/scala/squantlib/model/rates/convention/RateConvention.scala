@@ -5,8 +5,7 @@ import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.indexes.ibor.USDLibor
 import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
-
+import org.jquantlib.time.{Date => jDate, Period => qlPeriod, _}
 
 /**
  * Currency specific discount curve calibration.

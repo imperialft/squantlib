@@ -3,8 +3,9 @@ package squantlib.model.rates
 import squantlib.model.yieldparameter._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
-import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod }
+import org.jquantlib.time.{ Date => jDate, Period => qlPeriod }
 import squantlib.model.rates.convention.RateConvention
+import squantlib.util.Date
 
 /**
  * Swap point curve
@@ -27,7 +28,7 @@ case class SwapPointCurve (points:YieldParameter, multiplier:Double, currency:Cu
    * Returns forward fx for the given date.
    * @param spot fx
    */
-  def value(d:qlDate, fx:Double) = fx + points(d) / multiplier
+  def value(d:Date, fx:Double) = fx + points(d) / multiplier
   def value(d:qlPeriod, fx:Double) = fx + points(d) / multiplier
   def value(d:Long, fx:Double) = fx + points(d) / multiplier
   
@@ -46,7 +47,7 @@ object SwapPointCurve {
 
 	val pivotcurrency = new USDCurrency
   
-	def buildCurve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter	
+	def buildCurve(valuedate:Date, values:Map[qlPeriod, Double]):YieldParameter	
 		= (values.keySet.size) match {
 			case 1 => FlatVector(valuedate, values)
 			case 2 => LinearNoExtrapolation(valuedate, values)
@@ -56,7 +57,7 @@ object SwapPointCurve {
   	/**
 	 * Returns tenor basis swap curve using specified conventions and curve construction method.
 	 */
-	def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[SwapPointCurve]
+	def apply(valuedate:Date, currency:String, values:Map[qlPeriod, Double]):Option[SwapPointCurve]
 		= apply(buildCurve(valuedate, values), currency)
   
 	def apply(curve:YieldParameter, currency:String):Option[SwapPointCurve]

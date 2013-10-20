@@ -1,13 +1,14 @@
 package squantlib.database.schemadefinitions
 
-import java.util.Date
+import java.util.{Date => JavaDate}
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 import squantlib.util.JsonUtils._
 import squantlib.schedule.Schedule
 import squantlib.util.initializer._
 import squantlib.database.DB
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod, _}
+import squantlib.util.Date
+import org.jquantlib.time.{Date => jDate, Period => qlPeriod, _}
 import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
@@ -15,12 +16,12 @@ import org.codehaus.jackson.map.ObjectMapper
 
 class Bond(	  @Column("ID")					override var id: String,
               @Column("REF_NUMBER")			var ref_number: Int,
-              @Column("FILING")				var filing: Date,
-              @Column("SELLSTART")			var sellstart: Date,
-              @Column("SELLEND")			var sellend: Date,
-              @Column("ISSUEDATE")			var issuedate: Date,
-              @Column("MATURITY")			var maturity: Date,
-              @Column("TERMINATIONDATE")	var terminationdate: Option[Date],
+              @Column("FILING")				var filing: JavaDate,
+              @Column("SELLSTART")			var sellstart: JavaDate,
+              @Column("SELLEND")			var sellend: JavaDate,
+              @Column("ISSUEDATE")			var issuedate: JavaDate,
+              @Column("MATURITY")			var maturity: JavaDate,
+              @Column("TERMINATIONDATE")	var terminationdate: Option[JavaDate],
               @Column("ISMATURED")			var ismatured: Int,
               @Column("NOMINAL")			var nominal: Option[Double],
               @Column("DENOMINATION")		var denomination: Option[Double],
@@ -41,7 +42,7 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("CALL")				var call: String,
               @Column("TYPE")				var bondtype: String,
               @Column("INITIALFX")			var initialfx: Double,
-              @Column("FIXINGDATE")			var fixingdate: Option[Date],
+              @Column("FIXINGDATE")			var fixingdate: Option[JavaDate],
               @Column("FIXINGS")			var fixings: String,
               @Column("ISIN")				var isin: String,
               @Column("TICKER")				var ticker: String,
@@ -62,8 +63,8 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("PRICETYPE") 			var pricetype: String,
               @Column("DEFAULT_VOL") 		var defaultvol: Double,
               @Column("COMMENT") 			var comment: String,
-              @Column("Created")			var created: Option[Date],
-              @Column("LastModified")		var lastmodified : Option[Date]
+              @Column("Created")			var created: Option[JavaDate],
+              @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
   
   def autoUpdateFields = Set(
@@ -148,12 +149,12 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def period = (coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
-  def issueDateQl = new qlDate(issuedate)
+  def issueDateQl = Date(issuedate)
   
-  def maturityQl = new qlDate(maturity)
+  def maturityQl = Date(maturity)
   
-  def endDate:qlDate = terminationdate match {
-    case Some(d) if maturity after d => new qlDate(d)
+  def endDate:Date = terminationdate match {
+    case Some(d) if maturity after d => Date(d)
     case _ => maturityQl
   }
   
@@ -203,12 +204,12 @@ class Bond(	  @Column("ID")					override var id: String,
     if (n == null || n.isNull) None
     else Some(n.parseDouble.getOrElse(Double.NaN))
     
-  def isMatured(vd:qlDate):Boolean = (vd ge endDate) 
+  def isMatured(vd:Date):Boolean = (vd ge endDate) 
   
   def getInitialFixings:Map[String, Double] = 
     if (!fixingMap.isEmpty) fixingMap
     else (fixingdate, DB.latestParamDate) match {
-      case (Some(f), Some(p)) if f after p.longDate => DB.getLatestPrices(underlyingList.toSet)
+      case (Some(f), Some(p)) if f after p.java => DB.getLatestPrices(underlyingList.toSet)
       case _ => Map.empty
     }
 

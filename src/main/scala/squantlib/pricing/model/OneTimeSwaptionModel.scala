@@ -3,16 +3,17 @@ package squantlib.pricing.model
 import squantlib.model.Market
 import squantlib.schedule.ScheduledPayoffs
 import squantlib.model.bond.Bond
-import org.jquantlib.time.{Date => qlDate}
+import squantlib.util.Date
+import org.jquantlib.time.{Date => jDate}
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.numerical.SwaptionFormula
 
 
 case class OneTimeSwaptionModel(
     scheduledPayoffs:ScheduledPayoffs, 
-    valueDate:qlDate, 
-    optionDate:qlDate, 
-    maturity:qlDate, 
+    valueDate:Date, 
+    optionDate:Date, 
+    maturity:Date, 
     strike:Double, 
     curve:DiscountCurve) extends PricingModel {
   

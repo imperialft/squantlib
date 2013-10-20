@@ -2,10 +2,10 @@ package squantlib.model.rates
 
 import scala.collection.immutable.{TreeMap, SortedSet}
 import squantlib.model.yieldparameter.{FlatVector, YieldParameter, SplineEExtrapolation, SplineNoExtrapolation, LinearNoExtrapolation}
-import org.jquantlib.time.{ Date => qlDate, Period => qlPeriod, TimeUnit}
+import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.model.rates.convention.RateConvention
-
+import squantlib.util.Date
  
   /**
    * Libor discounting model
@@ -38,7 +38,7 @@ extends DiscountableCurve {
 	  /**
 	   * day count initialization, for swap fixed leg convention. (not to be used for cash rate)
 	   */
-	  val maxmaturity = qlPeriod.months(nds.rate.maxperiod, valuedate).toInt
+	  val maxmaturity = valuedate.months(nds.rate.maxperiod).toInt
 	  
 	  val zcmonths:List[Int] = (for (m <- ((0 to maxmaturity by fixperiod).toList)) yield m).sorted
 	  
@@ -47,10 +47,10 @@ extends DiscountableCurve {
 	  val maturities = TreeMap(zcmonths.map(m => (m, valuedate.add(zcperiods(m)))) : _*) 
 	  
 	  val fixdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
-			  		.map(m => (m, nds.fixdaycount.yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
+			  		.map(m => (m, Date.daycount(maturities(m-fixperiod), maturities(m), nds.fixdaycount))) : _*)
 			  		
 	  val floatdaycounts = TreeMap(zcmonths.filter(_ % fixperiod == 0).filter(_ >= fixperiod)
-	  				.map(m => (m, nds.floatindex.dayCounter().yearFraction(maturities(m-fixperiod), maturities(m)))) : _*)
+	  				.map(m => (m, Date.daycount(maturities(m-fixperiod), maturities(m), nds.floatindex.dayCounter))) : _*)
 	  				
 	  val ndsrange = zcperiods.filter{case (m, p) => m > 0}
 	

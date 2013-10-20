@@ -4,7 +4,8 @@ import squantlib.model.Market
 import squantlib.model.yieldparameter.YieldParameter
 import squantlib.database.DB
 import squantlib.database.schemadefinitions.{Equity => EquityInfo}
-import org.jquantlib.time.{BusinessDayConvention, Period => qlPeriod, Date => qlDate}
+import squantlib.util.Date
+import org.jquantlib.time.{BusinessDayConvention, Period => qlPeriod, Date => jDate}
 import scala.collection.mutable.{Map => MutableMap}
 import scala.annotation.tailrec
 
@@ -34,7 +35,7 @@ case class FlatDivATM(
     name:String, 
     ccy:String,
     spot:Double, 
-    dividends:Map[qlDate, Double],
+    dividends:Map[Date, Double],
     repo:Map[qlPeriod, Double],
     vol:Map[qlPeriod, Double],
     discountCurve:String,

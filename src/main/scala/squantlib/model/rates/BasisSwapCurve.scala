@@ -6,7 +6,8 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.time.{TimeUnit, Date => qlDate, Period => qlPeriod, Frequency }
+import squantlib.util.Date
+import org.jquantlib.time.{TimeUnit, Date => jDate, Period => qlPeriod, Frequency }
 import squantlib.model.yieldparameter._
 import squantlib.model.rates.convention.RateConvention
 
@@ -33,14 +34,14 @@ object BasisSwapCurve {
   val pivotcurrency = new USDCurrency
   val pivotFloatIndex = new USDLibor(new qlPeriod(3, TimeUnit.Months))
   
-  def basis_curve(valuedate:qlDate, values:Map[qlPeriod, Double]):YieldParameter 
+  def basis_curve(valuedate:Date, values:Map[qlPeriod, Double]):YieldParameter 
     = (values.keySet.size) match {
      	case 1 => FlatVector(valuedate, values)
 		case 2 => LinearNoExtrapolation(valuedate, values)
 		case _ => SplineNoExtrapolation(valuedate, values, 2)
 		} 
 	
-  def apply(valuedate:qlDate, currency:String, values:Map[qlPeriod, Double]):Option[BasisSwapCurve]
+  def apply(valuedate:Date, currency:String, values:Map[qlPeriod, Double]):Option[BasisSwapCurve]
 	= apply(basis_curve(valuedate, values), currency)
 
   def apply(curve:YieldParameter, currency:String):Option[BasisSwapCurve]

@@ -10,12 +10,13 @@ import squantlib.model.fx.FX
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
-import org.jquantlib.time.{Date => qlDate}
+import squantlib.util.Date
+import org.jquantlib.time.{Date => jDate}
 import org.jquantlib.daycounters.Actual365Fixed
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 
 
-case class EquityMc1f(valuedate:qlDate, 
+case class EquityMc1f(valuedate:Date, 
 					  mcengine:Montecarlo1f, 
 					  scheduledPayoffs:ScheduledPayoffs, 
 					  equity:Equity,
