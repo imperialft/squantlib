@@ -3,8 +3,8 @@ package squantlib.schedule
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.daycounters._
 import squantlib.util.Date
-import org.jquantlib.time.{Date => jDate, _}
 import org.jquantlib.daycounters.DayCounter
+import org.jquantlib.time.{Calendar, BusinessDayConvention, TimeUnit}
 
 case class CalculationPeriod(
     eventDate:Date, 

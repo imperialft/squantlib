@@ -1,7 +1,7 @@
 package squantlib.model.yieldparameter
 
 import squantlib.model.yieldparameter._
-import org.jquantlib.time.{Period => qlPeriod, Date => jDate}
+import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.util.Date
 
 object YieldParameterConstructors {

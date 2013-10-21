@@ -5,7 +5,7 @@ import squantlib.model.yieldparameter.YieldParameter
 import squantlib.database.DB
 import squantlib.database.schemadefinitions.{Equity => EquityInfo}
 import squantlib.util.Date
-import org.jquantlib.time.{BusinessDayConvention, Period => qlPeriod, Date => jDate}
+import org.jquantlib.time.{Period => qlPeriod}
 import scala.collection.mutable.{Map => MutableMap}
 import scala.annotation.tailrec
 

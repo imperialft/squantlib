@@ -2,7 +2,6 @@ package squantlib.math.timeseries
 
 import scala.collection.SortedMap
 import scala.collection.immutable.TreeMap
-import org.jquantlib.time.{ Date => jDate }
 import squantlib.util.Date
 
 

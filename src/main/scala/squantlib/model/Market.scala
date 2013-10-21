@@ -9,10 +9,7 @@ import squantlib.model.index._
 import squantlib.model.equity._
 import squantlib.util.Date
 import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Date => jDate, Period => qlPeriod, TimeUnit, Calendar}
-import org.jquantlib.instruments.{Bond => qlBond}
-import org.jquantlib.pricingengines.bond.DiscountingBondEngine
-import org.jquantlib.termstructures.YieldTermStructure
+import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.model.index.IndexInitializer
 import squantlib.util.UnderlyingParser
 import squantlib.model.asset.Underlying

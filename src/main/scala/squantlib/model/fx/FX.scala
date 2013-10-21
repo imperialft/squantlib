@@ -2,12 +2,10 @@ package squantlib.model.fx
 
 import squantlib.model.asset.Underlying
 import squantlib.model.rates.DiscountCurve
-import squantlib.model.yieldparameter.YieldParameter
-import squantlib.math.timeseries.TimeSeries
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import squantlib.util.Date
-import org.jquantlib.time.{Date => jDate, Period => qlPeriod}
+import org.jquantlib.time.{Period => qlPeriod}
 
 /**
  * Basic FX framework providing spot, forward and volatility

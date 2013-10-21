@@ -6,7 +6,7 @@ import squantlib.util.JsonUtils._
 import squantlib.database.DB
 import scala.collection.JavaConversions._
 import squantlib.util.Date
-import org.jquantlib.time.{BusinessDayConvention, Calendar, Date => jDate}
+import org.jquantlib.time.{BusinessDayConvention, Calendar}
 import org.jquantlib.daycounters.Actual365Fixed
 import scala.runtime.ZippedTraversable3.zippedTraversable3ToTraversable
 import squantlib.schedule.call.{Callabilities, Callability}

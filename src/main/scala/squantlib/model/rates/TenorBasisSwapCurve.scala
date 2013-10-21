@@ -6,7 +6,7 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
 import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.time.{TimeUnit, Date => jDate, Period => qlPeriod, Frequency }
+import org.jquantlib.time.{TimeUnit, Period => qlPeriod}
 import squantlib.model.yieldparameter._
 import squantlib.util.Date
 import squantlib.model.rates.convention.RateConvention

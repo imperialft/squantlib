@@ -101,7 +101,7 @@ object StaticAsset {
 	    periodicity = periodicity,
 	    nbdays = nbDays,
 	    value = correl,
-	    lastmodified = Date.currentTime)
+	    lastmodified = Date.currentTimestamp)
   
   
 

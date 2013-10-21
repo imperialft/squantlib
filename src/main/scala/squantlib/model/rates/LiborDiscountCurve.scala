@@ -2,7 +2,7 @@ package squantlib.model.rates
 
 import squantlib.model.yieldparameter._
 import squantlib.util.Date
-import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit}
+import org.jquantlib.time.{Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter;
 import squantlib.model.rates.convention.RateConvention
 import scala.annotation.tailrec

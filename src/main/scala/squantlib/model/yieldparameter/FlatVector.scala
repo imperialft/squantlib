@@ -1,6 +1,6 @@
 package squantlib.model.yieldparameter
 
-import org.jquantlib.time.{ TimeUnit, Period => qlPeriod, Date => jDate }
+import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.util.Date
 import scala.collection.Map
 

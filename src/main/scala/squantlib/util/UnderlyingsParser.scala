@@ -3,7 +3,6 @@ package squantlib.util
 import squantlib.model.Market
 import squantlib.model.asset.Underlying
 import squantlib.util.initializer.Currencies
-import org.jquantlib.time.{Date => jDate, Period => qlPeriod}
 import java.util.{Date => JavaDate}
 import squantlib.util
 

@@ -8,7 +8,7 @@ import squantlib.schedule.Schedule
 import squantlib.util.initializer._
 import squantlib.database.DB
 import squantlib.util.Date
-import org.jquantlib.time.{Date => jDate, Period => qlPeriod, _}
+import org.jquantlib.time.{Period => qlPeriod, DateGeneration, Calendar, BusinessDayConvention, TimeUnit}
 import org.jquantlib.daycounters._
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
@@ -208,10 +208,13 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def getInitialFixings:Map[String, Double] = 
     if (!fixingMap.isEmpty) fixingMap
-    else (fixingdate, DB.latestParamDate) match {
+    else {
+      val fixdate:Option[JavaDate] = fixingdate
+      val paramdate:Option[Date] = DB.latestParamDate
+      (fixdate, paramdate) match {
       case (Some(f), Some(p)) if f after p.java => DB.getLatestPrices(underlyingList.toSet)
       case _ => Map.empty
-    }
+  }}
 
   def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
   

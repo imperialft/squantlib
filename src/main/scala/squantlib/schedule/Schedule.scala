@@ -2,12 +2,12 @@ package squantlib.schedule
 
 import scala.collection.mutable.MutableList
 import scala.collection.LinearSeq
-import org.jquantlib.daycounters._
 import squantlib.util.Date
-import org.jquantlib.time.{Date => jDate, _}
 import org.jquantlib.time.calendars.NullCalendar
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.DateGeneration.Rule._
+import org.jquantlib.time.{Period, Calendar, BusinessDayConvention, DateGeneration}
+import org.jquantlib.daycounters._
 import java.util.{Date => JavaDate}
 import squantlib.model.rates.DiscountCurve
 

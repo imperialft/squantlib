@@ -2,7 +2,7 @@ package squantlib.model.bond
 
 import org.jquantlib.currencies.Currency
 import squantlib.util.Date
-import org.jquantlib.time.{Date => jDate, Period => qlPeriod, TimeUnit, _}
+import org.jquantlib.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
 import squantlib.database.DB

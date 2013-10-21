@@ -1,7 +1,7 @@
 package squantlib.model.yieldparameter
 
 import scala.collection.mutable.MutableList
-import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit }
+import org.jquantlib.time.{Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.DayCounter
 import squantlib.util.Date
 

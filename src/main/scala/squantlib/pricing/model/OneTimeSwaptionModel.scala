@@ -4,7 +4,6 @@ import squantlib.model.Market
 import squantlib.schedule.ScheduledPayoffs
 import squantlib.model.bond.Bond
 import squantlib.util.Date
-import org.jquantlib.time.{Date => jDate}
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.numerical.SwaptionFormula
 

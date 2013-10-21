@@ -1,6 +1,5 @@
 package squantlib.model.yieldparameter
 
-import org.jquantlib.time.{ Date => jDate }
 import squantlib.chart.LineChart
 import squantlib.util.Date
 

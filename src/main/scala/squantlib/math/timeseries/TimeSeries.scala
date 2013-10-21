@@ -1,10 +1,9 @@
 package squantlib.math.timeseries
 
-import org.jquantlib.time.{Date => jDate, Period => qlPeriod }
+import org.jquantlib.time.{Period => qlPeriod }
 import scala.collection.{SortedSet, SortedMap}
 import squantlib.util.Date
 import java.util.{Date => JavaDate}
-import org.jquantlib.time.{Weekday}
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
 

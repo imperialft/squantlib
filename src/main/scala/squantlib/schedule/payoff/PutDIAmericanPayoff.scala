@@ -5,7 +5,6 @@ import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import java.util.{Map => JavaMap}
-import org.jquantlib.time.{Date => jDate}
 import squantlib.database.DB
 import squantlib.util.Date
 import squantlib.schedule.CalculationPeriod

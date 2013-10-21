@@ -4,8 +4,7 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
 import squantlib.util.Date
 import org.jquantlib.currencies.Currency
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Date => jDate, Period => qlPeriod}
+import org.jquantlib.time.{Period => qlPeriod}
 
 /**
  * Orthodox index with continuous dividend yield.

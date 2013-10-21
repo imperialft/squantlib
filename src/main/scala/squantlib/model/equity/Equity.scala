@@ -5,7 +5,7 @@ import squantlib.model.yieldparameter.YieldParameter
 import squantlib.model.rates.DiscountCurve
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Date => jDate, Period => qlPeriod}
+import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.util.Date
 
 /**

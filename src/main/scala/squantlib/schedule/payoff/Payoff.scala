@@ -4,7 +4,6 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.database.DB
 import squantlib.util.Date
-import org.jquantlib.time.{Date => jDate}
 import squantlib.model.Market
 import scala.Option.option2Iterable
 import squantlib.schedule.CalculationPeriod

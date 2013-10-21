@@ -1,7 +1,7 @@
 package squantlib.model.yieldparameter
 
 import scala.collection.immutable.SortedMap
-import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit }
+import org.jquantlib.time.{Period => qlPeriod}
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator
 import org.apache.commons.math3.analysis.function.{Log, Exp}

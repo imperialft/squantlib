@@ -1,10 +1,8 @@
 package squantlib.model.equity
 
 import squantlib.model.yieldparameter.YieldParameter
-import squantlib.util.initializer.Currencies
 import squantlib.util.Date
-import org.jquantlib.time.{Period => qlPeriod, Date => jDate}
-import org.jquantlib.currencies.Currency
+import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.model.yieldparameter._
 
 

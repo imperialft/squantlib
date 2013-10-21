@@ -3,7 +3,7 @@ package squantlib.model.index
 import squantlib.model.yieldparameter.YieldParameter
 import squantlib.util.initializer.Currencies
 import squantlib.util.Date
-import org.jquantlib.time.{Period => qlPeriod, Date => jDate}
+import org.jquantlib.time.{Period => qlPeriod}
 import org.jquantlib.currencies.Currency
 import squantlib.model.yieldparameter._
 

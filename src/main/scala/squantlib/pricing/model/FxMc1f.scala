@@ -10,8 +10,6 @@ import squantlib.util.JsonUtils._
 import squantlib.model.rates.DiscountCurve
 import squantlib.util.Date
 import org.codehaus.jackson.JsonNode
-import org.jquantlib.time.{Date => jDate}
-import org.jquantlib.daycounters.Actual365Fixed
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 
 case class FxMc1f(valuedate:Date, 

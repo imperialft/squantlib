@@ -4,7 +4,6 @@ import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.node.{ObjectNode, ArrayNode}
 import scala.collection.JavaConversions._
-import org.jquantlib.time.{Date => jDate}
 import org.codehaus.jackson.`type`.TypeReference;
 import java.util.{List => JavaList, Map => JavaMap}
 import java.lang.{String => JavaString}

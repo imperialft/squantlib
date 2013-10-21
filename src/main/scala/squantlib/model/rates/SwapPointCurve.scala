@@ -3,7 +3,7 @@ package squantlib.model.rates
 import squantlib.model.yieldparameter._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.America.USDCurrency
-import org.jquantlib.time.{ Date => jDate, Period => qlPeriod }
+import org.jquantlib.time.{Period => qlPeriod }
 import squantlib.model.rates.convention.RateConvention
 import squantlib.util.Date
 

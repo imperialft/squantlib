@@ -2,7 +2,6 @@ package squantlib.math.financial
 
 import annotation.tailrec
 import squantlib.math.solver.NewtonRaphson
-import org.jquantlib.termstructures.Compounding
 
 
 object BondYield {

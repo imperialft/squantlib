@@ -1,7 +1,6 @@
 package squantlib.model.rates
 
 import squantlib.model.yieldparameter.YieldParameter
-import org.jquantlib.time.{Date => jDate}
 import squantlib.util.Date
 
 /**

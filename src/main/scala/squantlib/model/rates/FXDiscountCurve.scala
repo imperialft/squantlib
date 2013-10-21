@@ -2,7 +2,7 @@ package squantlib.model.rates
 
 import squantlib.util.Date
 import squantlib.model.yieldparameter.{YieldParameter, SplineEExtrapolation, FlatVector}
-import org.jquantlib.time.{ Date => jDate, Period => qlPeriod, TimeUnit}
+import org.jquantlib.time.{Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.Thirty360
 import squantlib.model.rates.convention.RateConvention
 import scala.annotation.tailrec

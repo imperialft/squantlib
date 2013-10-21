@@ -8,8 +8,10 @@ import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.Calendar
 import org.jquantlib.time.TimeUnit
 import org.jquantlib.time.BusinessDayConvention
+import scala.collection.LinearSeq
 
 @cloneable
+@serializable
 trait Date extends Ordered[Date] {
   def java:JavaDate
   
@@ -23,9 +25,21 @@ trait Date extends Ordered[Date] {
   
   def lt(d:Date):Boolean = ql lt d.ql
   
-  def compare(d: Date) = ql compareTo d.ql
+  def eq(d:Date):Boolean = ql eq d.ql
   
+  override def compare(d: Date):Int = ql compareTo d.ql
+  
+  override def hashCode:Int = ql.serialNumber.toInt
+
+  override def equals(obj:Any):Boolean = obj match {
+    case b if b == null => false
+    case b:Date if b.ql eq ql => true
+    case _ => false
+  }
+
   def isWeekday:Boolean = ql.weekday != Weekday.Saturday && ql.weekday != Weekday.Sunday
+  
+  def isBusinessday(calendar:Calendar):Boolean = calendar.isBusinessDay(ql)
   
   def add(d:Int):Date = Date(ql add d)
   
@@ -39,6 +53,8 @@ trait Date extends Ordered[Date] {
   
   def sub(d:Date):Long = ql sub d.ql
   
+  def sub(d:Int):Date= Date(ql sub d)
+  
   def serialNumber:Long = ql.serialNumber
   
   def days(p:qlPeriod):Long = p.days(ql)
@@ -47,7 +63,9 @@ trait Date extends Ordered[Date] {
   
   override def clone() = super.clone().asInstanceOf[Date]
   
-  override def toString = "%tY/%<tm/%<td".format(java)
+  def yyyymmdd(yString:String = "", mString:String = "", dString:String = ""):String = s"""%tY${yString}%<tm${mString}%<td${dString}""".format(java)
+  
+  override def toString = yyyymmdd("/", "/", "")
   
 }
 
@@ -67,6 +85,11 @@ object Date {
   def currentTimestamp:Timestamp = new Timestamp(currentTime.getTime)
   
   def daycount(d1:Date, d2:Date, daycounter:DayCounter):Double = daycounter.yearFraction(d1.ql, d2.ql)
+  
+  def daysBetween(fromDate:Date, toDate:Date):Set[Date] = (fromDate.serialNumber to toDate.serialNumber).map(apply)(collection.breakOut)
+  def weekdaysBetween(fromDate:Date, toDate:Date):Set[Date] = daysBetween(fromDate, toDate).filter(_.isWeekday)
+  def businessDaysBetween(fromDate:Date, toDate:Date, calendar:Calendar) = daysBetween(fromDate, toDate).filter(_.isBusinessday(calendar))
+
 }
 
 class JavaDateImpl(d:JavaDate) extends Date{

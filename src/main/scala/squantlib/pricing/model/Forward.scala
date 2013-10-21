@@ -1,7 +1,7 @@
 package squantlib.pricing.model
 
 import squantlib.model.Market
-import squantlib.schedule.payoff.{Payoffs}
+import squantlib.schedule.payoff.Payoffs
 import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod, Schedule}
 import squantlib.pricing.mcengine._
 import squantlib.model.index.Index
@@ -12,8 +12,6 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.util.Date
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import org.codehaus.jackson.JsonNode
-import org.jquantlib.time.{Date => jDate}
-import org.jquantlib.daycounters.Actual365Fixed
 
 
 case class Forward(

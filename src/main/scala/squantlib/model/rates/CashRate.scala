@@ -4,7 +4,7 @@ import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.daycounters.{DayCounter, Actual360}
 import org.jquantlib.currencies.Currency
 import org.jquantlib.indexes.IborIndex
-import org.jquantlib.time.{TimeUnit, Date => jDate, Period => qlPeriod, Frequency }
+import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.util.Date
 import squantlib.model.yieldparameter._
 import squantlib.model.rates.convention.RateConvention
