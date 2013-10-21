@@ -5,6 +5,9 @@ import squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
 import squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
+import squantlib.util.initializer.Calendars
+import org.jquantlib.time.Calendar
+import org.jquantlib.time.calendars.NullCalendar
 
 /**
  * Simple asset model (no currency)
@@ -23,13 +26,15 @@ trait StaticAsset {
   
   def expectedCoupon:Option[Double]  // to be implemented in subclass
   
+  val calendar:Calendar // to be implemented in subclass
+  
   protected def getDbForwardPrice:Map[Date, Double]  // to be implemented in subclass
   
-  def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice).getFilledTimeSeries(true))
+  def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice).getFilledTimeSeries())
 	
   protected def getPriceHistory:Map[Date, Double]
   
-  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getPriceHistory).getFilledTimeSeries(true))
+  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getPriceHistory).getBusinessDayFilledTimeSeries(calendar))
   
   def historicalVolLatest(nbDays:Int, annualDays:Double = 260, minDays:Int = 100):Option[Double] = {
     if (priceHistory.size < minDays) {return None}

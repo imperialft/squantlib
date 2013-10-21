@@ -6,6 +6,7 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import squantlib.util.Date
 import org.jquantlib.time.{Period => qlPeriod}
+import org.jquantlib.time.calendars.NullCalendar
 
 /**
  * Basic FX framework providing spot, forward and volatility
@@ -20,6 +21,8 @@ trait FX extends Underlying {
 	val currencyDom:Currency = curveDom.currency
 	val currencyFor:Currency = curveFor.currency
 	override val currency = currencyDom
+	
+	override lazy val calendar = new NullCalendar
 	
 	require (curveDom.valuedate eq curveFor.valuedate)
 	val valuedate = curveDom.valuedate

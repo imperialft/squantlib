@@ -70,9 +70,13 @@ trait Date extends Ordered[Date] {
 }
 
 object Date {
+  
   def apply(d:JavaDate):Date = new JavaDateImpl(d)
+  
   def apply(d:qlDate):Date = new QlDateImpl(d)
+  
   def apply(d:Long):Date = new QlDateImpl(new qlDate(d))
+  
   def apply(day:Int, month:Int, year:Int):Date = {
     // (year, month, day)
     if (day >= 1900) new QlDateImpl(new qlDate(year, month, day))
@@ -81,13 +85,17 @@ object Date {
   }
   
   def currentDate:Date = apply(currentTime)
+  
   def currentTime:JavaDate = java.util.Calendar.getInstance.getTime
+  
   def currentTimestamp:Timestamp = new Timestamp(currentTime.getTime)
   
   def daycount(d1:Date, d2:Date, daycounter:DayCounter):Double = daycounter.yearFraction(d1.ql, d2.ql)
   
   def daysBetween(fromDate:Date, toDate:Date):Set[Date] = (fromDate.serialNumber to toDate.serialNumber).map(apply)(collection.breakOut)
+  
   def weekdaysBetween(fromDate:Date, toDate:Date):Set[Date] = daysBetween(fromDate, toDate).filter(_.isWeekday)
+  
   def businessDaysBetween(fromDate:Date, toDate:Date, calendar:Calendar) = daysBetween(fromDate, toDate).filter(_.isBusinessday(calendar))
 
 }

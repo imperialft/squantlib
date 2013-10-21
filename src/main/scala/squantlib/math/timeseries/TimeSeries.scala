@@ -6,6 +6,8 @@ import squantlib.util.Date
 import java.util.{Date => JavaDate}
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
+import org.jquantlib.time.Calendar
+import org.jquantlib.time.calendars.NullCalendar
 
 case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double] {
   
@@ -44,7 +46,7 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
   
   def lastDate:Date = ts.last._1
   
-  def getFilledTimeSeries(skipWeekends:Boolean = true, startDate:Date = firstDate, endDate:Date = lastDate):TimeSeries = {
+  def getFilledTimeSeries(startDate:Date = firstDate, endDate:Date = lastDate):TimeSeries = {
     val linearfunction:PolynomialSplineFunction = {
       val keysarray = ts.keySet.map(_.serialNumber.toDouble).toArray
       val valarray = ts.values.toArray
@@ -52,8 +54,15 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
     }
     val realStartDate = if(startDate ge firstDate) startDate else firstDate
     val dates = for(d <- realStartDate.serialNumber to endDate.serialNumber) yield (Date(d))
-    val valuedates:Map[Date, Double] = (if (skipWeekends) dates.withFilter(d => d.isWeekday) else dates).map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
+    val valuedates:Map[Date, Double] = dates.map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
     TimeSeries(valuedates)
+  }
+  
+  def getBusinessDayFilledTimeSeries(calendar:Calendar = new NullCalendar, startDate:Date = firstDate, endDate:Date = lastDate):TimeSeries = {
+    TimeSeries(getFilledTimeSeries(startDate, endDate).filterKeys(d => calendar match {
+      case c:NullCalendar => d.isWeekday
+      case c => d.isBusinessday(c)
+    }))
   }
     
 }

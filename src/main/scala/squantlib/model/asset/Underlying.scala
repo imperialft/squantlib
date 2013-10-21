@@ -4,10 +4,12 @@ import squantlib.util.DisplayUtils._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Period => qlPeriod}
+import org.jquantlib.time.calendars.NullCalendar
 import squantlib.model.Market
 import squantlib.util.UnderlyingParser
 import squantlib.database.DB
 import squantlib.util.Date
+import squantlib.util.initializer.Calendars
 
 /**
  * Underlying to be used for pricing models.
@@ -24,6 +26,8 @@ trait Underlying extends StaticAsset {
   val daysPerYr = 365.25
   
   val currency:Currency // TO BE DEFINED IN SUBCLASS
+  
+  lazy val calendar = Calendars.getOrElse(currency.code, new NullCalendar)
   
   /**
    * Returns the discounting rate (risk-free rate on the currency)

@@ -80,7 +80,7 @@ case class Bond(
 	
 	def period:qlPeriod = (db.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
-	def calendar:Calendar = db.calendar
+	override lazy val calendar:Calendar = db.calendar
 	
 	def issuePrice:Option[Double] = db.issueprice
 	
