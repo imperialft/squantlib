@@ -9,7 +9,7 @@ object StdDev{
 	 * Returns Standard Deviation
 	 * @return a variance for the full given period
 	 */
-    def calculate(quotes:Set[Double]):Double = math.sqrt(Variance.calculate(quotes))
+    def calculate(quotes:Iterable[Double]):Double = math.sqrt(Variance.calculate(quotes))
     
 	/**
 	 * Returns Standard Deviation

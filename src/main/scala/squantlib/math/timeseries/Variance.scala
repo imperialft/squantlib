@@ -10,7 +10,7 @@ object Variance {
 	 * Returns variance
 	 * @return variance of unsorted collection of data
 	 */
-	def calculate(values:Set[Double]):Double = {
+	def calculate(values:Iterable[Double]):Double = {
 		val logsetcount = values.size 
 		val logmean = values.sum / logsetcount
 		values.map(v => (v - logmean) * (v - logmean)).sum / logsetcount
@@ -32,6 +32,6 @@ object Variance {
 		TreeMap((nbData to quotes.size).map( i => { 
 				val startdate = keys(i - nbData)
 				val enddate = keys(i - 1)
-				(enddate, calculate(quotes.from(startdate).to(enddate).map(v => v._2).toSet))}) :_*)
+				(enddate, calculate(quotes.from(startdate).to(enddate).map(v => v._2)))}) :_*)
 	}  
 }
