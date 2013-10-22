@@ -10,9 +10,7 @@ import org.jquantlib.time.TimeUnit
 import org.jquantlib.time.BusinessDayConvention
 import scala.collection.LinearSeq
 
-@cloneable
-@serializable
-trait Date extends Ordered[Date] {
+trait Date extends Ordered[Date] with Cloneable with Serializable{
   def java:JavaDate
   
   def ql:qlDate

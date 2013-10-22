@@ -32,6 +32,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * Bond class with enclosed risk analysis functions.
  */
+
 case class Bond(
 		db:dbBond, 
 		scheduledPayoffs:ScheduledPayoffs,
@@ -43,7 +44,7 @@ case class Bond(
 		var modelCalibrated:Boolean = false,
 		var _market:Option[Market] = None,
 		var model:Option[PricingModel] = None
-		) extends AnalyzedAsset {
+		) extends AnalyzedAsset with Cloneable {
 	
 	/*
 	 * Basic access functions
