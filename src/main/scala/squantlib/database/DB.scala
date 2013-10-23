@@ -4,14 +4,15 @@ import squantlib.util.Date
 import java.util.{Date => JavaDate}
 import squantlib.util.UnderlyingParser
 import squantlib.database.schemadefinitions.Equity
+import squantlib.math.timeseries.TimeSeries
 
 trait DbRepository {
   
   def latestParamDate:Date
   
-  def getHistorical(id:String, startDate:Date, endDate:Date, assetId:String = null):Map[Date, Double]
+  def getHistorical(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries
   
-  def getForwardPrices(assetId:String, id:String):Map[Date, Double]
+  def getForwardPrices(assetId:String, id:String):TimeSeries
   
   def getEquities:Set[Equity]
   
@@ -45,18 +46,21 @@ object DB {
 	
   def pastFixings(ids:Set[String], dates:List[Date], paramType:String = null):List[Map[String, Option[Double]]] = {
 	  if (dates.isEmpty) {return List.empty}
-	  val allhistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min, dates.max, paramType))) (collection.breakOut)
+	  val allhistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min, dates.max, paramType).toMap)) (collection.breakOut)
 	  val result = dates.map(d => ids.map(p => (p, allhistory(p).get(d))).toMap)
 	  result
 	}
 	
-  def getHistorical(id:String):Map[Date, Double] = getHistorical(id, null)
+  def getHistorical(id:String):TimeSeries = getHistorical(id, null)
 	  
-  def getHistorical(id:String, paramType:String):Map[Date, Double] = getHistorical(id, null, null, paramType)
+  def getHistorical(id:String, paramType:String):TimeSeries = getHistorical(id, null, null, paramType)
   
-  def getHistorical(id:String, startDate:Date, endDate:Date, assetId:String = null):Map[Date, Double] = repository.collect{case repo => repo.getHistorical(id, startDate, endDate, assetId)}.getOrElse(Map.empty)
+  def getHistorical(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries = repository match {
+    case Some(repo) => repo.getHistorical(id, startDate, endDate, assetId)
+    case None => TimeSeries.empty
+  }
   
-  def getForwardPrices(assetId:String, id:String):Map[Date, Double] = repository.collect{case repo => repo.getForwardPrices(assetId, id)}.getOrElse(Map.empty)
+  def getForwardPrices(assetId:String, id:String):TimeSeries = repository.collect{case repo => repo.getForwardPrices(assetId, id)}.getOrElse(TimeSeries.empty)
   
   def getEquities:Set[Equity] = repository.collect{case repo => repo.getEquities}.getOrElse(Set.empty)
 }

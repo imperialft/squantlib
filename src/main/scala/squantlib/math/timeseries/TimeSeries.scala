@@ -24,17 +24,27 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
   
   def tmapValues(f:Double => Double):TimeSeries = TimeSeries(ts.mapValues(f))
   
-  override def +[T >: Double](ts2:(Date, T)):SortedMap[Date, T] = ts + ts2
+//  override def +[T >: Double](ts2:(Date, T)):SortedMap[Date, T] = ts + ts2
+  override def +[T >: Double](ts2:(Date, T)):TimeSeries = ts2 match {
+    case (d, v:Double) => TimeSeries(ts.updated(d, v))
+    case (d, v) => TimeSeries(ts.updated(d, v.asInstanceOf[Double]))
+  }
   
-  override def -(key:Date):SortedMap[Date, Double] = ts.-(key)
+  override def -(key:Date):TimeSeries = TimeSeries(ts.-(key))
   
   override def iterator:Iterator[(Date, Double)] = ts.iterator
   
   override def get(key:Date):Option[Double] = ts.get(key)
   
-  override def rangeImpl(from: Option[Date], until: Option[Date]) = TimeSeries(ts.rangeImpl(from, until)) 
+  override def rangeImpl(from: Option[Date], until: Option[Date]):TimeSeries = TimeSeries(ts.rangeImpl(from, until)) 
   
   override def ordering = ts.ordering
+  
+  def filter(f:(Date, Double) => Boolean):TimeSeries = TimeSeries(ts.filter(f))
+  
+  override def filterKeys(f:Date => Boolean):TimeSeries = TimeSeries(ts.filterKeys(f))
+  
+  def mapValues(f:(Double) => Double):TimeSeries = TimeSeries(ts.mapValues(f))
   
   def add(ts1:TimeSeries):TimeSeries = {
     val dates = ts1.keySet ++ ts.keySet
@@ -71,9 +81,12 @@ object TimeSeries {
   
 //  def apply(ts:Map[Date, Double]):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
   
+  def apply(ts:Map[Date, Double]):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
+  
   def apply[A<:Iterable[(Date, Double)]](ts:A):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
   
   def apply[A<:Iterable[(JavaDate, Double)]](ts:A)(implicit d:DummyImplicit):TimeSeries = TimeSeries(SortedMap(ts.map{case (k, v) => (Date(k), v)}.toSeq : _*))
   
+  def empty:TimeSeries = TimeSeries(SortedMap.empty[Date, Double])
 }
 

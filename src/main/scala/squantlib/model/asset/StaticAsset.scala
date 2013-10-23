@@ -28,13 +28,13 @@ trait StaticAsset {
   
   val calendar:Calendar // to be implemented in subclass
   
-  protected def getDbForwardPrice:Map[Date, Double]  // to be implemented in subclass
+  protected def getDbForwardPrice:TimeSeries  // to be implemented in subclass
   
-  def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", TimeSeries(getDbForwardPrice).getFilledTimeSeries())
+  def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", getDbForwardPrice.getFilledTimeSeries())
 	
-  protected def getPriceHistory:Map[Date, Double]
+  protected def getPriceHistory:TimeSeries
   
-  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", TimeSeries(getPriceHistory).getBusinessDayFilledTimeSeries(calendar))
+  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", getPriceHistory.getBusinessDayFilledTimeSeries(calendar))
   
   def historicalVolLatest(nbDays:Int, annualDays:Double = 260, minDays:Int = 100):Option[Double] = {
     if (priceHistory.size < minDays) {return None}

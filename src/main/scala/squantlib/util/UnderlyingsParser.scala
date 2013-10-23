@@ -19,8 +19,16 @@ object UnderlyingParser {
   
   def getSpot(id:String, mkt:Market):Option[Double] = getParser(id).flatMap{case s => s.getSpot(id, mkt)}
   
-  def getHistorical(id:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = getParser(id).collect{
-    case s => s.getHistorical(id, start, end)}.getOrElse(Map.empty)
+  def getHistorical(id:String, start:JavaDate, end:JavaDate):Map[JavaDate, Double] = {
+    println("get historical " + id + " " + start + " " + end)
+    val result:Map[JavaDate, Double] = try {
+      val r = getParser(id).collect{case s => s.getHistorical(id, start, end)}.getOrElse(Map.empty)
+      println("completed " + r.size)
+      r
+    } catch {case e => e.printStackTrace; println("ERROR "  + id + " " + start + " " + end ); Map.empty}
+    
+    result
+  }
 
   val typeCmt = "CMT"
     
