@@ -21,7 +21,7 @@ import squantlib.pricing.model.NoModel
 import squantlib.model.Market
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.asset.{AnalyzedAsset, Underlying}
-import squantlib.util.UnderlyingParser
+import squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 import scala.collection.JavaConversions._
@@ -596,16 +596,7 @@ case class Bond(
 	 * List of underlying currencies
 	 */
 	
-	def currencyList:Set[String] = {
-	  val ulset:Set[String] = underlyings.toSet
-	  val ulccys:Set[String] = ulset.map(ul => {
-	    UnderlyingParser.getParser(ul).collect{case p => p.getType} match {
-	    case Some(UnderlyingParser.typeCcy) => Set(ul)
-	    case Some(UnderlyingParser.typeFX) => Set(ul take 3, ul takeRight 3)
-	    case _ => Set.empty
-	  }}).flatten
-	  ulccys + currency.code
-	}
+	def currencyList:Set[String] = underlyings.map(UnderlyingParsers.extractCurrencies).flatten.toSet + currency.code
 
 	def greek(target:Bond => Option[Double], operation:Market => Option[Market]):Option[Double] = market.flatMap { case mkt =>
 	  val initprice = target(this)

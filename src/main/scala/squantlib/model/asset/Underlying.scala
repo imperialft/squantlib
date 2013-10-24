@@ -6,7 +6,7 @@ import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Period => qlPeriod}
 import org.jquantlib.time.calendars.NullCalendar
 import squantlib.model.Market
-import squantlib.util.UnderlyingParser
+import squantlib.util.UnderlyingParsers
 import squantlib.database.DB
 import squantlib.util.Date
 import squantlib.util.initializer.Calendars
@@ -222,9 +222,7 @@ trait Underlying extends StaticAsset {
 
 object Underlying {
   
-  def apply(param:String, market:Market) = getUnderlying(param, market)
-  
-  def getUnderlying(param:String, market:Market):Option[Underlying] = UnderlyingParser.getUnderlying(param, market)
+  def apply(param:String, market:Market):Option[Underlying] = UnderlyingParsers.get(param).flatMap{case b => b.getUnderlying(market)}
   
 }
 

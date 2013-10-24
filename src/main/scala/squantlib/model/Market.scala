@@ -11,7 +11,7 @@ import squantlib.util.Date
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.model.index.IndexInitializer
-import squantlib.util.UnderlyingParser
+import squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import squantlib.model.asset.Underlying
 
 /** 
@@ -242,11 +242,10 @@ class Market(
 	def getFixings(ids:List[String]):List[Double] = ids.map(p => getFixing(p).getOrElse(Double.NaN))
 
 	
-	def getFixing(id:String):Option[Double] = 
-	  if (id == null) None
-	  else id.trim match {
-	      case p if fixings contains p => Some(fixings(p))
-	      case p => UnderlyingParser.getSpot(p, this)
+	def getFixing(id:String):Option[Double] = id match {
+	  case null => None
+	  case p if fixings contains p.trim => Some(fixings(p.trim))
+	  case p => UnderlyingParsers.get(p).flatMap{case p => p.getSpot(this)}
 	}
 	
 	/**
@@ -384,34 +383,13 @@ class Market(
 	  new Market(paramset, curves, cdscurves, fxInitializers, newInitializers, equityInitializers, fixings)
 	}
 	
-	def getSpot(id:String):Option[Double] = UnderlyingParser.getParser(id).collect{case p => p.getType} match {
-	  case Some(UnderlyingParser.typeEquity) => getEquity(id).collect{case e => e.spot}
-	  case Some(UnderlyingParser.typeCcy) => fx(id, FXbaseCurrency)
-	  case Some(UnderlyingParser.typeFX) => fx(id take 3, id takeRight 3)
-	  case Some(UnderlyingParser.typeIndex) => getIndex(id).collect{case e => e.spot}
-	  case _ => None
-	}
+	def getSpot(id:String):Option[Double] = UnderlyingParsers.get(id).flatMap{case p => p.getSpot(this)}
 	
-	def getUnderlying(id:String):Option[Underlying] = if (id == null) None else UnderlyingParser.getUnderlying(id, this)
+	def getUnderlying(id:String):Option[Underlying] = UnderlyingParsers.getUnderlying(id, this)
 	
-	def underlyingShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id).collect{case p => p.getType} match {
-	  case Some(UnderlyingParser.typeEquity) => Some(equityShifted(id, shift))
-	  case Some(UnderlyingParser.typeCcy) => Some(fxShifted(id, shift))
-	  case Some(UnderlyingParser.typeFX) => (curves.get(id take 3), curves.get(id drop 3)) match {
-	    case (Some(a:FXCurve), Some(b:FXCurve)) => Some(fxShifted(id take 3, 1.0/shift))
-	    case (Some(a:FXCurve), _) => Some(fxShifted(id drop 3, shift))
-	    case _ => Some(fxShifted(id take 3, 1.0/shift))
-	  }
-	  case Some(UnderlyingParser.typeIndex) => Some(indexShifted(id, shift))
-	  case _ => None
-	}
+	def underlyingShifted(id:String, shift:Double):Option[Market] = UnderlyingParsers.get(id).flatMap{case p => p.getShiftedMarket(shift, this)}
 	
-	def underlyingVolShifted(id:String, shift:Double):Option[Market] = UnderlyingParser.getParser(id).collect{case p => p.getType} match {
-	  case Some(UnderlyingParser.typeEquity) => Some(equityVolShifted(id, shift))
-	  case Some(UnderlyingParser.typeFX) => Some(fxVolShifted(id, shift))
-	  case Some(UnderlyingParser.typeIndex) => Some(indexVolShifted(id, shift))
-	  case _ => None
-	}
+	def underlyingVolShifted(id:String, shift:Double):Option[Market] = UnderlyingParsers.get(id).flatMap{case p => p.getShiftedVolMarket(shift, this)}
 	
 	/** 
 	 * Checks whether the given curve is already calculated and stored in the repository.
