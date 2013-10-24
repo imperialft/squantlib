@@ -79,9 +79,9 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
 
 object TimeSeries {
   
-//  def apply(ts:Map[Date, Double]):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
-  
   def apply(ts:Map[Date, Double]):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
+  
+  def apply(ts:Map[JavaDate, Double])(implicit d:DummyImplicit):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
   
   def apply[A<:Iterable[(Date, Double)]](ts:A):TimeSeries = TimeSeries(SortedMap(ts.toSeq : _*))
   
