@@ -30,6 +30,11 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
     case (d, v) => TimeSeries(ts.updated(d, v.asInstanceOf[Double]))
   }
   
+  def deepCopy:TimeSeries = {
+    val newts:Map[Date, Double] = ts.map{case (k, v) => (k.clone, v*1)}(collection.breakOut)
+    TimeSeries(newts)
+  }
+  
   override def -(key:Date):TimeSeries = TimeSeries(ts.-(key))
   
   override def iterator:Iterator[(Date, Double)] = ts.iterator

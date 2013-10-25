@@ -21,15 +21,15 @@ trait AnalyzedAsset extends StaticAsset {
 
   lazy val lastData = priceHistory.lastDate
   
-  lazy val startDate:Date = assetStartDate.collect{case d => if (d ge firstData) d else firstData}.getOrElse(firstData)
+  lazy val priceStartDate:Date = assetStartDate.collect{case d => if (d ge firstData) d else firstData}.getOrElse(firstData)
   
-  lazy val endDate:Date = assetEndDate.collect{case d => if (d le lastData) d else lastData}.getOrElse(lastData)
+  lazy val priceEndDate:Date = assetEndDate.collect{case d => if (d le lastData) d else lastData}.getOrElse(lastData)
   
-  def isAliveOn(d:Date):Boolean = (d ge startDate) && (d le endDate)
+  def isPricedOn(d:Date):Boolean = (d ge priceStartDate) && (d le priceEndDate)
   
   def isPriced:Boolean
   
-  def getLivePriceHistory:TimeSeries = TimeSeries(priceHistory.filterKeys(d => (d ge startDate) && (d le endDate)))
+  def getLivePriceHistory:TimeSeries = TimeSeries(priceHistory.filterKeys(d => (d ge priceStartDate) && (d le priceEndDate)))
   
 } 
 

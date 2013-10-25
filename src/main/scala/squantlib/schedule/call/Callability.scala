@@ -1,4 +1,5 @@
 package squantlib.schedule.call
+
 import scala.collection.immutable.ListMap
 import squantlib.util.DisplayUtils._
 import squantlib.schedule.FixingLeg

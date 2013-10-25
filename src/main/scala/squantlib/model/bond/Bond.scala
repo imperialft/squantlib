@@ -130,7 +130,7 @@ case class Bond(
 	
 	override val assetEndDate = Some(terminationDate)
 	
-	def isAlive(d:Date):Option[Boolean] = valueDate.collect{case d => isAliveOn(d)}
+//	override def isAlive(d:Date):Option[Boolean] = valueDate.collect{case d => isAliveOn(d)}
 	
 	def getUnderlyings:Map[String, Option[Underlying]] = market match {
 	  case None => underlyings.map(u => (u, None)) (collection.breakOut)
