@@ -214,6 +214,12 @@ case class Bond(
 	val calibrationCache = new SimpleCache
 	def getCalibrationCache(k:String):Option[Any] = calibrationCache.getAny(k)	
 	
+	def clearCache = {
+	  cache.clear
+	  calibrationCache.clear
+	  model.collect{case m => m.modelCache.clear}
+	}
+	
 	/*	
 	 * Returns "live" payment schedules
 	 * 	@returns element 1: Schedule containing legs with payment date after market value date or specified value date.
