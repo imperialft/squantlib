@@ -57,6 +57,8 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
     TimeSeries(datemap)
   }
   
+  def append(ts1:TimeSeries):TimeSeries = TimeSeries(ts ++ ts1)
+  
   def firstDate:Date = ts.head._1
   
   def lastDate:Date = ts.last._1
