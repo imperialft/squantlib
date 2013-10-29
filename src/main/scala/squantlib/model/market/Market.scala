@@ -206,7 +206,7 @@ class Market(
   
   /**
    * Returns rate curve for the given currency.
-   * @param currency code
+   * @param currency code 
    * @returns curve if given currency is initialized as rate curve
    */
   def getRateCurve(ccy:String):Option[RateCurve] = 
