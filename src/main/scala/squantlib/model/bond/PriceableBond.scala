@@ -13,9 +13,9 @@ import org.jquantlib.currencies.Currency
 
 
 class PriceableBond(
-    db:dbBond, 
-    scheduledPayoffs:ScheduledPayoffs,
-	underlyings:List[String]) 
+    override val db:dbBond, 
+    override val scheduledPayoffs:ScheduledPayoffs,
+	override val underlyings:List[String]) 
 	extends BondModel(db, scheduledPayoffs, underlyings) 
     with Priceable 
     with Cloneable {
