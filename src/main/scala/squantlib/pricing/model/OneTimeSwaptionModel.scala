@@ -2,7 +2,7 @@ package squantlib.pricing.model
 
 import squantlib.model.Market
 import squantlib.schedule.ScheduledPayoffs
-import squantlib.model.bond.Bond
+import squantlib.model.bond.{PriceableBond, YieldAnalysis}
 import squantlib.util.Date
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.numerical.SwaptionFormula
@@ -34,7 +34,7 @@ case class OneTimeSwaptionModel(
 
 object OneTimeSwaptionModel {
 	
-	def apply(market:Market, bond:Bond):Option[PricingModel] = {
+	def apply(market:Market, bond:PriceableBond):Option[PricingModel] = {
 	  val valuedate = market.valuedate
 	  val scheduledPayoffs = bond.livePayoffs(valuedate)
 	  if (scheduledPayoffs.underlyings.size != 0) { return None }
@@ -48,7 +48,9 @@ object OneTimeSwaptionModel {
 	  val curve = bond.discountCurve.orNull
 	  if (curve == null) {return None}
 	  
-	  val strike = bond.nextRateFrontier.getOrElse(Double.NaN)
+	  val newbond = new PriceableBond(bond.db, bond.scheduledPayoffs, bond.underlyings) with YieldAnalysis
+	  
+	  val strike = newbond.nextRateFrontier.getOrElse(Double.NaN)
 	  if (strike.isNaN || strike.isInfinity) {return None}
 	  
 	  Some(OneTimeSwaptionModel(scheduledPayoffs, valuedate, nextPayment, maturity, strike, curve))

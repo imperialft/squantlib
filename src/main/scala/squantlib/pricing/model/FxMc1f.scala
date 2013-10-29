@@ -5,7 +5,7 @@ import squantlib.schedule.payoff.{Payoffs, Payoff}
 import squantlib.schedule.{ScheduledPayoffs, Schedule, CalculationPeriod}
 import squantlib.pricing.mcengine._
 import squantlib.model.fx.FX
-import squantlib.model.bond.Bond
+import squantlib.model.bond.PriceableBond
 import squantlib.util.JsonUtils._
 import squantlib.model.rates.DiscountCurve
 import squantlib.util.Date
@@ -64,11 +64,11 @@ object FxMc1f {
 	var defaultPaths = 300000
 	var frontierPaths = 15000
 	
-	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths)
+	def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths)
   
-	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
+	def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
 	
-	def apply(market:Market, bond:Bond, mcengine:FX => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
+	def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
 	  val trig = bond.getCalibrationCache("FXMontecarlo1f") match {
 	    case Some(t:List[Any]) => t.map{
 	      case Some(v:Double) => Some(v)
@@ -81,7 +81,7 @@ object FxMc1f {
 	
 	def apply(
 	    market:Market, 
-	    bond:Bond, 
+	    bond:PriceableBond, 
 	    mcengine:FX => Option[Montecarlo1f], 
 	    paths:Int, 
 	    frontierPths:Int,
@@ -127,11 +127,11 @@ object FxQtoMc1f {
 	var defaultPaths = 300000
 	var frontierPaths = 15000
 	
-	def apply(market:Market, bond:Bond, mcengine:(FX, FX) => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths)
+	def apply(market:Market, bond:PriceableBond, mcengine:(FX, FX) => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths)
   
-	def apply(market:Market, bond:Bond, mcengine:(FX, FX) => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
+	def apply(market:Market, bond:PriceableBond, mcengine:(FX, FX) => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
 	
-	def apply(market:Market, bond:Bond, mcengine:(FX, FX) => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
+	def apply(market:Market, bond:PriceableBond, mcengine:(FX, FX) => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
 	  val trig = bond.getCalibrationCache("FXMontecarlo1f") match {
 	    case Some(t:List[Any]) => t.map{
 	      case Some(v:Double) => Some(v)
@@ -144,7 +144,7 @@ object FxQtoMc1f {
 	
 	def apply(
 	    market:Market, 
-	    bond:Bond, 
+	    bond:PriceableBond, 
 	    mcengine:(FX, FX) => Option[Montecarlo1f], 
 	    paths:Int, 
 	    frontierPths:Int,

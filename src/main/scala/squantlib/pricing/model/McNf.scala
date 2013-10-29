@@ -4,7 +4,7 @@ import squantlib.model.Market
 import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.schedule.{CalculationPeriod, ScheduledPayoffs, Schedule}
 import squantlib.pricing.mcengine._
-import squantlib.model.bond.Bond
+import squantlib.model.bond.PriceableBond
 import squantlib.model.asset.Underlying
 import squantlib.model.fx.FX
 import squantlib.util.JsonUtils._
@@ -73,13 +73,13 @@ object McNf {
 	var defaultPaths = 50000
 	
 	def apply(market:Market, 
-	    bond:Bond, 
+	    bond:PriceableBond, 
 	    mcengine:List[Underlying] => Option[MontecarloNf]
 	    ):Option[McNf] = apply(market, bond, mcengine, defaultPaths)
 	
 	def apply(
 	    market:Market, 
-	    bond:Bond, 
+	    bond:PriceableBond, 
 	    mcengine:List[Underlying] => Option[MontecarloNf], 
 	    paths:Int):Option[McNf] = {
 	  
@@ -125,13 +125,13 @@ object McNfQto {
 	var defaultPaths = 50000
 	
 	def apply(market:Market, 
-	    bond:Bond, 
+	    bond:PriceableBond, 
 	    mcengine:(List[Underlying], List[Option[FX]]) => Option[MontecarloNf]
 	    ):Option[McNf] = apply(market, bond, mcengine, defaultPaths)
 	
 	def apply(
 	    market:Market, 
-	    bond:Bond, 
+	    bond:PriceableBond, 
 	    mcengine:(List[Underlying], List[Option[FX]]) => Option[MontecarloNf], 
 	    paths:Int):Option[McNf] = {
 	  

@@ -5,7 +5,7 @@ import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.schedule.{CalculationPeriod, ScheduledPayoffs, Schedule}
 import squantlib.pricing.mcengine._
 import squantlib.model.equity.Equity
-import squantlib.model.bond.Bond
+import squantlib.model.bond.PriceableBond
 import squantlib.model.fx.FX
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
@@ -62,11 +62,11 @@ object EquityMc1f {
 	
 	var defaultPaths = 50000
 	
-	def apply(market:Market, bond:Bond, mcengine:Equity => Option[Montecarlo1f]):Option[EquityMc1f] = apply(market, bond, mcengine, defaultPaths)
+	def apply(market:Market, bond:PriceableBond, mcengine:Equity => Option[Montecarlo1f]):Option[EquityMc1f] = apply(market, bond, mcengine, defaultPaths)
 	
 	def apply(
 	    market:Market, 
-	    bond:Bond, 
+	    bond:PriceableBond, 
 	    mcengine:Equity => Option[Montecarlo1f], 
 	    paths:Int):Option[EquityMc1f] = {
 	  
@@ -108,11 +108,11 @@ object EquityQtoMc1f {
 	
 	var defaultPaths = 50000
 	
-	def apply(market:Market, bond:Bond, mcengine:(Equity, FX) => Option[Montecarlo1f]):Option[EquityMc1f] = apply(market, bond, mcengine, defaultPaths)
+	def apply(market:Market, bond:PriceableBond, mcengine:(Equity, FX) => Option[Montecarlo1f]):Option[EquityMc1f] = apply(market, bond, mcengine, defaultPaths)
 	
 	def apply(
 	    market:Market, 
-	    bond:Bond, 
+	    bond:PriceableBond, 
 	    mcengine:(Equity, FX) => Option[Montecarlo1f], 
 	    paths:Int):Option[EquityMc1f] = {
 	  

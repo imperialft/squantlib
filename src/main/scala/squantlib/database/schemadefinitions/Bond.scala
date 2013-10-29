@@ -10,6 +10,7 @@ import squantlib.database.DB
 import squantlib.util.Date
 import org.jquantlib.time.{Period => qlPeriod, DateGeneration, Calendar, BusinessDayConvention, TimeUnit}
 import org.jquantlib.daycounters._
+import org.jquantlib.currencies.Currency
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
@@ -90,7 +91,7 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def isSameContent(b:Bond):Boolean = compareObjects(this, b, autoUpdateFields)
   
-  def currency = Currencies(currencyid)
+  def currency:Option[Currency] = Currencies(currencyid)
 		
   def calendar:Calendar = if (calendar_str == null) Calendars(currencyid).get
   						else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
@@ -149,13 +150,13 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def period = (coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
-  def issueDateQl = Date(issuedate)
+  def issueDate = Date(issuedate)
   
-  def maturityQl = Date(maturity)
+  def maturityDate = Date(maturity)
   
   def endDate:Date = terminationdate match {
     case Some(d) if maturity after d => Date(d)
-    case _ => maturityQl
+    case _ => maturityDate
   }
   
   def isFixingInArrears = inarrears != Some(0)
@@ -166,8 +167,8 @@ class Bond(	  @Column("ID")					override var id: String,
 
   def schedule:Option[Schedule] = try {
     val schedule = Schedule(
-        effectiveDate = issueDateQl,
-		terminationDate = maturityQl,
+        effectiveDate = issueDate,
+		terminationDate = maturityDate,
 		tenor = period,
 		calendar = calendar,
 		calendarConvention = calendarAdjust,
@@ -217,6 +218,16 @@ class Bond(	  @Column("ID")					override var id: String,
   }}
 
   def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
+  
+  def accrualPrice(vd:Date):Double = 
+    if (isMatured(vd)) 0.0 
+    else if (issueDate ge vd) issueprice.getOrElse(100.0)
+    else try {
+      val r = redemprice.toDouble * 100.0
+      val i = issueprice.get
+      val comp = math.pow(r / i, 1.0 / maturityDate.sub(issueDate).toDouble)
+      i * math.pow(comp, vd.sub(issueDate).toDouble)
+    } catch {case e:Throwable => issueprice.getOrElse(100.0)}
   
   def this() = this(
 		id = null,

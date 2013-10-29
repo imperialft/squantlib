@@ -6,7 +6,7 @@ import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod, Schedule}
 import squantlib.pricing.mcengine._
 import squantlib.model.index.Index
 import squantlib.model.asset.Underlying
-import squantlib.model.bond.Bond
+import squantlib.model.bond.PriceableBond
 import squantlib.util.JsonUtils._
 import squantlib.model.rates.DiscountCurve
 import squantlib.util.Date
@@ -31,7 +31,7 @@ case class Forward(
 
 object Forward {
 	
-	def apply(market:Market, bond:Bond):Option[Forward] = {
+	def apply(market:Market, bond:PriceableBond):Option[Forward] = {
 	  val scheduledPayoffs = bond.livePayoffs(market.valuedate) 
 	  val underlyings = bond.underlyings.map(u => Underlying(u, market))
 	  if (underlyings.forall(_.isDefined)) Some(new Forward(market.valuedate, scheduledPayoffs, underlyings.map(_.get)))
