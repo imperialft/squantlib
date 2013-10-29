@@ -7,7 +7,7 @@ import squantlib.pricing.model.PricingModel
 import squantlib.schedule.call.Callabilities
 import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.pricing.model.NoModel
 import org.jquantlib.currencies.Currency
 

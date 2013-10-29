@@ -6,7 +6,7 @@ import squantlib.util.SimpleCache
 import squantlib.pricing.model.PricingModel
 import squantlib.schedule.call.Callabilities
 import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
-import squantlib.model.Market
+import squantlib.model.market.Market
 
 /**
  * Bond class with enclosed risk analysis functions.

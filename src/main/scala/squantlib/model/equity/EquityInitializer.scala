@@ -1,6 +1,6 @@
 package squantlib.model.equity
 
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.model.yieldparameter.YieldParameter
 import squantlib.database.DB
 import squantlib.database.schemadefinitions.{Equity => EquityInfo}

@@ -4,7 +4,7 @@ import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.database.DB
 import squantlib.util.Date
-import squantlib.model.Market
+import squantlib.model.market.Market
 import scala.Option.option2Iterable
 import squantlib.schedule.CalculationPeriod
 import squantlib.schedule.FixingLeg

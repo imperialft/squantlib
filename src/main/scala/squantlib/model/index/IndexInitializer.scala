@@ -1,6 +1,6 @@
 package squantlib.model.index
 
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.model.yieldparameter.YieldParameter
 import org.jquantlib.time.{Period => qlPeriod}
 

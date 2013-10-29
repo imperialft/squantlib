@@ -11,7 +11,7 @@ import squantlib.math.financial.{BondYield, Duration}
 import squantlib.schedule.call.Callabilities
 import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.asset.Underlying
 import squantlib.util.{UnderlyingParser, UnderlyingParsers}

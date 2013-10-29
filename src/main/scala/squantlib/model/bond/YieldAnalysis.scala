@@ -7,7 +7,7 @@ import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
 import squantlib.util.initializer.Currencies
 import squantlib.util.{SimpleCache, FormulaParser}
 import squantlib.math.financial.{BondYield, Duration}
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import squantlib.schedule.CalculationPeriod
 import scala.collection.breakOut

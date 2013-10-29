@@ -1,6 +1,6 @@
 package squantlib.util
 
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.model.asset.Underlying
 import squantlib.util.initializer.Currencies
 import squantlib.math.timeseries.TimeSeries

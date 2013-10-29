@@ -1,6 +1,6 @@
 package squantlib.pricing.model
 
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.schedule.payoff.{Payoffs, Payoff}
 import squantlib.schedule.{ScheduledPayoffs, Schedule, CalculationPeriod}
 import squantlib.pricing.mcengine._

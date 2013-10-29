@@ -5,7 +5,7 @@ import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Period => qlPeriod}
 import org.jquantlib.time.calendars.NullCalendar
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.util.UnderlyingParsers
 import squantlib.database.DB
 import squantlib.util.Date

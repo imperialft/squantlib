@@ -1,6 +1,6 @@
 package squantlib.pricing.model
 
-import squantlib.model.Market
+import squantlib.model.market.Market
 import squantlib.schedule.ScheduledPayoffs
 import squantlib.model.bond.{PriceableBond, YieldAnalysis}
 import squantlib.util.Date
