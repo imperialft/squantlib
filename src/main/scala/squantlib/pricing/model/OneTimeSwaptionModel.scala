@@ -49,6 +49,7 @@ object OneTimeSwaptionModel {
 	  if (curve == null) {return None}
 	  
 	  val newbond = new PriceableBond(bond.db, bond.scheduledPayoffs, bond.underlyings) with YieldAnalysis
+	  newbond.market = market
 	  
 	  val strike = newbond.nextRateFrontier.getOrElse(Double.NaN)
 	  if (strike.isNaN || strike.isInfinity) {return None}
