@@ -71,7 +71,7 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
       val valarray = ts.values.toArray
       new LinearInterpolator().interpolate(keysarray, valarray)
     }
-    val realStartDate = if((startDate == null) || (startDate ge firstDate)) startDate else firstDate
+    val realStartDate = if((startDate != null) && (startDate ge firstDate)) startDate else firstDate
     val realEndDate = if (endDate == null) lastDate else endDate
     val dates = for(d <- realStartDate.serialNumber to realEndDate.serialNumber) yield (Date(d))
     val valuedates:Map[Date, Double] = dates.map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
