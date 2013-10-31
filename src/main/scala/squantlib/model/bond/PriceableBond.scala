@@ -17,8 +17,7 @@ class PriceableBond(
     override val scheduledPayoffs:ScheduledPayoffs,
 	override val underlyings:List[String]) 
 	extends BondModel(db, scheduledPayoffs, underlyings) 
-    with Priceable 
-    with Cloneable {
+    with Priceable {
 
   var defaultModel:(Market, PriceableBond) => Option[PricingModel] = null
   
@@ -93,8 +92,13 @@ class PriceableBond(
 	  }
 	}  
   
-  override def clone:PriceableBond = {
+  override def copy:PriceableBond = {
     val bond = new PriceableBond(db, scheduledPayoffs, underlyings) 
+    transferSettings(bond)
+	bond
+  }
+  
+  def transferSettings[T <: PriceableBond](bond:T):Unit = {
     bond.defaultModel = this.defaultModel
     bond.forceModel = this.forceModel
     bond.useCouponAsYield = this.useCouponAsYield
@@ -103,7 +107,6 @@ class PriceableBond(
     bond._market = this._market
     bond.model = this.model
 	calibrationCache.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
-	bond
   }
 	
   /*

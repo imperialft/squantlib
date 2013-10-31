@@ -18,7 +18,7 @@ trait GreekAnalysis {
   
   def greek(target:PriceableBond => Option[Double], operation:Market => Option[Market]):Option[Double] = market.flatMap { case mkt =>
     val initprice = target(this)
-    val newBond = this.clone
+    val newBond = this.copy
     val newmkt = operation(mkt).orNull
     if (newmkt == null) {return None}
     newBond.market = newmkt

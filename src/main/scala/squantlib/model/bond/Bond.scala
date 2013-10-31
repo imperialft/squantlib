@@ -14,8 +14,7 @@ case class Bond(
 	extends PriceableBond(db, scheduledPayoffs, underlyings) 
     with YieldAnalysis
     with GreekAnalysis
-    with AnalyzedAsset
-    with Cloneable {
+    with BondAsset {
   
   override val assetStartDate = Some(issueDate)
   
@@ -25,19 +24,18 @@ case class Bond(
   
   override def latestPriceLocalCcy: Option[Double] = dirtyPrice
   
-  override val assetID = "PRICE"
-    
-  override def getPriceHistory = DB.getHistorical("BONDJPY:" + id)
-  
   override def latestPrice:Option[Double] = dirtyPrice
   
   override def expectedYield:Option[Double] = yieldContinuous
   
   override def expectedCoupon:Option[Double] = currentRate
   
-  protected def getDbForwardPrice = DB.getForwardPrices("BOND", id)
-    
-  override def clone = Bond(db, scheduledPayoffs, underlyings)
+  override def copy:Bond = {
+    val bond = Bond(db, scheduledPayoffs, underlyings)
+    super.transferSettings(bond)
+    bond
+  }
+  
 }
 
 object Bond {

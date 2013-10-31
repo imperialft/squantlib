@@ -164,6 +164,8 @@ class Bond(	  @Column("ID")					override var id: String,
   def couponNotice:Int = cpnnotice.getOrElse(5)
   
   def redemptionNotice:Int = redemnotice.getOrElse(couponNotice)
+  
+  def remainLife(valuedate:Date):Double = math.max(0.0, endDate.sub(valuedate).toDouble / 365.25)
 
   def schedule:Option[Schedule] = try {
     val schedule = Schedule(

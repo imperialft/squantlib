@@ -24,14 +24,13 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
   
   def tmapValues(f:Double => Double):TimeSeries = TimeSeries(ts.mapValues(f))
   
-//  override def +[T >: Double](ts2:(Date, T)):SortedMap[Date, T] = ts + ts2
   override def +[T >: Double](ts2:(Date, T)):TimeSeries = ts2 match {
     case (d, v:Double) => TimeSeries(ts.updated(d, v))
     case (d, v) => TimeSeries(ts.updated(d, v.asInstanceOf[Double]))
   }
   
   def deepCopy:TimeSeries = {
-    val newts:Map[Date, Double] = ts.map{case (k, v) => (k.clone, v*1)}(collection.breakOut)
+    val newts:Map[Date, Double] = ts.map{case (k, v) => (k.copy, v*1)}(collection.breakOut)
     TimeSeries(newts)
   }
   

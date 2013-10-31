@@ -59,7 +59,11 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
   
   def months(p:qlPeriod):Double = qlPeriod.months(p, ql)
   
-  override def clone() = super.clone().asInstanceOf[Date]
+  def min(d:Date):Date = Date.min(this, d)
+  
+  def max(d:Date):Date = Date.max(this, d)
+  
+  def copy = Date(serialNumber)
   
   def yyyymmdd(yString:String = "", mString:String = "", dString:String = ""):String = s"""%tY${yString}%<tm${mString}%<td${dString}""".format(java)
   
@@ -95,6 +99,10 @@ object Date {
   def weekdaysBetween(fromDate:Date, toDate:Date):Set[Date] = daysBetween(fromDate, toDate).filter(_.isWeekday)
   
   def businessDaysBetween(fromDate:Date, toDate:Date, calendar:Calendar) = daysBetween(fromDate, toDate).filter(_.isBusinessday(calendar))
+
+  def min(d1:Date, d2:Date):Date = Date(if (d1 lt d2) d1.serialNumber else d2.serialNumber)
+  
+  def max(d1:Date, d2:Date):Date = Date(if (d1 gt d2) d1.serialNumber else d2.serialNumber)
 
 }
 

@@ -20,7 +20,7 @@ class BondModel(
     val db:dbBond,
 	val scheduledPayoffs:ScheduledPayoffs,
 	val underlyings:List[String]
-    ) extends Cloneable {
+    ) {
   
   
   def schedule:Schedule = scheduledPayoffs.schedule
@@ -90,7 +90,7 @@ class BondModel(
     
   def terminationDate:Date = earlyTerminationDate.getOrElse(scheduledMaturity)
   
-  override def clone = new BondModel(db, scheduledPayoffs, underlyings)
+  def copy = new BondModel(db, scheduledPayoffs, underlyings)
 
   def currencyList:Set[String] = underlyings.map(UnderlyingParsers.extractCurrencies).flatten.toSet + currency.code
     
