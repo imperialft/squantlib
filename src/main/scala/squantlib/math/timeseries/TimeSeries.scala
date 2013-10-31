@@ -62,20 +62,26 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
   
   def lastDate:Date = ts.last._1
   
-  def getFilledTimeSeries(startDate:Date = firstDate, endDate:Date = lastDate):TimeSeries = {
-    val linearfunction:PolynomialSplineFunction = {
+  def getFilledTimeSeries(startDate:Date = null, endDate:Date = null):TimeSeries = {
+    if (ts.isEmpty) TimeSeries.empty
+    else {
+      
+      val linearfunction:PolynomialSplineFunction = {
       val keysarray = ts.keySet.map(_.serialNumber.toDouble).toArray
       val valarray = ts.values.toArray
       new LinearInterpolator().interpolate(keysarray, valarray)
     }
-    val realStartDate = if(startDate ge firstDate) startDate else firstDate
-    val dates = for(d <- realStartDate.serialNumber to endDate.serialNumber) yield (Date(d))
+    val realStartDate = if((startDate == null) || (startDate ge firstDate)) startDate else firstDate
+    val realEndDate = if (endDate == null) lastDate else endDate
+    val dates = for(d <- realStartDate.serialNumber to realEndDate.serialNumber) yield (Date(d))
     val valuedates:Map[Date, Double] = dates.map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
     TimeSeries(valuedates)
+    }
   }
   
-  def getBusinessDayFilledTimeSeries(calendar:Calendar = new NullCalendar, startDate:Date = firstDate, endDate:Date = lastDate):TimeSeries = {
-    TimeSeries(getFilledTimeSeries(startDate, endDate).filterKeys(d => calendar match {
+  def getBusinessDayFilledTimeSeries(calendar:Calendar = new NullCalendar, startDate:Date = null, endDate:Date = null):TimeSeries = {
+    if (ts.isEmpty) TimeSeries.empty
+    else TimeSeries(getFilledTimeSeries(startDate, endDate).filterKeys(d => calendar match {
       case c:NullCalendar => d.isWeekday
       case c => d.isBusinessday(c)
     }))
