@@ -6,7 +6,7 @@ import squantlib.model.bond.{PriceableBond, YieldAnalysis}
 import squantlib.util.Date
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.numerical.SwaptionFormula
-
+import squantlib.database.schemadefinitions.{Bond => dbBond}
 
 case class OneTimeSwaptionModel(
     scheduledPayoffs:ScheduledPayoffs, 
@@ -48,7 +48,7 @@ object OneTimeSwaptionModel {
 	  val curve = bond.discountCurve.orNull
 	  if (curve == null) {return None}
 	  
-	  val newbond = new PriceableBond(bond.db, bond.scheduledPayoffs, bond.underlyings) with YieldAnalysis
+	  val newbond = BondWithYieldAnalysis(bond.db, bond.scheduledPayoffs, bond.underlyings) 
 	  newbond.market = market
 	  
 	  val strike = newbond.nextRateFrontier.getOrElse(Double.NaN)
@@ -56,5 +56,15 @@ object OneTimeSwaptionModel {
 	  
 	  Some(OneTimeSwaptionModel(scheduledPayoffs, valuedate, nextPayment, maturity, strike, curve))
 	}
+}
+
+
+case class BondWithYieldAnalysis(db:dbBond, scheduledPayoffs:ScheduledPayoffs, underlyings:List[String]) extends PriceableBond with YieldAnalysis {
+  
+  override def copy(newdb:dbBond, newSchedule:ScheduledPayoffs, newuls:List[String]):PriceableBond = {
+    val bond = BondWithYieldAnalysis(db, scheduledPayoffs, underlyings)
+    super.transferSettings(bond)
+    bond
+  }
 }
 

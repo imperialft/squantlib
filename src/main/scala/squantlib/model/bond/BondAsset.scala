@@ -25,7 +25,9 @@ trait BondAsset extends AnalyzedAsset {
   
   override val assetID = "PRICE"
     
-  override def getPriceHistory = DB.getHistorical("BONDJPY:" + id)
+  override val assetName = db.id
+    
+  override def getPriceHistory = DB.getHistorical("BONDJPY:" + assetName)
   
   override def latestPrice:Option[Double]
   
@@ -33,7 +35,7 @@ trait BondAsset extends AnalyzedAsset {
   
   override def expectedCoupon:Option[Double]
   
-  override def getDbForwardPrice = DB.getForwardPrices("BOND", id)
+  override def getDbForwardPrice = DB.getForwardPrices("BOND", assetName)
   
 } 
 

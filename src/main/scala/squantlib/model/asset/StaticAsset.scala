@@ -18,7 +18,7 @@ trait StaticAsset {
   
   val assetID:String  // to be implemented in subclass
   
-  val id:String  // to be implemented in subclass
+  val assetName:String  // to be implemented in subclass
   
   def latestPrice:Option[Double]  // to be implemented in subclass
   
@@ -26,7 +26,7 @@ trait StaticAsset {
   
   def expectedCoupon:Option[Double]  // to be implemented in subclass
   
-  val calendar:Calendar // to be implemented in subclass
+  def calendar:Calendar // to be implemented in subclass
   
   protected def getDbForwardPrice:TimeSeries  // to be implemented in subclass
   
@@ -79,8 +79,8 @@ trait StaticAsset {
   
   def correlations(asset:StaticAsset, nbDays:Int, nbResult:Int = 0):Set[dbCorrelation] = {
     val correlarray = historicalCorrel(asset, nbDays, nbResult)
-    val underlying1 = assetID + ":" + id
-    val underlying2 = asset.assetID + ":" + asset.id
+    val underlying1 = assetID + ":" + assetName
+    val underlying2 = asset.assetID + ":" + asset.assetName
     correlarray.map{ case (d, v) => getCorrelation(asset, d, nbDays, 1, v)} (collection.breakOut)
   }
   
@@ -95,7 +95,7 @@ object StaticAsset {
   }
   
   def getCorrelation(asset1:StaticAsset, asset2:StaticAsset, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
-    getCorrelation(asset1.assetID, asset1.id, asset2.assetID, asset2.id, valuedate, nbDays, periodicity, correl)
+    getCorrelation(asset1.assetID, asset1.assetName, asset2.assetID, asset2.assetName, valuedate, nbDays, periodicity, correl)
     
   def getCorrelation(asset1:String, id1:String, asset2:String, id2:String, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
     new dbCorrelation(

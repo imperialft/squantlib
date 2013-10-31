@@ -21,6 +21,8 @@ trait Underlying extends StaticAsset {
   
   val id:String
   
+  lazy val assetName = id
+  
   var spot:Double  // TO BE DEFINED IN SUBCLASS
   
   val daysPerYr = 365.25

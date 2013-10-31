@@ -8,7 +8,7 @@ import squantlib.math.timeseries.TimeSeries
 
 case class GenericAsset(
   override val assetID:String,
-  override val id:String,
+  override val assetName:String,
   override val latestPrice:Option[Double],
   override val expectedYield:Option[Double],
   override val expectedCoupon:Option[Double],

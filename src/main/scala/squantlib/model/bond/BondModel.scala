@@ -12,16 +12,15 @@ import org.codehaus.jackson.JsonNode
 import squantlib.util.UnderlyingParsers
 
 
-/**
- * Bond class with enclosed risk analysis functions.
- */
+trait BondModel {
 
-class BondModel(
-    val db:dbBond,
-	val scheduledPayoffs:ScheduledPayoffs,
-	val underlyings:List[String]
-    ) {
+  val db:dbBond
   
+  val scheduledPayoffs:ScheduledPayoffs
+  
+  val underlyings:List[String]
+  
+  def copy:BondModel
   
   def schedule:Schedule = scheduledPayoffs.schedule
   
@@ -90,8 +89,6 @@ class BondModel(
     
   def terminationDate:Date = earlyTerminationDate.getOrElse(scheduledMaturity)
   
-  def copy = new BondModel(db, scheduledPayoffs, underlyings)
-
   def currencyList:Set[String] = underlyings.map(UnderlyingParsers.extractCurrencies).flatten.toSet + currency.code
     
 	

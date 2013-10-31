@@ -12,13 +12,18 @@ import squantlib.pricing.model.NoModel
 import org.jquantlib.currencies.Currency
 
 
-class PriceableBond(
-    override val db:dbBond, 
-    override val scheduledPayoffs:ScheduledPayoffs,
-	override val underlyings:List[String]) 
-	extends BondModel(db, scheduledPayoffs, underlyings) 
-    with Priceable {
+trait PriceableBond extends BondModel with Priceable {
 
+  override val db:dbBond
+  
+  override val scheduledPayoffs:ScheduledPayoffs
+  
+  override val underlyings:List[String] 
+  
+  def copy(newdb:dbBond, newSchedule:ScheduledPayoffs, newuls:List[String]):PriceableBond
+  
+  override def copy:PriceableBond = copy(db, scheduledPayoffs, underlyings)
+	
   var defaultModel:(Market, PriceableBond) => Option[PricingModel] = null
   
   var forceModel:Boolean = false
@@ -70,6 +75,36 @@ class PriceableBond(
 	  (p.variables ++ c.variables).forall(underlyings.contains)}.toList
 	  
 	
+  def transferSettings[T <: PriceableBond](bond:T):Unit = {
+    bond.defaultModel = this.defaultModel
+    bond.forceModel = this.forceModel
+    bond.useCouponAsYield = this.useCouponAsYield
+    bond.requiresCalibration = this.requiresCalibration
+    bond.modelCalibrated = this.modelCalibrated
+    bond._market = this._market
+    bond.model = this.model
+	calibrationCache.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
+  }
+	
+  /*
+  * Creates clone of the same bond with date shifted by given days
+  */
+  override def dateShifted(shift:Int):PriceableBond = 
+    copy(db, scheduledPayoffs.shifted(shift), underlyings)
+
+  /*
+   * Creates clone of the same bond with trigger replaced with given triggers.
+   */
+  def triggerShifted(trig:List[List[Option[Double]]]):PriceableBond = {
+    val newtrig = trig.size match {
+      case s if s == trigger.size => trig
+      case s if s < trigger.size => List.fill(trigger.size - trig.size)(List.empty) ++ trig
+	  case s if s > trigger.size => trig takeRight trigger.size
+	}
+	val newSchedule = ScheduledPayoffs(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
+	copy(db, newSchedule, underlyings)
+  }
+  
   def show:Unit = {
 	    disp("id", id)
 	    disp("currency", currency.code)
@@ -92,113 +127,6 @@ class PriceableBond(
 	  }
 	}  
   
-  override def copy:PriceableBond = {
-    val bond = new PriceableBond(db, scheduledPayoffs, underlyings) 
-    transferSettings(bond)
-	bond
-  }
-  
-  def transferSettings[T <: PriceableBond](bond:T):Unit = {
-    bond.defaultModel = this.defaultModel
-    bond.forceModel = this.forceModel
-    bond.useCouponAsYield = this.useCouponAsYield
-    bond.requiresCalibration = this.requiresCalibration
-    bond.modelCalibrated = this.modelCalibrated
-    bond._market = this._market
-    bond.model = this.model
-	calibrationCache.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
-  }
-	
-  /*
-  * Creates clone of the same bond with date shifted by given days
-  */
-  override def dateShifted(shift:Int):PriceableBond = 
-    PriceableBond.initialize(db, scheduledPayoffs.shifted(shift), underlyings, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
-
-  /*
-   * Creates clone of the same bond with trigger replaced with given triggers.
-   */
-  def triggerShifted(trig:List[List[Option[Double]]]):PriceableBond = {
-    val newtrig = trig.size match {
-      case s if s == trigger.size => trig
-      case s if s < trigger.size => List.fill(trigger.size - trig.size)(List.empty) ++ trig
-	  case s if s > trigger.size => trig takeRight trigger.size
-	}
-	val newSchedule = ScheduledPayoffs(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
-	PriceableBond.initialize(db, newSchedule, underlyings, defaultModel, forceModel, useCouponAsYield, requiresCalibration, modelCalibrated, _market, model)
-  }
 }
 
-object PriceableBond {
-  
-  def apply(db:dbBond):Option[PriceableBond] = {
-	val tbdfixings = try { Some(db.settingMap("tbd").toDouble)} catch {case _:Throwable => None}
-	apply(db, tbdfixings)
-  }
-	
-  def apply(db:dbBond, tbdfixing:Option[Double]):Option[PriceableBond] = 
-    getScheduledPayoffs(db, tbdfixing).collect{case po => new PriceableBond(db, po, db.underlyingList)}
-  
-  def getScheduledPayoffs(db:dbBond, tbdfixing:Option[Double]):Option[ScheduledPayoffs] = {
-	val schedule = db.schedule.orNull
-	if (schedule == null) {return None}
-	  
-	val fixings:Map[String, Double] = db.getInitialFixings ++ tbdfixing.collect{case v => Map("tbd" -> v)}.getOrElse(Map.empty)
-	  
-	val coupon:Payoffs = Payoffs(db.fixedCoupon(fixings), schedule.size - 1).orNull
-	if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}
-	  
-	val redemption = Payoff(db.fixedRedemprice(fixings)).orNull
-	if (redemption == null) {println(db.id + ": cannot initialize redemption"); return None}
-	  
-	val underlyings:List[String] = db.underlyingList
-		
-	val bermudan:List[Boolean] = {
-	  val bermlist = db.bermudanList(fixings, schedule.size)
-		if (!bermlist.isEmpty && bermlist.takeRight(1).head) (bermlist.dropRight(1) :+ false) 
-		else bermlist
-	  }
-	
-	val trigger = db.triggerList(fixings, schedule.size)
-	  
-	val calls = Callabilities(bermudan, trigger, underlyings)
-	if (calls == null) {println(db.id + ": cannot initialize calls"); return None}
-	  
-	val sp = ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
-	
-	if (sp == null || sp.isEmpty) {
-	  println(db.id + ": cannot initialize scheduled payoffs")
-	  None}
-	else Some(sp)
-  }
-  
-  def initialize(
-      db:dbBond, 
-      scheduledPayoffs:ScheduledPayoffs,
-      underlyings:List[String],
-      defaultModel:(Market, PriceableBond) => Option[PricingModel] = null,
-      forceModel:Boolean = false,
-      useCouponAsYield:Boolean = false,
-      requiresCalibration:Boolean = false,
-      modelCalibrated:Boolean = false,
-      _market:Option[Market] = None,
-      model:Option[PricingModel] = None,
-      calibrationCache:Option[SimpleCache] = None):PriceableBond = {
-    
-    val bond = new PriceableBond(db, scheduledPayoffs, underlyings)
-    bond.defaultModel = defaultModel
-    bond.forceModel = forceModel
-    bond.useCouponAsYield = useCouponAsYield
-    bond.requiresCalibration = requiresCalibration
-    bond.modelCalibrated = modelCalibrated
-    bond._market = _market
-    bond.model = model
-    calibrationCache match {
-      case Some(cc) => cc.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
-      case _ =>
-    }
-	bond
-  }
-  
-}
 

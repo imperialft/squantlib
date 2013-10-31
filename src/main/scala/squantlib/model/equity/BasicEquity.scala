@@ -12,7 +12,7 @@ import scala.annotation.tailrec
  * Orthodox index with continuous dividend yield.
  */
 case class BasicEquity(
-    override val id:String,
+    val id:String,
 	override var spot:Double,
     override val rateCurve:DiscountCurve, 
     override val dividendDates:Map[Date, Double], 
@@ -21,7 +21,6 @@ case class BasicEquity(
     ) extends Equity {
   
 	override val valuedate = rateCurve.valuedate
-	
 	override val latestPrice = Some(spot)
 	
 	/**
