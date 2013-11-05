@@ -65,9 +65,14 @@ object Bond {
   def apply(db:dbBond, tbdfixing:Option[Double]):Option[Bond] = 
     getScheduledPayoffs(db, tbdfixing).collect{case po => new Bond(db, po, db.underlyingList)}
   
+  def forward(db:dbBond, valuedate:Date):Option[Bond] = forward(db, getTbdFixings(db), valuedate)
+  
+  def forward(db:dbBond, tbdfixing:Option[Double], valuedate:Date):Option[Bond] = 
+    getScheduledPayoffs(db, tbdfixing, Some(valuedate)).collect{case po => new Bond(db, po, db.underlyingList)}
+  
   def getTbdFixings(db:dbBond):Option[Double] = try { Some(db.settingMap("tbd").toDouble)} catch {case _:Throwable => None}
   
-  def getScheduledPayoffs(db:dbBond, tbdfixing:Option[Double]):Option[ScheduledPayoffs] = {
+  def getScheduledPayoffs(db:dbBond, tbdfixing:Option[Double], valuedate:Option[Date] = None):Option[ScheduledPayoffs] = {
 	val schedule = db.schedule.orNull
 	if (schedule == null) {return None}
 	  
@@ -83,16 +88,18 @@ object Bond {
 		
 	val bermudan:List[Boolean] = {
 	  val bermlist = db.bermudanList(fixings, schedule.size)
-		if (!bermlist.isEmpty && bermlist.takeRight(1).head) (bermlist.dropRight(1) :+ false) 
-		else bermlist
-	  }
+	  if (!bermlist.isEmpty && bermlist.takeRight(1).head) (bermlist.dropRight(1) :+ false) else bermlist
+	}
 	
 	val trigger = db.triggerList(fixings, schedule.size)
 	  
 	val calls = Callabilities(bermudan, trigger, underlyings)
 	if (calls == null) {println(db.id + ": cannot initialize calls"); return None}
 	  
-	val sp = ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
+	val sp = valuedate match {
+	  case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d)
+	  case None => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
+	}
 	
 	if (sp == null || sp.isEmpty) {
 	  println(db.id + ": cannot initialize scheduled payoffs")
