@@ -51,7 +51,7 @@ case class Bond(
   
   override def copy:Bond = copy(db, scheduledPayoffs, underlyings)
   override def copy(newdb:dbBond, newSchedule:ScheduledPayoffs, newuls:List[String]):Bond = {
-    val bond = Bond(db, scheduledPayoffs, underlyings)
+    val bond = Bond(newdb, newSchedule, newuls)
     super.transferSettings(bond)
     bond
   }
