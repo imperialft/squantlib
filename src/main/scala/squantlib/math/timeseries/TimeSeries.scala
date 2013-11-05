@@ -44,11 +44,11 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
   
   override def ordering = ts.ordering
   
-  def filter(f:(Date, Double) => Boolean):TimeSeries = TimeSeries(ts.filter(f))
+  def filter(f:(Date, Double) => Boolean):TimeSeries = new TimeSeries(ts.filter(f))
   
-  override def filterKeys(f:Date => Boolean):TimeSeries = TimeSeries(ts.filterKeys(f))
+  override def filterKeys(f:Date => Boolean):TimeSeries = new TimeSeries(ts.filterKeys(f))
   
-  def mapValues(f:(Double) => Double):TimeSeries = TimeSeries(ts.mapValues(f))
+  def mapValues(f:(Double) => Double):TimeSeries = new TimeSeries(ts.mapValues(f))
   
   def add(ts1:TimeSeries):TimeSeries = {
     val dates = ts1.keySet ++ ts.keySet
