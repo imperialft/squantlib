@@ -25,11 +25,18 @@ trait Underlying extends StaticAsset {
   
   var spot:Double  // TO BE DEFINED IN SUBCLASS
   
-  val daysPerYr = 365.25
-  
   val currency:Currency // TO BE DEFINED IN SUBCLASS
   
-  lazy val calendar = Calendars.getOrElse(currency.code, new NullCalendar)
+  override lazy val calendar = Calendars.getOrElse(currency.code, new NullCalendar)
+  
+  override def isPriced:Boolean = true
+    
+  override def latestPriceDate:Option[Date] = Some(valuedate)
+    
+  override def latestPriceLocalCcy:Option[Double] = Some(spot)
+      
+  val daysPerYr = 365.25
+  
   
   /**
    * Returns the discounting rate (risk-free rate on the currency)

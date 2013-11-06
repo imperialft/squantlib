@@ -40,6 +40,8 @@ trait AnalyzableBond
   
   override def expectedCoupon:Option[Double] = currentRate
   
+  override def latestPriceDate:Option[Date] = valueDate
+  
 }
 
 
