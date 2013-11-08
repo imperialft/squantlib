@@ -91,7 +91,7 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def isSameContent(b:Bond):Boolean = compareObjects(this, b, autoUpdateFields)
   
-  def currency:Option[Currency] = Currencies(currencyid)
+  def currency:Currency = Currencies(currencyid).orNull
 		
   def calendar:Calendar = if (calendar_str == null) Calendars(currencyid).get
   						else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
@@ -223,13 +223,13 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def accrualPrice(vd:Date):Double = 
     if (isMatured(vd)) 0.0 
-    else if (issueDate ge vd) issueprice.getOrElse(100.0)
+    else if (issueDate ge vd) issueprice.getOrElse(1.0)
     else try {
-      val r = redemprice.toDouble * 100.0
-      val i = issueprice.get
+      val r = redemprice.toDouble
+      val i = issueprice.get / 100.0
       val comp = math.pow(r / i, 1.0 / maturityDate.sub(issueDate).toDouble)
       i * math.pow(comp, vd.sub(issueDate).toDouble)
-    } catch {case e:Throwable => issueprice.getOrElse(100.0)}
+    } catch {case e:Throwable => issueprice.getOrElse(1.0)}
   
   def this() = this(
 		id = null,

@@ -25,7 +25,7 @@ trait BasicAsset {
   
   val assetName:String  // to be implemented in subclass "USDJPY", "ADB-00001", etc
   
-  val currency:Currency // to be implemented in subclass
+  def currency:Currency // to be implemented in subclass
   
   def isPriced:Boolean  // to be implemented in subclass
   
@@ -33,7 +33,7 @@ trait BasicAsset {
   
   def assetEndDate:Option[Date] = None // to be implemented in subclass
   
-  val calendar:Calendar // to be implemented in subclass
+  def calendar:Calendar // to be implemented in subclass
   
   /*
    * Spot price

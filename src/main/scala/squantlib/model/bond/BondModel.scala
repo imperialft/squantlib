@@ -44,7 +44,7 @@ trait BondModel {
   
   def nominal:Option[Double] = db.nominal
   
-  val currency:Currency = db.currency.get
+  def currency:Currency = db.currency
   
   def denomination:Option[Double] = db.denomination
   
