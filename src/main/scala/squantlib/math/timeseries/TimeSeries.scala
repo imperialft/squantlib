@@ -65,17 +65,20 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
   def getFilledTimeSeries(startDate:Date = null, endDate:Date = null):TimeSeries = {
     if (ts.isEmpty) TimeSeries.empty
     else {
+      val realStartDate = if((startDate != null) && (startDate ge firstDate)) startDate else firstDate
+      val realEndDate = if (endDate == null) lastDate else endDate
+      val dates = for(d <- realStartDate.serialNumber to realEndDate.serialNumber) yield (Date(d))
       
-      val linearfunction:PolynomialSplineFunction = {
-      val keysarray = ts.keySet.map(_.serialNumber.toDouble).toArray
-      val valarray = ts.values.toArray
-      new LinearInterpolator().interpolate(keysarray, valarray)
-    }
-    val realStartDate = if((startDate != null) && (startDate ge firstDate)) startDate else firstDate
-    val realEndDate = if (endDate == null) lastDate else endDate
-    val dates = for(d <- realStartDate.serialNumber to realEndDate.serialNumber) yield (Date(d))
-    val valuedates:Map[Date, Double] = dates.map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
-    TimeSeries(valuedates)
+      val tsmap = 
+        if (ts.size == 1) dates.map(d => (d, ts.head._2))(collection.breakOut)
+        else {
+          val keysarray = ts.keySet.map(_.serialNumber.toDouble).toArray
+          val valarray = ts.values.toArray
+          val linearfunction = new LinearInterpolator().interpolate(keysarray, valarray)
+          dates.map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
+        }
+      
+      TimeSeries(tsmap)
     }
   }
   
