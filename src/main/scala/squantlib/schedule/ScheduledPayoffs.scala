@@ -219,19 +219,24 @@ object ScheduledPayoffs {
   def getFixings(underlyings:Set[String], dates:List[Date]):List[Map[String, Double]] = 
     DB.pastFixings(underlyings, dates).map(_.collect{case (k, Some(v)) => (k, v)})
     
-  def getExterpolatedFixings(underlyings:Set[String], dates:List[Date]):List[Map[String, Double]] = {
+  def getExterpolatedFixings(underlyings:Set[String], dates:List[Date], valuedate:Date):List[Map[String, Double]] = {
     if (dates.isEmpty) {return List.empty}
     val valuedate = DB.latestParamDate.getOrElse(dates.max)
     val (datesbefore, datesafter) = dates.span(_ le valuedate)
     val fixings = getFixings(underlyings, datesbefore)
-    val exterps = datesafter.map{case _ => if (fixings.isEmpty) Map.empty[String, Double] else fixings.last.map{case (k, v) => (k, v)}}
+    val currentFixings:List[Map[String, Double]] = DB.pastFixings(underlyings, List(valuedate)).map(_.collect{case (k, Some(v)) => (k, v)})
+    val exterps:List[Map[String, Double]] = datesafter.map{case _ => 
+      if (!currentFixings.isEmpty) currentFixings.last.map{case (k, v) => (k, v)}
+      else if (!fixings.isEmpty) fixings.last.map{case (k, v) => (k, v)}
+      else Map.empty[String, Double]}
+    
     fixings ++ exterps
   }
   
   def extrapolate(schedule:Schedule, payoffs:Payoffs, calls:Callabilities, valuedate:Date):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     val (datesbefore, datesafter) = schedule.eventDates.span(_ le valuedate)
-    val fixingMap:List[Map[String, Double]] = getExterpolatedFixings(payoffs.underlyings ++ calls.underlyings, datesbefore) ++ List.fill(datesafter.size)(Map.empty[String, Double])
+    val fixingMap:List[Map[String, Double]] = getExterpolatedFixings(payoffs.underlyings ++ calls.underlyings, datesbefore, valuedate) ++ List.fill(datesafter.size)(Map.empty[String, Double])
 	payoffs.assignFixings(fixingMap)
 	calls.assignFixings(fixingMap)
     ScheduledPayoffs(schedule.sortWith(payoffs, calls), None)

@@ -133,11 +133,14 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    */
   def accruedAmount:Option[Double] = market.flatMap(mkt => 
     if (issueDate ge mkt.valuedate) Some(0.0)
-    else if (db.coupon isEmpty) Some(0.0)
-    else livePayoffs.filter{case (d, p, _) => (d.isCurrentPeriod(mkt.valuedate) && !d.isAbsolute)} match {
-      case pos if pos.isEmpty => None
-      case pos => Some(pos.map{case (d, p, _) => (d.accrued(mkt.valuedate)) * p.price(mkt) }.sum)
-    })
+    else if (coupon isEmpty) Some(0.0)
+    else livePayoffs.filter{case (d, p, _) => !d.isAbsolute} match {
+      case po if po.size == 1 && po.head._1.paymentDate == terminationDate =>
+        po.head match {case (dd, pp, _) => Some(Date.daycount(dd.startDate, mkt.valuedate, dd.daycounter) * pp.price(mkt))}
+      case po => po.filter{case (dd, pp, _) => (dd.isCurrentPeriod(mkt.valuedate))} match {
+        case pos if pos.isEmpty => None
+        case pos => Some(pos.map{case (ddd, ppp, _) => (ddd.accrued(mkt.valuedate)) * ppp.price(mkt)}.sum)
+    }})
     
   /*  
    * Returns JPY accrued amount defined as accrued x FX/FX0, where FX0 = FX as of issue date.
