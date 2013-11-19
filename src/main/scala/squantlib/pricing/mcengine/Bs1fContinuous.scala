@@ -96,11 +96,6 @@ class Bs1fContinuous(
 	if (rd.isEmpty) current.reverse
 	else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
 	
-  def printA(title:String, a:List[Double]) = {
-	println(title)
-    a.foreach(println)
-  }
-  
   override def modelName = this.getClass.toString
   
   override def spotref = List(spot)
