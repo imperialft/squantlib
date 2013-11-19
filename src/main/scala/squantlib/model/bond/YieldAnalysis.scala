@@ -24,35 +24,35 @@ trait YieldAnalysis {
    *     "Compounded" => Standard compounding: ZC = 1 / (1+r/f)^tf 
    *     "Continuous" => 
    */
+    
+  def couponYield(dc:DayCounter):Option[Double] = {
+    val cashflows = spotCashflowDayfrac(dc)
+    doubleOption(accruedAmount.collect{case acc => (cashflows.unzip._2.sum - acc - 1.0) / cashflows.unzip._1.max})
+  }
+  
+  private def doubleOption(d:Double):Option[Double] = if (d.isNaN || d.isInfinity) None else Some(d)
+  private def doubleOption(d:Option[Double]):Option[Double] = d.flatMap{case v => doubleOption(v)}
+  
   def getYield(comp:Compounding):Option[Double] = getYield(comp, Frequency.Annual)
   
   def getYield(comp:Compounding, freq:Frequency):Option[Double] = getYield(comp, freq, new Actual365Fixed, 0.00001, 20)
   
-  def getYield(comp:Compounding, freq:Frequency, dc:DayCounter, accuracy:Double, maxIteration:Int):Option[Double] = {
-    val result = if (useCouponAsYield) {
-      val cashflows = spotCashflowDayfrac(dc)
-      accruedAmount.collect{case acc => (cashflows.unzip._2.sum - acc - 1.0) / cashflows.unzip._1.max}} 
-      else dirtyPrice.flatMap{case p => getYield(p, dc, comp, freq, accuracy, maxIteration)
-    }
-    if (result == Some(Double.NaN)) None else result
-  }
+  def getYield(comp:Compounding, freq:Frequency, dc:DayCounter, accuracy:Double, maxIteration:Int):Option[Double] = 
+    if (useCouponAsYield) couponYield(dc)
+    else doubleOption(dirtyPrice.flatMap{case p => getYield(p, dc, comp, freq, accuracy, maxIteration)})
   
-  def getYield(price:Double, comp:Compounding, freq:Frequency, vd:Date):Option[Double] = 
-    getYield(price, new Actual365Fixed, comp, freq, 0.0001, 20, vd)
+  def getYield(price:Double, comp:Compounding, freq:Frequency):Option[Double] = 
+    getYield(price, new Actual365Fixed, comp, freq, 0.0001, 20)
   
   def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int):Option[Double] = 
-    valueDate.flatMap{ case vd => getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)}
-  
-  def getYield(price:Double, dc:DayCounter, comp:Compounding, freq:Frequency, accuracy:Double, maxIteration:Int, vd:Date):Option[Double] = 
-    getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration, vd)
+    getYield(price, spotCashflowDayfrac(dc), comp, freq, accuracy, maxIteration)
     
   def getYield(
       price:Double, 
       cashflows:List[(Double, Double)], 
       comp:Compounding, freq:Frequency, 
       accuracy:Double, 
-      maxIteration:Int, 
-      vd:Date):Option[Double] = {
+      maxIteration:Int):Option[Double] = {
     
     val result:Option[Double] = 
       if (cashflows isEmpty) None
@@ -64,15 +64,48 @@ trait YieldAnalysis {
         case Compounding.None => accruedAmount.collect{case acc => BondYield.solveNoRate(price, cashflows, acc)}
         case _ => None
      }
-    if (result.collect{case r => r.isNaN || r.isInfinity}.getOrElse(false)) None else result
+    doubleOption(result)
+  }
+  
+  /*
+   * Compute yield for the lifetime of the bond
+   */
+  
+  def getLifetimeYield(comp:Compounding):Option[Double] = getLifetimeYield(comp, Frequency.Annual)
+  
+  def getLifetimeYield(comp:Compounding, freq:Frequency):Option[Double] = getLifetimeYield(comp, freq, new Actual365Fixed, 0.00001, 20)
+  
+  def getLifetimeYield(comp:Compounding, freq:Frequency, dc:DayCounter, accuracy:Double, maxIteration:Int):Option[Double] = 
+    if (useCouponAsYield) couponYield(dc) 
+    else doubleOption(getLifetimeYield(spotCashflowDayfracAllJpy(dc), comp, freq, accuracy, maxIteration))
+  
+  def getLifetimeYield(
+      cashflows:List[(Double, Double)], 
+      comp:Compounding, 
+      freq:Frequency, 
+      accuracy:Double, 
+      maxIteration:Int):Option[Double] = {
+    
+    val result:Option[Double] = 
+      if (cashflows isEmpty) None
+      else if (useCouponAsYield) accruedAmount.collect{case acc => BondYield.asAverageCoupon(cashflows, acc)}
+      else issuePrice.flatMap{case price => comp match {
+        case Compounding.Simple => BondYield.solveNoCompounding(price / 100.0, cashflows, accuracy, maxIteration)
+        case Compounding.Compounded | Compounding.SimpleThenCompounded => BondYield.solveCompounded(price/ 100.0, cashflows, freq.toInteger, accuracy, maxIteration)
+        case Compounding.Continuous => BondYield.solveContinuous(price/ 100.0, cashflows, accuracy, maxIteration)
+        case Compounding.None => accruedAmount.collect{case acc => BondYield.solveNoRate(price/ 100.0, cashflows, acc)}
+        case _ => None
+     }}
+    doubleOption(result)
   }
   
    /*  
    * Continuous rate at which MtM exceeds 100% at next call date.
    */
-  def nextRateFrontier:Option[Double] = nextBermudan.flatMap{ case d => getYield(1.0, new Actual365Fixed, Compounding.Continuous, null, 0.00001, 20, d) }
+  def nextRateFrontier:Option[Double] = nextBermudan.flatMap{ case d => getYield(1.0, new Actual365Fixed, Compounding.Continuous, null, 0.00001, 20) }
   
-  /*  Returns each bond yield.
+  /*  
+   *  Returns bond yield assuming purchase date is market value date, price is current dirty price.
    */
   def yieldNoCompounding:Option[Double] = getYield(Compounding.Simple)
   
@@ -83,6 +116,19 @@ trait YieldAnalysis {
   def yieldAnnual:Option[Double] = getYield(Compounding.Compounded, Frequency.Annual)
   
   def yieldSimple:Option[Double] = getYield(Compounding.None, Frequency.Annual)
+  
+  /*  
+   *  Returns bond yield, assuming purchase date is issue date, price is issue date.
+   */
+  def lifetimeYieldNoCompounding:Option[Double] = getLifetimeYield(Compounding.Simple)
+  
+  def lifetimeYieldContinuous:Option[Double] = getLifetimeYield(Compounding.Continuous)
+  
+  def lifetimeYieldSemiannual:Option[Double] = getLifetimeYield(Compounding.Compounded, Frequency.Semiannual)
+  
+  def lifetimeYieldAnnual:Option[Double] = getLifetimeYield(Compounding.Compounded, Frequency.Annual)
+  
+  def lifetimeYieldSimple:Option[Double] = getLifetimeYield(Compounding.None, Frequency.Annual)
   
   /*  Returns yield at which bond price becomes 100% (if any)
    * @param comp Compounding rate, as one of the following
@@ -104,10 +150,10 @@ trait YieldAnalysis {
   /*  
    * Returns Macauley duration defined as Sum {tV} / Sum{V}
    */
-  def macaulayDuration:Option[Double] = if (isTerminated == Some(true)) Some(0.0) else discountCurve.flatMap{case curve => 
-    val mac = Duration.macaulay(spotCashflowDayfrac(new Actual365Fixed), (d:Double) => curve(d * 365.25))
-    if (mac.isNaN || mac.isInfinity) None else Some(mac)
-  }
+  def macaulayDuration:Option[Double] = 
+    if (isTerminated == Some(true)) Some(0.0) 
+    else discountCurve.flatMap{
+      case curve => doubleOption(Duration.macaulay(spotCashflowDayfrac(new Actual365Fixed), (d:Double) => curve(d * 365.25)))}
   
   /*  
    * Returns modified duration defined as Macauley duration / (1 + yield / freq)

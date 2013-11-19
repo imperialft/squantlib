@@ -7,6 +7,7 @@ import squantlib.pricing.model.PricingModel
 import squantlib.schedule.call.Callabilities
 import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import squantlib.model.market.Market
+import squantlib.database.DB
 
 /**
  * Bond class with enclosed risk analysis functions.
@@ -95,14 +96,28 @@ trait ExtendedSchedule {
   def spotFixedAmount(vd:Date):List[(Date, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
     
   def spotFixedRatesAll:List[(CalculationPeriod, Double)] = cache.getOrUpdate("SPOTFIXEDRATESALL",
-      scheduledPayoffs.map{case (d, p, _) => (d, market match { case Some(mkt) => p.price(mkt) case None => Double.NaN})} (collection.breakOut)
-    )
+      scheduledPayoffs.map{case (d, p, _) => 
+        (d, market.collect{case mkt => p.price(mkt)}.getOrElse(Double.NaN))} (collection.breakOut))
     
   def spotFixedAmountAll:List[(Date, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
   
   def spotCashflowDayfrac(dc:DayCounter):List[(Double, Double)] = spotFixedAmount.map{
     case (payday, amount) => (Date.daycount(valueDate.get, payday, dc), amount)}
   
+  def spotCashflowDayfracAll(dc:DayCounter):List[(Double, Double)] = spotFixedAmountAll.map{
+    case (payday, amount) => (Date.daycount(issueDate, payday, dc), amount)}
+  
+  def spotCashflowDayfracAllJpy(dc:DayCounter):List[(Double, Double)] = {
+    val current:Double = DB.getLatestPrice(currency.code + "JPY").collect{case v => v._2}.getOrElse(Double.NaN)
+    val initfx:Double = if (!initialFX.isNaN && !initialFX.isInfinity && initialFX > 0.0) initialFX else current
+    val fxs:List[Double] = fixedFx.map(_.getOrElse(current))
+    (spotCashflowDayfracAll(dc), fxs).zipped.map{case ((d, p), fx) => (d, p * fx / initfx)}
+  }
+  
+  val fixedFx:List[Option[Double]] = currency match {
+    case ccy if ccy.code == "JPY" => List.fill(scheduledPayoffs.size)(Some(1.0))
+    case ccy => DB.pastFixing(ccy.code + "JPY", scheduledPayoffs.map(_._1.paymentDate).toList)
+  }
   
 }
 

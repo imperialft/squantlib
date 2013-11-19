@@ -1,16 +1,10 @@
 package squantlib.model.bond
 
 import squantlib.util.Date
-import org.jquantlib.daycounters.DayCounter
-import squantlib.database.DB
 import squantlib.schedule.payoff._
 import squantlib.util.{SimpleCache, FormulaParser}
 import squantlib.pricing.model.PricingModel
 import squantlib.math.solver._
-import squantlib.math.financial.{BondYield, Duration}
-import squantlib.schedule.call.Callabilities
-import squantlib.schedule.payoff.{Payoff, Payoffs}
-import squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import squantlib.model.market.Market
 import squantlib.model.rates.DiscountCurve
 import squantlib.model.asset.Underlying

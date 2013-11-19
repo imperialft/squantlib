@@ -1,15 +1,8 @@
 package squantlib.model.bond
 
 import squantlib.util.Date
-import org.jquantlib.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
-import org.jquantlib.termstructures.Compounding
-import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
-import squantlib.util.initializer.Currencies
 import squantlib.util.{SimpleCache, FormulaParser}
-import squantlib.math.financial.{BondYield, Duration}
 import squantlib.model.market.Market
-import squantlib.util.{UnderlyingParser, UnderlyingParsers}
-import squantlib.schedule.CalculationPeriod
 import scala.collection.breakOut
 
 trait GreekAnalysis {
