@@ -77,6 +77,7 @@ trait UnderlyingParser {
 	
   def getShiftedVolMarket(shift:Double, mkt:Market):Option[Market] 
 
+  def quotedCurrency:Option[String]
   
 }
 
