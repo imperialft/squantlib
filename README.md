@@ -66,7 +66,7 @@ SquantLib
 * Portfolio analysis
 
 ## Motives
-* Main pricing backbone behind PFOL.IO project (http://pfol.io) - please join us if you're interested!
+* Main pricing backbone behind PFOL.IO project (https://pfol.io) - please join us if you're interested!
  
 ## Contact
 Masakatsu Wakayu (masakatsu.wakayu@imperial-ft.com)
