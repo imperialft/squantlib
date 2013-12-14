@@ -113,15 +113,6 @@ class Bond(	  @Column("ID")					override var id: String,
   	 case _ => None
   }
   
-  def replaceTbd(newvalue:String):Boolean = 
-    if (tbdParameter.isDefined) {
-      coupon = coupon.replace("@tbd", newvalue)
-      redemprice = redemprice.replace("@tbd", newvalue)
-      call = call.replace("@tbd", newvalue)
-      true
-      }
-    else false
-  
   def containsN(s:String, t:String):Boolean = (s != null) && (s contains t)
   
   def containsTbd:Boolean = tbdParameter.isDefined
