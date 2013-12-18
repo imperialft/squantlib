@@ -221,15 +221,6 @@ object JsonUtils {
   
   def jsonString(obj:Any):String = try {(new ObjectMapper).writeValueAsString(toJavaCollection(obj))} catch {case e:Throwable => ""}
   
-//  def jsonString[T](map:Map[String, T]):String = {
-//    val infoMap:java.util.Map[java.lang.String, T] = map
-//    (new ObjectMapper).writeValueAsString(infoMap)    
-//  }
-//  
-//  def jsonString[T](coll:Traversable[T]):String = {
-//    val infoArray:java.util.Collection[T] = coll.toSeq
-//    (new ObjectMapper).writeValueAsString(infoArray)    
-//  }
 
 } 
 
