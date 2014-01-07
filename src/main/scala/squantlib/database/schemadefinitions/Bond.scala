@@ -98,13 +98,13 @@ class Bond(	  @Column("ID")					override var id: String,
   
   protected def updateFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
   						
-  def fixedCoupon(fixings:Map[String, Any]):String = updateFixing(if (coupon == null) "" else coupon, fixings)
+  def fixedCoupon(fixings:Map[String, Any]):String = updateFixing(if (coupon == null) "" else coupon, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
   
   def couponList:List[String] = stringList(coupon)
   
   def couponList(fixings:Map[String, Any]):List[String] = stringList(updateFixing(coupon, fixings))
   
-  def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(if (redemprice == null) "" else redemprice, fixings)
+  def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(if (redemprice == null) "" else redemprice, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
   
   def tbdParameter:Option[String] = (containsN(coupon, "tbd"), containsN(redemprice, "tbd"), containsN(call, "tbd")) match {
   	 case (true, false, false) => Some(coupon)
@@ -126,6 +126,8 @@ class Bond(	  @Column("ID")					override var id: String,
   def fixingMap:Map[String, Double] = fixings.parseJsonDoubleFields
   
   def settingMap:Map[String, String] = settings.parseJsonStringFields
+  
+  def tbdValue:Option[Double] = try{Some(settingMap("tbd").toDouble)} catch {case e:Throwable => None} 
   
   def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
   
