@@ -14,8 +14,8 @@ object DisplayUtils {
 	    case n if n.isEmpty => None
 		case n if n.endsWith("%") => try {Some(n.dropRight(1).toDouble / 100)} catch { case _:Throwable => None}
 		case n => try {Some(n.toDouble)} catch { case _:Throwable => None}
-	  }	  
-	  
+	  }	   
+	   
 	  def textOr(t:String) = if (s == null) t else s
 			  
 	  def trimZeros:String = {
@@ -32,21 +32,21 @@ object DisplayUtils {
 	  def oneByteString = {
 	    var result = s
 	    result = result.map{
-	      case c if c >= 'ａ' && c <= 'ｚ' => (c - 'ａ' + 'a').toChar
-	      case c if c >= 'Ａ' && c <= 'Ｚ' => (c - 'Ａ' + 'A').toChar
-	      case c if c >= '０' && c <= '９' => (c - '０' + '0').toChar
-	      case '　' => ' '
-	      case '（' => '('
-	      case '）' => ')'
-	      case '\n' => ' '
-	      case '／' => '/'
-	      case '．' => '.'
-	      case '?' => ' '
-	      case '＆' => '&'
-	      case '，' => ','
-	      case '、' => ','
-	      case '：' => ':'
-	      case c => c
+          case c if c >= 'ａ' && c <= 'ｚ' => (c - 'ａ' + 'a').toChar
+          case c if c >= 'Ａ' && c <= 'Ｚ' => (c - 'Ａ' + 'A').toChar
+          case c if c >= '０' && c <= '９' => (c - '０' + '0').toChar
+          case '　' => ' '
+          case '（' => '('
+          case '）' => ')'
+          case '\n' => ' '
+          case '／' => '/'
+          case '．' => '.'
+          case '?' => ' '
+          case '＆' => '&'
+          case '，' => ','
+          case '、' => ','
+          case '：' => ':'
+          case c => c
 	    }
 	    result
 	  }

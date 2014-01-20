@@ -8,6 +8,7 @@ import squantlib.model.market.Market
 import scala.Option.option2Iterable
 import squantlib.schedule.CalculationPeriod
 import squantlib.schedule.FixingLeg
+import scala.reflect.ClassTag
 
 trait Payoff extends FixingLeg {
 	
@@ -76,12 +77,12 @@ trait Payoff extends FixingLeg {
 	 * Price in case of multiple event dates with only one variable.
 	 * Only refers to the last variable by default but can be overridden.
 	 */	
-	final def price[T:ClassManifest](fixings:List[Double]):Double = 
+	final def price[T:ClassTag](fixings:List[Double]):Double = 
 	  if (isFixed) price(getFixings)
 	  else if (isPriceable) priceImpl[T](fixings) 
 	  else Double.NaN
 	
-	def priceImpl[T:ClassManifest](fixings:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last)
+	def priceImpl[T:ClassTag](fixings:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last)
 
 	/*
 	 * Event dates, usually used in case of >1 fixing dates.

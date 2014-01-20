@@ -28,5 +28,5 @@ class Correlation(@Column("ID")				override var id:String,
       value = -99999999,
       lastmodified = null)
 
-  override def toString():String = format("%-10s %-15s %-15s", underlying1id, underlying2id, value) + "%tY/%<tm/%<td".format(valuedate)
+  override def toString():String = "%-10s %-15s %-15s".format(underlying1id, underlying2id, value) + "%tY/%<tm/%<td".format(valuedate)
 }

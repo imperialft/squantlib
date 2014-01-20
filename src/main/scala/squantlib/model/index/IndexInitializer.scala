@@ -19,7 +19,7 @@ trait IndexInitializer {
 }
 
 
-case class EmptyInitializer extends IndexInitializer {
+case class EmptyInitializer() extends IndexInitializer {
   override def getModel(market:Market):Option[Index] = None
   override def mult(x:Double):IndexInitializer = this
   override def addVol(x:Double):IndexInitializer = this

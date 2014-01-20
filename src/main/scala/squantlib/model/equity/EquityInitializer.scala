@@ -24,7 +24,7 @@ trait EquityInitializer {
 }
 
 
-case class EmptyInitializer extends EquityInitializer {
+case class EmptyInitializer() extends EquityInitializer {
   override def getModel(market:Market):Option[Equity] = None
   override def mult(x:Double):EquityInitializer = this
   override def addVol(x:Double):EquityInitializer = this

@@ -8,6 +8,7 @@ import java.util.{Map => JavaMap}
 import squantlib.database.DB
 import squantlib.util.Date
 import squantlib.schedule.CalculationPeriod
+import scala.reflect.ClassTag
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -90,7 +91,7 @@ case class PutDIAmericanPayoff(
 
 	override def priceImpl(fixings:Map[String, Double]):Double = priceSingle(fixings)
 	
-	override def priceImpl[T:ClassManifest](fixings:List[Double]):Double = priceList(fixings)
+	override def priceImpl[T:ClassTag](fixings:List[Double]):Double = priceList(fixings)
 	
 	override def priceImpl(fixing:Double):Double = priceSingle(fixing)
 	

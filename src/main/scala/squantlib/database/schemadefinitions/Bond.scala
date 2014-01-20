@@ -281,7 +281,7 @@ class Bond(	  @Column("ID")					override var id: String,
 		created = None,
 		lastmodified  = None)
  
-  override def toString():String = format("%-5s %-15s %-25s %-10s %-15s %-15s", id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
+  override def toString():String = "%-5s %-15s %-25s %-10s %-15s %-15s".format(id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
 
   
   

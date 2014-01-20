@@ -23,5 +23,5 @@ class Equity(@Column("ID")					override var id:String,
       paramdate = null,
       lastmodified = null)
 
-  override def toString():String = format("%-5s %-5s %-15s %-15s", id, currencyid, basedivdate, divfreq)
+  override def toString():String = "%-5s %-5s %-15s %-15s".format(id, currencyid, basedivdate, divfreq)
 }

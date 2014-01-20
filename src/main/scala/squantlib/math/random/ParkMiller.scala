@@ -10,11 +10,11 @@ class ParkMiller(seed:Long) extends RandomGenerator {
   val AM:Double = 1.0 / IM
   val IQ:Long = 127773
   val IR:Long = 2836
-  val NTAB:Int = 32
+  val NTAB:Int = 32 
   val NDIV:Double = 1 + (IM-1) / NTAB
   val EPS:Double = 1.2e-7
   val RNMX:Double = 1.0-EPS
-  
+   
   var initialized:Boolean = false
   
   override def toString = "ParkMiller[" + seed + "]"
@@ -48,7 +48,7 @@ class ParkMiller(seed:Long) extends RandomGenerator {
   
   def uniform:Double = {
 	// this is the ran1 function of Numerical recipes
-	//“Minimal” random number generator of Park and Miller with Bays-Durham shuffle and added
+    // random number generator of Park and Miller with Bays-Durham
 	//safeguards. Returns a uniform random deviate between 0.0 and 1.0 (exclusive of the endpoint
 	//values). Call with idum a negative integer to initialize; thereafter, do not alter idum between
 	//successive deviates in a sequence. RNMX should approximate the largest floating value that is
@@ -57,7 +57,7 @@ class ParkMiller(seed:Long) extends RandomGenerator {
     def shuffle = {
       val k = idum / IQ
       idum = IA * (idum - k * IQ) - IR * k //Compute idum=(IA*idum) % IM without over-
-      if (idum < 0) idum += IM //flows by Schrage’s method.
+      if (idum < 0) idum += IM 
     }
     
     //Initialize if necessary 
