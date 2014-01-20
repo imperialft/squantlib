@@ -13,6 +13,7 @@ import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.model.index.IndexInitializer
 import squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import squantlib.model.asset.Underlying
+import scala.language.postfixOps
 
 /** 
  * Stores market information and initialize discount curves as requested.

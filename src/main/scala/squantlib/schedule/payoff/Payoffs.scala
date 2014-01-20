@@ -10,6 +10,7 @@ import scala.collection.JavaConversions._
 import scala.Predef._
 import squantlib.schedule.FixingLegs
 import scala.Predef.{DummyImplicit => DI}
+import scala.language.postfixOps
 
 case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLegs[Payoff] {
   

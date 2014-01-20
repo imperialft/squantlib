@@ -1,5 +1,6 @@
 package squantlib.schedule.call
 
+import scala.language.postfixOps
 import scala.collection.LinearSeq
 import squantlib.util.DisplayUtils._
 import squantlib.schedule.FixingLegs

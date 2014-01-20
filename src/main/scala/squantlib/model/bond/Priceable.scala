@@ -11,6 +11,7 @@ import squantlib.model.asset.Underlying
 import squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import scala.collection.mutable.ArrayBuffer
 import squantlib.util.initializer.Currencies
+import scala.language.postfixOps
 
 /**
  * Bond class with enclosed risk analysis functions.

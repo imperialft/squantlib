@@ -12,6 +12,7 @@ import org.jquantlib.time.{Period => qlPeriod, DateGeneration, Calendar, Busines
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
 import scala.collection.JavaConversions._
+import scala.language.postfixOps
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 

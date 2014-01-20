@@ -1,5 +1,6 @@
 package squantlib.math.statistical
 
+import scala.language.postfixOps
 import org.apache.commons.math3.linear.CholeskyDecomposition
 import org.apache.commons.math3.linear.{ArrayRealVector, Array2DRowRealMatrix}
 import scala.annotation.tailrec

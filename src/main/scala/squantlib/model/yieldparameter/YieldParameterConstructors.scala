@@ -3,6 +3,7 @@ package squantlib.model.yieldparameter
 import squantlib.model.yieldparameter._
 import org.jquantlib.time.{Period => qlPeriod}
 import squantlib.util.Date
+import scala.language.implicitConversions
 
 object YieldParameterConstructors {
   

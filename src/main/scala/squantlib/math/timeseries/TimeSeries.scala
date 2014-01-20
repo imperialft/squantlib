@@ -1,5 +1,6 @@
 package squantlib.math.timeseries
 
+import scala.language.implicitConversions
 import org.jquantlib.time.{Period => qlPeriod }
 import scala.collection.{SortedSet, SortedMap}
 import squantlib.util.Date

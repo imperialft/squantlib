@@ -11,6 +11,7 @@ import squantlib.model.market.Market
 import squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import squantlib.schedule.CalculationPeriod
 import scala.collection.breakOut
+import scala.language.postfixOps
 
 trait YieldAnalysis {
   

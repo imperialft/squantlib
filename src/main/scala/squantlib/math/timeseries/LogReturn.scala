@@ -1,5 +1,6 @@
 package squantlib.math.timeseries
  
+import scala.language.postfixOps
 import scala.collection.SortedMap
 import scala.collection.immutable.TreeMap
 import squantlib.util.Date

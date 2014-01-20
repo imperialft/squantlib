@@ -1,5 +1,7 @@
 package squantlib.math.random
 
+import scala.language.reflectiveCalls
+
 /**
  * Abstract random number Generator class. Numbers are lazily generated to save memory.
  *

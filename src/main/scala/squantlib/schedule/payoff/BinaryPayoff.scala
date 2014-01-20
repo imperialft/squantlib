@@ -1,5 +1,6 @@
 package squantlib.schedule.payoff
 
+import scala.language.postfixOps
 import scala.collection.JavaConversions._
 import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._

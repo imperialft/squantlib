@@ -1,6 +1,7 @@
 package squantlib.util
 
 import org.codehaus.jackson.JsonNode
+import scala.language.implicitConversions
 
 object DisplayUtils {
   
