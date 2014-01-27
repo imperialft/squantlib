@@ -65,6 +65,8 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("PRICETYPE") 			var pricetype: String,
               @Column("DEFAULT_VOL") 		var defaultvol: Double,
               @Column("COMMENT") 			var comment: String,
+              @Column("PAID_IN_JPY") 		var jpypayment: Int,
+              @Column("PHYSICAL_REDEMPTION") var physicalredemption: Int,
               @Column("Created")			var created: Option[JavaDate],
               @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
@@ -279,6 +281,8 @@ class Bond(	  @Column("ID")					override var id: String,
 		targetyield = None,
 		defaultvol = -999.99,
 		comment = null,
+		jpypayment = 0,
+		physicalredemption = 0,
 		created = None,
 		lastmodified  = None)
  
