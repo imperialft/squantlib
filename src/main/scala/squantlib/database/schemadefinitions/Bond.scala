@@ -67,6 +67,7 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("COMMENT") 			var comment: String,
               @Column("PAID_IN_JPY") 		var jpypayment: Int,
               @Column("PHYSICAL_REDEMPTION") var physicalredemption: Int,
+              @Column("MINIMUM_PURCHASE") 	var minimum_purchase: Option[Double],
               @Column("Created")			var created: Option[JavaDate],
               @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
@@ -283,6 +284,7 @@ class Bond(	  @Column("ID")					override var id: String,
 		comment = null,
 		jpypayment = 0,
 		physicalredemption = 0,
+		minimum_purchase = None,
 		created = None,
 		lastmodified  = None)
  
