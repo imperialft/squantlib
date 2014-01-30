@@ -121,6 +121,10 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def containsTbd:Boolean = tbdParameter.isDefined
   
+  def isPhysicalRedemption:Boolean = physicalredemption == 1
+  
+  def isJpyPayment:Boolean = jpypayment == 1
+  
   def underlyingList:List[String] = stringList(underlying)
   
   def bermudanList:List[Boolean] = booleanList(call, "berm")
