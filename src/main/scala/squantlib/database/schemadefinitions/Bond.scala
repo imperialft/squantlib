@@ -216,9 +216,10 @@ class Bond(	  @Column("ID")					override var id: String,
       val fixdate:Option[JavaDate] = fixingdate
       val paramdate:Option[Date] = DB.latestParamDate
       (fixdate, paramdate) match {
-      case (Some(f), Some(p)) if f after p.java => DB.getLatestPrices(underlyingList.toSet)
-      case _ => Map.empty
-  }}
+        case (Some(f), Some(p)) if f after p.java => DB.getLatestPrices(underlyingList.toSet)
+        case _ => Map.empty
+    }
+  }
 
   def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
   

@@ -12,31 +12,31 @@ import squantlib.util.JsonUtils._
 case class NullPayoff(
     description:String = null, 
     inputString:String = null) extends Payoff {
-	
-	override val variables:Set[String] = Set.empty
-	
-	override val isPriceable = false
-	
-	override val isFixed = false
-	 
-	override def priceImpl(fixings:Map[String, Double]) = Double.NaN
-	
-	override def priceImpl(fixing:Double) = Double.NaN
-	
-	override def priceImpl = Double.NaN
-	
-	override def toString = description
-	
-	override def jsonString = inputString
-	
+  
+  override val variables:Set[String] = Set.empty
+  
+  override val isPriceable = false
+  
+  override val isFixed = false
+   
+  override def priceImpl(fixings:Map[String, Double]) = Double.NaN
+  
+  override def priceImpl(fixing:Double) = Double.NaN
+  
+  override def priceImpl = Double.NaN
+  
+  override def toString = description
+  
+  override def jsonString = inputString
+  
 }
 
 
 object NullPayoff {
   
-	def apply(formula:String):NullPayoff = {
-	  val description:String = formula.parseJsonString("description").orNull
-	  NullPayoff(description, formula)
-	}
+  def apply(formula:String):NullPayoff = {
+    val description:String = formula.parseJsonString("description").orNull
+    NullPayoff(description, formula)
+  }
 }
 

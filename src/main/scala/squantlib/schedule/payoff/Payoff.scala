@@ -110,6 +110,8 @@ trait Payoff extends FixingLeg {
 	
 	def description:String
 	
+	def inputString:String
+	
 	def jsonString:String
 	
 	def toString:String

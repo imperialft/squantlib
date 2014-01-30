@@ -33,9 +33,9 @@ object DB {
   def getPriceOn(id:String, vd:Date):Option[(Date, Double)] = repository.flatMap{case repo => 
 	if (vd gt repo.latestParamDate) None 
 	else getHistorical(id).filterKeys(d => d le vd) match {
-	      case mp if mp.isEmpty => None
-	      case mp => Some(mp.maxBy(_._1))
-	  }}
+      case mp if mp.isEmpty => None
+      case mp => Some(mp.maxBy(_._1))
+  }}
   
   def getLatestPrice(id:String):Option[(Date, Double)] = getHistorical(id) match {
     case p if p.isEmpty => None
