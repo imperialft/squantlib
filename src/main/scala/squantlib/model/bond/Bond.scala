@@ -62,52 +62,46 @@ case class Bond(
 
 object Bond {
   
-  def apply(db:dbBond):Option[Bond] = apply(db, getTbdFixings(db))
-	
-  def apply(db:dbBond, tbdfixing:Option[Double]):Option[Bond] = 
-    getScheduledPayoffs(db, tbdfixing).collect{case po => new Bond(db, po, db.underlyingList)}
+  def apply(db:dbBond):Option[Bond] = 
+    getScheduledPayoffs(db).collect{case po => new Bond(db, po, db.underlyingList)}
   
-  def forward(db:dbBond, valuedate:Date):Option[Bond] = forward(db, getTbdFixings(db), valuedate)
+  def forward(db:dbBond, valuedate:Date):Option[Bond] = 
+    getScheduledPayoffs(db, Some(valuedate)).collect{case po => new Bond(db, po, db.underlyingList)}
   
-  def forward(db:dbBond, tbdfixing:Option[Double], valuedate:Date):Option[Bond] = 
-    getScheduledPayoffs(db, tbdfixing, Some(valuedate)).collect{case po => new Bond(db, po, db.underlyingList)}
-  
-  def getTbdFixings(db:dbBond):Option[Double] = try { Some(db.settingMap("tbd").toDouble)} catch {case _:Throwable => None}
-  
-  def getScheduledPayoffs(db:dbBond, tbdfixing:Option[Double], valuedate:Option[Date] = None):Option[ScheduledPayoffs] = {
+
+  def getScheduledPayoffs(db:dbBond, valuedate:Option[Date] = None):Option[ScheduledPayoffs] = {
 	val schedule = db.schedule.orNull
 	if (schedule == null) {return None}
-	  
-	val fixings:Map[String, Double] = db.getInitialFixings ++ tbdfixing.collect{case v => Map("tbd" -> v)}.getOrElse(Map.empty)
-	  
-	val coupon:Payoffs = Payoffs(db.fixedCoupon(fixings), schedule.size - 1).orNull
+	
+	implicit val fixingInfo = db.fixingInformation
+	
+	val coupon:Payoffs = Payoffs(db.coupon, schedule.size - 1).orNull
 	if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}
 	  
-	val redemption = Payoff(db.fixedRedemprice(fixings)).orNull
+	val redemption = Payoff(db.redemprice).orNull
 	if (redemption == null) {println(db.id + ": cannot initialize redemption"); return None}
 	  
 	val underlyings:List[String] = db.underlyingList
 		
-	val bermudan:List[Boolean] = {
-	  val bermlist = db.bermudanList(fixings, schedule.size)
-	  if (!bermlist.isEmpty && bermlist.takeRight(1).head) (bermlist.dropRight(1) :+ false) else bermlist
+	val bermudan:List[Boolean] = db.bermudanList(schedule.size) match {
+	  case berms if !berms.isEmpty && berms.takeRight(1).head => berms.dropRight(1) :+ false
+	  case berms => berms
 	}
 	
-	val trigger = db.triggerList(fixings, schedule.size)
+	val trigger = db.triggerList(schedule.size)
 	  
 	val calls = Callabilities(bermudan, trigger, underlyings)
 	if (calls == null) {println(db.id + ": cannot initialize calls"); return None}
 	  
-	val sp = valuedate match {
+	val scheduledPayoffs = valuedate match {
 	  case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d)
 	  case None => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
 	}
 	
-	if (sp == null || sp.isEmpty) {
-	  println(db.id + ": cannot initialize scheduled payoffs")
-	  None}
-	else Some(sp)
+	if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {
+	  println(db.id + ": cannot initialize scheduled payoffs"); None}
+	else Some(scheduledPayoffs)
   }
-  
+ 
 }
 

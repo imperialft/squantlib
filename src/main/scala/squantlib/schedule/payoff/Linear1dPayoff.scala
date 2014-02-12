@@ -4,6 +4,7 @@ import scala.collection.JavaConversions._
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import org.codehaus.jackson.map.ObjectMapper
+import squantlib.util.FixingInformation
 
 /**
  * Interprets JSON forimport squantlib.schedule.payoff.Payoff
@@ -17,7 +18,7 @@ case class Linear1dPayoff(
     variable:String, 
     payoff:Linear1dFormula, 
     description:String,
-    inputString:String = null) extends Payoff {
+    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables:Set[String] = if (variable == null) Set.empty else Set(variable)
   
@@ -53,21 +54,22 @@ case class Linear1dPayoff(
 
 object Linear1dPayoff {
   
-  def apply(formula:String):Linear1dPayoff = {
+  def apply(formula:String)(implicit fixingInfo:FixingInformation):Linear1dPayoff = {
     val variable:String = formula.parseJsonString("variable").orNull
-    val payoff:Linear1dFormula = formula.parseJsonObject("payoff", Linear1dFormula(_)).orNull
+    val payoff:Linear1dFormula = fixingInfo.update(formula).parseJsonObject("payoff", Linear1dFormula(_)).orNull
     Linear1dPayoff(variable, payoff, null, formula)
   }
   
-  def apply(variable:String, payoff:Map[String, Any]):Linear1dPayoff = Linear1dPayoff(variable, Linear1dFormula(payoff), null, null)
+  def apply(variable:String, payoff:Map[String, Any])(implicit fixingInfo:FixingInformation):Linear1dPayoff = 
+    Linear1dPayoff(variable, Linear1dFormula(payoff), null, null)
   
-  def apply(variable:String, coeff:Option[Double], constant:Option[Double], minValue:Option[Double], maxValue:Option[Double]):Linear1dPayoff = 
+  def apply(variable:String, coeff:Option[Double], constant:Option[Double], minValue:Option[Double], maxValue:Option[Double])(implicit fixingInfo:FixingInformation):Linear1dPayoff = 
     Linear1dPayoff(variable, Linear1dFormula(coeff, constant, minValue, maxValue, null), null, null)
  
-  def apply(variable:String, coeff:Option[Double], constant:Option[Double], minValue:Option[Double], maxValue:Option[Double], description:String):Linear1dPayoff = 
+  def apply(variable:String, coeff:Option[Double], constant:Option[Double], minValue:Option[Double], maxValue:Option[Double], description:String)(implicit fixingInfo:FixingInformation):Linear1dPayoff = 
     Linear1dPayoff(variable, Linear1dFormula(coeff, constant, minValue, maxValue, description), description, null)
     
-  def apply(variable:String, coeff:Option[Double], constant:Option[Double], minValue:Option[Double], maxValue:Option[Double], description:String, inputString:String):Linear1dPayoff = 
+  def apply(variable:String, coeff:Option[Double], constant:Option[Double], minValue:Option[Double], maxValue:Option[Double], description:String, inputString:String)(implicit fixingInfo:FixingInformation):Linear1dPayoff = 
     Linear1dPayoff(variable, Linear1dFormula(coeff, constant, minValue, maxValue, description), description, inputString)
     
     

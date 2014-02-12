@@ -3,6 +3,7 @@ package squantlib.schedule.payoff
 import scala.collection.JavaConversions._
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
+import squantlib.util.FixingInformation
 
 /**
  * Interprets JSON formula specification for a fixed leg.
@@ -11,7 +12,7 @@ import squantlib.util.JsonUtils._
  */
 case class NullPayoff(
     description:String = null, 
-    inputString:String = null) extends Payoff {
+    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables:Set[String] = Set.empty
   
@@ -34,8 +35,8 @@ case class NullPayoff(
 
 object NullPayoff {
   
-  def apply(formula:String):NullPayoff = {
-    val description:String = formula.parseJsonString("description").orNull
+  def apply(formula:String)(implicit fixingInfo:FixingInformation):NullPayoff = {
+    val description:String = fixingInfo.update(formula).parseJsonString("description").orNull
     NullPayoff(description, formula)
   }
 }

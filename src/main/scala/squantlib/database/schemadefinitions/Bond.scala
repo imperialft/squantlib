@@ -1,20 +1,21 @@
 package squantlib.database.schemadefinitions
 
 import java.util.{Date => JavaDate}
-import org.squeryl.annotations.Column
-import org.squeryl.KeyedEntity
+import scala.collection.JavaConversions._
+import scala.language.postfixOps
 import squantlib.util.JsonUtils._
 import squantlib.schedule.Schedule
 import squantlib.util.initializer._
 import squantlib.database.DB
-import squantlib.util.Date
+import squantlib.util.{FixingInformation, Date}
 import org.jquantlib.time.{Period => qlPeriod, DateGeneration, Calendar, BusinessDayConvention, TimeUnit}
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
-import scala.collection.JavaConversions._
-import scala.language.postfixOps
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
+import org.squeryl.annotations.Transient
+import org.squeryl.annotations.Column
+import org.squeryl.KeyedEntity
 
 class Bond(	  @Column("ID")					override var id: String,
               @Column("REF_NUMBER")			var ref_number: Int,
@@ -68,6 +69,7 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("PAID_IN_JPY") 		var jpypayment: Int,
               @Column("PHYSICAL_REDEMPTION") var physicalredemption: Int,
               @Column("MINIMUM_PURCHASE") 	var minimum_purchase: Option[Double],
+              @Column("FIXING_METHOD") 	    var fixing_method: String,
               @Column("Created")			var created: Option[JavaDate],
               @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
@@ -100,15 +102,17 @@ class Bond(	  @Column("ID")					override var id: String,
   def calendar:Calendar = if (calendar_str == null) Calendars(currencyid).get
   						else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
   
-  protected def updateFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
+  protected def replaceFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
   						
-  def fixedCoupon(fixings:Map[String, Any]):String = updateFixing(if (coupon == null) "" else coupon, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
+  protected def updateFixing(p:String):String = fixingInformation.update(p)
+  						
+  def fixingCoupon(fixings:Map[String, Any]):String = replaceFixing(if (coupon == null) "" else coupon, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
   
-  def couponList:List[String] = stringList(coupon)
+  def couponList:List[String] = stringList(updateFixing(coupon))
   
-  def couponList(fixings:Map[String, Any]):List[String] = stringList(updateFixing(coupon, fixings))
+//  def couponList(fixings:Map[String, Any]):List[String] = stringList(updateFixing(coupon, fixings))
   
-  def fixedRedemprice(fixings:Map[String, Any]):String = updateFixing(if (redemprice == null) "" else redemprice, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
+  def fixingRedemprice(fixings:Map[String, Any]):String = replaceFixing(if (redemprice == null) "" else redemprice, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
   
   def tbdParameter:Option[String] = (containsN(coupon, "tbd"), containsN(redemprice, "tbd"), containsN(call, "tbd")) match {
   	 case (true, false, false) => Some(coupon)
@@ -127,9 +131,9 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def underlyingList:List[String] = stringList(underlying)
   
-  def bermudanList:List[Boolean] = booleanList(call, "berm")
+//  def bermudanList:List[Boolean] = booleanList(call, "berm")
   
-  def triggerList:List[List[String]] = call.jsonArray.map(_.parseStringList.map(_.orNull))
+//  def triggerList:List[List[String]] = call.jsonArray.map(_.parseStringList.map(_.orNull))
   
   def fixingMap:Map[String, Double] = fixings.parseJsonDoubleFields
   
@@ -190,13 +194,13 @@ class Bond(	  @Column("ID")					override var id: String,
   }
   catch { case _:Throwable => None}
   
-  def bermudanList(fixings:Map[String, Any] = Map.empty, nbLegs:Int = schedule.size):List[Boolean] = updateFixing(call, fixings).jsonNode match {
+  def bermudanList(nbLegs:Int = schedule.size):List[Boolean] = updateFixing(call).jsonNode match {
   	case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
 	case Some(b) if b isArray => List.fill(nbLegs - 2 - b.size)(false) ++ b.map(_.parseString == Some("berm")).toList ++ List(false, false)
 	case _ => List.fill(nbLegs)(false)
   }
 
-  def triggerList(fixings:Map[String, Any] = Map.empty, nbLegs:Int = schedule.size):List[List[Option[Double]]] = updateFixing(call, fixings).jsonNode match {
+  def triggerList(nbLegs:Int = schedule.size):List[List[Option[Double]]] = updateFixing(call).jsonNode match {
     case Some(b) if b.isArray && b.size == 1 => 
       List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
     case Some(b) if b isArray => 
@@ -222,6 +226,16 @@ class Bond(	  @Column("ID")					override var id: String,
   }
 
   def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
+  
+  override def toString():String = "%-5s %-15s %-25s %-10s %-15s %-15s".format(id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
+
+  @Transient
+  lazy val fixingInformationObj = {
+    def getDblSetting(key:String):Option[Double] = settingMap.get(key).flatMap{case v => try {Some(v.toDouble)} catch {case e:Throwable => None}}
+    FixingInformation(getDblSetting("tbd"), getDblSetting("tbd_min"), getDblSetting("tbd_max"), getInitialFixings)
+  }
+  
+  implicit def fixingInformation = fixingInformationObj
   
   def accrualPrice(vd:Date):Double = 
     if (isMatured(vd)) 0.0 
@@ -290,11 +304,10 @@ class Bond(	  @Column("ID")					override var id: String,
 		jpypayment = 0,
 		physicalredemption = 0,
 		minimum_purchase = None,
+		fixing_method = null,
 		created = None,
 		lastmodified  = None)
- 
-  override def toString():String = "%-5s %-15s %-25s %-10s %-15s %-15s".format(id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
-
   
   
 }
+

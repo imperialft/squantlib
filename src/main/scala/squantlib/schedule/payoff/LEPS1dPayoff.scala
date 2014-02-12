@@ -8,6 +8,7 @@ import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
 import java.util.{Map => JavaMap}
 import scala.Array.canBuildFrom
+import squantlib.util.FixingInformation
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -22,7 +23,7 @@ case class LEPS1dPayoff(
     variable:String, 
     payoff:List[LEPS1dComponent], 
     description:String = null,
-    inputString:String = null) extends Payoff {
+    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables:Set[String] = Set(variable)
   
@@ -64,11 +65,11 @@ case class LEPS1dPayoff(
 
 object LEPS1dPayoff {
   
-  def apply(inputformula:String):LEPS1dPayoff = {
-    val formula = inputformula.trim
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):LEPS1dPayoff = {
+//    val formula = inputformula.trim
     
-    if (formula.startsWith("leps")) {
-      val formulalist = FormulaParser.parseList(formula.substring(4))
+    if (inputString.startsWith("leps")) {
+      val formulalist = FormulaParser.parseList(fixingInfo.update(inputString).substring(4))
       val variables = formulalist.map{case (f, _, _) => f.keySet}.flatten.flatten.toSet
       assert(variables.size <= 1)
       
@@ -78,23 +79,23 @@ object LEPS1dPayoff {
         val const = formula.get(Set.empty)
         LEPS1dComponent(coeff, const, minrange, maxrange)
       }}
-      LEPS1dPayoff(variables.head, components, inputformula)
+      LEPS1dPayoff(variables.head, components, inputString)
     }
     
     else {
-      val variable:String = formula.parseJsonString("variable").orNull
-      val description:String = formula.parseJsonString("description").orNull
+      val variable:String = inputString.parseJsonString("variable").orNull
+      val description:String = inputString.parseJsonString("description").orNull
     
-      val payoff:List[LEPS1dComponent] = formula.jsonNode match {
+      val payoff:List[LEPS1dComponent] = fixingInfo.update(inputString).jsonNode match {
         case Some(node) => getLEPScomponents(node.get("payoff"))
         case None => List.empty
       }
       
-      LEPS1dPayoff(variable, payoff, description, inputformula)
+      LEPS1dPayoff(variable, payoff, description, inputString)
     }
   }
 
-  def apply(variable:String, payoff:JsonNode, description:String):LEPS1dPayoff = 
+  def apply(variable:String, payoff:JsonNode, description:String)(implicit fixingInfo:FixingInformation):LEPS1dPayoff = 
     LEPS1dPayoff(variable, getLEPScomponents(payoff), description, payoff.toJsonString)
   
   def getLEPScomponents(node:JsonNode):List[LEPS1dComponent] = node.parseList.map(LEPS1dComponent(_))

@@ -6,6 +6,7 @@ import scala.collection.LinearSeq
 import scala.annotation.tailrec
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
+import squantlib.util.FixingInformation
 import scala.collection.JavaConversions._
 import scala.Predef._
 import squantlib.schedule.FixingLegs
@@ -196,7 +197,7 @@ object Payoffs {
 	
 	def apply(payoffs:LinearSeq[Payoff]) = new Payoffs(payoffs.toList)
 	
-	def apply(formula:String, legs:Int = 1):Option[Payoffs] =	{
+	def apply(formula:String, legs:Int = 1)(implicit fixingInfo:FixingInformation):Option[Payoffs] =	{
 	  if (legs == 0) Some(Payoffs(List.empty))
 	  else if (formula == null || formula.trim.isEmpty) {
 	    def getNullPayoff = new NullPayoff
@@ -204,13 +205,13 @@ object Payoffs {
 	  }
 	  else {
 	    val payofflist:List[Payoff] = formula.jsonNode match {
-	      case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f))).flatten
-	      case _ => formula.split(";").toList.map(getPayoff).flatten
+	      case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f)))
+	      case _ => formula.split(";").toList.map(getPayoff)
 	    }
 	    
 	    def getFirstElement:Payoff = formula.jsonNode match {
-	      case Some(n) if n isArray => getPayoff(toJsonString(n.getElements.toList.head)).head
-	      case _ => getPayoff(formula.split(";").head).head
+	      case Some(n) if n isArray => getPayoff(toJsonString(n.getElements.toList.head))
+	      case _ => getPayoff(formula.split(";").head)
 	    }
 	  
 	  	val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(getFirstElement) ++ payofflist else payofflist
@@ -225,17 +226,17 @@ object Payoffs {
 	  case f => formula.parseJsonString("type").orNull
 	  }
 	
-	def getPayoff(f:String):List[Payoff] = payoffType(f) match {
-	      case "fixed" => List(FixedPayoff(f))
-		  case "leps1d" => List(LEPS1dPayoff(f))
-		  case "linear1d" => List(Linear1dPayoff(f))
-		  case "putdi" => List(PutDIPayoff(f))
-		  case "forward" => List(ForwardPayoff(f))
-		  case "null" => List(NullPayoff(f))
-		  case "binary" => List(BinaryPayoff(f))
-		  case "general" => List(GeneralPayoff(f))
-		  case _ => List(GeneralPayoff(f))
-		}
+	def getPayoff(f:String)(implicit fixingInfo:FixingInformation):Payoff = payoffType(f) match {
+	  case "fixed" => FixedPayoff(f)
+	  case "leps1d" => LEPS1dPayoff(f)
+	  case "linear1d" => Linear1dPayoff(f)
+	  case "putdi" => PutDIPayoff(f)
+	  case "forward" => ForwardPayoff(f)
+	  case "null" => NullPayoff(f)
+	  case "binary" => BinaryPayoff(f)
+	  case "general" => GeneralPayoff(f)
+	  case _ => GeneralPayoff(f)
+	}
 
 	  
 }

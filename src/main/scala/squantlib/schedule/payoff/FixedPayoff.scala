@@ -4,6 +4,7 @@ import scala.collection.JavaConversions._
 import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
+import squantlib.util.FixingInformation
 
 /**
  * Interprets JSON formula specification for a fixed leg.
@@ -13,7 +14,7 @@ import squantlib.util.JsonUtils._
 case class FixedPayoff(
     payoff:Double, 
     description:String = null,
-    inputString:String = null) extends Payoff {
+    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
 	
   override val variables:Set[String] = Set.empty
   
@@ -39,11 +40,11 @@ case class FixedPayoff(
 
 object FixedPayoff {
   
-  def apply(formula:String):FixedPayoff = formula.parseDouble match {
+  def apply(formula:String)(implicit fixingInfo:FixingInformation):FixedPayoff = fixingInfo.update(formula).parseDouble match {
     case Some(v) => FixedPayoff(v, null, formula)
-    case None => FixedPayoff(formula.parseJsonDouble("payoff").getOrElse(Double.NaN), formula.parseJsonString("description").orNull, formula)
+    case None => FixedPayoff(fixingInfo.update(formula).parseJsonDouble("payoff").getOrElse(Double.NaN), formula.parseJsonString("description").orNull, formula)
   }
 	
-  def apply(payoff:Double):FixedPayoff = new FixedPayoff(payoff, null, null)
+  def apply(payoff:Double)(implicit fixingInfo:FixingInformation):FixedPayoff = new FixedPayoff(payoff, null, null)
 
 }

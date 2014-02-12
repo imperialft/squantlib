@@ -3,6 +3,7 @@ package squantlib.schedule.payoff
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.util.FormulaParser
+import squantlib.util.FixingInformation
 import scala.collection.JavaConversions._
 
 /**
@@ -15,7 +16,7 @@ case class GeneralPayoff(
     floor:Option[Double], 
     cap:Option[Double], 
     description:String = null,
-    inputString:String = null) extends Payoff {
+    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables:Set[String] = formula.keySet.flatten
   
@@ -61,20 +62,21 @@ case class GeneralPayoff(
  
 object GeneralPayoff {
   
-  def apply(inputstring:String):Payoff = {
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):Payoff = {
+    val fixedString = fixingInfo.update(inputString)
 
-    val formula = if (inputstring.startsWith("{") && inputstring.parseJsonString("type") == Some("general")) {
-      var f = inputstring.parseJsonString("payoff") match { case None => ""; case Some(n) => n}
-      inputstring.jsonNode match {
+    val formula = if (inputString.startsWith("{") && inputString.parseJsonString("type") == Some("general")) {
+      var payoffString = fixedString.parseJsonString("payoff") match { case None => ""; case Some(n) => n}
+      fixedString.jsonNode match {
         case Some(node) => 
           val fieldnames = node.getFieldNames.filter(n => !List("type", "description", "payoff", "variable").contains(n))
-          fieldnames.foreach(n => f = f.replace(n, node.get(n).parseDouble.getOrElse(Double.NaN).toString))
+          fieldnames.foreach(n => payoffString = payoffString.replace(n, node.get(n).parseDouble.getOrElse(Double.NaN).toString))
         case None => {}
       }
-      f
-    } else inputstring
+      payoffString
+    } else fixedString
     
-    val description =  if (inputstring.startsWith("{")) inputstring.parseJsonString("description").orNull else null
+    val description =  if (fixedString.startsWith("{")) fixedString.parseJsonString("description").orNull else null
     
     val (parsedformula, floor, cap) = FormulaParser.parse(formula)
     
@@ -82,13 +84,13 @@ object GeneralPayoff {
     val constant = parsedformula.getOrElse(Set.empty, 0.0)
     
     variables.size match {
-      case 0 if parsedformula contains Set.empty => FixedPayoff(constant, description, inputstring)
-      case 0 => NullPayoff(description, inputstring)
+      case 0 if parsedformula contains Set.empty => FixedPayoff(constant, description, inputString)
+      case 0 => NullPayoff(description, inputString)
       case 1 => {
         val variable = variables.head
-        Linear1dPayoff(variable, Some(parsedformula.getOrElse(Set(variable), 0.0)), Some(constant), floor, cap, description, inputstring)
+        Linear1dPayoff(variable, Some(parsedformula.getOrElse(Set(variable), 0.0)), Some(constant), floor, cap, description, inputString)
       }
-      case _ => GeneralPayoff(parsedformula, floor, cap, description, inputstring)
+      case _ => GeneralPayoff(parsedformula, floor, cap, description, inputString)
     }
     
   }

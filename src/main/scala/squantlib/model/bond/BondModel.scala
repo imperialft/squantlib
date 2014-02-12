@@ -4,12 +4,13 @@ import org.jquantlib.currencies.Currency
 import squantlib.util.Date
 import org.jquantlib.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
 import squantlib.database.schemadefinitions.{Bond => dbBond}
+import squantlib.util.FixingInformation
 import squantlib.util.initializer.Currencies
 import squantlib.schedule.call.Callabilities
 import squantlib.schedule.payoff.{Payoff, Payoffs}
 import squantlib.schedule.{ScheduledPayoffs, Schedule, CalculationPeriod}
-import org.codehaus.jackson.JsonNode
 import squantlib.util.UnderlyingParsers
+import org.codehaus.jackson.JsonNode
 
 
 trait BondModel {
@@ -90,7 +91,8 @@ trait BondModel {
   def terminationDate:Date = earlyTerminationDate.getOrElse(scheduledMaturity)
   
   def currencyList:Set[String] = underlyings.map(UnderlyingParsers.extractCurrencies).flatten.toSet + currency.code
-    
+  
+  implicit def fixingInformation:FixingInformation = db.fixingInformation
 	
 } 
 

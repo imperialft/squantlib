@@ -8,6 +8,7 @@ import java.util.{Map => JavaMap}
 import squantlib.database.DB
 import squantlib.util.Date
 import squantlib.schedule.CalculationPeriod
+import squantlib.util.FixingInformation
 import scala.reflect.ClassTag
 
 /**
@@ -25,7 +26,7 @@ case class PutDIAmericanPayoff(
     knockedIn:Boolean, 
     amount:Double = 1.0, 
     description:String = null,
-    inputString:String = null) extends Payoff {
+    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables = putVariables.toSet
   
@@ -119,15 +120,16 @@ case class PutDIAmericanPayoff(
 
 object PutDIAmericanPayoff {
   
-  def apply(node:String):PutDIAmericanPayoff = {
+  def apply(formula:String)(implicit fixingInfo:FixingInformation):PutDIAmericanPayoff = {
     
-    val variable:List[String] = node.parseJsonStringList("variable").map(_.orNull)
-    val trigger:List[Double] = node.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
-    val strike:List[Double] = node.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
-    val amount:Double = node.parseJsonDouble("amount").getOrElse(1.0)
-    val refStart:Date = node.parseJsonDate("refstart").orNull
-    val refEnd:Date = node.parseJsonDate("refend").orNull
-    val description:String = node.parseJsonString("description").orNull
+    val fixed = fixingInfo.update(formula)
+    val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
+    val trigger:List[Double] = fixed.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
+    val strike:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+    val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
+    val refStart:Date = formula.parseJsonDate("refstart").orNull
+    val refEnd:Date = formula.parseJsonDate("refend").orNull
+    val description:String = formula.parseJsonString("description").orNull
     
     val knockedIn:Boolean = 
       if (refStart == null || refEnd == null) false
@@ -136,7 +138,7 @@ object PutDIAmericanPayoff {
         case h => h.exists{case (_, x) => x <= trig}
       }}
     
-    PutDIAmericanPayoff(variable, trigger, strike, refStart, refEnd, knockedIn, amount, description, node)
+    PutDIAmericanPayoff(variable, trigger, strike, refStart, refEnd, knockedIn, amount, description, formula)
   }
   
 }

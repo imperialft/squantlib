@@ -6,7 +6,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import java.util.{Map => JavaMap}
-import java.util.{Map => JavaMap}
+import squantlib.util.FixingInformation
 
 /**
  * Interprets JSON formuimport squantlib.schedule.payoff.Payoff
@@ -19,7 +19,7 @@ case class BinaryPayoff(
   binaryVariables:List[String], 
   payoff:List[(Double, Option[List[Double]])], 
   description:String = null,
-  inputString:String = null) extends Payoff {
+  inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables = binaryVariables.toSet
   
@@ -84,10 +84,10 @@ case class BinaryPayoff(
 
 object BinaryPayoff {
   
-  def apply(node:String):BinaryPayoff = {
-    val variable:List[String] = node.parseJsonStringList("variable").map(_.orNull)
+  def apply(formula:String)(implicit fixingInfo:FixingInformation):BinaryPayoff = {
+    val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 	  
-    val payoff:List[(Double, Option[List[Double]])] = (node.jsonNode("payoff") match {
+    val payoff:List[(Double, Option[List[Double]])] = (fixingInfo.update(formula).jsonNode("payoff") match {
       case None => List.empty
 	  case Some(subnode) if subnode isArray => subnode.map(n => {
 	    val amount = n.parseDouble("amount").getOrElse(Double.NaN)
@@ -97,8 +97,8 @@ object BinaryPayoff {
 	    case _ => List.empty
     })
 	  
-    val description:String = node.parseJsonString("description").orNull
-	BinaryPayoff(variable, payoff, description, node)
+    val description:String = formula.parseJsonString("description").orNull
+	BinaryPayoff(variable, payoff, description, formula)
   }
   
 }

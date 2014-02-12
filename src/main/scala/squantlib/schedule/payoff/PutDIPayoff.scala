@@ -5,6 +5,7 @@ import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import java.util.{Map => JavaMap}
+import squantlib.util.FixingInformation
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -18,7 +19,7 @@ case class PutDIPayoff(
     strike:List[Double], 
     amount:Double = 1.0, 
     description:String = null,
-    inputString:String = null) extends Payoff {
+    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   val variables = putVariables.toSet
   
@@ -63,14 +64,14 @@ case class PutDIPayoff(
 
 object PutDIPayoff {
   
-  def apply(node:String):PutDIPayoff = {
-    
-    val variable:List[String] = node.parseJsonStringList("variable").map(_.orNull)  
-    val trigger:List[Double] = node.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
-    val strike:List[Double] = node.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
-    val amount:Double = node.parseJsonDouble("amount").getOrElse(1.0)
-    val description:String = node.parseJsonString("description").orNull
-    PutDIPayoff(variable, trigger, strike, amount, description, node)
+  def apply(formula:String)(implicit fixingInfo:FixingInformation):PutDIPayoff = {
+    val fixed = fixingInfo.update(formula)
+    val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)  
+    val trigger:List[Double] = fixed.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
+    val strike:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+    val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
+    val description:String = formula.parseJsonString("description").orNull
+    PutDIPayoff(variable, trigger, strike, amount, description, formula)
   }
   
 }

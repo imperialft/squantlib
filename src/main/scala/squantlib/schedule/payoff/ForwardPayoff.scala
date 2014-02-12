@@ -4,6 +4,7 @@ import scala.collection.JavaConversions._
 import org.codehaus.jackson.map.ObjectMapper
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
+import squantlib.util.FixingInformation
 import java.util.{Map => JavaMap}
 
 
@@ -17,7 +18,7 @@ case class ForwardPayoff(
     fwdVariables:List[String], 
     strike:List[Double], 
     description:String = null,
-    inputString:String = null) extends Payoff {
+    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables = fwdVariables.toSet
   
@@ -58,12 +59,12 @@ case class ForwardPayoff(
 
 object ForwardPayoff {
   
-  def apply(node:String):ForwardPayoff = {
+  def apply(formula:String)(implicit fixingInfo:FixingInformation):ForwardPayoff = {
     
-    val variable:List[String] = node.parseJsonStringList("variable").map(_.orNull)
-    val strike:List[Double] = node.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
-    val description:String = node.parseJsonString("description").orNull
-    ForwardPayoff(variable, strike, description, node)
+    val variable:List[String] = fixingInfo.update(formula).parseJsonStringList("variable").map(_.orNull)
+    val strike:List[Double] = fixingInfo.update(formula).parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+    val description:String = fixingInfo.update(formula).parseJsonString("description").orNull
+    ForwardPayoff(variable, strike, description, formula)
   }
   
 }

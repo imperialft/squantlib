@@ -3,6 +3,7 @@ package squantlib.schedule.payoff
 import squantlib.util.DisplayUtils._
 import squantlib.util.JsonUtils._
 import squantlib.database.DB
+import squantlib.util.FixingInformation
 import squantlib.util.Date
 import squantlib.model.market.Market
 import scala.Option.option2Iterable
@@ -19,6 +20,8 @@ trait Payoff extends FixingLeg {
 	override val variables:Set[String]
 	
 	val isPriceable:Boolean // checks priceablility of the payoff
+	
+	val fixingInfo:FixingInformation
 	
 	/*
 	 * Price assuming all variables fixed at spot market.
@@ -119,7 +122,7 @@ trait Payoff extends FixingLeg {
  
 object Payoff {
   
-	def apply(formula:String):Option[Payoff] =
+	def apply(formula:String)(implicit fixingInfo:FixingInformation):Option[Payoff] =
 	  if (formula == null || formula.trim.isEmpty) Some(NullPayoff(""))
 	  else Some(payoffType(formula) match {
 	    case "fixed" => FixedPayoff(formula)
@@ -140,6 +143,6 @@ object Payoff {
 	  case f => formula.parseJsonString("type").orNull
 	  }
 	
-	def simpleCashFlow(amount:Double) = FixedPayoff(amount)
+	def simpleCashFlow(amount:Double) = FixedPayoff(amount)(FixingInformation.empty)
 }
 
