@@ -66,7 +66,6 @@ case class LEPS1dPayoff(
 object LEPS1dPayoff {
   
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):LEPS1dPayoff = {
-//    val formula = inputformula.trim
     
     if (inputString.startsWith("leps")) {
       val formulalist = FormulaParser.parseList(fixingInfo.update(inputString).substring(4))

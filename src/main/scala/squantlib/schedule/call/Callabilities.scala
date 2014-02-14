@@ -4,6 +4,7 @@ import scala.language.postfixOps
 import scala.collection.LinearSeq
 import squantlib.util.DisplayUtils._
 import squantlib.schedule.FixingLegs
+import squantlib.util.FixingInformation
 
 case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] with FixingLegs[Callability]{
   
@@ -72,17 +73,24 @@ object Callabilities {
 	
 	def apply(calls:LinearSeq[Callability]):Callabilities = new Callabilities(calls.toList)
 	
-	def apply(bermudans:List[Boolean], triggers:List[List[Option[Double]]], underlyings:List[String], bonus:List[Double]):Callabilities = {
+	def apply(
+	    bermudans:List[Boolean], 
+	    triggers:List[List[Option[Double]]], 
+	    underlyings:List[String], 
+	    bonus:List[Double])(implicit fixingInfo:FixingInformation):Callabilities = {
 	  val trigmap = triggers.map(trigs => {
 	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut); t})
-	  Callabilities((bermudans, trigmap, bonus).zipped.map{case (b, t, n) => Callability(b, t, n)}
+	  Callabilities((bermudans, trigmap, bonus).zipped.map{case (b, t, n) => Callability(b, t, n, "")}
 	  )
 	}
 	  
-	def apply(bermudans:List[Boolean], triggers:List[List[Option[Double]]], underlyings:List[String]):Callabilities = {
+	def apply(
+	    bermudans:List[Boolean], 
+	    triggers:List[List[Option[Double]]], 
+	    underlyings:List[String])(implicit fixingInfo:FixingInformation):Callabilities = {
 	  val trigmap = triggers.map(trigs => {
 	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut); t})
-	  Callabilities((bermudans, trigmap).zipped.map{case (b, t) => Callability(b, t, 0.0)})
+	  Callabilities((bermudans, trigmap).zipped.map{case (b, t) => Callability(b, t, 0.0, "")})
 	}
 	
 }

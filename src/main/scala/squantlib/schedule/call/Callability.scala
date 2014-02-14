@@ -3,8 +3,13 @@ package squantlib.schedule.call
 import scala.collection.immutable.ListMap
 import squantlib.util.DisplayUtils._
 import squantlib.schedule.FixingLeg
+import squantlib.util.FixingInformation
 
-case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Double) extends FixingLeg {
+case class Callability(
+    bermudan:Boolean, 
+    triggers:Map[String, Double], 
+    bonus:Double,
+    inputString:String)(implicit val fixingInfo:FixingInformation) extends FixingLeg {
   
   override val variables = triggers.keySet
   
@@ -44,6 +49,6 @@ case class Callability(bermudan:Boolean, triggers:Map[String, Double], bonus:Dou
 
 object Callability {
   
-  val empty = Callability(false, ListMap.empty, 0.0)
+  val empty = Callability(false, ListMap.empty, 0.0, "")(FixingInformation.empty)
 }
 
