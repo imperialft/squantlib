@@ -9,7 +9,7 @@ case class Callability(
     bermudan:Boolean, 
     triggers:Map[String, Double], 
     bonus:Double,
-    inputString:String)(implicit val fixingInfo:FixingInformation) extends FixingLeg {
+    inputString:List[String])(implicit val fixingInfo:FixingInformation) extends FixingLeg {
   
   override val variables = triggers.keySet
   
@@ -49,6 +49,6 @@ case class Callability(
 
 object Callability {
   
-  val empty = Callability(false, ListMap.empty, 0.0, "")(FixingInformation.empty)
+  val empty = Callability(false, ListMap.empty, 0.0, List.empty)(FixingInformation.empty)
 }
 

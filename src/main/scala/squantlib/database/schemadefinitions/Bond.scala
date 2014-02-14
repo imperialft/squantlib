@@ -194,19 +194,21 @@ class Bond(	  @Column("ID")					override var id: String,
   }
   catch { case _:Throwable => None}
   
-  def bermudanList(nbLegs:Int = schedule.size):List[Boolean] = updateFixing(call).jsonNode match {
-  	case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
-	case Some(b) if b isArray => List.fill(nbLegs - 2 - b.size)(false) ++ b.map(_.parseString == Some("berm")).toList ++ List(false, false)
-	case _ => List.fill(nbLegs)(false)
-  }
-
-  def triggerList(nbLegs:Int = schedule.size):List[List[Option[Double]]] = updateFixing(call).jsonNode match {
-    case Some(b) if b.isArray && b.size == 1 => 
-      List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
-    case Some(b) if b isArray => 
-      List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(optionalDouble).toList else List.empty) ++ List.fill(2)(List.empty)
-    case _ => List.fill(nbLegs)(List.empty)
-  }
+//  def bermudanList(nbLegs:Int = schedule.size):List[Boolean] = call.jsonNode match {
+//  	case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
+//	case Some(b) if b isArray => List.fill(nbLegs - 2 - b.size)(false) ++ b.map(_.parseString == Some("berm")).toList ++ List(false, false)
+//	case _ => List.fill(nbLegs)(false)
+//  }
+//
+//  def triggerList(nbLegs:Int = schedule.size):List[List[String]] = call.jsonNode match {
+//    case Some(b) if b.isArray && b.size == 1 => 
+////      List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
+//      List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseString.getOrElse("")).toList else List.empty) ++ List.fill(2)(List.empty)
+//    case Some(b) if b isArray => 
+////      List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(optionalDouble).toList else List.empty) ++ List.fill(2)(List.empty)
+//      List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(_.parseString.getOrElse("")).toList else List.empty) ++ List.fill(2)(List.empty)
+//    case _ => List.fill(nbLegs)(List.empty)
+//  }
   
   private def optionalDouble(n:JsonNode):Option[Double] = 
     if (n == null || n.isNull) None

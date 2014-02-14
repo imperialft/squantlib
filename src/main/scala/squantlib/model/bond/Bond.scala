@@ -83,14 +83,15 @@ object Bond {
 	  
 	val underlyings:List[String] = db.underlyingList
 		
-	val bermudan:List[Boolean] = db.bermudanList(schedule.size) match {
-	  case berms if !berms.isEmpty && berms.takeRight(1).head => berms.dropRight(1) :+ false
-	  case berms => berms
-	}
-	
-	val trigger = db.triggerList(schedule.size)
-	  
-	val calls = Callabilities(bermudan, trigger, underlyings)
+//	val bermudan:List[Boolean] = db.bermudanList(schedule.size) match {
+//	  case berms if !berms.isEmpty && berms.takeRight(1).head => berms.dropRight(1) :+ false
+//	  case berms => berms
+//	}
+//	
+//	val trigger:List[List[String]] = db.triggerList(schedule.size)
+//	  
+//	val calls = Callabilities(bermudan, trigger, underlyings)
+	val calls = Callabilities(db.call, underlyings, schedule.size)
 	if (calls == null) {println(db.id + ": cannot initialize calls"); return None}
 	  
 	val scheduledPayoffs = valuedate match {

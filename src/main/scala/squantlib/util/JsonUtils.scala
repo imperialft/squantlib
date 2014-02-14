@@ -38,7 +38,7 @@ object JsonUtils {
     def parseDouble:Option[Double] = node match {
       case n if n == null || n.isNull => None
       case n if n.isNumber => Some(n.getDoubleValue)
-    case n => FormulaParser.calculate(n.asText)
+      case n => FormulaParser.calculate(n.asText)
     }
     
     def parseDouble(name:String):Option[Double] = if (hasName(name)) node.get(name).parseDouble else None

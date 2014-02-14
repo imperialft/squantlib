@@ -2,9 +2,12 @@ package squantlib.schedule.call
 
 import scala.language.postfixOps
 import scala.collection.LinearSeq
+import scala.collection.JavaConversions._
 import squantlib.util.DisplayUtils._
+import squantlib.util.JsonUtils._
 import squantlib.schedule.FixingLegs
 import squantlib.util.FixingInformation
+import org.codehaus.jackson.JsonNode
 
 case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] with FixingLegs[Callability]{
   
@@ -73,6 +76,41 @@ object Callabilities {
 	
 	def apply(calls:LinearSeq[Callability]):Callabilities = new Callabilities(calls.toList)
 	
+	def bermudan(formula:String, legs:Int):List[Boolean] = bermudanList(formula, legs) match {
+	  case berms if !berms.isEmpty && berms.takeRight(1).head => berms.dropRight(1) :+ false
+	  case berms => berms
+	}
+	
+    def bermudanList(formula:String, nbLegs:Int):List[Boolean] = formula.jsonNode match {
+  	  case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
+	  case Some(b) if b isArray => List.fill(nbLegs - 2 - b.size)(false) ++ b.map(_.parseString == Some("berm")).toList ++ List(false, false)
+	  case _ => List.fill(nbLegs)(false)
+    }
+
+    def triggerList(formula:String, nbLegs:Int):List[List[String]] = formula.jsonNode match {
+      case Some(b) if b.isArray && b.size == 1 => 
+        List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseString.getOrElse("")).toList else List.empty) ++ List.fill(2)(List.empty)
+      case Some(b) if b isArray => 
+        List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(_.parseString.getOrElse("")).toList else List.empty) ++ List.fill(2)(List.empty)
+      case _ => List.fill(nbLegs)(List.empty)
+    }
+    
+	private def triggerMap(formula:List[List[String]], underlyings:List[String])(implicit fixingInfo:FixingInformation):List[Map[String, Double]] = {
+	  formula.map(trig => 
+	    (underlyings, trig).zipped.map{case (k, v) => (k, fixingInfo.updateCompute(v))}
+	    .collect{case (k, Some(v)) => (k, v)}.toMap
+	   )
+	}
+    
+    def apply(formula:String, underlyings:List[String], legs:Int)(implicit fixingInfo:FixingInformation):Callabilities = {
+	  val bermudans = bermudan(formula, legs)
+	  val trigFormulas = triggerList(formula, legs)
+	  val trigMap = triggerMap(trigFormulas, underlyings)
+      val calls = (bermudans, trigFormulas, trigMap).zipped.map{case (berm, formula, trig) => Callability(berm, trig, 0.0, formula)}
+	  Callabilities(calls)
+    }
+	  
+	
 	def apply(
 	    bermudans:List[Boolean], 
 	    triggers:List[List[Option[Double]]], 
@@ -80,7 +118,7 @@ object Callabilities {
 	    bonus:List[Double])(implicit fixingInfo:FixingInformation):Callabilities = {
 	  val trigmap = triggers.map(trigs => {
 	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut); t})
-	  Callabilities((bermudans, trigmap, bonus).zipped.map{case (b, t, n) => Callability(b, t, n, "")}
+	  Callabilities((bermudans, trigmap, bonus).zipped.map{case (b, t, n) => Callability(b, t, n, List.empty)}
 	  )
 	}
 	  
@@ -90,7 +128,7 @@ object Callabilities {
 	    underlyings:List[String])(implicit fixingInfo:FixingInformation):Callabilities = {
 	  val trigmap = triggers.map(trigs => {
 	    val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut); t})
-	  Callabilities((bermudans, trigmap).zipped.map{case (b, t) => Callability(b, t, 0.0, "")})
+	  Callabilities((bermudans, trigmap).zipped.map{case (b, t) => Callability(b, t, 0.0, List.empty)})
 	}
 	
 }
