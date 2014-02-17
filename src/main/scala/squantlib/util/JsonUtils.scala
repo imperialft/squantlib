@@ -115,15 +115,19 @@ object JsonUtils {
     def parseStringFields(name:String):Map[String, String] = if (hasName(name)) Map.empty
       else node.get(name).getFieldNames.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
   
-    def parseAllFields = parseAllFieldsRec(node, None)
+    def parseAllFieldMap(maxDepth:Int = 5):Map[String, List[AnyVal]] = parseAllFieldMapRec(node, None, maxDepth)
     
-    def parseAllFieldsRec(n:JsonNode, key:Option[String]):List[(String, String)] = n match {
-      case nn if nn == null => List.empty
-      case nn if nn.isArray => nn.map(nn => parseAllFieldsRec(nn, key)).flatten.toList
-      case nn if nn.isObject => nn.getFields.map(nnn => parseAllFieldsRec(nnn.getValue, Some(nnn.getKey))).flatten.toList
-      case nn if nn.isTextual => List((key.getOrElse(""), nn.asText))
-      case nn if nn.isNumber => List((key.getOrElse(""), nn.asDouble.toString))
-      case nn => List.empty
+    private def parseAllFieldMapRec(n:JsonNode, key:Option[String], depth:Int):Map[String, List[AnyVal]] = n match {
+      case nn if nn == null || depth < 0 => Map.empty
+      case nn if nn.isArray => nn.map(nn => parseAllFieldMapRec(nn, key, depth - 1)).reduce(addMaps)
+      case nn if nn.isObject => nn.getFields.map(nnn => parseAllFieldMapRec(nnn.getValue, Some(nnn.getKey), depth - 1)).reduce(addMaps)
+      case nn if nn.isTextual => Map(key.getOrElse("") -> List(nn.asText))
+      case nn if nn.isNumber => Map(key.getOrElse("") -> List(nn.asDouble))
+      case nn => Map.empty
+    }
+      
+    private def addMaps(a:Map[String, List[AnyVal]], b:Map[String, List[AnyVal]]):Map[String, List[AnyVal]] = {
+      a.filter(aa => !b.contains(aa._1)) ++ b.filter(bb => !a.contains(bb._1)) ++ (a.keySet & b.keySet).map(ab => (ab -> (a(ab) ++ b(ab))))
     }
       
     def toJsonString:String = mapper.writeValueAsString(node)
