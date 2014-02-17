@@ -9,6 +9,7 @@ import scala.collection.JavaConversions._
 import org.codehaus.jackson.`type`.TypeReference;
 import java.util.{List => JavaList, Map => JavaMap}
 import java.lang.{String => JavaString}
+import scala.annotation.tailrec
 
 object JsonUtils {
   
@@ -114,6 +115,17 @@ object JsonUtils {
     def parseStringFields(name:String):Map[String, String] = if (hasName(name)) Map.empty
       else node.get(name).getFieldNames.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
   
+    def parseAllFields = parseAllFieldsRec(node, None)
+    
+    def parseAllFieldsRec(n:JsonNode, key:Option[String]):List[(String, String)] = n match {
+      case nn if nn == null => List.empty
+      case nn if nn.isArray => nn.map(nn => parseAllFieldsRec(nn, key)).flatten.toList
+      case nn if nn.isObject => nn.getFields.map(nnn => parseAllFieldsRec(nnn.getValue, Some(nnn.getKey))).flatten.toList
+      case nn if nn.isTextual => List((key.getOrElse(""), nn.asText))
+      case nn if nn.isNumber => List((key.getOrElse(""), nn.asDouble.toString))
+      case nn => List.empty
+    }
+      
     def toJsonString:String = mapper.writeValueAsString(node)
     
   }
