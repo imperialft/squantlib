@@ -25,7 +25,9 @@ object JsonUtils {
   
   case class ExtendedJson(node:JsonNode) {
     
-    def hasName(name:String) = (node != null) && (node has name)
+    def hasName(name:String):Boolean = (node != null) && (node has name)
+    
+    def getOption(name:String):Option[ExtendedJson] = if(node == null || !node.has(name)) None else Some(ExtendedJson(node.get(name)))
     
     def parseInt:Option[Int]= node match {
       case null => None
@@ -75,13 +77,13 @@ object JsonUtils {
     def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))
     def parseObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = if (hasName(name)) Some(constructor(node.get(name).parseValueFields)) else None
     
-    def parseList:List[JsonNode] = node match {
+    def parseList:List[ExtendedJson] = node match {
       case n if n == null => List.empty
-      case n if n isArray => n.map(s => s).toList
+      case n if n isArray => n.map(s => ExtendedJson(s)).toList
       case n if n.isNull => List.empty
       case n => List(n)
     }
-    def parseList(name:String):List[JsonNode] = if (hasName(name)) node.get(name).parseList else List.empty
+    def parseList(name:String):List[ExtendedJson] = if (hasName(name)) node.get(name).parseList else List.empty
     
     def parseIntList:List[Option[Int]] = parseList.map(_.parseInt)
     def parseIntList(name:String):List[Option[Int]] = if (hasName(name)) node.get(name).parseIntList else List.empty
@@ -115,20 +117,28 @@ object JsonUtils {
     def parseStringFields(name:String):Map[String, String] = if (hasName(name)) Map.empty
       else node.get(name).getFieldNames.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
   
-    def parseAllFieldMap(maxDepth:Int = 5):Map[String, List[AnyVal]] = parseAllFieldMapRec(node, None, maxDepth)
+    def parseAllFieldMap:Map[String, List[Any]] = parseAllFieldMap(5)
     
-    private def parseAllFieldMapRec(n:JsonNode, key:Option[String], depth:Int):Map[String, List[AnyVal]] = n match {
+    def parseAllFieldMap(parent:String, maxDepth:Int):Map[String, List[Any]] = node.getOption(parent) match {
+      case Some(n) => n.parseAllFieldMapRec(node, None, maxDepth)
+      case None => Map.empty
+    }
+    
+    def parseAllFieldMap(maxDepth:Int):Map[String, List[Any]] = parseAllFieldMapRec(node, None, maxDepth)
+    
+    private def parseAllFieldMapRec(n:JsonNode, key:Option[String], depth:Int):Map[String, List[Any]] = n match {
       case nn if nn == null || depth < 0 => Map.empty
-      case nn if nn.isArray => nn.map(nn => parseAllFieldMapRec(nn, key, depth - 1)).reduce(addMaps)
+      case nn if nn.isArray => nn.map(nnn => parseAllFieldMapRec(nnn, key, depth - 1)).reduce(addMaps)
       case nn if nn.isObject => nn.getFields.map(nnn => parseAllFieldMapRec(nnn.getValue, Some(nnn.getKey), depth - 1)).reduce(addMaps)
-      case nn if nn.isTextual => Map(key.getOrElse("") -> List(nn.asText))
+      case nn if nn.isTextual => Map(key.getOrElse("") -> List(nn.parseDate.getOrElse(nn.asText)))
       case nn if nn.isNumber => Map(key.getOrElse("") -> List(nn.asDouble))
       case nn => Map.empty
     }
       
-    private def addMaps(a:Map[String, List[AnyVal]], b:Map[String, List[AnyVal]]):Map[String, List[AnyVal]] = {
+    private def addMaps(a:Map[String, List[Any]], b:Map[String, List[Any]]):Map[String, List[Any]] = 
       a.filter(aa => !b.contains(aa._1)) ++ b.filter(bb => !a.contains(bb._1)) ++ (a.keySet & b.keySet).map(ab => (ab -> (a(ab) ++ b(ab))))
-    }
+    
+    def parseChild[A](parent:String, f:ExtendedJson => A):Option[A] = getOption(parent).collect{case nn => f(nn)}
       
     def toJsonString:String = mapper.writeValueAsString(node)
     
