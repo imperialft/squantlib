@@ -27,7 +27,7 @@ object JsonUtils {
     
     def hasName(name:String):Boolean = (node != null) && (node has name)
     
-    def getOption(name:String):Option[ExtendedJson] = if(node == null || !node.has(name)) None else Some(ExtendedJson(node.get(name)))
+    def getOption(name:String):Option[JsonNode] = if(node == null || !node.has(name)) None else Some(node.get(name))
     
     def parseInt:Option[Int]= node match {
       case null => None
@@ -77,13 +77,13 @@ object JsonUtils {
     def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))
     def parseObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = if (hasName(name)) Some(constructor(node.get(name).parseValueFields)) else None
     
-    def parseList:List[ExtendedJson] = node match {
+    def parseList:List[JsonNode] = node match {
       case n if n == null => List.empty
-      case n if n isArray => n.map(s => ExtendedJson(s)).toList
+      case n if n isArray => n.toList
       case n if n.isNull => List.empty
       case n => List(n)
     }
-    def parseList(name:String):List[ExtendedJson] = if (hasName(name)) node.get(name).parseList else List.empty
+    def parseList(name:String):List[JsonNode] = if (hasName(name)) node.get(name).parseList else List.empty
     
     def parseIntList:List[Option[Int]] = parseList.map(_.parseInt)
     def parseIntList(name:String):List[Option[Int]] = if (hasName(name)) node.get(name).parseIntList else List.empty
@@ -120,7 +120,7 @@ object JsonUtils {
     def parseAllFieldMap:Map[String, List[Any]] = parseAllFieldMap(5)
     
     def parseAllFieldMap(parent:String, maxDepth:Int):Map[String, List[Any]] = node.getOption(parent) match {
-      case Some(n) => n.parseAllFieldMapRec(node, None, maxDepth)
+      case Some(n) => n.parseAllFieldMap
       case None => Map.empty
     }
     
@@ -138,7 +138,7 @@ object JsonUtils {
     private def addMaps(a:Map[String, List[Any]], b:Map[String, List[Any]]):Map[String, List[Any]] = 
       a.filter(aa => !b.contains(aa._1)) ++ b.filter(bb => !a.contains(bb._1)) ++ (a.keySet & b.keySet).map(ab => (ab -> (a(ab) ++ b(ab))))
     
-    def parseChild[A](parent:String, f:ExtendedJson => A):Option[A] = getOption(parent).collect{case nn => f(nn)}
+    def parseChild[A](parent:String, f:JsonNode => A):Option[A] = getOption(parent).collect{case nn => f(nn)}
       
     def toJsonString:String = mapper.writeValueAsString(node)
     

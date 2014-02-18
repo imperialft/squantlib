@@ -1,22 +1,29 @@
 package squantlib.util
 
+import scala.annotation.tailrec
 import DisplayUtils._
 
-case class FixingInformation(current:Option[Double], minRange:Option[Double], maxRange:Option[Double], initialFixing:Map[String, Double]) {
+case class FixingInformation(
+    tbd:Option[Double], 
+    minRange:Option[Double], 
+    maxRange:Option[Double], 
+    initialFixing:Map[String, Double]) {
     
-  def all:Map[String, Double] = current match {
+  def all:Map[String, Double] = tbd match {
     case Some(c) => initialFixing.updated("tbd", c)
     case None => initialFixing
   }
     
   def update(p:String):String = multipleReplace(p, all.map{case (k, v) => ("@" + k, v)})
   
-  private def multipleReplace(v:String, replacements:Map[String, Any]):String = {
-	if (v == null) {return null}
-	var result = v
-	replacements.foreach{case (k, d) => result = result.replace(k, d.toString)}
-	result
-  }
+  def updateInitial(p:String):String = multipleReplace(p, initialFixing.map{case (k, v) => ("@" + k, v)})
+  
+  @tailrec private def multipleReplace(s:String, replacements:Map[String, Double]):String = 
+    if (s == null) null
+    else replacements.headOption match {
+      case None => s
+      case Some((k, v)) => multipleReplace(s.replace(k, v.toString), replacements - k)
+    }
   
   def updateCompute(p:String):Option[Double] = FormulaParser.calculate(update(p))
   
@@ -24,9 +31,9 @@ case class FixingInformation(current:Option[Double], minRange:Option[Double], ma
    * Fixing Information Accessor
    */
     
-  def currentPercent(decimal:Int):String = current.collect{case v => v.asPercent(decimal)}.getOrElse("未定")
+  def currentPercent(decimal:Int):String = tbd.collect{case v => v.asPercent(decimal)}.getOrElse("未定")
     
-  def currentDouble(decimal:Int):String = current.collect{case v => v.asDouble(decimal)}.getOrElse("未定")
+  def currentDouble(decimal:Int):String = tbd.collect{case v => v.asDouble(decimal)}.getOrElse("未定")
   
   def minRangePercent(decimal:Int):String = minRange.collect{case v => v.asPercent(decimal)}.getOrElse("未定")
     
