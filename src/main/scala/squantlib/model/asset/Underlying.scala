@@ -91,7 +91,7 @@ trait Underlying extends StaticAsset {
    * Returns the implied correlation against another underlying. Default is daily observation for 1yr (260 biz dates) period.
    * @param another underlying
    */
-  def impliedCorrelation(a:Underlying):Option[Double] = historicalCorrelLatestValue(a, 260)
+  def impliedCorrelation(a:Underlying):Option[Double] = genericHistoricalCorrel(a)
   
   /**
    * Returns the atm implied volatility corresponding to the given date.

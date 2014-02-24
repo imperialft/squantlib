@@ -138,7 +138,7 @@ object Bs1fQtoContinuous {
   
   def apply(fx:FX, qtofx:FX):Option[Bs1fQtoContinuous] = 
 	try { 
-	  fx.historicalCorrelLatestValue(qtofx, 260).collect{case c => 
+	  fx.genericHistoricalCorrel(qtofx).collect{case c => 
 	    new Bs1fQtoContinuous(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY, qtofx.volatilityY, -c)
 	  }
 	}
@@ -146,7 +146,7 @@ object Bs1fQtoContinuous {
 	
   def apply(index:Index, fx:FX):Option[Bs1fQtoContinuous] = 
 	try { 
-	  index.historicalCorrelLatestValue(fx, 260).collect{case c => 
+	  index.genericHistoricalCorrel(fx).collect{case c => 
 	    new Bs1fQtoContinuous(index.spot, index.discountRateY, d => index.dividendYieldY(d) + index.repoRateY(d), index.volatilityY, fx.volatilityY, -c)
 	  }
 	}

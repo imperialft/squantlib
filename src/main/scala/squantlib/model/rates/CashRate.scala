@@ -29,7 +29,7 @@ case class CashRate(
 	val convention = RateConvention(currency.code)
 	
 	def tenorAdjust(days:Double):Double = {
-	  val adj = tenorbasis.collect{case c => c.rate(days)}.getOrElse(Double.NaN)
+	  val adj = tenorbasis.collect{case c => c.rate(days)}.getOrElse(0.0)
 	  val defaultMonths:Int = convention.collect{case c => c.swapFloatIndex.tenor.length}.getOrElse(0)
 	  if (defaultMonths <= 0 || adj.isNaN) {return 0.0}
 	  val periodDays:Int = valuedate.days(period).toInt

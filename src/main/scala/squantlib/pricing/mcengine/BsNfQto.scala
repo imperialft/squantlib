@@ -230,7 +230,7 @@ object BsNfQto {
 	  }
 	  
 	  val correlfx:List[Double] = (uls, fxs).zipped.map{
-	    case (ul, Some(fx)) => -ul.historicalCorrelLatestValue(fx, 260).getOrElse(Double.NaN)
+	    case (ul, Some(fx)) => -ul.genericHistoricalCorrel(fx).getOrElse(Double.NaN)
 	    case (ul, None) => 0.0
 	  }
 	  

@@ -225,7 +225,10 @@ class Market(
   def get3M6M(ccy:String, maturity:qlPeriod):Option[Double] = 
     getRateCurve(ccy).flatMap(c => try {Some(c.tenorbasis(maturity))} catch { case _:Throwable => None })
     
-  def get3M6MCurve(ccy:String):Option[TenorBasisSwapCurve] = getRateCurve(ccy).collect{case c => c.tenorbasis}
+  def get3M6MCurve(ccy:String):Option[TenorBasisSwapCurve] = getRateCurve(ccy) match {
+    case Some(c) if c.tenorbasis != null => Some(c.tenorbasis)
+    case _ => None
+  }
     
   /**
    * Returns FX curve for the given currency.

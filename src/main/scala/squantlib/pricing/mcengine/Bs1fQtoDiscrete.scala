@@ -155,7 +155,7 @@ object Bs1fQtoDiscrete {
   
   def apply(equity:Equity, fx:FX):Option[Bs1fQtoDiscrete] = 
 	try { 
-	  equity.historicalCorrelLatestValue(fx, 260).collect{case c => 
+	  equity.genericHistoricalCorrel(fx).collect{case c => 
 	    new Bs1fQtoDiscrete(equity.spot, equity.discountRateY, equity.dividendsY, equity.repoRateY, equity.volatilityY, fx.volatilityY, -c)
 	  }
 	}

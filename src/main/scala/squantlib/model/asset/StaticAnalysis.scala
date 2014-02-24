@@ -28,15 +28,44 @@ trait StaticAnalysis {
     Volatility.calculate(source, nbDays, annualDays)
   }
   
+  def getIntersection(asset:BasicAsset):SortedMap[Date, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory)
+
   def historicalCorrelLatestValue(asset:BasicAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[Double] = {
     if (this == asset) {return Some(1.0)}
-    val intersection:SortedMap[Date, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory)
+    val intersection = getIntersection(asset)
     if (intersection.size < minDays) {None}
     val source = intersection takeRight math.min(intersection.size, nbDays)
     
     Correlation.calculate(source, source.size).headOption match {
       case Some(v) if !v._2.isNaN && !v._2.isInfinity => Some(v._2)
       case _ => None
+    }
+  }
+  
+  def genericHistoricalCorrel(asset:BasicAsset):Option[Double] = {
+    val nbDays = List(30, 60, 180)
+    
+    if (this == asset) {return Some(1.0)}
+    val intersection = getIntersection(asset)
+    if (intersection.size < nbDays.min) {None}
+    
+    val correls = nbDays.filter(_ <= intersection.size).map(n => {
+      val (s1, s2) = intersection.values.takeRight(n).toIndexedSeq.unzip
+      
+      def getcorr(s1:IndexedSeq[Double], s2:IndexedSeq[Double]) = Correlation.calculate(s1, s2).headOption match {
+        case Some(v) if !v.isNaN && !v.isInfinity => Some(v)
+        case _ => None
+      }
+      
+      List(getcorr(s1, s2), getcorr(s1.drop(1), s2.dropRight(1)), getcorr(s1.dropRight(1), s2.drop(1))).flatMap(s => s) match {
+        case vs if vs.isEmpty => None
+        case vs => Some(vs.max)
+      }
+    })
+    correls.flatMap(s => s) match {
+      case vs if vs.isEmpty => None
+      case vs if vs.size == 1 => Some(vs.head)
+      case vs => Some(vs.sorted.drop(1).sum / (vs.size - 1.0))
     }
   }
   
