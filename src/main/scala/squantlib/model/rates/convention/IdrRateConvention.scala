@@ -15,10 +15,11 @@ class IdrRateConvention extends RateConvention{
 	val swapFixDaycount = null
 	val swapFixPeriod = null
 
-	val useFXdiscount = false
+	val useFXdiscount = true
 	val swapPointMultiplier = 1.0
 	
-	override val useNDSdiscount = true
+//	override val useNDSdiscount = true
+  override val useNDSdiscount = false
 	override val ndsFixDaycount = new Actual365Fixed
 	
 }

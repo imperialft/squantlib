@@ -16,6 +16,6 @@ class MxnRateConvention extends RateConvention{
 	val swapFixPeriod = null
 
 	val useFXdiscount = true
-	val swapPointMultiplier = 10000.0
+	val swapPointMultiplier = 1.0
 }
 

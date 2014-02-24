@@ -11,13 +11,13 @@ class CadRateConvention extends RateConvention{
   
   	val currency = new CADCurrency
   
-	val useRateDiscount = true
+	val useRateDiscount = false
 	def iborindex(p:Period) = new Cdor(p)
 	val swapFloatIndex = new Cdor(new Period(3, TimeUnit.Months))
 	val swapFixDaycount = new Actual365Fixed
 	val swapFixPeriod = Frequency.Semiannual
 
-	val useFXdiscount = false
-	val swapPointMultiplier = 10000.0
+	val useFXdiscount = true
+	val swapPointMultiplier = 1.0
 }
 

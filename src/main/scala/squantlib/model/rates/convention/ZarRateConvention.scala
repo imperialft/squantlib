@@ -19,5 +19,5 @@ class ZarRateConvention extends RateConvention{
 	val swapFixPeriod = Frequency.Quarterly
 
 	val useFXdiscount = false
-	val swapPointMultiplier = 10000.0
+	val swapPointMultiplier = 1.0
 }

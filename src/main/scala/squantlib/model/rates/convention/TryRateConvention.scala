@@ -17,7 +17,7 @@ class TryRateConvention extends RateConvention{
 	val swapFixPeriod = null
 
 	val useFXdiscount = true
-	val swapPointMultiplier = 10000.0
+	val swapPointMultiplier = 1.0
 	
 	override val useNDSdiscount = false
 	override val ndsFixDaycount = new Actual360

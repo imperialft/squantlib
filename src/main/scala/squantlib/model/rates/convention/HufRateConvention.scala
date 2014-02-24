@@ -18,7 +18,7 @@ class HufRateConvention extends RateConvention{
 	val swapFixPeriod = Frequency.Annual
 
 	val useFXdiscount = true
-	val swapPointMultiplier = 100.0
+	val swapPointMultiplier = 1.0
 
 	override val useNDSdiscount = false
 	

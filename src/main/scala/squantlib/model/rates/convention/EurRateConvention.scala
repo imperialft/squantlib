@@ -18,7 +18,7 @@ class EurRateConvention extends RateConvention{
 	val swapFixPeriod = Frequency.Annual
 
 	val useFXdiscount = false
-	val swapPointMultiplier = 10000.0
+	val swapPointMultiplier = 1.0
 }
 
 

@@ -18,6 +18,6 @@ class JpyRateConvention extends RateConvention{
 	val swapFixPeriod = Frequency.Semiannual
 	
 	val useFXdiscount = false
-	val swapPointMultiplier = 100.0
+	val swapPointMultiplier = 1.0
 }
 

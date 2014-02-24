@@ -16,6 +16,6 @@ class NzdRateConvention extends RateConvention{
 	val swapFixPeriod = Frequency.Semiannual
 
 	val useFXdiscount = false
-	val swapPointMultiplier = 10000.0
+	val swapPointMultiplier = 1.0
 }
 
