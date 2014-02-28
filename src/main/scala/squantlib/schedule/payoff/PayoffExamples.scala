@@ -83,8 +83,8 @@ object PayoffExamples {
 	      variable:["usdjpy", "NKY"], 
 	      trigger:[70, 7000], 
 	      strike:[100, 10000], 
-	      refStart:"2014/01/01", 
-	      refEnd:"2014/12/31", 
+	      refstart:"2014/01/01", 
+	      refend:"2014/12/31", 
 	      description:"Put DI American"
 	      }""")
 	    

@@ -14,15 +14,15 @@ import scala.reflect.ClassTag
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
  * JSON format:
- *  {type:"putdiamerican", variable:[String], trigger:[Double], strike:[Double], refStart:Date, refEnd:Date, description:String}, 
+ *  {type:"putdiamerican", variable:[String], trigger:[Double], strike:[Double], refstart:Date, refend:Date, description:String}, 
  * No strike is considered as no low boundary
  */
 case class PutDIAmericanPayoff(
     putVariables:List[String], 
     trigger:List[Double], 
     strike:List[Double], 
-    refStart:Date, 
-    refEnd:Date, 
+    refstart:Date, 
+    refend:Date, 
     knockedIn:Boolean, 
     amount:Double = 1.0, 
     description:String = null,
@@ -37,9 +37,9 @@ case class PutDIAmericanPayoff(
   override val isPriceable:Boolean = 
     !trigger.exists(v => v.isNaN || v.isInfinity) && 
     !strike.exists(v => v.isNaN || v.isInfinity) && 
-    refStart != null && 
-    refEnd != null &&
-    (refStart le refEnd)
+    refstart != null && 
+    refend != null &&
+    (refstart le refend)
   
   var mcPeriod6m = 30
   var mcPeriod1y = 90
@@ -47,14 +47,14 @@ case class PutDIAmericanPayoff(
   
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) {return List(period.endDate)}
-    val basemod = refEnd.serialNumber % mcPeriod6m
-    val start = refStart.serialNumber
-    val end = refEnd.serialNumber
+    val basemod = refend.serialNumber % mcPeriod6m
+    val start = refstart.serialNumber
+    val end = refend.serialNumber
     val dates:List[Date] = (for (i <- (start to end) 
         if (i >= end - 180 && i % mcPeriod6m == basemod)
         || (i >= end - 360 && i % mcPeriod1y == basemod)
         || (i % mcPeriodbefore == basemod)) yield Date(i)) (collection.breakOut)
-    if (dates.head == refStart) dates else refStart :: dates
+    if (dates.head == refstart) dates else refstart :: dates
   }
   
   trait FixingInterpreter[T] {
@@ -109,8 +109,8 @@ case class PutDIAmericanPayoff(
         "variable" -> putVariables.toArray, 
         "trigger" -> trigger.toArray, 
         "strike" -> strike.toArray,
-        "refstart" -> (if (refStart == null) null else refStart.toString),
-        "refend" -> (if (refEnd == null) null else refEnd.toString),
+        "refstart" -> (if (refstart == null) null else refstart.toString),
+        "refend" -> (if (refend == null) null else refend.toString),
         "description" -> description)
     
     (new ObjectMapper).writeValueAsString(infoMap)    
@@ -127,18 +127,18 @@ object PutDIAmericanPayoff {
     val trigger:List[Double] = fixed.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
     val strike:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
-    val refStart:Date = formula.parseJsonDate("refstart").orNull
-    val refEnd:Date = formula.parseJsonDate("refend").orNull
+    val refstart:Date = formula.parseJsonDate("refstart").orNull
+    val refend:Date = formula.parseJsonDate("refend").orNull
     val description:String = formula.parseJsonString("description").orNull
     
     val knockedIn:Boolean = 
-      if (refStart == null || refEnd == null) false
-      else (variable zip trigger).exists{case (v, trig) => DB.getHistorical(v, refStart, refEnd) match {
+      if (refstart == null || refend == null) false
+      else (variable zip trigger).exists{case (v, trig) => DB.getHistorical(v, refstart, refend) match {
         case h if h.isEmpty => false
         case h => h.exists{case (_, x) => x <= trig}
       }}
     
-    PutDIAmericanPayoff(variable, trigger, strike, refStart, refEnd, knockedIn, amount, description, formula)
+    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, amount, description, formula)
   }
   
 }

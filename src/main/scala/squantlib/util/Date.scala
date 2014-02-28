@@ -1,14 +1,15 @@
 package squantlib.util
 
 import java.util.{Date => JavaDate}
+import java.sql.Timestamp
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
 import org.jquantlib.time.Weekday
-import java.sql.Timestamp
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.Calendar
 import org.jquantlib.time.TimeUnit
 import org.jquantlib.time.BusinessDayConvention
 import scala.collection.LinearSeq
+import scala.annotation.tailrec
 
 trait Date extends Ordered[Date] with Cloneable with Serializable{
   def java:JavaDate
@@ -43,6 +44,17 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
   
   def add(p:qlPeriod):Date = Date(ql add p)
   
+  def addWeekday(d:Int):Date = addWeekdayRec(d, 1)
+  
+  @tailrec private def addWeekdayRec(d:Int, shift:Int):Date = 
+    if(d == 0) this 
+    else add(shift) match {
+      case date if date.isWeekday => date.addWeekdayRec(d - 1, shift)
+      case date => date.addWeekdayRec(d, shift)
+    }
+  
+  def subWeekday(d:Int):Date = addWeekdayRec(d, -1)
+  
   def advance(calendar:Calendar, d:Int, unit:TimeUnit):Date = Date(calendar.advance(ql, d, unit))
   
   def advance(calendar:Calendar, period:qlPeriod, convention:BusinessDayConvention = BusinessDayConvention.Following):Date = Date(calendar.advance(ql, period, convention))
@@ -62,6 +74,14 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
   def min(d:Date):Date = Date.min(this, d)
   
   def max(d:Date):Date = Date.max(this, d)
+  
+  def dayOfMonth:Int = ql.dayOfMonth
+  
+  def month:Int = ql.month.value
+  
+  def addMonths(m:Int):Date = Date(this.ql.add(new qlPeriod(m, TimeUnit.Months)))
+  
+  def year:Int = ql.year
   
   def copy = Date(serialNumber)
   
