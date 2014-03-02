@@ -32,21 +32,23 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   override def market:Option[Market] = _market
   
   def market_= (newMarket:Market) = {
-  val recalib = market.isEmpty || !market.get.valuedate.eq(newMarket.valuedate) 
-  _market = Some(newMarket)
-  initializeModel(recalib)
+    val recalib = market.collect{case mkt => mkt.valuedate.eq(newMarket.valuedate) }.getOrElse(true)
+    _market = Some(newMarket)
+    initializeModel(recalib)
   }
   
   def getUnderlyings:Map[String, Option[Underlying]] = market match {
-  case None => underlyings.map(u => (u, None)) (collection.breakOut)
-  case Some(mkt) => underlyings.map(u => (u, Underlying(u, mkt))) (collection.breakOut)
+    case None => underlyings.map(u => (u, None)) (collection.breakOut)
+    case Some(mkt) => underlyings.map(u => (u, Underlying(u, mkt))) (collection.breakOut)
   }
   
   /* 
    * True if necessary to run calibrateModel to get accurate price.
    */
   def calibrateModel = model match {
-    case Some(m) => {model = Some(m.calibrate); cache.clear}
+    case Some(m) => 
+      model = Some(m.calibrate)
+      cache.clear
     case None => {}
   }
   
@@ -97,6 +99,24 @@ trait Priceable extends ExtendedSchedule with Cloneable {
         case (Some(m), Some(c)) => m.price(c)
         case (Some(m), None) => println(id + " : missing discount curve"); m.price
         case _ => println(id + " : missing model"); None
+  }}
+  
+  def dirtyPriceWithPaths(nbPath:Int):Option[Double] = 
+    if(!scheduledPayoffs.isPriceable) {println(id + " : invalid payoff or trigger"); None}
+    else (earlyTerminationDate, valueDate) match {
+      case (Some(td), Some(vd)) if td le vd => println(id + " : terminated on " + td); None
+      case _ => model match {
+        case Some(m) => 
+          val originalPaths = m.mcPaths
+          m.mcPaths = nbPath
+          val result = discountCurve match {
+            case Some(c) => m.price(c)
+            case None => println(id + " : missing discount curve"); m.price
+          }
+          m.mcPaths = originalPaths
+          result
+        case _ => 
+          println(id + " : missing model"); None
   }}
   
   /*  
@@ -183,7 +203,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     highRange:Double = 10.0, 
     lowRange:Double = 0.001):List[Option[Double]] = 
     
-    if (market.isEmpty || dirtyPrice.isEmpty) List.fill(underlyings.size)(None)
+    if (market.isEmpty || dirtyPriceWithPaths(100).isEmpty) List.fill(underlyings.size)(None)
     
     else {
     val mkt = market.get
@@ -217,7 +237,6 @@ trait Priceable extends ExtendedSchedule with Cloneable {
       .reverse
     
     val tempTrigger = ArrayBuffer(liveTriggers:_*)
-    println("FX frontiers : " + id)
     
     valuedates.foreach{case (vd, index) => 
     val tempBond = triggerShifted(tempTrigger.toList)

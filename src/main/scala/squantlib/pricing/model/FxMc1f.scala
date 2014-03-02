@@ -11,6 +11,7 @@ import squantlib.model.rates.DiscountCurve
 import squantlib.util.Date
 import org.codehaus.jackson.JsonNode
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
+import scala.annotation.tailrec
 
 case class FxMc1f(valuedate:Date, 
 					  mcengine:Montecarlo1f, 
@@ -35,16 +36,19 @@ case class FxMc1f(valuedate:Date,
 	  try { 
 	    val mpaths = modelPaths(paths)
 	    if (mpaths.isEmpty) scheduledPayoffs.price
-	    else mpaths.transpose.map(_.sum).map(_ / paths.toDouble) 
+	    else {
+//	      mpaths.transpose.map(_.sum).map(_ / paths.toDouble) 
+	      concatList(mpaths).map(_ / paths.toDouble)
+	    }
 	  }
 	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
-	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
+	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
 	  
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
-	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE", mcPrice(paths))
+	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
 	
 	override def calibrate:FxMc1f = {
 	  val frontier = frontierFunction()

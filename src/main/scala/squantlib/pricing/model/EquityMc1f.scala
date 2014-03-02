@@ -34,15 +34,16 @@ case class EquityMc1f(valuedate:Date,
 	  try { 
 	    val mpaths = modelPaths(paths)
 	    if (mpaths.isEmpty) scheduledPayoffs.price
-	    else mpaths.transpose.map(_.sum / paths.toDouble) }
+	    else concatList(mpaths).map(_ / paths.toDouble)
+	  }
 	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
-	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE", mcPrice(paths))
+	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
 	
-	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
+	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
 	
 	override val priceType = "MODEL"
 	  

@@ -44,7 +44,10 @@ trait PriceableBond extends BondModel with Priceable {
    * Reset model
    */
   override def initializeModel(reCalibrate:Boolean = false):Unit = {
-    if (reCalibrate) {calibrationCache.clear; modelCalibrated = false}
+    if (reCalibrate) {
+      calibrationCache.clear
+      modelCalibrated = false
+    }
     
     model = if (isTerminated == Some(false) && scheduledPayoffs.isPriceable) livePayoffs match {
       case po if !po.isEmpty && !forceModel && po.isFixed => Some(NoModel(po))
@@ -52,7 +55,10 @@ trait PriceableBond extends BondModel with Priceable {
     } else None
     
     cache.clear
-    if (requiresCalibration && !modelCalibrated) { modelCalibrated = true; calibrateModel}
+    if (requiresCalibration && !modelCalibrated) {
+      modelCalibrated = true
+      calibrateModel
+    }
   }
   
   def reset(newMarket:Market, setter:(Market, BondModel) => Option[PricingModel]) = {

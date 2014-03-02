@@ -17,15 +17,15 @@ import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 case class McNf(
     valuedate:Date, 
     mcengine:MontecarloNf, 
-	scheduledPayoffs:ScheduledPayoffs, 
-	underlyings:List[Underlying],
-	defaultPaths:Int) extends PricingModel {
+    scheduledPayoffs:ScheduledPayoffs, 
+    underlyings:List[Underlying],
+    defaultPaths:Int) extends PricingModel {
   
-	mcPaths = defaultPaths
-	val variables:List[String] = underlyings.map(_.id)
+  mcPaths = defaultPaths
+  val variables:List[String] = underlyings.map(_.id)
 
-	override def modelPaths(paths:Int):List[List[Double]] = {
-	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
+  override def modelPaths(paths:Int):List[List[Double]] = {
+    val mcYears = scheduledPayoffs.eventDateYears(valuedate)
 	  if (mcYears.exists(_ < 0.0)) {println("MC paths : cannot compute past dates"); List.empty}
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, p => scheduledPayoffs.price(p))
 	  if (mcdates.sameElements(mcYears)) mcpaths
@@ -36,15 +36,19 @@ case class McNf(
 	  try { 
 	    val mpaths = modelPaths(paths)
 	    if (mpaths.isEmpty) scheduledPayoffs.price
-	    else mpaths.transpose.map(_.sum / paths.toDouble) }
+	    else {
+//	      mpaths.transpose.map(_.sum / paths.toDouble) 
+        concatList(mpaths).map(_ / paths.toDouble)
+	    }
+	  }
 	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
-	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE", mcPrice(paths))
+	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
 	
-	override def modelForward(paths:Int):List[Double] = modelPaths(paths).transpose.map(_.sum).map(_ / paths)
+	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
 	
 	override val priceType = "MODEL"
 	  

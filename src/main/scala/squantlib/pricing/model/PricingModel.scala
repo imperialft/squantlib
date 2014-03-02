@@ -5,6 +5,7 @@ import squantlib.schedule.payoff.{Payoffs, Payoff}
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.mcengine.MontecarloEngine
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
+import scala.annotation.tailrec
 
 trait PricingModel {
   
@@ -100,6 +101,15 @@ trait PricingModel {
   def getCache[A](k:String):Option[A] = modelCache.get(k).collect{case v => v.asInstanceOf[A]}
   def getOrUpdateCache[A](k:String, f: => A):A = modelCache.getOrElseUpdate(k, f).asInstanceOf[A]
   def clearCache = modelCache.clear
+  
+  def concatList(data:List[List[Double]]):List[Double] = 
+    if (data.isEmpty) List.empty[Double]
+    else concatListRec(data, List.fill(data.head.size)(0.0))
+  
+  @tailrec private def concatListRec(data:List[List[Double]], result:List[Double]):List[Double] = data match {
+    case Nil => result
+    case h::t => concatListRec(t, (result, h).zipped.map(_ + _))
+  }
   
   
 }

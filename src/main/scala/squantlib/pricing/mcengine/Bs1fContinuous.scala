@@ -6,6 +6,7 @@ import squantlib.model.fx.FX
 import squantlib.util.DisplayUtils._
 import scala.annotation.tailrec
 import squantlib.model.index.Index
+import scala.collection.mutable.ListBuffer
 
 /* Simple Black-Scholes montecarlo pricer.
  * - Continuous dividend
@@ -57,34 +58,23 @@ class Bs1fContinuous(
     
     val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.000001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
     
-	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
+    val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
 	
-	val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
+    val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
     
-    
-//    printA("fratedom", fratedom)
-//    printA("fratefor", fratefor)
-//    printA("fsigma", fsigma)
-//    printA("drift", drift)
-//    printA("sigt", sigt)
-	
     @tailrec def getApath(steps:List[Double], drft:List[Double], siggt:List[Double], current:List[Double]):List[Double] = {
       if (steps.isEmpty) payoff(current.reverse.tail)
       else {
-          val rnd = randomGenerator.sample
-          val ninv1 = normSInv(rnd)
-          val spot = if (steps.head < smallvalue) current.head else current.head * scala.math.exp(drft.head + (siggt.head * ninv1))
-          getApath(steps.tail, drft.tail, siggt.tail, spot :: current)
-        }
+        val rnd = randomGenerator.sample
+        val ninv1 = normSInv(rnd)
+        val spot = if (steps.head < smallvalue) current.head else current.head * scala.math.exp(drft.head + (siggt.head * ninv1))
+        getApath(steps.tail, drft.tail, siggt.tail, spot :: current)
       }
-    
-    @tailrec def getPathes(nbpath:Int, current:List[List[Double]]):List[List[Double]] = {
-      if (nbpath == 0) current
-      else getPathes(nbpath - 1, getApath(stepsize, drift, sigt, List(spot))::current)
     }
-	
-    val genpaths = getPathes(paths, List.empty)
-    (dates, genpaths)
+    
+    val result:ListBuffer[List[Double]] = ListBuffer.empty
+    Range(1, paths).map(i => result.append(getApath(stepsize, drift, sigt, List(spot))))
+    (dates, result.toList)
   }
 
   @tailrec private def acc[A](r:List[A], t:List[Double], f:(A, A, Double, Double) => A, d:A, current:List[A]):List[A] = 
@@ -93,8 +83,8 @@ class Bs1fContinuous(
     else acc(r.tail, t.tail, f, d, f(r.tail.head, r.head, t.tail.head, t.head) :: current)
     
   @tailrec private def driftacc(rd:List[Double], rf:List[Double], sig:List[Double], stepp:List[Double], current:List[Double]):List[Double] = 
-	if (rd.isEmpty) current.reverse
-	else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
+    if (rd.isEmpty) current.reverse
+    else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
 	
   override def modelName = this.getClass.toString
   
@@ -116,13 +106,13 @@ class Bs1fContinuous(
     
     val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.000001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
     
-	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
-	
-	val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
-	
-	var spotprice = spot
-	val title = List("valuedate", "forward", "rate ccy1", "rate ccy2", "sigma", "drift")
-	val schedule = (0 to steps - 1).toList.map(i => {
+    val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
+    	
+    val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
+    	
+    var spotprice = spot
+    val title = List("valuedate", "forward", "rate ccy1", "rate ccy2", "sigma", "drift")
+    val schedule = (0 to steps - 1).toList.map(i => {
 	  spotprice *= scala.math.exp((fratedom(i) - fratefor(i)) * stepsize(i))
 	  List(dates(i).asDouble, spotprice.asDouble, fratedom(i).asPercent(2), fratefor(i).asPercent(2), fsigma(i).asPercent(2), drift(i).asDouble)
 	})
@@ -135,12 +125,12 @@ class Bs1fContinuous(
 object Bs1fContinuous {
   
   def apply(fx:FX):Option[Bs1fContinuous] = 
-	try { Some(new Bs1fContinuous(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY)) } 
-	catch { case _:Throwable => None}
+    try { Some(new Bs1fContinuous(fx.spot, fx.rateDomY, fx.rateForY, fx.volatilityY)) } 
+    catch { case _:Throwable => None}
 	
   def apply(index:Index):Option[Bs1fContinuous] = 
-	try { Some(new Bs1fContinuous(index.spot, index.discountRateY, d => index.dividendYieldY(d) + index.repoRateY(d), index.volatilityY)) } 
-	catch { case _:Throwable => None}
+    try { Some(new Bs1fContinuous(index.spot, index.discountRateY, d => index.dividendYieldY(d) + index.repoRateY(d), index.volatilityY)) } 
+    catch { case _:Throwable => None}
 	
 }
 
