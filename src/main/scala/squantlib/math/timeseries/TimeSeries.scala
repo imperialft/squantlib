@@ -59,29 +59,30 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
   
   def append(ts1:TimeSeries):TimeSeries = TimeSeries(ts ++ ts1)
   
-  def firstDate:Date = ts.head._1
+  def firstDate:Option[Date] = ts.headOption.collect{case (d, v) => d}
   
-  def lastDate:Date = ts.last._1
+  def lastDate:Option[Date] = ts.lastOption.collect{case (d, v) => d}
   
-  def getFilledTimeSeries(startDate:Date = null, endDate:Date = null):TimeSeries = {
-    if (ts.isEmpty) TimeSeries.empty
-    else {
-      val realStartDate = if((startDate != null) && (startDate ge firstDate)) startDate else firstDate
-      val realEndDate = if (endDate == null) lastDate else endDate
-      val dates = for(d <- realStartDate.serialNumber to realEndDate.serialNumber) yield (Date(d))
-      
-      val tsmap = 
-        if (ts.size == 1) dates.map(d => (d, ts.head._2))(collection.breakOut)
-        else {
-          val keysarray = ts.keySet.map(_.serialNumber.toDouble).toArray
-          val valarray = ts.values.toArray
-          val linearfunction = new LinearInterpolator().interpolate(keysarray, valarray)
-          dates.map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
-        }
-      
-      TimeSeries(tsmap)
+  def getFilledTimeSeries(startDate:Date = null, endDate:Date = null):TimeSeries = 
+    (firstDate, lastDate) match {
+      case (Some(firstdate), Some(lastdate)) =>
+        val realStartDate = if((startDate != null) && (startDate ge firstdate)) startDate else firstdate
+        val realEndDate = if (endDate == null) lastdate else endDate
+        val dates = for(d <- realStartDate.serialNumber to realEndDate.serialNumber) yield (Date(d))
+        
+        val tsmap = 
+          if (ts.size == 1) dates.map(d => (d, ts.head._2))(collection.breakOut)
+          else {
+            val keysarray = ts.keySet.map(_.serialNumber.toDouble).toArray
+            val valarray = ts.values.toArray
+            val linearfunction = new LinearInterpolator().interpolate(keysarray, valarray)
+            dates.map(d => (d, linearfunction.value(d.serialNumber.toDouble)))(collection.breakOut)
+          }
+        
+        TimeSeries(tsmap)
+        
+      case _ => TimeSeries.empty
     }
-  }
   
   def getBusinessDayFilledTimeSeries(calendar:Calendar = new NullCalendar, startDate:Date = null, endDate:Date = null):TimeSeries = {
     if (ts.isEmpty) TimeSeries.empty

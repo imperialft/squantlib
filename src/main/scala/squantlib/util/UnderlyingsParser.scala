@@ -29,32 +29,6 @@ object UnderlyingParsers {
   def extractCurrencies(id:String):Set[String] = 
     if (id == null) Set.empty else id.grouped(3).filter(isCurrency).toSet
   
-//  
-//  def getSpot(id:String, mkt:Market):Option[Double] = get(id).flatMap{case s => s.getSpot(id, mkt)}
-//  
-//  def getHistorical(id:String, start:Date, end:Date):TimeSeries = 
-//    get(id).collect{case s => s.getHistorical(id, start, end)}.getOrElse(TimeSeries.empty)
-//	
-//  val typeCmt = "CMT"
-//    
-//  val typeIndex = "INDEX"
-//    
-//  val typeJGBPrice = "JGB"
-//  
-//  val typeEquity = "EQUITY"
-//    
-//  val typeFX = "FX"
-//    
-//  val typeCash = "CASH"
-//    
-//  val typeSwap = "SWAP"
-//    
-//  val typeCcy = "CURRENCY"
-//  
-//  val typeBondPrice = "PRICE"
-//    
-//  val typeJpyBondPrice = "JPYPRICE"
-  
 }
 
 trait UnderlyingParserGenerator[T <: UnderlyingParser] {
