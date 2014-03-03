@@ -12,6 +12,7 @@ import squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import scala.collection.mutable.ArrayBuffer
 import squantlib.util.initializer.Currencies
 import scala.language.postfixOps
+import squantlib.util.DisplayUtils._
 
 /**
  * Bond class with enclosed risk analysis functions.
@@ -239,9 +240,9 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     val tempTrigger = ArrayBuffer(liveTriggers:_*)
     
     valuedates.foreach{case (vd, index) => 
-    val tempBond = triggerShifted(tempTrigger.toList)
-    tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
-    println(index + " : " + tempTrigger(index).mkString(","))
+      val tempBond = triggerShifted(tempTrigger.toList)
+      tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
+      println(id + "/" + index + " : " + tempTrigger(index).map(t => t.collect{case v => v.asDouble(3)}.getOrElse("None")).mkString(","))
     }
     tempTrigger.toList
   }
