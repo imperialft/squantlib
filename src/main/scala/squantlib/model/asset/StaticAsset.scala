@@ -60,27 +60,19 @@ trait BasicAsset {
   
   def priceHistory(cal:Calendar):TimeSeries = priceHistory.filter{case (d, v) => d.isBusinessday(cal)}
   
-  def getLivePriceHistory:TimeSeries = TimeSeries(priceHistory.filterKeys(d => 
-    priceStartDate.collect{case start => d ge start}.getOrElse(true) && priceEndDate.collect{case end => d le end}.getOrElse(true)))
+  def getLivePriceHistory:TimeSeries = 
+    if (priceHistory.isEmpty) TimeSeries.empty
+    else TimeSeries(priceHistory.filterKeys(d => (d ge priceStartDate) && (d le priceEndDate)))
   
-  lazy val firstData:Option[Date] = priceHistory.firstDate
+  lazy val firstData = priceHistory.firstDate
 
-  lazy val lastData:Option[Date] = priceHistory.lastDate
+  lazy val lastData = priceHistory.lastDate
   
-  lazy val priceStartDate:Option[Date] = (assetStartDate, firstData) match {
-    case (Some(d), Some(firstdata)) if d ge firstdata => assetStartDate
-    case _ => firstData
-    }
+  lazy val priceStartDate:Date = assetStartDate.collect{case d => if (d ge firstData) d else firstData}.getOrElse(firstData)
   
-  lazy val priceEndDate:Option[Date] = (assetEndDate, lastData) match {
-    case (Some(d), Some(lastdata)) if d le lastdata => assetEndDate
-    case _ => lastData
-  }
+  lazy val priceEndDate:Date = assetEndDate.collect{case d => if (d le lastData) d else lastData}.getOrElse(lastData)
   
-  def isAliveOn(d:Date):Boolean = (priceStartDate, priceEndDate) match {
-    case (Some(start), Some(end)) => (d ge start) && (d le end)
-    case _ => false
-  } 
+  def isAliveOn(d:Date):Boolean = (d ge priceStartDate) && (d le priceEndDate)
   
   /*
    * Forward Price
@@ -94,4 +86,3 @@ trait BasicAsset {
   var cachedPrice = new WeakHashMap[String, TimeSeries] with SynchronizedMap[String, TimeSeries]
   
 } 
-
