@@ -62,7 +62,7 @@ trait PriceableBond extends BondModel with Priceable {
   }
   
   def reset(newMarket:Market, setter:(Market, BondModel) => Option[PricingModel]) = {
-    val recalib = market match {case Some(m) => !m.valuedate.eq(newMarket.valuedate) case None => true}
+    val recalib = market.collect{case m => !m.valuedate.eq(newMarket.valuedate)}.getOrElse(true)
     _market = Some(newMarket)
     defaultModel = setter
     initializeModel(recalib)

@@ -34,8 +34,14 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   
   def market_= (newMarket:Market) = {
     val recalib = market.collect{case mkt => mkt.valuedate.eq(newMarket.valuedate) }.getOrElse(true)
+//    println("set market recalib? " + recalib + " : " + market.collect{case mkt => mkt.valuedate}.getOrElse("None") + " -> " + newMarket.valuedate)
     _market = Some(newMarket)
     initializeModel(recalib)
+  }
+  
+  def setMarketNoCalibration(newMarket:Market) = {
+    _market = Some(newMarket)
+    initializeModel(false)
   }
   
   def getUnderlyings:Map[String, Option[Underlying]] = market match {
@@ -202,31 +208,31 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     paths:Int = 0, 
     solver:RangedRootFinder = Bisection, 
     highRange:Double = 10.0, 
-    lowRange:Double = 0.001):List[Option[Double]] = 
+    lowRange:Double = 0.01):List[Option[Double]] = (market, valueDate) match {
     
-    if (market.isEmpty || dirtyPriceWithPaths(100).isEmpty) List.fill(underlyings.size)(None)
-    
-    else {
-    val mkt = market.get
-    val shift = this.valueDate.get.sub(vd).toInt
-    val bond = dateShifted(this.valueDate.get.sub(vd).toInt)
-    
-    underlyings.map(ul => {
-      if (ul.size != 6 || ul.takeRight(3) == "JPY") None
-      val ccy = ul take 3
+    case (Some(mkt), Some(valuedate)) if dirtyPriceWithPaths(100).isDefined =>
+      val bond = dateShifted(valuedate.sub(vd).toInt)
       
-    def priceFromFXmult(y:Double):Double = {
-        bond.market = mkt.fxShifted(Map(ccy -> y))
-        if (paths > 0) bond.model.collect{case m => m.mcPaths = paths}
-        bond.dirtyPrice.getOrElse(Double.NaN)
-      }
+      underlyings.map(ul => {
+        if (ul.size != 6 || ul.takeRight(3) != "JPY") None
+        else {
+          val ccy = ul take 3
+          
+          def priceFromFXmult(y:Double):Double = {
+            val randid = scala.util.Random.nextInt
+            bond.setMarketNoCalibration(mkt.fxShifted(Map(ccy -> y)))
+            if (paths > 0) bond.model.collect{case m => m.mcPaths = paths}
+            bond.dirtyPrice.getOrElse(Double.NaN)
+          }
+          
+          val priceformula = (y:Double) => (priceFromFXmult(y) - target)
+          val mult = solver.solve(priceformula, lowRange, highRange, accuracy, maxIteration)
+          mult.collect{case m => mkt.fx(ccy, "JPY").getOrElse(Double.NaN) / m}
+        }})
       
-      val priceformula = (y:Double) => (priceFromFXmult(y) - target)
-      val mult = solver.solve(priceformula, lowRange, highRange, accuracy, maxIteration)
-      mult.collect{case m => mkt.fx(ccy, "JPY").getOrElse(Double.NaN) / m}
-      })
-    }
-  
+    case _ => List.fill(underlyings.size)(None)
+  }
+    
   def fxFrontiers:List[List[Option[Double]]] = fxFrontiers(1.00, 0.001, 20)
     
   def fxFrontiers(target:Double, accuracy:Double, maxIteration:Int, paths:Int = 0):List[List[Option[Double]]] = {
@@ -242,7 +248,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     valuedates.foreach{case (vd, index) => 
       val tempBond = triggerShifted(tempTrigger.toList)
       tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
-      println(id + "/" + index + " : " + tempTrigger(index).map(t => t.collect{case v => v.asDouble(3)}.getOrElse("None")).mkString(","))
+      println(s"""${id}/${index} ${vd} : ${tempTrigger(index).map(t => t.collect{case v => v.asDouble(3)}.getOrElse("None")).mkString(",")}""")
     }
     tempTrigger.toList
   }
