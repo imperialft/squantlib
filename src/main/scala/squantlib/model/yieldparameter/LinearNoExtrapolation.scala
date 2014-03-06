@@ -19,16 +19,16 @@ case class LinearNoExtrapolation(var valuedate : Date, values:Map[Double, Double
   
 	val sortedValues = SortedMap(values.toSeq:_*)
 	
-    val linearfunction:PolynomialSplineFunction = {
-	    val keysarray = sortedValues.keySet.toArray
-	    val valarray = sortedValues.values.toArray
-	    new LinearInterpolator().interpolate(keysarray, valarray)    
+  val linearfunction:PolynomialSplineFunction = {
+    val keysarray = sortedValues.keySet.toArray
+    val valarray = sortedValues.values.toArray
+    new LinearInterpolator().interpolate(keysarray, valarray)    
 	}
 	
 	override val mindays = sortedValues.firstKey
 	override val maxdays = sortedValues.lastKey
 
-	override def lowextrapolation(v : Double) = sortedValues.head._2
+  override def lowextrapolation(v : Double) = sortedValues.head._2
     override def highextrapolation(v : Double) = sortedValues.last._2
     override def interpolation(v : Double) = linearfunction.value(v)
     
@@ -39,7 +39,10 @@ case class LinearNoExtrapolation(var valuedate : Date, values:Map[Double, Double
 
 object LinearNoExtrapolation {
   
-	def apply(valuedate : Date, values: => Map[qlPeriod, Double]):LinearNoExtrapolation = 
-	  LinearNoExtrapolation(valuedate, values.map{case (p, v) => (valuedate.days(p).toDouble, v)})
+  def apply(valuedate : Date, values: => Map[qlPeriod, Double]):YieldParameter = 
+    values.map{case (p, v) => (valuedate.days(p).toDouble, v)} match {
+      case vs if vs.size == 1 => FlatVector(valuedate, vs.head._2)
+      case vs => LinearNoExtrapolation(valuedate, vs)
+    }
   
 }
