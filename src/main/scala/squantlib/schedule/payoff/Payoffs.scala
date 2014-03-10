@@ -205,12 +205,12 @@ object Payoffs {
 	  }
 	  else {
 	    val payofflist:List[Payoff] = formula.jsonNode match {
-	      case Some(n) if n isArray => n.getElements.toList.map(f => getPayoff(toJsonString(f)))
+	      case Some(n) if n.isArray && n.size > 0 => n.getElements.toList.map(f => getPayoff(toJsonString(f)))
 	      case _ => formula.split(";").toList.map(getPayoff)
 	    }
 	    
 	    def getFirstElement:Payoff = formula.jsonNode match {
-	      case Some(n) if n isArray => getPayoff(toJsonString(n.getElements.toList.head))
+	      case Some(n) if n.isArray && n.size > 0 => getPayoff(toJsonString(n.getElements.toList.head))
 	      case _ => getPayoff(formula.split(";").head)
 	    }
 	  
