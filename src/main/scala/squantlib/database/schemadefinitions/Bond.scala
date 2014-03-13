@@ -218,14 +218,14 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def getInitialFixings:Map[String, Double] = 
     if (!fixingMap.isEmpty) fixingMap
-    else {
-      val fixdate:Option[JavaDate] = fixingdate
-      val paramdate:Option[Date] = DB.latestParamDate
-      (fixdate, paramdate) match {
-        case (Some(f), Some(p)) if f after p.java => DB.getLatestPrices(underlyingList.toSet)
-        case _ => Map.empty
-    }
+    else if (isBeforeFixing) DB.getLatestPrices(underlyingList.toSet)
+    else Map.empty
+  
+  def isBeforeFixing = (fixingdate, DB.latestParamDate) match {
+    case (Some(f), Some(p)) => Date(f) gt p
+    case _ => false
   }
+
 
   def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
   
