@@ -61,14 +61,14 @@ case class PutDIAmericanPayoff(
     def isKnockIn(fixings:T):Boolean // Method to be implemented
     def price(fixings:T, isKnockedIn:Boolean):Double // Method to be implemented
     
-    def isKnockIn(fixings:List[T]):Boolean = fixings.exists(isKnockIn(_))
+    def isKnockIn(fixings:List[T]):Boolean = knockedIn || fixings.exists(isKnockIn(_))
     def price(fixings:T):Double = price(fixings, isKnockIn(fixings))
     def price(fixings:List[T]):Double = price(fixings.last, isKnockIn(fixings))
   }
   
   implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
     override def isKnockIn(fixings:Map[String, Double]):Boolean = 
-      variables.exists(p => fixings.get(p) match { case Some(v) => v <= triggerMap(p) case None => false})
+      knockedIn || variables.exists(p => fixings.get(p) match { case Some(v) => v <= triggerMap(p) case None => false})
     
     override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
       if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
@@ -78,7 +78,7 @@ case class PutDIAmericanPayoff(
   }}
   
   implicit object DoubleInterpreter extends FixingInterpreter[Double] {
-    override def isKnockIn(fixing:Double):Boolean = fixing <= trigger.head
+    override def isKnockIn(fixing:Double):Boolean = knockedIn || fixing <= trigger.head
     override def price(fixing:Double, isKnockedIn:Boolean):Double = 
       if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
       else if (isKnockedIn) amount * math.min(1.0, fixing / strike.head)
