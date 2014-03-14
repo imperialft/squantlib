@@ -70,6 +70,7 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("PHYSICAL_REDEMPTION") var physicalredemption: Int,
               @Column("MINIMUM_PURCHASE") 	var minimum_purchase: Option[Double],
               @Column("FIXING_METHOD") 	    var fixing_method: String,
+              @Column("MODEL_OUTPUT")      var model_output: String,
               @Column("Created")			var created: Option[JavaDate],
               @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
@@ -91,6 +92,8 @@ class Bond(	  @Column("ID")					override var id: String,
       "bondname",
       "shortname",
       "description_jpn",
+      "fixing_method",
+      "model_output",
       "description_eng")
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
@@ -138,6 +141,7 @@ class Bond(	  @Column("ID")					override var id: String,
   def fixingMap:Map[String, Double] = fixings.parseJsonDoubleFields
   
   def settingMap:Map[String, String] = settings.parseJsonStringFields
+  
   
   def tbdValue:Option[Double] = try{Some(settingMap("tbd").toDouble)} catch {case e:Throwable => None} 
   
@@ -229,6 +233,8 @@ class Bond(	  @Column("ID")					override var id: String,
 
   def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
   
+  def modelOutputJson:Option[JsonNode] = try {Some(model_output.jsonNode.get)} catch {case e:Throwable => None}
+  
   override def toString():String = "%-5s %-15s %-25s %-10s %-15s %-15s".format(id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
 
   @Transient
@@ -307,6 +313,7 @@ class Bond(	  @Column("ID")					override var id: String,
 		physicalredemption = 0,
 		minimum_purchase = None,
 		fixing_method = null,
+    model_output = null,
 		created = None,
 		lastmodified  = None)
   
