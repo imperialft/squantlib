@@ -52,7 +52,8 @@ case class FxMc1f(valuedate:Date,
 	
 	override def calibrate:FxMc1f = {
 	  val frontier = frontierFunction()
-	  parameterRepository(frontier)  
+	  parameterRepository(frontier)
+	  modelOutput("exercise_frontier", "[" + frontier.map(_ match {case Some(n) => n.toString; case _ => null}).mkString(",") + "]")
 	  FxMc1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository)
 	}
 	

@@ -41,8 +41,11 @@ case class McNf(
         concatList(mpaths).map(_ / paths.toDouble)
 	    }
 	  }
-	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
-	}
+    catch {case e:Throwable => 
+      val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
+      modelOutput("error", errormsg)
+      println("MC calculation error : " + errormsg); List.empty}
+  }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	

@@ -111,6 +111,10 @@ trait PricingModel {
     case h::t => concatListRec(t, (result, h).zipped.map(_ + _))
   }
   
+  /*
+   * model output capacity
+   */
+  var modelOutput:(String, String) => Unit = (_, _) => false
   
 }
 
