@@ -9,7 +9,8 @@ case class Callability(
     bermudan:Boolean, 
     triggers:Map[String, Double], 
     bonus:Double,
-    inputString:List[String])(implicit val fixingInfo:FixingInformation) extends FixingLeg {
+    inputString:List[String],
+    var simulatedFrontier:Map[String, Double] = Map.empty)(implicit val fixingInfo:FixingInformation) extends FixingLeg {
   
   override val variables = triggers.keySet
   
@@ -30,11 +31,14 @@ case class Callability(
   def fixedTrigger:Option[Boolean] = if (isFixed) Some(triggers.forall{case (k, v) => v <= getFixings(k)}) else None
   
   def isTriggered(f:Map[String, Double]):Boolean = 
-    isTriggered || (!triggers.isEmpty && (triggers.keySet subsetOf f.keySet) && triggers.forall{case (k, v) => v <= f(k)})
+    isTriggered || (isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) && triggers.forall{case (k, v) => v <= f(k)})
     
-  def isTriggered:Boolean = 
-    if (isTrigger && isFixed) triggers.forall{case (k, v) => v <= getFixings(k)}
-    else false
+  def isTriggered:Boolean = if (isFixed) isTriggered(getFixings) else false
+    
+  def isProbablyCalled(f:Map[String, Double]):Boolean = 
+    isTriggered(f) || (bermudan && !simulatedFrontier.isEmpty && (simulatedFrontier.keySet subsetOf f.keySet) && simulatedFrontier.forall{case (k, v) => v <= f(k)})
+    
+  def isProbablyCalled:Boolean = if (isFixed) isProbablyCalled(getFixings) else false
     
   def redemptionAmount:Double = 1.0 + bonus
   

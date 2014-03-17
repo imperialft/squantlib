@@ -51,6 +51,7 @@ case class FxMc1f(valuedate:Date,
 	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
 	
 	override def calibrate:FxMc1f = {
+	  println("calibrate model")
 	  val frontier = frontierFunction()
 	  parameterRepository(frontier)
 	  modelOutput("exercise_frontier", "[" + frontier.map(_ match {case Some(n) => n.toString; case _ => null}).mkString(",") + "]")
@@ -118,13 +119,24 @@ object FxMc1f {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
 	  
-	  val frontierFunction = () => bond.fxFrontiers(1.00, 0.003, 20, frontierPths).map(t => if (t.isEmpty) None else t.head)
-	  
-	  val paramRepository = (obj:Any) => bond.calibrationCache.update("FXMontecarlo1f", obj)
-	  
-	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction, paramRepository))
+	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction(bond, frontierPths), paramRepository(bond)))
 	}
+	
+  def frontierFunction(bond:PriceableBond, frontierPths:Int) = () => bond.fxFrontiers(1.00, 0.003, 20, frontierPths).map(t => if (t.isEmpty) None else t.head)
+	
+  def paramRepository(bond:PriceableBond):Any => Unit = (obj:Any) => {
+    bond.calibrationCache.update("FXMontecarlo1f", obj)
+    obj match {
+      case fs:List[d] =>
+        (bond.livePayoffs, fs).zipped.map{
+          case ((_, _, c), Some(f:Double)) => c.simulatedFrontier = Map(bond.underlyings.head -> f)
+          case _ => {}}
+      case _ => {}
+    }
+  }
+	
 }
+
 
 
 object FxQtoMc1f {
@@ -147,7 +159,7 @@ object FxQtoMc1f {
 	  apply(market, bond, mcengine, paths, frontierPths, trig)
 	}
 	
-	def apply(
+	def apply( 
 	    market:Market, 
 	    bond:PriceableBond, 
 	    mcengine:(FX, FX) => Option[Montecarlo1f], 
@@ -186,11 +198,7 @@ object FxQtoMc1f {
 	  if (mcmodel == null) {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
-	  
-	  val frontierFunction = () => bond.fxFrontiers(1.00, 0.003, 20, frontierPths).map(t => if (t.isEmpty) None else t.head)
-	  
-	  val paramRepository = (obj:Any) => bond.calibrationCache.update("FXMontecarlo1f", obj)
-	  
-	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction, paramRepository))
+    
+	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, FxMc1f.frontierFunction(bond, frontierPths), FxMc1f.paramRepository(bond)))
 	}
 }
