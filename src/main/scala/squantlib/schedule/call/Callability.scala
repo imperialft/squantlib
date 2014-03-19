@@ -30,9 +30,11 @@ case class Callability(
   
   def fixedTrigger:Option[Boolean] = if (isFixed) Some(triggers.forall{case (k, v) => v <= getFixings(k)}) else None
   
-  def isTriggered(f:Map[String, Double]):Boolean = 
-    isTriggered || (isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) && triggers.forall{case (k, v) => v <= f(k)})
-    
+  def isTriggered(f:Map[String, Double]):Boolean = {
+    val fixings = if (isFixed) getFixings else f
+    (isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf fixings.keySet) && triggers.forall{case (k, v) => v <= fixings(k)})
+  }
+  
   def isTriggered:Boolean = if (isFixed) isTriggered(getFixings) else false
     
   def isProbablyCalled(f:Map[String, Double]):Boolean = 
