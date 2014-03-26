@@ -49,16 +49,9 @@ trait PricingModel {
   /*  
    * Store trigger information in the model.
    */
-  def updateTriggerProbabilities:Unit = {
-    if (scheduledPayoffs.calls.forall(c => c.isEmpty)) {
-      return modelOutput("exercise_probability", null)
-    }
+  def updateTriggerProbabilities:Unit = if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {
     val probs = triggerProbabilities
-    if (probs.isEmpty) modelOutput("exercise_probability", null)
-    else {
-      println("generated trigger probabilities " + probs.size)
-      modelOutput("exercise_probability", probs)
-    }
+    if (probs.isEmpty) modelOutput("exercise_probability", null) else modelOutput("exercise_probability", probs)
   }
   
   /*	

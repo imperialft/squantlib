@@ -59,7 +59,6 @@ case class FxMc1f(valuedate:Date,
   })
 	
 	override def calibrate:FxMc1f = {
-	  println("calibrate model")
 	  val frontier = frontierFunction()
 	  parameterRepository(frontier)
     modelOutput("exercise_frontier", frontier.map(_.getOrElse(null)))
