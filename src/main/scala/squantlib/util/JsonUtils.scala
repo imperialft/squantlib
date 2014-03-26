@@ -128,8 +128,12 @@ object JsonUtils {
     
     private def parseAllFieldMapRec(n:JsonNode, key:Option[String], depth:Int):Map[String, List[Any]] = n match {
       case nn if nn == null || depth < 0 => Map.empty
-      case nn if nn.isArray => nn.map(nnn => parseAllFieldMapRec(nnn, key, depth - 1)).reduce(addMaps)
-      case nn if nn.isObject => nn.getFields.map(nnn => parseAllFieldMapRec(nnn.getValue, Some(nnn.getKey), depth - 1)).reduce(addMaps)
+      case nn if nn.isArray => 
+        val tempmap = nn.map(nnn => parseAllFieldMapRec(nnn, key, depth - 1))
+        if (tempmap.isEmpty) Map.empty else tempmap.reduce(addMaps)
+      case nn if nn.isObject => 
+        val tempmap = nn.getFields.map(nnn => parseAllFieldMapRec(nnn.getValue, Some(nnn.getKey), depth - 1))
+        if (tempmap.isEmpty) Map.empty else tempmap.reduce(addMaps)
       case nn if nn.isTextual => Map(key.getOrElse("") -> List(nn.parseDate.getOrElse(nn.asText)))
       case nn if nn.isNumber => Map(key.getOrElse("") -> List(nn.asDouble))
       case nn => Map.empty
