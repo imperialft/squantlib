@@ -50,12 +50,22 @@ case class FxMc1f(valuedate:Date,
 	
 	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
 	
+  override def triggerProbabilities:List[Double] = triggerProbabilities(mcPaths)
+  
+  def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
+    val maxdate = scheduledPayoffs.schedule.paymentDates.max
+    val prices = FxMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, fx, defaultPaths, trigger, frontierFunction, parameterRepository).mcPrice(paths)
+    (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
+  })
+	
 	override def calibrate:FxMc1f = {
 	  println("calibrate model")
 	  val frontier = frontierFunction()
 	  parameterRepository(frontier)
-	  modelOutput("exercise_frontier", "[" + frontier.map(_ match {case Some(n) => n.toString; case _ => null}).mkString(",") + "]")
-	  FxMc1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository)
+    modelOutput("exercise_frontier", frontier.map(_.getOrElse(null)))
+	  val newmodel = FxMc1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository)
+	  newmodel.modelOutput = modelOutput
+	  newmodel
 	}
 	
 	override val priceType = "MODEL"

@@ -10,7 +10,7 @@ import org.jquantlib.time.{BusinessDayConvention, Calendar}
 import org.jquantlib.daycounters.Actual365Fixed
 import scala.runtime.ZippedTraversable3.zippedTraversable3ToTraversable
 import squantlib.schedule.call.{Callabilities, Callability}
-import squantlib.schedule.payoff.{Payoff, Payoffs}
+import squantlib.schedule.payoff.{Payoff, Payoffs, FixedPayoff}
 
 case class ScheduledPayoffs(
     scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],
@@ -28,6 +28,30 @@ case class ScheduledPayoffs(
   
   def isPriceable = payoffs.isPriceable && calls.isPriceable
 
+  def trigCheckPayoff:ScheduledPayoffs = {
+    val newpayoff = (scheduledPayoffs.map{case (cp, p, c) => 
+      val newcall = if (c.isTrigger) Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo) else c
+      val newpayoff = if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)
+      (cp, newpayoff, newcall)
+    })
+    ScheduledPayoffs(newpayoff, valuedate)
+  }
+  
+//  def trigCheckPayoff(customTrigger:List[Option[Double]] = List.empty) = {
+//    val maxdate = schedule.map(_.paymentDate).maxBy(_.serialNumber)
+//    val ctrig:List[Option[Double]] = if (customTrigger.size == scheduledPayoffs.size) customTrigger else List.fill(scheduledPayoffs.size)(None)
+//    val newpayoff = (scheduledPayoffs, ctrig).zipped.withFilter{case ((cp, _, _), _) => cp.isAbsolute || (cp.paymentDate lt maxdate)}.map{case ((cp, p, c), t) => 
+//      val newcall = t match{
+//        case Some(trig) if p.variables.size == 1 => Callability(false, Map(p.variables.head -> trig), cp.dayCount - 1.0, c.inputString, c.simulatedFrontier)(c.fixingInfo)
+//        case None if (c.isTrigger) => Callability(false, c.triggers, cp.dayCount - 1.0, c.inputString, c.simulatedFrontier)(c.fixingInfo) 
+//        case _ => c
+//      }
+//      val newpayoff = if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)
+//      (cp, newpayoff, newcall)
+//    }
+//    ScheduledPayoffs(newpayoff.toList, valuedate)
+//  }
+  
   val underlyings:Set[String] = payoffs.underlyings ++ calls.underlyings
   
   lazy val bonusCoeff = schedule.map(_.dayCount)

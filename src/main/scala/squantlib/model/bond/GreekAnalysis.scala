@@ -113,6 +113,20 @@ trait GreekAnalysis {
   
   def convexity:Option[Double] = effectiveConvexity(0.0001)
   
-	
-}
+  /*
+   * Trigger Probability Analysis
+   */
+  /*  
+   * Returns delta of 1 yen change in FX on JPY price.
+   */
+  def triggerProbabilities:List[Double] = model match {
+    case Some(m) => m.triggerProbabilities
+    case _ => List.empty
+  }
+  
+  def updateTriggerProbabilities:Unit = model match {
+    case Some(m) => m.updateTriggerProbabilities
+    case _ => List.empty
+  }
 
+}

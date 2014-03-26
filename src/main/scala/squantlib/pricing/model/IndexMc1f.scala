@@ -40,13 +40,21 @@ case class IndexMc1f(valuedate:Date,
 	  }
     catch {case e:Throwable => 
       val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
-      modelOutput("error", errormsg)
+      modelOutput("error", List(errormsg))
       println("MC calculation error : " + errormsg); List.empty}
   }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
 	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
+
+  override def triggerProbabilities:List[Double] = triggerProbabilities(mcPaths)
+  
+  def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
+    val maxdate = scheduledPayoffs.schedule.paymentDates.max
+    val prices = IndexMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, index, defaultPaths).mcPrice(paths)
+    (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
+  })
 	
 	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
 	

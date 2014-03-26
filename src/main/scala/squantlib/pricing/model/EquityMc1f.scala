@@ -27,7 +27,7 @@ case class EquityMc1f(valuedate:Date,
 	  if (mcYears.exists(_ < 0.0)) {println("MC paths : cannot compute past dates"); List.empty}
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, p => scheduledPayoffs.price(p))
 	  if (mcdates.sameElements(mcYears)) mcpaths
-	  else { modelOutput("error", "invalid mc dates"); println("invalid mc dates"); List.empty}
+	  else { modelOutput("error", List("invalid mc dates")); println("invalid mc dates"); List.empty}
 	}
 	 
 	def mcPrice(paths:Int):List[Double] = {
@@ -38,13 +38,21 @@ case class EquityMc1f(valuedate:Date,
 	  }
 	  catch {case e:Throwable => 
 	    val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
-	    modelOutput("error", errormsg)
+	    modelOutput("error", List(errormsg))
 	    println("MC calculation error : " + errormsg); List.empty}
 	}
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
 	
 	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
+	
+  override def triggerProbabilities:List[Double] = triggerProbabilities(mcPaths)
+  
+  def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
+	  val maxdate = scheduledPayoffs.schedule.paymentDates.max
+    val prices = EquityMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, equity, defaultPaths).mcPrice(paths)
+    (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
+	})
 	
 	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
 	

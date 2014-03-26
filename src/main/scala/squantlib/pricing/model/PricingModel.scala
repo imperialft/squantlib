@@ -2,6 +2,7 @@ package squantlib.pricing.model
 
 import squantlib.schedule.{CalculationPeriod, Schedule, ScheduledPayoffs}
 import squantlib.schedule.payoff.{Payoffs, Payoff}
+import squantlib.util.Date
 import squantlib.model.rates.DiscountCurve
 import squantlib.pricing.mcengine.MontecarloEngine
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
@@ -39,7 +40,27 @@ trait PricingModel {
    * Pricing function to be overridden. Result is annual rate without discount.
    */
   def calculatePrice:List[Double]
-
+  
+  /*  
+   * Trigger probability function to be overridden. Result is call probabilities.
+   */
+  def triggerProbabilities:List[Double] = List.empty
+  
+  /*  
+   * Store trigger information in the model.
+   */
+  def updateTriggerProbabilities:Unit = {
+    if (scheduledPayoffs.calls.forall(c => c.isEmpty)) {
+      return modelOutput("exercise_probability", null)
+    }
+    val probs = triggerProbabilities
+    if (probs.isEmpty) modelOutput("exercise_probability", null)
+    else {
+      println("generated trigger probabilities " + probs.size)
+      modelOutput("exercise_probability", probs)
+    }
+  }
+  
   /*	
    * Returns forward value of each coupon. Result is annual rate without discount.
    */
@@ -114,7 +135,7 @@ trait PricingModel {
   /*
    * model output capacity
    */
-  var modelOutput:(String, String) => Unit = (_, _) => false
+  var modelOutput:(String, List[Any]) => Unit = (_, _) => println("missing model output setting")
   
 }
 
