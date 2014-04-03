@@ -29,12 +29,22 @@ case class ScheduledPayoffs(
   def isPriceable = payoffs.isPriceable && calls.isPriceable
 
   def trigCheckPayoff:ScheduledPayoffs = {
-    val newpayoff = (scheduledPayoffs.map{case (cp, p, c) => 
-      val newcall = if (c.isTrigger) Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo) else c
-      val newpayoff = if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)
-      (cp, newpayoff, newcall)
-    })
-    ScheduledPayoffs(newpayoff, valuedate)
+    val newcalls = calls.map(c => if (c.isTrigger) Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo) else c)
+    val newpayoffs = scheduledPayoffs.map{case (cp, p, c) => if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)}
+    val newScheduledPayoff = ScheduledPayoffs(schedule, Payoffs(newpayoffs), Callabilities(newcalls))
+//    val newScheduledPayoff = (scheduledPayoffs.map{case (cp, p, c) => 
+//      val newcall = 
+//        if (c.isTrigger) Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo)
+//        else c
+//      val newcall = valuedate match {
+//        case Some(vd) if vd ge cp.eventDate => Callability.empty
+//        case _ if c.isTrigger => Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo)
+//        case _ => c
+//      }
+//      val newpayoff = if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)
+//      (cp, newpayoff, newcall)
+//    })
+    ScheduledPayoffs(newScheduledPayoff, valuedate)
   }
   
 //  def trigCheckPayoff(customTrigger:List[Option[Double]] = List.empty) = {
@@ -227,16 +237,16 @@ object ScheduledPayoffs {
   def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     val fixingMap = getFixings(payoffs.underlyings ++ calls.underlyings, schedule.eventDates)
-	payoffs.assignFixings(fixingMap)
-	calls.assignFixings(fixingMap)
+    payoffs.assignFixings(fixingMap)
+    calls.assignFixings(fixingMap)
     ScheduledPayoffs((schedule, payoffs, calls).zipped.toList, None)
   }
     
   def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     val fixingMap = getFixings(payoffs.underlyings ++ calls.underlyings, schedule.eventDates)
-	payoffs.assignFixings(fixingMap)
-	calls.assignFixings(fixingMap)
+    payoffs.assignFixings(fixingMap)
+    calls.assignFixings(fixingMap)
     ScheduledPayoffs(schedule.sortWith(payoffs, calls), None)
   }
   
@@ -261,8 +271,8 @@ object ScheduledPayoffs {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     val (datesbefore, datesafter) = schedule.eventDates.span(_ le valuedate)
     val fixingMap:List[Map[String, Double]] = getExterpolatedFixings(payoffs.underlyings ++ calls.underlyings, datesbefore, valuedate) ++ List.fill(datesafter.size)(Map.empty[String, Double])
-	payoffs.assignFixings(fixingMap)
-	calls.assignFixings(fixingMap)
+    payoffs.assignFixings(fixingMap)
+    calls.assignFixings(fixingMap)
     ScheduledPayoffs(schedule.sortWith(payoffs, calls), None)
   }
   

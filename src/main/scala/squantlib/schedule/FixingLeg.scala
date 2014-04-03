@@ -28,16 +28,16 @@ trait FixingLegs[T <: FixingLeg] {
   val fixinglegs:LinearSeq[T]
   
   def assignFixings(fixings:List[Map[String, Double]]):Unit = {
-	assert(fixings.size == fixinglegs.size)
-	(fixinglegs, fixings).zipped.foreach{case (p, f) => p.assignFixings(f)}
+    assert(fixings.size == fixinglegs.size)
+    (fixinglegs, fixings).zipped.foreach{case (p, f) => p.assignFixings(f)}
   }
 	
   def assignFixings(fixings:List[Option[Double]]) (implicit d:DummyImplicit):Unit = {
-	assert(fixings.size == fixinglegs.size)
-	(fixinglegs, fixings).zipped.foreach{
-	  case (p, Some(f)) => p.assignFixings(f)
-	  case (p, None) => {}}
-  }
+    assert(fixings.size == fixinglegs.size)
+    (fixinglegs, fixings).zipped.foreach{
+      case (p, Some(f)) => p.assignFixings(f)
+      case (p, None) => {}}
+    }
 	
   def isFixed:Boolean = fixinglegs.forall(_.isFixed)
   
