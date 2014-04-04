@@ -71,6 +71,7 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("MINIMUM_PURCHASE") 	var minimum_purchase: Option[Double],
               @Column("FIXING_METHOD") 	    var fixing_method: String,
               @Column("MODEL_OUTPUT")      var model_output: String,
+              @Column("PricingID")      var pricingid: String,
               @Column("Created")			var created: Option[JavaDate],
               @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
@@ -314,6 +315,7 @@ class Bond(	  @Column("ID")					override var id: String,
 		minimum_purchase = None,
 		fixing_method = null,
     model_output = null,
+    pricingid = null,
 		created = None,
 		lastmodified  = None)
   
