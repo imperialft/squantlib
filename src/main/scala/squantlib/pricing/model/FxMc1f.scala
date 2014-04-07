@@ -76,8 +76,8 @@ case class FxMc1f(valuedate:Date,
 
 object FxMc1f {
 	
-	var defaultPaths = 300000
-	var frontierPaths = 15000
+	var defaultPaths = 100000
+	var frontierPaths = 50000
 	
 	def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths)
   
@@ -131,7 +131,7 @@ object FxMc1f {
 	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction(bond, frontierPths), paramRepository(bond)))
 	}
 	
-  def frontierFunction(bond:PriceableBond, frontierPths:Int) = () => bond.fxFrontiers(1.00, 0.003, 20, frontierPths).map(t => if (t.isEmpty) None else t.head)
+  def frontierFunction(bond:PriceableBond, frontierPths:Int) = () => bond.fxFrontiers(1.00, 0.002, 20, frontierPths).map(t => if (t.isEmpty) None else t.head)
 	
   def paramRepository(bond:PriceableBond):Any => Unit = (obj:Any) => {
     bond.calibrationCache.update("FXMontecarlo1f", obj)
