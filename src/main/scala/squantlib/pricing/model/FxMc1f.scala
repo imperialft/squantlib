@@ -20,7 +20,8 @@ case class FxMc1f(valuedate:Date,
 					  defaultPaths:Int,
 					  trigger:List[Option[Double]],
 					  frontierFunction:() => List[Option[Double]],
-					  parameterRepository:Any => Unit) extends PricingModel {
+					  parameterRepository:Any => Unit,
+					  bondid:String) extends PricingModel {
   
 	mcPaths = defaultPaths
 	val redemamt = scheduledPayoffs.bonusAmount.takeRight(trigger.size)
@@ -41,7 +42,7 @@ case class FxMc1f(valuedate:Date,
 	      concatList(mpaths).map(_ / paths.toDouble)
 	    }
 	  }
-	  catch {case e:Throwable => println("MC calculation error : " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
+	  catch {case e:Throwable => println("MC calculation error : " + bondid + " " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
 	}
 	
 	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
@@ -54,7 +55,7 @@ case class FxMc1f(valuedate:Date,
   
   def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
     val maxdate = scheduledPayoffs.schedule.paymentDates.max
-    val prices = FxMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, fx, defaultPaths, trigger, frontierFunction, parameterRepository).mcPrice(paths)
+    val prices = FxMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, fx, defaultPaths, trigger, frontierFunction, parameterRepository, bondid).mcPrice(paths)
     (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
   })
 	
@@ -62,7 +63,7 @@ case class FxMc1f(valuedate:Date,
 	  val frontier = frontierFunction()
 	  parameterRepository(frontier)
     modelOutput("exercise_frontier", frontier.map(_.getOrElse(null)))
-	  val newmodel = FxMc1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository)
+	  val newmodel = FxMc1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository, bondid)
 	  newmodel.modelOutput = modelOutput
 	  newmodel
 	}
@@ -77,7 +78,7 @@ case class FxMc1f(valuedate:Date,
 object FxMc1f {
 	
 	var defaultPaths = 100000
-	var frontierPaths = 50000
+	var frontierPaths = 15000
 	
 	def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths)
   
@@ -128,10 +129,10 @@ object FxMc1f {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
 	  
-	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction(bond, frontierPths), paramRepository(bond)))
+	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction(bond, frontierPths), paramRepository(bond), bond.id))
 	}
 	
-  def frontierFunction(bond:PriceableBond, frontierPths:Int) = () => bond.fxFrontiers(1.00, 0.002, 20, frontierPths).map(t => if (t.isEmpty) None else t.head)
+  def frontierFunction(bond:PriceableBond, frontierPths:Int) = () => bond.fxFrontiers(1.00, 0.003, 20, frontierPths).map(t => if (t.isEmpty) None else t.head)
 	
   def paramRepository(bond:PriceableBond):Any => Unit = (obj:Any) => {
     bond.calibrationCache.update("FXMontecarlo1f", obj)
@@ -208,6 +209,6 @@ object FxQtoMc1f {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
     
-	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, FxMc1f.frontierFunction(bond, frontierPths), FxMc1f.paramRepository(bond)))
+	  Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, FxMc1f.frontierFunction(bond, frontierPths), FxMc1f.paramRepository(bond), bond.id))
 	}
 }
