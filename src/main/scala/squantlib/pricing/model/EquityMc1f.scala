@@ -18,7 +18,8 @@ case class EquityMc1f(valuedate:Date,
 					  mcengine:Montecarlo1f, 
 					  scheduledPayoffs:ScheduledPayoffs, 
 					  equity:Equity,
-					  defaultPaths:Int) extends PricingModel {
+					  defaultPaths:Int,
+					  bondid:String) extends PricingModel {
   
 	mcPaths = defaultPaths
 
@@ -39,7 +40,7 @@ case class EquityMc1f(valuedate:Date,
 	  catch {case e:Throwable => 
 	    val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
 	    modelOutput("error", List(errormsg))
-	    println("MC calculation error : " + errormsg); List.empty}
+	    println("MC calculation error : " + bondid + " " + errormsg); List.empty}
 	}
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
@@ -50,7 +51,7 @@ case class EquityMc1f(valuedate:Date,
   
   def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
 	  val maxdate = scheduledPayoffs.schedule.paymentDates.max
-    val prices = EquityMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, equity, defaultPaths).mcPrice(paths)
+    val prices = EquityMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, equity, defaultPaths, bondid).mcPrice(paths)
     (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
 	})
 	
@@ -112,7 +113,7 @@ object EquityMc1f {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
 	  
-	  Some(EquityMc1f(valuedate, mcmodel, scheduledPayoffs, equity, paths))
+	  Some(EquityMc1f(valuedate, mcmodel, scheduledPayoffs, equity, paths, bond.id))
 	}
 }
 
@@ -164,7 +165,7 @@ object EquityQtoMc1f {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
 	  
-	  Some(EquityMc1f(valuedate, mcmodel, scheduledPayoffs, equity, paths))
+	  Some(EquityMc1f(valuedate, mcmodel, scheduledPayoffs, equity, paths, bond.id))
 	}
 }
 

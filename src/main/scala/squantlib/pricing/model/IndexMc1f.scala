@@ -17,7 +17,8 @@ case class IndexMc1f(valuedate:Date,
 					  mcengine:Montecarlo1f, 
 					  scheduledPayoffs:ScheduledPayoffs, 
 					  index:Index,
-					  defaultPaths:Int) extends PricingModel {
+					  defaultPaths:Int,
+					  bondid:String) extends PricingModel {
   
 	mcPaths = defaultPaths
 
@@ -52,7 +53,7 @@ case class IndexMc1f(valuedate:Date,
   
   def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
     val maxdate = scheduledPayoffs.schedule.paymentDates.max
-    val prices = IndexMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, index, defaultPaths).mcPrice(paths)
+    val prices = IndexMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, index, defaultPaths, bondid).mcPrice(paths)
     (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
   })
 	
@@ -106,7 +107,7 @@ object IndexMc1f {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
 	  
-	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths))
+	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths, bond.id))
 	}
 }
 
@@ -158,7 +159,7 @@ object IndexQtoMc1f {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None}
 	  
-	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths))
+	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths, bond.id))
 	}
 }
 

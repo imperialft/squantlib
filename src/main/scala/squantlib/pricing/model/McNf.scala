@@ -19,7 +19,8 @@ case class McNf(
     mcengine:MontecarloNf, 
     scheduledPayoffs:ScheduledPayoffs, 
     underlyings:List[Underlying],
-    defaultPaths:Int) extends PricingModel {
+    defaultPaths:Int,
+    bondid:String) extends PricingModel {
   
   mcPaths = defaultPaths
   val variables:List[String] = underlyings.map(_.id)
@@ -44,7 +45,7 @@ case class McNf(
     catch {case e:Throwable => 
       val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
       modelOutput("error", List(errormsg))
-      println("MC calculation error : " + errormsg); List.empty}
+      println("MC calculation error : " + bondid + " " + errormsg); List.empty}
   }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
@@ -55,7 +56,7 @@ case class McNf(
   
   def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
     val maxdate = scheduledPayoffs.schedule.paymentDates.max
-    val prices = McNf(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, underlyings, defaultPaths).mcPrice(paths)
+    val prices = McNf(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, underlyings, defaultPaths, bondid).mcPrice(paths)
     (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
   })
 	
@@ -130,7 +131,7 @@ object McNf {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None} 
 	  
-	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths))
+	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths, bond.id))
 	}
 }
 
@@ -190,7 +191,7 @@ object McNfQto {
 	    println(bond.id + " : model name not found or model calibration error")
 	    return None} 
 	  
-	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths))
+	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths, bond.id))
 	}
 }
 
