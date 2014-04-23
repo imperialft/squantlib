@@ -72,6 +72,10 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("FIXING_METHOD") 	    var fixing_method: String,
               @Column("MODEL_OUTPUT")      var model_output: String,
               @Column("PricingID")      var pricingid: String,
+              @Column("CatchPhrase")      var catchphrase: String,
+              @Column("Characteristics")  var characteristics: String,
+              @Column("ChartSettings")    var chartsettings: String,
+              @Column("Information")      var information: String,
               @Column("Created")			var created: Option[JavaDate],
               @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
@@ -95,7 +99,12 @@ class Bond(	  @Column("ID")					override var id: String,
       "description_jpn",
       "fixing_method",
       "model_output",
-      "description_eng")
+      "description_eng",
+      "catchphrase",
+      "characteristics",
+      "chartsettings",
+      "information"
+  )
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
   
@@ -316,6 +325,10 @@ class Bond(	  @Column("ID")					override var id: String,
 		fixing_method = null,
     model_output = null,
     pricingid = null,
+    catchphrase = null,
+    characteristics = null,
+    chartsettings = null,
+    information = null,
 		created = None,
 		lastmodified  = None)
   
