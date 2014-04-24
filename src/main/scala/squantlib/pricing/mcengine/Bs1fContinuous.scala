@@ -73,7 +73,7 @@ class Bs1fContinuous(
     }
     
     val result:ListBuffer[List[Double]] = ListBuffer.empty
-    Range(1, paths).map(i => result.append(getApath(stepsize, drift, sigt, List(spot))))
+    Range(0, paths).map(i => result.append(getApath(stepsize, drift, sigt, List(spot))))
     (dates, result.toList)
   }
 
