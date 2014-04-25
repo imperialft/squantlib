@@ -23,6 +23,10 @@ object JsonUtils {
   
   implicit def jsonToExtendedJson(node:JsonNode) = ExtendedJson(node)
   
+  def mapToJson(map:Map[Any, Any]):JsonNode = mapper.valueToTree(scalaAnyMapToJavaMap(map))
+  
+  def listToJson(list:List[Any]):JsonNode = mapper.valueToTree(scalaListToJavaList(list))
+   
   case class ExtendedJson(node:JsonNode) {
     
     def hasName(name:String):Boolean = (node != null) && (node has name)
