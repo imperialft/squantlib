@@ -23,7 +23,7 @@ object JsonUtils {
   
   implicit def jsonToExtendedJson(node:JsonNode) = ExtendedJson(node)
   
-  def mapToJson(map:Map[Any, Any]):JsonNode = mapper.valueToTree(scalaAnyMapToJavaMap(map))
+  def mapToJson[T <: Any, U <: Any](map:Map[T, U]):JsonNode = mapper.valueToTree(scalaAnyMapToJavaMap(map))
   
   def listToJson(list:List[Any]):JsonNode = mapper.valueToTree(scalaListToJavaList(list))
    
@@ -243,10 +243,10 @@ object JsonUtils {
   
   def scalaStringtoJavaString(s:String):JavaString = s
   
-  def scalaMapToJavaMap(m:Map[String, Any]):JavaMap[JavaString, Any] = m
-  def scalaAnyMapToJavaMap(m:Map[Any, Any]):JavaMap[Any, Any] = m
+  def scalaMapToJavaMap[T <: Any](m:Map[String, T]):JavaMap[JavaString, T] = m
+  def scalaAnyMapToJavaMap[T <: Any, U <: Any](m:Map[T, U]):JavaMap[T, U] = m
   
-  def scalaListToJavaList(m:Seq[Any]):JavaList[Any] = m
+  def scalaListToJavaList[T <: Any](m:Seq[T]):JavaList[T] = m
     
   def toJavaCollection(colset:Any):Any = colset match {
     case c:Map[_, _] => scalaAnyMapToJavaMap(c.map{case (k, v) => (k, toJavaCollection(v))})
