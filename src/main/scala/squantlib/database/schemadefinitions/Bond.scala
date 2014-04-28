@@ -3,6 +3,7 @@ package squantlib.database.schemadefinitions
 import java.util.{Date => JavaDate}
 import scala.collection.JavaConversions._
 import scala.language.postfixOps
+import squantlib.util.JsonUtils
 import squantlib.util.JsonUtils._
 import squantlib.schedule.Schedule
 import squantlib.util.initializer._
@@ -12,6 +13,7 @@ import org.jquantlib.time.{Period => qlPeriod, DateGeneration, Calendar, Busines
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
 import org.codehaus.jackson.JsonNode
+import org.codehaus.jackson.node.ObjectNode
 import org.codehaus.jackson.map.ObjectMapper
 import org.squeryl.annotations.Transient
 import org.squeryl.annotations.Column
@@ -268,6 +270,61 @@ class Bond(	  @Column("ID")					override var id: String,
         case Some(p) => p / 100.0
         case None => 1.0}
       }
+    
+  /*
+   * Accessor for Json parameters
+   */
+    
+  protected def getJsonObject(implicit getter: () => String):ObjectNode = {
+    val s = getter()
+    if (s != null && !s.isEmpty) s.objectNode.getOrElse(JsonUtils.newObjectNode)
+    else JsonUtils.newObjectNode
+  }
+  
+  protected def removeJsonObject(name:String)(implicit getter:() => String, setter:String => Unit):Unit = {
+    val currentjson = getJsonObject(getter)
+    currentjson.remove(name)
+    setter(currentjson.toJsonString)
+  }
+  
+  protected def setJsonObject(name:String, newnode:JsonNode)(implicit getter:() => String, setter:String => Unit):Unit = {
+    val currentjson = getJsonObject(getter)
+    currentjson.put(name, newnode)
+    setter(currentjson.toJsonString)
+  }
+  
+  protected def setJsonObject(name:String, newValue:String)(implicit getter:() => String, setter:String => Unit):Unit = {
+    val currentjson = getJsonObject(getter)
+    currentjson.put(name, newValue)
+    setter(currentjson.toJsonString)
+  }
+  
+  protected def setJsonObject(nodes:Map[String, JsonNode])(implicit getter:() => String, setter:String => Unit):Unit = {
+    val currentjson = getJsonObject(getter)
+    nodes.foreach{case (k, v) => currentjson.put(k, v)}
+    setter(currentjson.toJsonString)
+  } 
+    
+  def getSetting:ObjectNode = getJsonObject(() => this.settings)
+  def setSetting(name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.settings, (s:String) => settings = s)
+  def setSetting(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.settings, (s:String) => settings = s)
+  
+  def getModelOutput(id:String):ObjectNode = getJsonObject(() => this.model_output)
+  def setModelOutput(id:String, name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.model_output, (s:String) => this.model_output = s)
+  def setModelOutput(id:String, name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.model_output, (s:String) => this.model_output = s)
+  
+  def getInformation:ObjectNode = getJsonObject(() => this.information)
+  def setInformation(name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.information, (s:String) => this.information = s)
+  def setInformation(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.information, (s:String) => this.information = s)
+  def setInformation(nodes:Map[String, JsonNode]):Unit = setJsonObject(nodes)(() => this.information, (s:String) => this.information = s)
+  
+  def getCharacteristics:ObjectNode = getJsonObject(() => this.characteristics)
+  def setCharacteristics(name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.characteristics, (s:String) => this.characteristics = s)
+  def setCharacteristics(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.characteristics, (s:String) => this.characteristics = s)
+  
+  def getChartSettings:ObjectNode = getJsonObject(() => this.chartsettings)
+  def setChartSettings(name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.chartsettings, (s:String) => this.chartsettings = s)
+  def setChartSettings(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.chartsettings, (s:String) => this.chartsettings = s)
   
   def this() = this(
 		id = null,

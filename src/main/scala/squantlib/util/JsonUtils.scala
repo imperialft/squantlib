@@ -25,7 +25,15 @@ object JsonUtils {
   
   def mapToJson[T <: Any, U <: Any](map:Map[T, U]):JsonNode = mapper.valueToTree(scalaAnyMapToJavaMap(map))
   
-  def listToJson(list:List[Any]):JsonNode = mapper.valueToTree(scalaListToJavaList(list))
+  private def isNumber(s:Any):Boolean = try {val t = s.toString.toDouble; true} catch {case e:Throwable => false}
+  
+  def listToJson(list:List[Any]):JsonNode = {
+    val elems = 
+      if (list == null) List.empty[String]
+      else if (list.forall(v => v != null && isNumber(v))) list 
+      else list.map(v => if (v == null) "null" else v.toString)
+    mapper.valueToTree(scalaListToJavaList(elems))
+  }
    
   case class ExtendedJson(node:JsonNode) {
     
