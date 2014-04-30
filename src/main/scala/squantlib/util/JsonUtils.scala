@@ -27,13 +27,15 @@ object JsonUtils {
   
   private def isNumber(s:Any):Boolean = try {val t = s.toString.toDouble; true} catch {case e:Throwable => false}
   
-  def listToJson(list:List[Any]):JsonNode = {
+  def listToJson(list:List[Any]):JsonNode = try{
     val elems = 
       if (list == null) List.empty[String]
       else if (list.forall(v => v != null && isNumber(v))) list 
-      else list.map(v => if (v == null) "null" else v.toString)
+      else list.map(v => if (v == null) null else v.toString)
     mapper.valueToTree(scalaListToJavaList(elems))
-  }
+  } catch {case e:Throwable => 
+    println("failed to create json node from : " + list.toString)
+    newArrayNode}
    
   case class ExtendedJson(node:JsonNode) {
     
