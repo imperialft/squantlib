@@ -78,6 +78,7 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("Characteristics")  var characteristics: String,
               @Column("ChartSettings")    var chartsettings: String,
               @Column("Information")      var information: String,
+              @Column("CalculationAgentID")      var calculation_agent_id: String,
               @Column("Created")			var created: Option[JavaDate],
               @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
@@ -386,6 +387,7 @@ class Bond(	  @Column("ID")					override var id: String,
     characteristics = null,
     chartsettings = null,
     information = null,
+    calculation_agent_id = null,
 		created = None,
 		lastmodified  = None)
   
