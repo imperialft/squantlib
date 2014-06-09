@@ -47,6 +47,11 @@ trait PricingModel {
   def triggerProbabilities:List[Double] = List.empty
   
   /*  
+   * Binary estimate function to be overridden. Result is binary size as % of notional.
+   */
+  def binarySize(paths:Int, range:Double):List[Double] = List.empty
+  
+  /*  
    * Store trigger information in the model.
    */
   def updateTriggerProbabilities:Unit = if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {

@@ -130,14 +130,23 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def fixingRedemprice(fixings:Map[String, Any]):String = replaceFixing(if (redemprice == null) "" else redemprice, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
   
-  def tbdParameter:Option[String] = (containsN(coupon, "tbd"), containsN(redemprice, "tbd"), containsN(call, "tbd")) match {
-  	 case (true, false, false) => Some(coupon)
-  	 case (false, true, false) => Some(redemprice)
-  	 case (false, false, true) => Some(call)
-  	 case _ => None
+//  def tbdParameter:Option[String] = (containsN(coupon, "tbd"), containsN(redemprice, "tbd"), containsN(call, "tbd")) match {
+//  	 case (true, false, false) => Some(coupon)
+//  	 case (false, true, false) => Some(redemprice)
+//  	 case (false, false, true) => Some(call)
+//  	 case _ => None
+//  }
+  
+  def tbdParameter:Option[String] = List(
+    if (coupon != null && coupon.contains("tbd")) Some(coupon) else None,
+    if (redemprice != null && redemprice.contains("tbd")) Some(redemprice) else None,
+    if (call != null && call.contains("tbd")) Some(call) else None
+  ).flatMap(s => s) match {
+    case ls if ls.isEmpty => None
+    case ls => Some(ls.mkString("; "))
   }
   
-  def containsN(s:String, t:String):Boolean = (s != null) && (s contains t)
+//  def containsN(s:String, t:String):Boolean = (s != null) && (s contains t)
   
   def containsTbd:Boolean = tbdParameter.isDefined
   

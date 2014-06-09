@@ -32,35 +32,8 @@ case class ScheduledPayoffs(
     val newcalls = calls.map(c => if (c.isTrigger) Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo) else c)
     val newpayoffs = scheduledPayoffs.map{case (cp, p, c) => if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)}
     val newScheduledPayoff = ScheduledPayoffs(schedule, Payoffs(newpayoffs), Callabilities(newcalls))
-//    val newScheduledPayoff = (scheduledPayoffs.map{case (cp, p, c) => 
-//      val newcall = 
-//        if (c.isTrigger) Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo)
-//        else c
-//      val newcall = valuedate match {
-//        case Some(vd) if vd ge cp.eventDate => Callability.empty
-//        case _ if c.isTrigger => Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo)
-//        case _ => c
-//      }
-//      val newpayoff = if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)
-//      (cp, newpayoff, newcall)
-//    })
     ScheduledPayoffs(newScheduledPayoff, valuedate)
   }
-  
-//  def trigCheckPayoff(customTrigger:List[Option[Double]] = List.empty) = {
-//    val maxdate = schedule.map(_.paymentDate).maxBy(_.serialNumber)
-//    val ctrig:List[Option[Double]] = if (customTrigger.size == scheduledPayoffs.size) customTrigger else List.fill(scheduledPayoffs.size)(None)
-//    val newpayoff = (scheduledPayoffs, ctrig).zipped.withFilter{case ((cp, _, _), _) => cp.isAbsolute || (cp.paymentDate lt maxdate)}.map{case ((cp, p, c), t) => 
-//      val newcall = t match{
-//        case Some(trig) if p.variables.size == 1 => Callability(false, Map(p.variables.head -> trig), cp.dayCount - 1.0, c.inputString, c.simulatedFrontier)(c.fixingInfo)
-//        case None if (c.isTrigger) => Callability(false, c.triggers, cp.dayCount - 1.0, c.inputString, c.simulatedFrontier)(c.fixingInfo) 
-//        case _ => c
-//      }
-//      val newpayoff = if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)
-//      (cp, newpayoff, newcall)
-//    }
-//    ScheduledPayoffs(newpayoff.toList, valuedate)
-//  }
   
   val underlyings:Set[String] = payoffs.underlyings ++ calls.underlyings
   
@@ -115,6 +88,10 @@ case class ScheduledPayoffs(
   def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = dateMapper.map(d => {
     if (d.isEmpty) List(defclass.defaultValue) else d.map(fixings) })
     
+  def fixingPrices(fixings:List[Double]):List[List[Double]] = priceMapper(fixings)
+  
+  def fixingPrices(fixings:List[Map[String, Double]])(implicit d:DummyImplicit):List[List[Map[String, Double]]] = priceMapper(fixings)
+    
   def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = 
     if (calls.isTrigger) {
       if (calls.isPriceable){
@@ -133,25 +110,11 @@ case class ScheduledPayoffs(
     else payoffs.price(priceMapper(fixings))
     }
   
-//  def price(fixings:List[List[Double]]):List[Double] = {
-//    if (calls.isTrigger) {
-//      if (calls.isPriceable) payoffs.price(priceMapper(fixings), calls.triggers, bonusRate)
-//      else List.fill(fixings.size)(Double.NaN)
-//    }
-//    else payoffs.price(priceMapper(fixings))
-//    }
-    
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]]):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, bonusRate)
     
-//  def price(fixings:List[List[Double]], trigger:List[Option[List[Double]]]):List[Double] = 
-//    payoffs.price(priceMapper(fixings), trigger, bonusRate)
-    
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double]):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
-    
-//  def price(fixings:List[List[Double]], trigger:List[Option[List[Double]]], trigAmount:List[Double]):List[Double] = 
-//    payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount))
     
   def price(fixings:List[Double], trigger:List[Option[Double]])(implicit d:DummyImplicit):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, bonusRate)

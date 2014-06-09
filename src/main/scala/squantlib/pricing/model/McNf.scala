@@ -12,6 +12,7 @@ import org.codehaus.jackson.JsonNode
 import squantlib.model.rates.DiscountCurve
 import squantlib.util.Date
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
+import scala.annotation.tailrec
 
 
 case class McNf(
@@ -25,10 +26,12 @@ case class McNf(
   mcPaths = defaultPaths
   val variables:List[String] = underlyings.map(_.id)
 
-  override def modelPaths(paths:Int):List[List[Double]] = {
+  override def modelPaths(paths:Int):List[List[Double]] = modelPaths(paths, p => scheduledPayoffs.price(p))
+
+  def modelPaths(paths:Int, pricer: List[Map[String,Double]] => List[Double]):List[List[Double]] = {
     val mcYears = scheduledPayoffs.eventDateYears(valuedate)
 	  if (mcYears.exists(_ < 0.0)) {println("MC paths : cannot compute past dates"); List.empty}
-	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, p => scheduledPayoffs.price(p))
+	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, pricer)
 	  if (mcdates.sameElements(mcYears)) mcpaths
 	  else { println("invalid mc dates"); List.empty}
 	}
@@ -59,6 +62,30 @@ case class McNf(
     val prices = McNf(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, underlyings, defaultPaths, bondid).mcPrice(paths)
     (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
   })
+  
+  def binaryPathMtM(range:Double):List[Map[String,Double]] => List[Double] = (underlyingPrices:List[Map[String, Double]]) => {
+    val prices = scheduledPayoffs.price(underlyingPrices).zip(scheduledPayoffs.schedule.dayCounts).map{case (a, b) => a * b}
+    
+    @tailrec def forwardSum(input:List[Double], result:List[Double]):List[Double]= input match {
+      case Nil => result
+      case h::t => forwardSum(t, (h + result.headOption.getOrElse(0.0)) :: result)
+    }
+    
+    val underlyingFixings:List[List[Map[String, Double]]] = scheduledPayoffs.fixingPrices(underlyingPrices)
+    //skip the "current" coupon
+    (forwardSum(prices.tail.reverse, List(0.0)), underlyingFixings, scheduledPayoffs.calls).zipped.map{case (p, ul, c) =>
+      ul.lastOption match{
+        case Some(ull) if !c.isTriggered(ull) && c.triggers.keySet.subsetOf(ull.keySet) && c.triggers.forall{case (k, t) => ull(k) > t * (1.0 - range)} => p
+        case _ => 0.0
+      }
+    }
+  }
+  
+  override def binarySize(paths:Int, range:Double):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
+    val data = modelPaths(paths, binaryPathMtM(range))
+    data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => 1.0 + p.bonus - b}
+  })
+  
 	
 	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
 	
