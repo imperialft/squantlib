@@ -219,7 +219,6 @@ trait Priceable extends ExtendedSchedule with Cloneable {
           val ccy = ul take 3
           
           def priceFromFXmult(y:Double):Double = {
-            val randid = scala.util.Random.nextInt
             bond.setMarketNoCalibration(mkt.fxShifted(Map(ccy -> y)))
             if (paths > 0) bond.model.collect{case m => m.mcPaths = paths}
             bond.dirtyPrice.getOrElse(Double.NaN)

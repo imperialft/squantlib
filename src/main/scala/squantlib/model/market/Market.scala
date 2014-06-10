@@ -393,6 +393,19 @@ class Market(
   
   def underlyingShifted(id:String, shift:Double):Option[Market] = UnderlyingParsers.get(id).flatMap{case p => p.getShiftedMarket(shift, this)}
   
+  import scala.annotation.tailrec
+  
+  def underlyingShifted(shift:Map[String, Double]):Option[Market] = {
+    @tailrec def shifted(shifts:List[(String, Double)], mkt:Market):Option[Market] = shifts match {
+      case Nil => Some(mkt)
+      case (k, v)::t => mkt.underlyingShifted(k, v) match {
+        case Some(m) => shifted(t, m)
+        case None => None
+      }
+    }
+    shifted(shift.toList, this)
+  }
+  
   def underlyingVolShifted(id:String, shift:Double):Option[Market] = UnderlyingParsers.get(id).flatMap{case p => p.getShiftedVolMarket(shift, this)}
   
   /** 
