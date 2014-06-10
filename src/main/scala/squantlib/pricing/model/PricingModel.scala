@@ -47,17 +47,28 @@ trait PricingModel {
   def triggerProbabilities:List[Double] = List.empty
   
   /*  
-   * Binary estimate function to be overridden. Result is binary size as % of notional.
-   */
-  def binarySize(paths:Int, range:Double):List[Double] = List.empty
-  
-  /*  
    * Store trigger information in the model.
    */
   def updateTriggerProbabilities:Unit = if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {
     val probs = triggerProbabilities
-    if (probs.isEmpty) modelOutput("exercise_probability", null) else modelOutput("exercise_probability", probs)
+    if (probs.isEmpty) modelOutput("exercise_probability", null) else modelOutput("exercise_probability", probs.map(p => (p * 10000.0).round / 10000.0))
   }
+  
+  /*  
+   * Binary estimate function to be overridden. Result is binary size as % of notional.
+   */
+  def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = List.empty
+  
+  /*  
+   * Binary estimate function to be overridden. Result is binary size as % of notional.
+   */
+  
+  def updateBinarySize(range:Double, curve:DiscountCurve):Unit = updateBinarySize(mcPaths, range, curve)
+  
+  def updateBinarySize(paths:Int, range:Double, curve:DiscountCurve):Unit = if (scheduledPayoffs.calls.exists(_.isTrigger)) {
+    val bin = binarySize(paths, range, curve)
+    if (bin.isEmpty) modelOutput("binary_size", null) else modelOutput("binary_size", bin.map(d => (d * 10000.0).round / 10000.0))
+  } 
   
   /*	
    * Returns forward value of each coupon. Result is annual rate without discount.

@@ -57,17 +57,18 @@ case class EquityMc1f(valuedate:Date,
     (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
 	})
 	
-	def binaryPathMtM(range:Double):List[Double] => List[Double] = (underlyingPrices:List[Double]) => {
-	  val prices = scheduledPayoffs.price(underlyingPrices).zip(scheduledPayoffs.schedule.dayCounts).map{case (a, b) => a * b}
+	def binaryPathMtM(range:Double, discounts:List[Double]):List[Double] => List[Double] = (underlyingPrices:List[Double]) => {
+	  val prices = (scheduledPayoffs.price(underlyingPrices), scheduledPayoffs.schedule.dayCounts, discounts).zipped.map{case (p, dc, zc) => p * dc * zc}
 	  
 	  @tailrec def forwardSum(input:List[Double], result:List[Double]):List[Double]= input match {
 	    case Nil => result
 	    case h::t => forwardSum(t, (h + result.headOption.getOrElse(0.0)) :: result)
 	  }
 	  
-	  val underlyingFixings = scheduledPayoffs.fixingPrices(underlyingPrices)
+    val underlyingFixings = scheduledPayoffs.fixingPrices(underlyingPrices)
+    val remainingMtM = forwardSum(prices.tail.reverse, List(0.0)).zip(discounts).map{case (p, zc) => p / zc}
 	  //skip the "current" coupon
-	  (forwardSum(prices.tail.reverse, List(0.0)), underlyingFixings, scheduledPayoffs.calls).zipped.map{case (p, ul, c) =>
+	  (remainingMtM, underlyingFixings, scheduledPayoffs.calls).zipped.map{case (p, ul, c) =>
 	    (c.triggers.get(equity.id), ul.headOption) match{
         case (Some(t), Some(ull)) if ull >= t * (1.0 - range) && ull < t => p
 	      case _ => 0.0
@@ -75,9 +76,9 @@ case class EquityMc1f(valuedate:Date,
 	  }
 	}
 	
-	override def binarySize(paths:Int, range:Double):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
-	  val data = modelPaths(paths, binaryPathMtM(range))
-	  println(data.transpose.map(binaries => binaries.filter(_ != 0.0).size))
+	override def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
+	  val discounts = scheduledPayoffs.schedule.paymentDates.map(d => curve(d))
+	  val data = modelPaths(paths, binaryPathMtM(range, discounts))
 	  data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => 1.0 + p.bonus - b}
   })
 	
