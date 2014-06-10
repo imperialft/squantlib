@@ -115,8 +115,9 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def currency:Currency = Currencies(currencyid).orNull
 		
-  def calendar:Calendar = if (calendar_str == null) Calendars(currencyid).get
-  						else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
+  def calendar:Calendar = 
+    if (calendar_str == null) Calendars(currencyid).get
+  	else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
   
   protected def replaceFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
   						
@@ -126,16 +127,7 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def couponList:List[String] = stringList(updateFixing(coupon))
   
-//  def couponList(fixings:Map[String, Any]):List[String] = stringList(updateFixing(coupon, fixings))
-  
   def fixingRedemprice(fixings:Map[String, Any]):String = replaceFixing(if (redemprice == null) "" else redemprice, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
-  
-//  def tbdParameter:Option[String] = (containsN(coupon, "tbd"), containsN(redemprice, "tbd"), containsN(call, "tbd")) match {
-//  	 case (true, false, false) => Some(coupon)
-//  	 case (false, true, false) => Some(redemprice)
-//  	 case (false, false, true) => Some(call)
-//  	 case _ => None
-//  }
   
   def tbdParameter:Option[String] = List(
     if (coupon != null && coupon.contains("tbd")) Some(coupon) else None,
@@ -146,8 +138,6 @@ class Bond(	  @Column("ID")					override var id: String,
     case ls => Some(ls.mkString("; "))
   }
   
-//  def containsN(s:String, t:String):Boolean = (s != null) && (s contains t)
-  
   def containsTbd:Boolean = tbdParameter.isDefined
   
   def isPhysicalRedemption:Boolean = physicalredemption == 1
@@ -156,14 +146,9 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def underlyingList:List[String] = stringList(underlying)
   
-//  def bermudanList:List[Boolean] = booleanList(call, "berm")
-  
-//  def triggerList:List[List[String]] = call.jsonArray.map(_.parseStringList.map(_.orNull))
-  
   def fixingMap:Map[String, Double] = fixings.parseJsonDoubleFields
   
   def settingMap:Map[String, String] = settings.parseJsonStringFields
-  
   
   def tbdValue:Option[Double] = try{Some(settingMap("tbd").toDouble)} catch {case e:Throwable => None} 
   
@@ -201,40 +186,24 @@ class Bond(	  @Column("ID")					override var id: String,
   def schedule:Option[Schedule] = try {
     val schedule = Schedule(
         effectiveDate = issueDate,
-		terminationDate = maturityDate,
-		tenor = period,
-		calendar = calendar,
-		calendarConvention = calendarAdjust,
-		paymentConvention = paymentAdjust,
-		terminationDateConvention = maturityAdjust,
-		rule = DateGeneration.Rule.Backward,
-		fixingInArrears = isFixingInArrears,
-		noticeDay = couponNotice,
-		daycount = daycounter, 
-		firstDate = None,
-		nextToLastDate = None,
-		addRedemption = true,
-		maturityNotice = redemptionNotice
+        terminationDate = maturityDate,
+        tenor = period,
+        calendar = calendar,
+        calendarConvention = calendarAdjust,
+        paymentConvention = paymentAdjust,
+        terminationDateConvention = maturityAdjust,
+        rule = DateGeneration.Rule.Backward,
+        fixingInArrears = isFixingInArrears,
+        noticeDay = couponNotice,
+        daycount = daycounter, 
+        firstDate = None,
+        nextToLastDate = None,
+        addRedemption = true,
+        maturityNotice = redemptionNotice
     )
     if (schedule == null) None else Some(schedule)
   }
   catch { case _:Throwable => None}
-  
-//  def bermudanList(nbLegs:Int = schedule.size):List[Boolean] = call.jsonNode match {
-//  	case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
-//	case Some(b) if b isArray => List.fill(nbLegs - 2 - b.size)(false) ++ b.map(_.parseString == Some("berm")).toList ++ List(false, false)
-//	case _ => List.fill(nbLegs)(false)
-//  }
-//
-//  def triggerList(nbLegs:Int = schedule.size):List[List[String]] = call.jsonNode match {
-//    case Some(b) if b.isArray && b.size == 1 => 
-////      List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseDouble).toList else List.empty) ++ List.fill(2)(List.empty)
-//      List.fill(nbLegs - 2)(if (b.head isArray) b.head.map(_.parseString.getOrElse("")).toList else List.empty) ++ List.fill(2)(List.empty)
-//    case Some(b) if b isArray => 
-////      List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(optionalDouble).toList else List.empty) ++ List.fill(2)(List.empty)
-//      List.fill(nbLegs - b.size - 2)(List.empty) ++ b.map(n => if (n isArray) n.map(_.parseString.getOrElse("")).toList else List.empty) ++ List.fill(2)(List.empty)
-//    case _ => List.fill(nbLegs)(List.empty)
-//  }
   
   private def optionalDouble(n:JsonNode):Option[Double] = 
     if (n == null || n.isNull) None
@@ -256,6 +225,8 @@ class Bond(	  @Column("ID")					override var id: String,
   def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
   
   def modelOutputJson:Option[JsonNode] = try {Some(model_output.jsonNode.get)} catch {case e:Throwable => None}
+
+  def modelOutputMap:Map[String, List[Any]] = modelOutputJson.collect{case j => j.parseAllFieldMap}.getOrElse(Map.empty)
   
   override def toString():String = "%-5s %-15s %-25s %-10s %-15s %-15s".format(id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
 

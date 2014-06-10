@@ -62,7 +62,7 @@ case class FxMc1f(valuedate:Date,
 	override def calibrate:FxMc1f = {
 	  val frontier = frontierFunction()
 	  parameterRepository(frontier)
-    modelOutput("exercise_frontier", frontier.map(_.collect{case v => (v * 10000.0).round / 10000.0}.getOrElse(null)))
+    modelOutput("exercise_frontier", frontier.map(_.collect{case v => (v * 10000.0).round / 10000.0}.getOrElse(0)))
 	  val newmodel = FxMc1f(valuedate, mcengine, scheduledPayoffs, fx, mcPaths, frontier, frontierFunction, parameterRepository, bondid)
 	  newmodel.modelOutput = modelOutput
 	  newmodel
