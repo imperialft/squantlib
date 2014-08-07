@@ -46,8 +46,8 @@ trait AnalyzableBond
 
 
 case class Bond(
-    override val db:dbBond, 
-    override val scheduledPayoffs:ScheduledPayoffs,
+  override val db:dbBond, 
+  override val scheduledPayoffs:ScheduledPayoffs,
 	override val underlyings:List[String]) 
 	extends AnalyzableBond  {
   
@@ -70,38 +70,31 @@ object Bond {
   
 
   def getScheduledPayoffs(db:dbBond, valuedate:Option[Date] = None):Option[ScheduledPayoffs] = {
-	val schedule = db.schedule.orNull
-	if (schedule == null) {return None}
-	
-	implicit val fixingInfo = db.fixingInformation
-	
-	val coupon:Payoffs = Payoffs(db.coupon, schedule.size - 1).orNull
-	if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}
-	  
-	val redemption = Payoff(db.redemprice).orNull
-	if (redemption == null) {println(db.id + ": cannot initialize redemption"); return None}
-	  
-	val underlyings:List[String] = db.underlyingList
-		
-//	val bermudan:List[Boolean] = db.bermudanList(schedule.size) match {
-//	  case berms if !berms.isEmpty && berms.takeRight(1).head => berms.dropRight(1) :+ false
-//	  case berms => berms
-//	}
-//	
-//	val trigger:List[List[String]] = db.triggerList(schedule.size)
-//	  
-//	val calls = Callabilities(bermudan, trigger, underlyings)
-	val calls = Callabilities(db.call, underlyings, schedule.size)
-	if (calls == null) {println(db.id + ": cannot initialize calls"); return None}
-	  
-	val scheduledPayoffs = valuedate match {
-	  case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d)
-	  case None => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
-	}
-	
-	if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {
-	  println(db.id + ": cannot initialize scheduled payoffs"); None}
-	else Some(scheduledPayoffs)
+    val schedule = db.schedule.orNull
+    if (schedule == null) {return None}
+    
+    implicit val fixingInfo = db.fixingInformation
+    
+    val coupon:Payoffs = Payoffs(db.coupon, schedule.size - 1).orNull
+    if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}
+      
+    val redemption = Payoff(db.redemprice).orNull
+    if (redemption == null) {println(db.id + ": cannot initialize redemption"); return None}
+      
+    val underlyings:List[String] = db.underlyingList
+      
+    val calls = Callabilities(db.call, underlyings, schedule.size)
+    if (calls == null) {println(db.id + ": cannot initialize calls"); return None}
+      
+    val scheduledPayoffs = valuedate match {
+      case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d)
+      case None => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
+    }
+    
+    if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {
+      println(db.id + ": cannot initialize scheduled payoffs")
+      None
+    } else Some(scheduledPayoffs)
   }
  
 }
