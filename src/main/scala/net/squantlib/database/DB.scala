@@ -51,14 +51,14 @@ object DB {
 	
   def pastFixing(id:String, dates:List[Date], paramType:String = null):List[Option[Double]] = {
     if (dates.isEmpty) {return List.empty}
-	val allhistory = getHistorical(id, dates.min, dates.max, paramType)
-	dates.map(d => allhistory.get(d))
+    val allhistory = getHistorical(id, dates.min, dates.max, paramType)
+    dates.map(d => allhistory.get(d))
   }
   
   def pastFixings(ids:Set[String], dates:List[Date], paramType:String = null):List[Map[String, Option[Double]]] = {
     if (dates.isEmpty) {return List.empty}
-	val allhistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min, dates.max, paramType).toMap)) (collection.breakOut)
-	dates.map(d => ids.map(p => (p, allhistory(p).get(d))).toMap)
+    val allhistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min, dates.max, paramType).toMap)) (collection.breakOut)
+    dates.map(d => ids.map(p => (p, allhistory(p).get(d))).toMap)
   }
 	
   def getHistorical(id:String):TimeSeries = getHistorical(id, null)
