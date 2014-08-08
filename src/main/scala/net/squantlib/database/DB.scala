@@ -2,6 +2,7 @@ package net.squantlib.database
 
 import net.squantlib.util.Date
 import java.util.{Date => JavaDate}
+import net.squantlib.util.Date
 import net.squantlib.util.UnderlyingParser
 import net.squantlib.database.schemadefinitions.Equity
 import net.squantlib.math.timeseries.TimeSeries
@@ -15,7 +16,11 @@ trait DbRepository {
   def getForwardPrices(assetId:String, id:String):TimeSeries
   
   def getEquities:Set[Equity]
+
+  def getHolidays(id:String):Set[Date]
   
+  val lastHoliday:Date
+
 }
 
 object DB {
@@ -68,4 +73,9 @@ object DB {
   def getForwardPrices(assetId:String, id:String):TimeSeries = repository.collect{case repo => repo.getForwardPrices(assetId, id)}.getOrElse(TimeSeries.empty)
   
   def getEquities:Set[Equity] = repository.collect{case repo => repo.getEquities}.getOrElse(Set.empty)
+  
+  def getHolidays(id:String):Set[Date] = repository.collect{case repo => repo.getHolidays(id)}.getOrElse(Set.empty)
+  
+  def lastHoliday:Date = repository.collect{case repo => repo.lastHoliday}.getOrElse(Date.currentDate)
+  
 }

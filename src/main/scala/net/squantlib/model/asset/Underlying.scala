@@ -4,7 +4,6 @@ import net.squantlib.util.DisplayUtils._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Period => qlPeriod}
-import org.jquantlib.time.calendars.NullCalendar
 import net.squantlib.model.market.Market
 import net.squantlib.util.UnderlyingParsers
 import net.squantlib.database.DB
@@ -27,7 +26,7 @@ trait Underlying extends StaticAsset {
   
   val currency:Currency // TO BE DEFINED IN SUBCLASS
   
-  override lazy val calendar = Calendars.getOrElse(currency.code, new NullCalendar)
+  override lazy val calendar = Calendars(currency.code).getOrElse(Calendars.empty)
   
   override def isPriced:Boolean = true
     

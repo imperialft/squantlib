@@ -2,15 +2,15 @@ package net.squantlib.model.rates
 
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
 import net.squantlib.schedule.Schedule
+import net.squantlib.util.Date
+import net.squantlib.util.initializer.Calendars
+import net.squantlib.model.rates.convention.RateConvention
 import org.jquantlib.pricingengines.bond.DiscountingBondEngine
 import org.jquantlib.instruments
 import org.jquantlib.daycounters.{DayCounter, Thirty360, Actual365Fixed}
 import org.jquantlib.currencies.Currency
-import net.squantlib.util.Date
 import org.jquantlib.time.{Calendar, Period => qlPeriod, Frequency, BusinessDayConvention}
-import org.jquantlib.time.calendars.NullCalendar
 import java.lang.UnsupportedOperationException
-import net.squantlib.model.rates.convention.RateConvention
 
 /**
  * Encapsulates cashflow discounting curve and discount spread on 3m float rate.
@@ -89,7 +89,7 @@ case class DiscountCurve(
       duration(valuedate.add(maturity), period, daycount, convention)
     
     def duration(maturity:Date, period:qlPeriod, daycount:DayCounter, convention:BusinessDayConvention):Double = {
-      val dates = Schedule.periodicalDates(valuedate, maturity, period, convention, new NullCalendar)
+      val dates = Schedule.periodicalDates(valuedate, maturity, period, convention, Calendars.empty)
       (for (i <- 1 to dates.size - 1) yield (Date.daycount(dates(i-1), dates(i), daycount) * value(dates(i)))).sum
     } 
     

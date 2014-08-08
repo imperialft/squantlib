@@ -7,7 +7,6 @@ import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import net.squantlib.util.initializer.Calendars
 import org.jquantlib.time.Calendar
-import org.jquantlib.time.calendars.NullCalendar
 
 
 trait StaticAnalysis {

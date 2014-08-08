@@ -2,11 +2,11 @@ package net.squantlib.model.fx
 
 import net.squantlib.model.asset.Underlying
 import net.squantlib.model.rates.DiscountCurve
+import net.squantlib.util.Date
+import net.squantlib.util.initializer.Calendars
 import org.jquantlib.currencies.Currency
 import org.jquantlib.daycounters.DayCounter
-import net.squantlib.util.Date
 import org.jquantlib.time.{Period => qlPeriod}
-import org.jquantlib.time.calendars.NullCalendar
 
 /**
  * Basic FX framework providing spot, forward and volatility
@@ -22,7 +22,7 @@ trait FX extends Underlying {
 	val currencyFor:Currency = curveFor.currency
 	override val currency = currencyDom
 	
-	override lazy val calendar = new NullCalendar
+	override lazy val calendar = Calendars.empty
 	
 	require (curveDom.valuedate eq curveFor.valuedate)
 	val valuedate = curveDom.valuedate

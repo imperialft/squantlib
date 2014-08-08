@@ -1,14 +1,14 @@
 package net.squantlib.math.timeseries
 
 import scala.language.implicitConversions
+import java.util.{Date => JavaDate}
 import org.jquantlib.time.{Period => qlPeriod }
+import org.jquantlib.time.Calendar
 import scala.collection.{SortedSet, SortedMap}
 import net.squantlib.util.Date
-import java.util.{Date => JavaDate}
+import net.squantlib.util.initializer.Calendars
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
-import org.jquantlib.time.Calendar
-import org.jquantlib.time.calendars.NullCalendar
 
 case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double] {
   
@@ -83,13 +83,9 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
     }
   }
   
-  def getBusinessDayFilledTimeSeries(calendar:Calendar = new NullCalendar, startDate:Date = null, endDate:Date = null):TimeSeries = {
+  def getBusinessDayFilledTimeSeries(calendar:Calendar = Calendars.empty, startDate:Date = null, endDate:Date = null):TimeSeries = 
     if (ts.isEmpty) TimeSeries.empty
-    else TimeSeries(getFilledTimeSeries(startDate, endDate).filterKeys(d => calendar match {
-      case c:NullCalendar => d.isWeekday
-      case c => d.isBusinessday(c)
-    }))
-  }
+    else TimeSeries(getFilledTimeSeries(startDate, endDate).filterKeys(d => d.isBusinessday(calendar)))
     
 }
 
