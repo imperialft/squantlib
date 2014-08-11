@@ -55,6 +55,8 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
   
   def subWeekday(d:Int):Date = addWeekdayRec(d, -1)
   
+  def advance(calendar:Calendar, d:Int):Date = advance(calendar, d, TimeUnit.Days)
+  
   def advance(calendar:Calendar, d:Int, unit:TimeUnit):Date = Date(calendar.advance(ql, d, unit))
   
   def advance(calendar:Calendar, period:qlPeriod, convention:BusinessDayConvention = BusinessDayConvention.Following):Date = Date(calendar.advance(ql, period, convention))
