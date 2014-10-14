@@ -67,8 +67,24 @@ case class PutDIAmericanPayoff(
   }
   
   implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
-    override def isKnockIn(fixings:Map[String, Double]):Boolean = 
-      knockedIn || variables.exists(p => fixings.get(p) match { case Some(v) => v <= triggerMap(p) case None => false})
+    override def isKnockIn(fixings:Map[String, Double]):Boolean = try{
+      knockedIn || 
+      variables.exists(p => fixings.get(p) match { 
+        case Some(v) if triggerMap.contains(p) => v <= triggerMap(p) 
+        case None => false
+      })
+    }
+    catch {
+      case e:Throwable => 
+        println("ERROR CHECKING KNOCK-IN")
+        println("Variables")
+        println(variables)
+        println("Fixings")
+        println(fixings)
+        println("TriggerMap")
+        println(triggerMap)
+        false
+    }
     
     override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
       if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
