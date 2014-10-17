@@ -55,10 +55,20 @@ object DB {
     dates.map(d => allhistory.get(d))
   }
   
-  def pastFixings(ids:Set[String], dates:List[Date], paramType:String = null):List[Map[String, Option[Double]]] = {
+  def pastFixings(ids:Set[String], dates:List[Date], paramType:String = null, fillBlank:Boolean = false):List[Map[String, Option[Double]]] = {
     if (dates.isEmpty) {return List.empty}
-    val allhistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min, dates.max, paramType).toMap)) (collection.breakOut)
-    dates.map(d => ids.map(p => (p, allhistory(p).get(d))).toMap)
+    val allhistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min.sub(30), dates.max, paramType).toMap)) (collection.breakOut)
+    if (fillBlank){
+      dates.map(d => ids.map(p => (p, 
+        if (d gt latestParamDate.getOrElse(Date.currentDate)) None
+        else {
+          val minv = allhistory(p).filterKeys(v => v le d)
+          if (minv.isEmpty) None else Some(minv.maxBy(_._1)._2)
+        })).toMap)
+    }
+    else {
+      dates.map(d => ids.map(p => (p, allhistory(p).get(d))).toMap)
+    }
   }
 	
   def getHistorical(id:String):TimeSeries = getHistorical(id, null)

@@ -4,10 +4,10 @@ import scala.annotation.tailrec
 import DisplayUtils._
 
 case class FixingInformation(
-    tbd:Option[Double], 
-    minRange:Option[Double], 
-    maxRange:Option[Double], 
-    initialFixing:Map[String, Double]) {
+    var tbd:Option[Double], 
+    var minRange:Option[Double], 
+    var maxRange:Option[Double], 
+    var initialFixing:Map[String, Double]) {
     
   def all:Map[String, Double] = tbd match {
     case Some(c) => initialFixing.updated("tbd", c)

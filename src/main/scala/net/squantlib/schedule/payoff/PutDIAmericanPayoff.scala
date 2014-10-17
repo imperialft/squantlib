@@ -23,7 +23,7 @@ case class PutDIAmericanPayoff(
     strike:List[Double], 
     refstart:Date, 
     refend:Date, 
-    knockedIn:Boolean, 
+    var knockedIn:Boolean, 
     amount:Double = 1.0, 
     description:String = null,
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
