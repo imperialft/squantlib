@@ -14,7 +14,7 @@ trait FixingLeg {
 	
   def assignFixings(f:Double):Unit = if (variables.size == 1) assignFixings(Map(variables.head -> f))
 	
-  def clearFixings(f:Map[String, Double]) = preFixings = Map.empty
+  def clearFixings = preFixings = Map.empty
 	
   def getFixings = preFixings
 	

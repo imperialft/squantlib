@@ -91,6 +91,17 @@ trait PriceableBond extends BondModel with Priceable {
     bond.model = this.model
 	calibrationCache.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
   }
+	  
+	def clearFixings:Unit = {
+	  scheduledPayoffs.foreach{case (s, p, c) =>
+	    p.clearFixings
+	    c.clearFixings
+	  }
+	  payoffs.foreach{
+	    case p:net.squantlib.schedule.payoff.PutDIAmericanPayoff => p.knockedIn = false
+	    case p => {}
+	  }
+	}
 	
   /*
   * Creates clone of the same bond with date shifted by given days

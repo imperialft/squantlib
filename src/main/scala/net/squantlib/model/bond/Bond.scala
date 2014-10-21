@@ -62,14 +62,13 @@ case class Bond(
 
 object Bond {
   
-  def apply(db:dbBond):Option[Bond] = 
-    getScheduledPayoffs(db).collect{case po => new Bond(db, po, db.underlyingList)}
+  def apply(db:dbBond):Option[Bond] = getScheduledPayoffs(db).collect{case po => new Bond(db, po, db.underlyingList)}
   
-  def forward(db:dbBond, valuedate:Date):Option[Bond] = 
-    getScheduledPayoffs(db, Some(valuedate)).collect{case po => new Bond(db, po, db.underlyingList)}
+  def forward(db:dbBond, valuedate:Date):Option[Bond] = getScheduledPayoffs(db, Some(valuedate)).collect{case po => new Bond(db, po, db.underlyingList)}
   
+  def noFixings(db:dbBond):Option[Bond] = getScheduledPayoffs(db, None, false).collect{case po => new Bond(db, po, db.underlyingList)}
 
-  def getScheduledPayoffs(db:dbBond, valuedate:Option[Date] = None):Option[ScheduledPayoffs] = {
+  def getScheduledPayoffs(db:dbBond, valuedate:Option[Date] = None, assignFixings:Boolean = true):Option[ScheduledPayoffs] = {
     val schedule = db.schedule.orNull
     if (schedule == null) {return None}
     
@@ -88,7 +87,8 @@ object Bond {
       
     val scheduledPayoffs = valuedate match {
       case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d)
-      case None => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
+      case None if assignFixings => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
+      case None => ScheduledPayoffs.noFixing(schedule, coupon :+ redemption, calls.fill(schedule.size))
     }
     
     if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {
