@@ -77,7 +77,16 @@ object PayoffExamples {
 	    "strike" : [100, 10000], 
 	    "description" : "Forward"
 	    }""")
-	    
+
+      val rangeforward = Payoff("""
+        {"type" : "rangeforward",
+        "variable" : "usdjpy",
+        "triggerhigh" : 70,
+        "triggerlow" : 90,
+        "strike" : 100,
+        "description" : "Range Forward"
+        }""")
+
 	  val putdiamerican = Payoff("""
 	      {type:"putdiamerican", 
 	      variable:["usdjpy", "NKY"], 
