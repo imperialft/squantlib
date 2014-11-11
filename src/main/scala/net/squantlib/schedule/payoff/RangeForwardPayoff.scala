@@ -10,7 +10,7 @@ import net.squantlib.util.FixingInformation
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
  * JSON format:
- *  {type:"rangeforward", variable:String, triggerhigh:Double, triggerlow:Double, strike:Double, description:String}, 
+ *  {type:"rangeforward", variable:String, triggerlow:Double, triggerhigh:Double, strike:Double, description:String}, 
  * No strike is considered as no low boundary
  */
 case class RangeForwardPayoff(
@@ -23,6 +23,7 @@ case class RangeForwardPayoff(
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   val variables = Set(variable)
+  nominal = amount
   
   override val isPriceable:Boolean = 
     !triggerHigh.isNaN && !triggerHigh.isInfinity && 
@@ -41,40 +42,37 @@ case class RangeForwardPayoff(
     }
     
   override def priceImpl(fixing:Double):Double =
-    if (fixing < triggerLow || fixing > triggerHigh) amount
-    else amount * fixing / strike
+    if (fixing < triggerLow || fixing > triggerHigh) 1.0
+    else fixing / strike
    
   override def toString =
-    amount.asPercent + " [" + triggerHigh.asDouble + ", " + triggerLow.asDouble + "] " + amount.asPercent + " x " + variable + " / " + strike.asDouble + ""
+    nominal.asPercent + " [" + triggerHigh.asDouble + ", " + triggerLow.asDouble + "] " + nominal.asPercent + " x " + variable + " / " + strike.asDouble + ""
   
   override def priceImpl = Double.NaN
   
-  override def jsonString = {
-    
-    val infoMap:JavaMap[String, Any] = Map(
-        "type" -> "putdi", 
-        "variable" -> variable, 
-        "triggerhigh" -> triggerHigh, 
-        "triggerlow" -> triggerLow, 
-        "strike" -> strike, 
-        "description" -> description)
-    
-    (new ObjectMapper).writeValueAsString(infoMap)    
-  }  
+  override def jsonMapImpl = Map(
+    "type" -> "rangeforward", 
+    "variable" -> variable, 
+    "triggerlow" -> triggerLow, 
+    "triggerhigh" -> triggerHigh, 
+    "strike" -> strike, 
+    "description" -> description)
   
 }
 
 object RangeForwardPayoff {
   
-  def apply(formula:String)(implicit fixingInfo:FixingInformation):RangeForwardPayoff = {
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):RangeForwardPayoff = {
+    val formula = Payoff.updateReplacements(inputString)
     val fixed = fixingInfo.update(formula)
+    
     val variable:String = formula.parseJsonString("variable").getOrElse(null)
     val triggerHigh:Double = fixed.parseJsonDouble("triggerhigh").getOrElse(Double.NaN)
     val triggerLow:Double = fixed.parseJsonDouble("triggerlow").getOrElse(Double.NaN)
     val strike:Double = fixed.parseJsonDouble("strike").getOrElse(Double.NaN)
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val description:String = formula.parseJsonString("description").orNull
-    RangeForwardPayoff(variable, triggerHigh, triggerLow, strike, amount, description, formula)
+    RangeForwardPayoff(variable, triggerLow, triggerHigh, strike, amount, description, inputString)
   }
   
 }

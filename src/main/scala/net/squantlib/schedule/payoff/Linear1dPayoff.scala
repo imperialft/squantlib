@@ -35,7 +35,7 @@ case class Linear1dPayoff(
   
   override def toString:String = payoff.toString(variable)
   
-  override def jsonString = {
+  override def jsonMapImpl = {
       
     val jsonPayoff:java.util.Map[String, Any] = Map(
         "min" -> payoff.minValue.getOrElse("None"),
@@ -43,21 +43,21 @@ case class Linear1dPayoff(
         "coeff" -> payoff.coeff.getOrElse("None"),
         "description" -> payoff.description)
         
-    val infoMap:java.util.Map[String, Any] = Map(
+    Map(
         "type" -> "linear1d", 
         "variable" -> variable, 
         "payoff" -> jsonPayoff)
     
-    (new ObjectMapper).writeValueAsString(infoMap)    
   }
 }
 
 object Linear1dPayoff {
   
-  def apply(formula:String)(implicit fixingInfo:FixingInformation):Linear1dPayoff = {
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):Linear1dPayoff = {
+    val formula = Payoff.updateReplacements(inputString)
     val variable:String = formula.parseJsonString("variable").orNull
     val payoff:Linear1dFormula = fixingInfo.update(formula).parseJsonObject("payoff", Linear1dFormula(_)).orNull
-    Linear1dPayoff(variable, payoff, null, formula)
+    Linear1dPayoff(variable, payoff, null, inputString)
   }
   
   def apply(variable:String, payoff:Map[String, Any])(implicit fixingInfo:FixingInformation):Linear1dPayoff = 

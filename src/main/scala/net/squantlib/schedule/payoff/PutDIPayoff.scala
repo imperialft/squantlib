@@ -17,11 +17,13 @@ case class PutDIPayoff(
     putVariables:List[String], 
     trigger:List[Double], 
     strike:List[Double], 
-    amount:Double = 1.0, 
+    amount:Double = 1.0,
     description:String = null,
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   val variables = putVariables.toSet
+  
+  nominal = amount
   
   override val isPriceable:Boolean = !trigger.exists(v => v.isNaN || v.isInfinity) && !strike.exists(v => v.isNaN || v.isInfinity)
   
@@ -33,45 +35,42 @@ case class PutDIPayoff(
   override def priceImpl(fixings:Map[String, Double]) = 
     getFixings(fixings) match {
       case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => 
-        if (fixValues.corresponds(trigger) {_ >= _}) amount
-        else amount * math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
+        if (fixValues.corresponds(trigger) {_ >= _}) 1.0
+        else math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
       case None => Double.NaN
     }
     
   override def priceImpl(fixing:Double) =
     if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
-    else if (fixing >= trigger.head) amount
-    else amount * math.min(1.00, fixing / strike.head)
+    else if (fixing >= trigger.head) 1.0
+    else math.min(1.00, fixing / strike.head)
    
   override def toString =
-    amount.asPercent + " [" + trigger.mkString(",") + "] " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])"
+    nominal.asPercent + " [" + trigger.mkString(",") + "] " + nominal.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])"
   
   override def priceImpl = Double.NaN
   
-  override def jsonString = {
-    
-    val infoMap:JavaMap[String, Any] = Map(
-        "type" -> "putdi", 
-        "variable" -> putVariables.toArray, 
-        "trigger" -> trigger.toArray, 
-        "strike" -> strike.toArray, 
-        "description" -> description)
-    
-    (new ObjectMapper).writeValueAsString(infoMap)    
-  }  
+  override def jsonMapImpl = Map(
+    "type" -> "putdi", 
+    "variable" -> putVariables.toArray, 
+    "trigger" -> trigger.toArray, 
+    "strike" -> strike.toArray, 
+    "description" -> description)
+
   
 }
 
 object PutDIPayoff {
   
-  def apply(formula:String)(implicit fixingInfo:FixingInformation):PutDIPayoff = {
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):PutDIPayoff = {
+    val formula = Payoff.updateReplacements(inputString)
     val fixed = fixingInfo.update(formula)
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)  
     val trigger:List[Double] = fixed.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
     val strike:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val description:String = formula.parseJsonString("description").orNull
-    PutDIPayoff(variable, trigger, strike, amount, description, formula)
+    PutDIPayoff(variable, trigger, strike, amount, description, inputString)
   }
   
 }

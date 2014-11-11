@@ -30,6 +30,8 @@ case class PutDIAmericanPayoff(
   
   override val variables = putVariables.toSet
   
+  nominal = amount
+  
   val strikeMap:Map[String, Double] = (putVariables zip strike) (collection.breakOut)
    
   val triggerMap:Map[String, Double] = (putVariables zip trigger) (collection.breakOut)
@@ -88,8 +90,8 @@ case class PutDIAmericanPayoff(
     
     override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
       if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
-        if (isKnockedIn) amount * math.min(1.00, variables.map(v => fixings(v) / strikeMap(v)).min)
-        else amount
+        if (isKnockedIn) math.min(1.00, variables.map(v => fixings(v) / strikeMap(v)).min)
+        else 1.0
       } else Double.NaN
   }}
   
@@ -97,8 +99,8 @@ case class PutDIAmericanPayoff(
     override def isKnockIn(fixing:Double):Boolean = knockedIn || fixing <= trigger.head
     override def price(fixing:Double, isKnockedIn:Boolean):Double = 
       if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
-      else if (isKnockedIn) amount * math.min(1.0, fixing / strike.head)
-      else amount
+      else if (isKnockedIn) math.min(1.0, fixing / strike.head)
+      else 1.0
     }
   
   def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
@@ -116,28 +118,24 @@ case class PutDIAmericanPayoff(
   override def priceImpl = Double.NaN
   
   override def toString =
-    amount.asPercent + " [" + trigger.map(_.asDouble).mkString(",") + "](Amer) " + amount.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.map(_.asDouble).mkString(",") + "])" 
+    nominal.asPercent + " [" + trigger.map(_.asDouble).mkString(",") + "](Amer) " + nominal.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.map(_.asDouble).mkString(",") + "])" 
   
-  override def jsonString = {
+  override def jsonMapImpl = Map(
+    "type" -> "putdiamerican", 
+    "variable" -> putVariables.toArray, 
+    "trigger" -> trigger.toArray, 
+    "strike" -> strike.toArray,
+    "refstart" -> (if (refstart == null) null else refstart.toString),
+    "refend" -> (if (refend == null) null else refend.toString),
+    "description" -> description)
     
-    val infoMap:JavaMap[String, Any] = Map(
-        "type" -> "putdiamerican", 
-        "variable" -> putVariables.toArray, 
-        "trigger" -> trigger.toArray, 
-        "strike" -> strike.toArray,
-        "refstart" -> (if (refstart == null) null else refstart.toString),
-        "refend" -> (if (refend == null) null else refend.toString),
-        "description" -> description)
-    
-    (new ObjectMapper).writeValueAsString(infoMap)    
-  }  
   
 }
 
 object PutDIAmericanPayoff {
   
-  def apply(formula:String)(implicit fixingInfo:FixingInformation):PutDIAmericanPayoff = {
-    
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):PutDIAmericanPayoff = {
+    val formula = Payoff.updateReplacements(inputString)
     val fixed = fixingInfo.update(formula)
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
     val trigger:List[Double] = fixed.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
@@ -154,7 +152,7 @@ object PutDIAmericanPayoff {
         case h => h.exists{case (_, x) => x <= trig}
       }}
     
-    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, amount, description, formula)
+    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, amount, description, inputString)
   }
   
 }

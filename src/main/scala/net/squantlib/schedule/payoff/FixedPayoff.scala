@@ -30,9 +30,8 @@ case class FixedPayoff(
   
   override def toString = payoff.asPercent
   
-  override def jsonString = {
-    val infoMap:java.util.Map[String, Any] = Map("type" -> "fixed", "description" -> description, "payoff" -> payoff)
-    (new ObjectMapper).writeValueAsString(infoMap)    
+  override def jsonMapImpl = {
+    Map("type" -> "fixed", "description" -> description, "payoff" -> payoff)
   }
 	
 }
@@ -40,9 +39,12 @@ case class FixedPayoff(
 
 object FixedPayoff {
   
-  def apply(formula:String)(implicit fixingInfo:FixingInformation):FixedPayoff = fixingInfo.update(formula).parseDouble match {
-    case Some(v) => FixedPayoff(v, null, formula)
-    case None => FixedPayoff(fixingInfo.update(formula).parseJsonDouble("payoff").getOrElse(Double.NaN), formula.parseJsonString("description").orNull, formula)
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):FixedPayoff = {
+    val formula = Payoff.updateReplacements(inputString)
+    fixingInfo.update(formula).parseDouble match {
+      case Some(v) => FixedPayoff(v, null, inputString)
+      case None => FixedPayoff(fixingInfo.update(formula).parseJsonDouble("payoff").getOrElse(Double.NaN), formula.parseJsonString("description").orNull, inputString)
+    }
   }
 	
   def apply(payoff:Double)(implicit fixingInfo:FixingInformation):FixedPayoff = new FixedPayoff(payoff, null, null)

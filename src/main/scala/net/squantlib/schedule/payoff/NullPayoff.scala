@@ -28,7 +28,7 @@ case class NullPayoff(
   
   override def toString = description
   
-  override def jsonString = inputString
+  override def jsonMapImpl = Map.empty
   
 }
 

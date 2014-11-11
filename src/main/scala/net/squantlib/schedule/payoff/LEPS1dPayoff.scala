@@ -40,8 +40,7 @@ case class LEPS1dPayoff(
   
   override def priceImpl = Double.NaN
   
-  override def jsonString = {
-    
+  override def jsonMapImpl = {
     val jsonPayoff:Array[JavaMap[String, Any]] = payoff.toArray.map(p => {
       val leg:JavaMap[String, Any] = Map(
         "minrange" -> p.minRange.getOrElse("None"),
@@ -51,13 +50,12 @@ case class LEPS1dPayoff(
         )
       leg})
       
-    val infoMap:JavaMap[String, Any] = Map(
+    Map(
         "type" -> "leps1d", 
         "variable" -> variable, 
         "description" -> description,
         "payoff" -> jsonPayoff)
     
-    (new ObjectMapper).writeValueAsString(infoMap)    
   }  
   
 }
@@ -82,10 +80,11 @@ object LEPS1dPayoff {
     }
     
     else {
+      val formula = Payoff.updateReplacements(inputString)
       val variable:String = inputString.parseJsonString("variable").orNull
       val description:String = inputString.parseJsonString("description").orNull
     
-      val payoff:List[LEPS1dComponent] = fixingInfo.update(inputString).jsonNode match {
+      val payoff:List[LEPS1dComponent] = fixingInfo.update(formula).jsonNode match {
         case Some(node) => getLEPScomponents(node.get("payoff"))
         case None => List.empty
       }

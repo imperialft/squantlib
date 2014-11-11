@@ -11,7 +11,8 @@ case class CalculationPeriod(
     startDate:Date, 
     endDate:Date, 
     paymentDate:Date, 
-    daycounter:DayCounter) {
+    var daycounter:DayCounter, 
+    var nominal:Double) {
   
   def dayCount:Double = Date.daycount(startDate, endDate, daycounter)
 	
@@ -26,14 +27,14 @@ case class CalculationPeriod(
   
   def zeroCoupon(curve:DiscountCurve):Double = curve(paymentDate)
   
-  def coefficient(curve:DiscountCurve):Double = dayCount * zeroCoupon(curve)
+  def coefficient(curve:DiscountCurve):Double = dayCount * zeroCoupon(curve) * nominal
   
   def isAbsolute:Boolean = daycounter match {
       case d:Absolute => true
       case _ => false
     }
 	
-  def shifted(shift:Int):CalculationPeriod = CalculationPeriod(eventDate.add(shift), startDate.add(shift), endDate.add(shift), paymentDate.add(shift), daycounter)
+  def shifted(shift:Int):CalculationPeriod = CalculationPeriod(eventDate.add(shift), startDate.add(shift), endDate.add(shift), paymentDate.add(shift), daycounter, nominal)
   
   override def toString = eventDate.toString + " " + startDate.toString + " " + endDate.toString + " " + paymentDate.toString + " " + daycounter.toString
 }
@@ -47,11 +48,12 @@ object CalculationPeriod {
       inarrears:Boolean, 
       daycount:DayCounter, 
       calendar:Calendar, 
-      paymentConvention:BusinessDayConvention):CalculationPeriod = {
+      paymentConvention:BusinessDayConvention,
+      nominal:Double = 1.0):CalculationPeriod = {
     
     val eventDate = (if (inarrears) endDate else startDate).advance(calendar, -notice, TimeUnit.Days)
     val paymentDate = endDate.adjust(calendar, paymentConvention)
-    new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount)
+    new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount, nominal)
   }
   
   def simpleCashflow(

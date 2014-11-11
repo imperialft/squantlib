@@ -62,7 +62,7 @@ case class BinaryPayoff(
   
   override def priceImpl = Double.NaN
   
-  override def jsonString = {
+  override def jsonMapImpl = {
     
     val jsonPayoff:Array[JavaMap[String, Any]] = payoff.map{
     case (v, None) => val jmap:JavaMap[String, Any] = Map("amount" -> v); jmap
@@ -71,20 +71,20 @@ case class BinaryPayoff(
     
     val varSet:java.util.List[String] = scala.collection.mutable.ListBuffer(binaryVariables: _*)
     
-    val infoMap:JavaMap[String, Any] = Map(
+    Map(
       "type" -> "binary",
       "variable" -> varSet, 
       "description" -> description,
       "payoff" -> jsonPayoff)
     
-    (new ObjectMapper).writeValueAsString(infoMap)    
   }  
         
 }
 
 object BinaryPayoff {
   
-  def apply(formula:String)(implicit fixingInfo:FixingInformation):BinaryPayoff = {
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):BinaryPayoff = {
+    val formula = Payoff.updateReplacements(inputString)
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 	  
     val payoff:List[(Double, Option[List[Double]])] = (fixingInfo.update(formula).jsonNode("payoff") match {
@@ -98,7 +98,7 @@ object BinaryPayoff {
     })
 	  
     val description:String = formula.parseJsonString("description").orNull
-	BinaryPayoff(variable, payoff, description, formula)
+	BinaryPayoff(variable, payoff, description, inputString)
   }
   
 }

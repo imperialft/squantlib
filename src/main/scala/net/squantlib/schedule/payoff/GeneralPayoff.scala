@@ -54,9 +54,7 @@ case class GeneralPayoff(
         formula.map{case (variables, coeff) => 
       ((if (variables.size > 0) variables.mkString("*") + "*" + coeff.toDouble else coeff.asPercent) )}.mkString("+").replace("+-", "+")
 
-  override def jsonString = formula.map{
-    case (variables, coeff) => 
-      ((if (variables.size > 0) variables.mkString("*") + "*" + coeff else coeff) )}.mkString("+").replace("+-", "+")
+  override def jsonMapImpl = Map.empty
   
 }
  

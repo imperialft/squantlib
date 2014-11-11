@@ -91,7 +91,7 @@ trait ExtendedSchedule {
     
   def spotFixedRates(vd:Date):List[(CalculationPeriod, Double)] = spotFixedRates.filter{case (p, d) => (p.paymentDate gt vd)}
     
-  def spotFixedAmount:List[(Date, Double)] = spotFixedRates.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
+  def spotFixedAmount:List[(Date, Double)] = spotFixedRates.map{case (period, rate) => (period.paymentDate, rate * period.dayCount * period.nominal)}
   
   def spotFixedAmount(vd:Date):List[(Date, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
     
@@ -99,7 +99,7 @@ trait ExtendedSchedule {
       scheduledPayoffs.map{case (d, p, _) => 
         (d, market.collect{case mkt => p.price(mkt)}.getOrElse(Double.NaN))} (collection.breakOut))
     
-  def spotFixedAmountAll:List[(Date, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount)}
+  def spotFixedAmountAll:List[(Date, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount * period.nominal)}
   
   def spotCashflowDayfrac(dc:DayCounter):List[(Double, Double)] = spotFixedAmount.map{
     case (payday, amount) => (Date.daycount(valueDate.get, payday, dc), amount)}

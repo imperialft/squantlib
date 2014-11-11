@@ -4,19 +4,25 @@ import scala.collection.LinearSeq
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.database.DB
+import net.squantlib.schedule.call.{Callabilities, Callability}
+import net.squantlib.schedule.payoff.{Payoff, Payoffs, FixedPayoff}
 import scala.collection.JavaConversions._
 import net.squantlib.util.Date
 import org.jquantlib.time.{BusinessDayConvention, Calendar}
 import org.jquantlib.daycounters.Actual365Fixed
+import org.jquantlib.daycounters._
 import scala.runtime.ZippedTraversable3.zippedTraversable3ToTraversable
-import net.squantlib.schedule.call.{Callabilities, Callability}
-import net.squantlib.schedule.payoff.{Payoff, Payoffs, FixedPayoff}
 
 case class ScheduledPayoffs(
-    scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],
-    valuedate:Option[Date] = None
-    ) 
-    extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
+  scheduledPayoffs:LinearSeq[(CalculationPeriod, Payoff, Callability)],
+  valuedate:Option[Date] = None
+  ) 
+  extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
+  
+  scheduledPayoffs.foreach{case (s, p, c) => 
+    if (p.isAbsolute) s.daycounter = new Absolute
+    s.nominal = p.nominal
+  }
   
   lazy val (schedule, payoffs, calls) = scheduledPayoffs.unzip3  match {
     case (s, p, c) => (Schedule(s), Payoffs(p), Callabilities(c))

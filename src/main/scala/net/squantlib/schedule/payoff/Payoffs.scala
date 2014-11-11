@@ -226,17 +226,18 @@ object Payoffs {
 	  case f => formula.parseJsonString("type").orNull
 	  }
 	
-	def getPayoff(f:String)(implicit fixingInfo:FixingInformation):Payoff = payoffType(f) match {
-	  case "fixed" => FixedPayoff(f)
-	  case "leps1d" => LEPS1dPayoff(f)
-	  case "linear1d" => Linear1dPayoff(f)
-	  case "putdi" => PutDIPayoff(f)
-	  case "forward" => ForwardPayoff(f)
-	  case "null" => NullPayoff(f)
-	  case "binary" => BinaryPayoff(f)
-	  case "general" => GeneralPayoff(f)
-	  case _ => GeneralPayoff(f)
-	}
+//	def getPayoff(f:String)(implicit fixingInfo:FixingInformation):Payoff = payoffType(f) match {
+//	  case "fixed" => FixedPayoff(f)
+//	  case "leps1d" => LEPS1dPayoff(f)
+//	  case "linear1d" => Linear1dPayoff(f)
+//	  case "putdi" => PutDIPayoff(f)
+//	  case "forward" => ForwardPayoff(f)
+//	  case "null" => NullPayoff(f)
+//	  case "binary" => BinaryPayoff(f)
+//	  case "general" => GeneralPayoff(f)
+//	  case _ => GeneralPayoff(f)
+//	}
 
+	def getPayoff(f:String)(implicit fixingInfo:FixingInformation):Payoff = Payoff(f).getOrElse(GeneralPayoff(f))
 	  
 }

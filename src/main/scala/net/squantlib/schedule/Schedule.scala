@@ -13,76 +13,76 @@ import java.util.{Date => JavaDate}
 
 class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationPeriod] {
  
-	def sort:Schedule = if (isEmpty) this else Schedule(dates.sortBy(_.eventDate))
+  def sort:Schedule = if (isEmpty) this else Schedule(dates.sortBy(_.eventDate))
 
-	def sortWith[A](obj:LinearSeq[A]):LinearSeq[(CalculationPeriod, A)] = (dates zip obj).sortBy{case (d, _) => (d.paymentDate, d.dayCount)}
-	
-	def sortWith[A, B](obj1:LinearSeq[A], obj2:LinearSeq[B]):LinearSeq[(CalculationPeriod, A, B)] =
-	  (dates, obj1, obj2).zipped.toList.sortBy{case (d, _, _) => (d.paymentDate, d.dayCount)}
-	
+  def sortWith[A](obj:LinearSeq[A]):LinearSeq[(CalculationPeriod, A)] = (dates zip obj).sortBy{case (d, _) => (d.paymentDate, d.dayCount)}
+  
+  def sortWith[A, B](obj1:LinearSeq[A], obj2:LinearSeq[B]):LinearSeq[(CalculationPeriod, A, B)] =
+    (dates, obj1, obj2).zipped.toList.sortBy{case (d, _, _) => (d.paymentDate, d.dayCount)}
+  
   def apply(i:Int):CalculationPeriod = dates(i)
   
-    override def isEmpty:Boolean = dates.isEmpty
-    
-    override def head:CalculationPeriod = dates.head
-    
-    override def tail = dates.tail
-    
-    override def length = dates.length
-    
-    override def iterator:Iterator[CalculationPeriod] = dates.iterator
+  override def isEmpty:Boolean = dates.isEmpty
+  
+  override def head:CalculationPeriod = dates.head
+  
+  override def tail = dates.tail
+  
+  override def length = dates.length
+  
+  override def iterator:Iterator[CalculationPeriod] = dates.iterator
 
-    def get(i:Int):CalculationPeriod = dates(i)
-    
-    val effectiveDate:Option[Date] = if (isEmpty) None else Some(dates.minBy(_.startDate).startDate)
-    
-    val terminationDate:Option[Date] = if (isEmpty) None else Some(dates.maxBy(_.endDate).endDate)
-    
-    var defaultDaycounter = new Actual365Fixed
-    
-    def startDate(i:Int):Date = dates(i).startDate
-    
-    val startDates:List[Date] = dates.map(_.startDate)
-    
-    def startYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.startDate, defaultDaycounter))
-    
-    def endDate(i:Int):Date = dates(i).endDate
-    
-    val endDates:List[Date] = dates.map(_.endDate)
-    
-    def endYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.endDate, defaultDaycounter))
-    
-    def eventDate(i:Int):Date = dates(i).eventDate
-    
-    val eventDates:List[Date] = dates.map(_.eventDate)
-    
-    def eventYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.eventDate, defaultDaycounter))
-    
-    def paymentDate(i:Int):Date = dates(i).paymentDate
-    
-    val paymentDates:List[Date] = dates.map(_.paymentDate)
-    
-    def paymentYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.paymentDate, defaultDaycounter))
+  def get(i:Int):CalculationPeriod = dates(i)
+  
+  val effectiveDate:Option[Date] = if (isEmpty) None else Some(dates.minBy(_.startDate).startDate)
+  
+  val terminationDate:Option[Date] = if (isEmpty) None else Some(dates.maxBy(_.endDate).endDate)
+  
+  var defaultDaycounter = new Actual365Fixed
+  
+  def startDate(i:Int):Date = dates(i).startDate
+  
+  val startDates:List[Date] = dates.map(_.startDate)
+  
+  def startYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.startDate, defaultDaycounter))
+  
+  def endDate(i:Int):Date = dates(i).endDate
+  
+  val endDates:List[Date] = dates.map(_.endDate)
+  
+  def endYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.endDate, defaultDaycounter))
+  
+  def eventDate(i:Int):Date = dates(i).eventDate
+  
+  val eventDates:List[Date] = dates.map(_.eventDate)
+  
+  def eventYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.eventDate, defaultDaycounter))
+  
+  def paymentDate(i:Int):Date = dates(i).paymentDate
+  
+  val paymentDates:List[Date] = dates.map(_.paymentDate)
+  
+  def paymentYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.paymentDate, defaultDaycounter))
 
-    def currentPeriods(ref:Date):List[CalculationPeriod] = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
-    
-    def dayCount(i:Int):Double = dates(i).dayCount
-    
-    val dayCounts:List[Double] = dates.map(_.dayCount)
-    
-    def zeroCoupon(i:Int, curve:DiscountCurve):Double = dates(i).zeroCoupon(curve)
-    
-    def zeroCoupons(curve:DiscountCurve):List[Double] = dates.map(_.zeroCoupon(curve))
-    
-    def coefficient(i:Int, curve:DiscountCurve):Double = dayCount(i) * zeroCoupon(i, curve)
-    
-    def coefficients(curve:DiscountCurve):List[Double] = (dayCounts, zeroCoupons(curve)).zipped.map(_ * _)
-    
-    def shifted(shift:Int):Schedule = new Schedule(dates.map(d => d.shifted(shift)))
-    
-    override def toList:List[CalculationPeriod] = dates
-    
-    override def toString = "eventdate startdate enddate paymentdate\n" + dates.mkString("\n")
+  def currentPeriods(ref:Date):List[CalculationPeriod] = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
+  
+  def dayCount(i:Int):Double = dates(i).dayCount
+  
+  val dayCounts:List[Double] = dates.map(_.dayCount)
+  
+  def zeroCoupon(i:Int, curve:DiscountCurve):Double = dates(i).zeroCoupon(curve)
+  
+  def zeroCoupons(curve:DiscountCurve):List[Double] = dates.map(_.zeroCoupon(curve))
+  
+  def coefficient(i:Int, curve:DiscountCurve):Double = dayCount(i) * zeroCoupon(i, curve)
+  
+  def coefficients(curve:DiscountCurve):List[Double] = (dayCounts, zeroCoupons(curve)).zipped.map(_ * _)
+  
+  def shifted(shift:Int):Schedule = new Schedule(dates.map(d => d.shifted(shift)))
+  
+  override def toList:List[CalculationPeriod] = dates
+  
+  override def toString = "eventdate startdate enddate paymentdate\n" + dates.mkString("\n")
     
 }
 
@@ -91,7 +91,7 @@ object Schedule{
   def empty:Schedule = new Schedule(List.empty)
   
   def apply(inputDates:List[CalculationPeriod]):Schedule = new Schedule(inputDates)
-	
+  
   def apply(dates:LinearSeq[CalculationPeriod]):Schedule = new Schedule(dates.toList)
   
   def apply(

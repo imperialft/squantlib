@@ -44,27 +44,23 @@ case class ForwardPayoff(
   
   override def priceImpl = Double.NaN
   
-  override def jsonString = {
-    
-    val infoMap:JavaMap[String, Any] = Map(
-        "type" -> "forward", 
-        "variable" -> fwdVariables.toArray, 
-        "strike" -> strike.toArray, 
-        "description" -> description)
-    
-    (new ObjectMapper).writeValueAsString(infoMap)    
-  }  
+  override def jsonMapImpl = Map(
+    "type" -> "forward", 
+    "variable" -> fwdVariables.toArray, 
+    "strike" -> strike.toArray, 
+    "description" -> description)
+
 	
 }
 
 object ForwardPayoff {
   
-  def apply(formula:String)(implicit fixingInfo:FixingInformation):ForwardPayoff = {
-    
+  def apply(inputString:String)(implicit fixingInfo:FixingInformation):ForwardPayoff = {
+    val formula = Payoff.updateReplacements(inputString)
     val variable:List[String] = fixingInfo.update(formula).parseJsonStringList("variable").map(_.orNull)
     val strike:List[Double] = fixingInfo.update(formula).parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
     val description:String = fixingInfo.update(formula).parseJsonString("description").orNull
-    ForwardPayoff(variable, strike, description, formula)
+    ForwardPayoff(variable, strike, description, inputString)
   }
   
 }
