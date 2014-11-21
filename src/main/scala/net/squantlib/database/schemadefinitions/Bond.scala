@@ -240,7 +240,7 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def accrualPrice(vd:Date):Double = 
     if (isMatured(vd)) 0.0 
-    else if (issueDate ge vd) issueprice.getOrElse(1.0)
+    else if (issueDate ge vd) issueprice.collect{case p => p / 100.0}.getOrElse(1.0)
     else try {
       val r = redemprice.toDouble
       val i = issueprice.get / 100.0
