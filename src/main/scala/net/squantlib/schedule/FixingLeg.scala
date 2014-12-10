@@ -29,13 +29,11 @@ trait FixingLegs[T <: FixingLeg] {
   
   def assignFixings(fixings:List[Map[String, Double]]):Unit = {
     assert(fixings.size == fixinglegs.size)
-    println("assign fixing " + fixings)
     (fixinglegs, fixings).zipped.foreach{case (p, f) => p.assignFixings(f)}
   }
 	
   def assignFixings(fixings:List[Option[Double]]) (implicit d:DummyImplicit):Unit = {
     assert(fixings.size == fixinglegs.size)
-    println("assign fixing " + fixings)
     (fixinglegs, fixings).zipped.foreach{
       case (p, Some(f)) => p.assignFixings(f)
       case (p, None) => {}}
