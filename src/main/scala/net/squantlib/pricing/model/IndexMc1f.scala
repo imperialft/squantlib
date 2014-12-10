@@ -178,7 +178,7 @@ object IndexQtoMc1f {
 	  val fx = market.getFX(bond.currency.code, index.currency.code).orNull
 
 	  if (fx == null) {
-	    println(bond.id + " : invalid fx underlying for quanto model - " + fx.id + " in market " + market.paramset)
+	    println(bond.id + " : invalid fx underlying for quanto model - FX " + (if (fx == null) "null" else fx.id) + " in market " + (if (market == null) "null" else market.paramset))
 	    return None}
 	  
 	  val mcmodel = mcengine(index, fx).orNull

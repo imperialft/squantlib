@@ -79,6 +79,7 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("ChartSettings")    var chartsettings: String,
               @Column("Information")      var information: String,
               @Column("CalculationAgentID")      var calculation_agent_id: String,
+              @Column("InitialPrice")      var initial_price: Option[Double],
               @Column("Created")			var created: Option[JavaDate],
               @Column("LastModified")		var lastmodified : Option[JavaDate]
               ) extends StringEntity {
@@ -106,7 +107,8 @@ class Bond(	  @Column("ID")					override var id: String,
       "catchphrase",
       "characteristics",
       "chartsettings",
-      "information"
+      "information",
+      "initial_price"
   )
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
@@ -169,6 +171,8 @@ class Bond(	  @Column("ID")					override var id: String,
   def issueDate = Date(issuedate)
   
   def maturityDate = Date(maturity)
+  
+  def fixingDate = fixingdate.collect{case d => Date(d)}
   
   def endDate:Date = terminationdate match {
     case Some(d) if maturity after d => Date(d)
@@ -361,13 +365,14 @@ class Bond(	  @Column("ID")					override var id: String,
 		physicalredemption = 0,
 		minimum_purchase = None,
 		fixing_method = null,
-    model_output = null,
-    pricingid = null,
-    catchphrase = null,
-    characteristics = null,
-    chartsettings = null,
-    information = null,
-    calculation_agent_id = null,
+		model_output = null,
+		pricingid = null,
+		catchphrase = null,
+		characteristics = null,
+		chartsettings = null,
+		information = null,
+		calculation_agent_id = null,
+		initial_price = None,
 		created = None,
 		lastmodified  = None)
   

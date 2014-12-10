@@ -118,23 +118,52 @@ class Market(
   /**
    * Returns discount curve from full given parameter.
    */
-  private def getDiscountCurve(ccy:String, discountccy:String, spread:YieldParameter, cdsid:String) : Option[DiscountCurve] = 
+  private def getDiscountCurve(ccy:String, discountccy:String, spread:YieldParameter, cdsid:String) : Option[DiscountCurve] = {
+    def errorMsg(msg:String) = println("Market " + (if (paramset == null) "" else paramset) + " is " + msg)
+      
     if (!curves.contains(ccy)) {println(paramset + " : curve " + ccy + " not found"); None}
     else if (contains(ccy, cdsid)) Some(repository(cdsid)(ccy))
     else {
-      val newcurve = ccy match {
-        case `discountccy` => curves(ccy).getZC(spread)
-        case `pivotCurrency` => val zccurve = getDiscountCurve(discountccy, discountccy, spread, cdsid).get
-          curves(ccy).getZC(ratecurve(discountccy), zccurve)
-        case _ => val pivotZC = getDiscountCurve(pivotCurrency, discountccy, spread, cdsid).get
-          curves(ccy).getZC(ratecurve(pivotCurrency), pivotZC)
+      val newcurve:Option[DiscountCurve] = ccy match {
+        case `discountccy` => 
+          val c = curves(ccy)
+          if (c.isPivotDiscountable) Some(c.getZC(spread))
+          else {
+            errorMsg("not discountable")
+            None
+          }
+        case `pivotCurrency` => getDiscountCurve(discountccy, discountccy, spread, cdsid) match {
+            case Some(zccurve) => Some(curves(ccy).getZC(ratecurve(discountccy), zccurve))
+            case _ => {
+              errorMsg("not discountable")
+              None
+            }
+          }
+        case _ => 
+          getDiscountCurve(pivotCurrency, discountccy, spread, cdsid) match {
+            case Some(pivotZC) if pivotZC != null => 
+              val c = curves(ccy)
+              if (c.isPivotDiscountable) Some(c.getZC(ratecurve(pivotCurrency), pivotZC))
+              else {
+                errorMsg("not discountable")
+                None
+              }
+            case _ => 
+              errorMsg("not found")
+              None
+          }
       }
       
-      if (cdsid != null) {
-        if (!repository.contains(cdsid)) repository += (cdsid -> scala.collection.mutable.Map(ccy -> newcurve))
-        else repository(cdsid) += (ccy -> newcurve)}
-      Some(newcurve)
+      (cdsid, newcurve) match {
+        case (cds, Some(c)) if cdsid != null =>
+          if (!repository.contains(cds)) repository += (cds -> scala.collection.mutable.Map(ccy -> c))
+          else repository(cds) += (ccy -> c)
+      	case _ => {}
+      }
+      
+      newcurve
     }
+  }
   
   private def ratecurve(c:String):RateCurve = 
     if (discountingCurves.contains(c)) discountingCurves(c) 

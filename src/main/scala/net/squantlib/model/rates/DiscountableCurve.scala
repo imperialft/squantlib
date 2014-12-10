@@ -15,6 +15,8 @@ trait DiscountableCurve {
   val fx : Double
   val valuedate : Date
   
+  def isPivotDiscountable:Boolean = true
+  
   def shiftRate(shift:(Double, Double) => Double):DiscountableCurve
   def multFX(shift:Double):DiscountableCurve
   

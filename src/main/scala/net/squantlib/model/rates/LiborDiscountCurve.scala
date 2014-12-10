@@ -81,6 +81,8 @@ case class LiborDiscountCurve (
 	   * no support for additional pivot currency.
 	   */
 	  val ispivotcurrency = swap.currency == BasisSwapCurve.pivotcurrency
+	  
+	  override def isPivotDiscountable:Boolean = (ispivotcurrency || basis != null) && swap != null && cash != null && (tenorbasis != null || floattenor == 3)
 
 	  
 	  /** 
@@ -94,8 +96,12 @@ case class LiborDiscountCurve (
 	      else dates.head match {
 	        case (m, p) if m == 0 => zcRec(dates.tail, 1.00 :: zc, duration)
 	        
-	        case (m, p) if m < swapstart => 
-	          val zcXm:Double = 1 / (1 + (cash(p) + spread(p) - bs3m6madjust(m)) * floatfraction * m / 12)
+	        case (m, p) if m < swapstart =>
+	          val c = cash(p) * 1.0
+	          val spr = spread(p) * 1.0
+	          val bs36 = bs3m6madjust(m) * 1.0
+	          val flfunc = floatfraction * 1.0
+	          val zcXm:Double = 1 / (1 + (c + spr - bs36) * flfunc * m / 12)
 	          val newDur:Double = if (m % fixperiod == 0) zcXm * fixdaycounts(m) else 0.0
 	          zcRec(dates.tail, zcXm :: zc, duration + newDur)
 	          
@@ -127,7 +133,12 @@ case class LiborDiscountCurve (
 		/**
 		 * initialize ccy basis swap 
 		 */
-		val bsccy = zcperiods.map{case(m, p) => (m, if (ispivotcurrency) -refincurve.basis(p) else basis(p))}
+		val bsccy = zcperiods.map{case(m, p) => (m, 
+		    if (ispivotcurrency) 
+		      -refincurve.basis(p) 
+	        else 
+	          basis(p)
+          )}
 				  	
 		/**
 		 * initialize refinance spread
