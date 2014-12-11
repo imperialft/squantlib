@@ -117,11 +117,12 @@ trait PriceableBond extends BondModel with Priceable {
       case s if s == trigger.size => trig
       case s if s < trigger.size => List.fill(trigger.size - trig.size)(List.empty) ++ trig
     case s if s > trigger.size => trig takeRight trigger.size
-  }
+    }
 //  val newSchedule = ScheduledPayoffs(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
-  val newSchedule = ScheduledPayoffs.noFixing(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
-  copy(db, newSchedule, underlyings)
+    val newSchedule = ScheduledPayoffs.noFixing(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
+    copy(db, newSchedule, underlyings)
   }
+  
   
   def show:Unit = {
       disp("id", id)

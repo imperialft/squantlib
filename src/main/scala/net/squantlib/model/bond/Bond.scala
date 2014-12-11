@@ -13,6 +13,7 @@ import net.squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import net.squantlib.model.market.Market
 import net.squantlib.pricing.model.NoModel
 import org.jquantlib.currencies.Currency
+import net.squantlib.util.FixingInformation
 
 trait AnalyzableBond 
 	extends PriceableBond 
@@ -62,17 +63,19 @@ case class Bond(
 
 object Bond {
   
-  def apply(db:dbBond):Option[Bond] = getScheduledPayoffs(db).collect{case po => new Bond(db, po, db.underlyingList)}
+  def apply(db:dbBond):Option[Bond] = getScheduledPayoffs(db, None, true).collect{case po => new Bond(db, po, db.underlyingList)}
   
-  def forward(db:dbBond, valuedate:Date):Option[Bond] = getScheduledPayoffs(db, Some(valuedate)).collect{case po => new Bond(db, po, db.underlyingList)}
+  def apply(db:dbBond, valuedate:Option[Date], pastFixings:Boolean, customFixings:FixingInformation):Option[Bond] = getScheduledPayoffs(db, valuedate, pastFixings, customFixings).collect{case po => new Bond(db, po, db.underlyingList)}
+  
+  def forward(db:dbBond, valuedate:Date):Option[Bond] = getScheduledPayoffs(db, Some(valuedate), true).collect{case po => new Bond(db, po, db.underlyingList)}
   
   def noFixings(db:dbBond):Option[Bond] = getScheduledPayoffs(db, None, false).collect{case po => new Bond(db, po, db.underlyingList)}
 
-  def getScheduledPayoffs(db:dbBond, valuedate:Option[Date] = None, assignFixings:Boolean = true):Option[ScheduledPayoffs] = {
+  def getScheduledPayoffs(db:dbBond, valuedate:Option[Date] = None, assignPastFixings:Boolean = true, customFixings:FixingInformation = null):Option[ScheduledPayoffs] = {
     val schedule = db.schedule.orNull
     if (schedule == null) {return None}
     
-    implicit val fixingInfo = db.fixingInformation
+    implicit val fixingInfo:FixingInformation = if (customFixings == null) db.fixingInformation else customFixings
     
     val coupon:Payoffs = Payoffs(db.coupon, schedule.size - 1).orNull
     if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}
@@ -87,7 +90,7 @@ object Bond {
       
     val scheduledPayoffs = valuedate match {
       case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d)
-      case None if assignFixings => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
+      case None if assignPastFixings => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size))
       case None => ScheduledPayoffs.noFixing(schedule, coupon :+ redemption, calls.fill(schedule.size))
     }
     

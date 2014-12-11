@@ -130,6 +130,21 @@ case class PutDIAmericanPayoff(
     "description" -> description)
     
   
+  override def assignFixings(f:Map[String, Double]):Unit = {
+    super.assignFixings(f)
+    checkKnockIn
+  }
+    
+  def checkKnockIn:Unit = {
+    knockedIn = 
+      if (refstart == null || refend == null) false
+      else (putVariables zip trigger).exists{case (v, trig) => DB.getHistorical(v, refstart, refend) match {
+        case h if h.isEmpty => false
+        case h => h.exists{case (_, x) => x <= trig}
+      }}
+  }
+    
+  
 }
 
 object PutDIAmericanPayoff {
@@ -145,12 +160,7 @@ object PutDIAmericanPayoff {
     val refend:Date = formula.parseJsonDate("refend").orNull
     val description:String = formula.parseJsonString("description").orNull
     
-    val knockedIn:Boolean = 
-      if (refstart == null || refend == null) false
-      else (variable zip trigger).exists{case (v, trig) => DB.getHistorical(v, refstart, refend) match {
-        case h if h.isEmpty => false
-        case h => h.exists{case (_, x) => x <= trig}
-      }}
+    val knockedIn:Boolean = false
     
     PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, amount, description, inputString)
   }

@@ -92,7 +92,7 @@ trait BondModel {
   
   def currencyList:Set[String] = underlyings.map(UnderlyingParsers.extractCurrencies).flatten.toSet + currency.code
   
-  implicit def fixingInformation:FixingInformation = db.fixingInformation
+  implicit var fixingInformation:FixingInformation = db.fixingInformation
 	
 } 
 
