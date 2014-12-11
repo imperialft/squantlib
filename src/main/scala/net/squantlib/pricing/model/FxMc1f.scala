@@ -41,7 +41,7 @@ case class FxMc1f(valuedate:Date,
       if (mpaths.isEmpty) scheduledPayoffs.price
       else concatList(mpaths).map(_ / paths.toDouble)
     }
-    catch {case e:Throwable => println("MC calculation error : " + bondid + " " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
+    catch {case e:Throwable => println(s"MC calculation error : ${bondid} vd ${fx.valuedate} " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
   }
   
   override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)

@@ -43,7 +43,7 @@ case class EquityMc1f(valuedate:Date,
 	  catch {case e:Throwable => 
 	    val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
 	    modelOutput("error", List(errormsg))
-	    println("MC calculation error : " + bondid + " " + errormsg); List.empty}
+	    println(s"MC calculation error : ${bondid} vd ${equity.valuedate} ${errormsg}"); List.empty}
 	}
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)

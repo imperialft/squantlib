@@ -247,8 +247,8 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     valuedates.foreach{case (vd, index) => 
       val tempBond = triggerShifted(tempTrigger.toList)
       tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
-      println(s"""${id}/${index} ${vd} : ${tempTrigger(index).map(t => t.collect{case v => v.asDouble(3)}.getOrElse("None")).mkString(",")}""")
     }
+    println(s"""${id} : ${tempTrigger.map(t => t.map(tt => tt.asDouble(3)).mkString(" ")).mkString(",")}""")
     tempTrigger.toList
   }
   

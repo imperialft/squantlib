@@ -45,7 +45,7 @@ case class IndexMc1f(valuedate:Date,
     catch {case e:Throwable => 
       val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
       modelOutput("error", List(errormsg))
-      println("MC calculation error : " + errormsg); List.empty}
+	  println(s"MC calculation error : ${bondid} vd ${index.valuedate} ${errormsg}"); List.empty}
   }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)

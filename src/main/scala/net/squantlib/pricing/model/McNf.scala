@@ -48,7 +48,7 @@ case class McNf(
     catch {case e:Throwable => 
       val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
       modelOutput("error", List(errormsg))
-      println("MC calculation error : " + bondid + " " + errormsg); List.empty}
+	  println(s"MC calculation error : ${bondid} vd ${underlyings.headOption.collect{case u => u.valuedate}.getOrElse("NA")} ${errormsg}"); List.empty}
   }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
