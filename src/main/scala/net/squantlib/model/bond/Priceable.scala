@@ -248,7 +248,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
       val tempBond = triggerShifted(tempTrigger.toList)
       tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
     }
-    println(s"""${id} : ${tempTrigger.map(t => t.map(tt => tt.asDouble(3)).mkString(" ")).mkString(",")}""")
+    println(s"""${id} : ${tempTrigger.map(t => t.map(tt => tt.asDouble).mkString(" ")).mkString(",")}""")
     tempTrigger.toList
   }
   
