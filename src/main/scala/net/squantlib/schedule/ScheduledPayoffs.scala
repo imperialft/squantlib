@@ -37,7 +37,7 @@ case class ScheduledPayoffs(
   def trigCheckPayoff:ScheduledPayoffs = {
     val newcalls = calls.map(c => if (c.isTrigger) Callability(false, c.triggers, 0.0, c.inputString, c.simulatedFrontier)(c.fixingInfo) else c)
     val newpayoffs = scheduledPayoffs.map{case (cp, p, c) => if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)}
-    val newScheduledPayoff = ScheduledPayoffs(schedule, Payoffs(newpayoffs), Callabilities(newcalls))
+    val newScheduledPayoff = ScheduledPayoffs.noFixing(schedule, Payoffs(newpayoffs), Callabilities(newcalls))
     ScheduledPayoffs(newScheduledPayoff, valuedate)
   }
   

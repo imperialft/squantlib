@@ -89,7 +89,8 @@ trait PriceableBond extends BondModel with Priceable {
     bond.modelCalibrated = this.modelCalibrated
     bond._market = this._market
     bond.model = this.model
-  calibrationCache.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
+    bond.fixingInformation = this.fixingInformation
+    calibrationCache.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
   }
     
   def clearFixings:Unit = {
@@ -128,9 +129,10 @@ trait PriceableBond extends BondModel with Priceable {
       disp("id", id)
       disp("currency", currency.code)
       disp("model", model match { case None => "Not defined" case Some(m) => m.getClass.getName})
-      disp("market", market match { case None => "Not defined" case Some(m) => m.paramset})
+      disp("market", market match { case None => "Not defined" case Some(m) => m.paramset + " : " + m.valuedate})
       disp("underlyings", underlyings.mkString(" "))
-      disp("initial", underlyings.map(u => u + " -> " + db.fixingMap.getOrElse(u, "not fixed")).mkString(" "))
+//      disp("initial", underlyings.map(u => u + " -> " + db.fixingMap.getOrElse(u, "not fixed")).mkString(" "))
+      disp("initial", underlyings.map(u => u + " -> " + fixingInformation.initialFixing.getOrElse(u, "not fixed")).mkString(" "))
       disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse("not fixed")).mkString(" ")}.getOrElse("no market"))
       disp("termination", earlyTerminationDate.getOrElse("not terminated"))
       println("Full schedule:")
