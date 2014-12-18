@@ -57,6 +57,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	  def triggered(fixing:List[Map[String, Double]], trigger:Option[Map[String, Double]]) = trigger match {
 	    case None => false
 	    case Some(t) if t isEmpty => false
+	    case Some(t) if t.isEmpty || fixing.lastOption.collect{case f => f.isEmpty}.getOrElse(true) => false
 	    case Some(t) => t.forall{case (v, d) => d <= fixing.last(v)}}
 	  def assignFixings(fixing:List[Map[String, Double]], payoff:Payoff) = payoff.assignFixings(fixing.last)}
 	
