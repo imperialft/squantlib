@@ -9,8 +9,8 @@ class Index(@Column("ID")					override var id:String,
               @Column("CurrencyID")			var currencyid:String,
               @Column("VOLATILITY")			var volatility:Double,
               @Column("PARAMDATE")			var paramdate:Date,
-              @Column("created_at")			var created:Option[Date],
-              @Column("updated_at")			var lastmodified:Option[Date]
+              @Column("created_at")			var created: Date,
+              @Column("updated_at")			var lastmodified: Date
               ) extends StringEntity {
   
   def this() = this(
@@ -18,8 +18,8 @@ class Index(@Column("ID")					override var id:String,
       currencyid = null, 
       volatility = -999999,
       paramdate = null,
-      created = None,
-      lastmodified = None)
+      created = null,
+      lastmodified = null)
 
   override def toString():String = "%-5s %-5s %-15s %-15s".format(id, currencyid, paramdate, created)
 }
