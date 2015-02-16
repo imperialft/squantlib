@@ -11,13 +11,13 @@ trait GreekAnalysis {
   
   def greek(target:PriceableBond => Option[Double], operation:Market => Option[Market]):Option[Double] = market.flatMap { case mkt =>
     val initprice = target(this)
-//    println("initprice : " + initprice)
     val newBond = this.copy
+	newBond.modelCalibrated = true
+	newBond.requiresCalibration = false
     val newmkt = operation(mkt).orNull
     if (newmkt == null) {return None}
     newBond.market = newmkt
     val newprice = target(newBond)
-//    println("newprice : " + newprice)
     (initprice, newprice) match { 
       case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some(n - i) 
       case _ => None }
