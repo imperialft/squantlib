@@ -235,21 +235,23 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   def fxFrontiers:List[List[Option[Double]]] = fxFrontiers(1.00, 0.001, 20)
     
   def fxFrontiers(target:Double, accuracy:Double, maxIteration:Int, paths:Int = 0):List[List[Option[Double]]] = {
-    val valuedates = livePayoffs
-      .zipWithIndex
-      .filter{case (c, _) => c._3.isBermuda && !c._3.isTrigger}
-      .map{case (c, index) => (c._1.paymentDate, index)}
-      .sortBy{case (date, _) => date}
-      .reverse
-    
-    val tempTrigger = ArrayBuffer(liveTriggers:_*)
-    
-    valuedates.foreach{case (vd, index) => 
-      val tempBond = triggerShifted(tempTrigger.toList)
-      tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
+    measuredProcess[List[List[Option[Double]]]](db.id, "FX frontiers", false, x => x.map(t => t.map(tt => tt.asDouble).mkString(" ")).mkString(",")) {
+      val valuedates = livePayoffs
+        .zipWithIndex
+        .filter{case (c, _) => c._3.isBermuda && !c._3.isTrigger}
+        .map{case (c, index) => (c._1.paymentDate, index)}
+        .sortBy{case (date, _) => date}
+        .reverse
+      
+      val tempTrigger = ArrayBuffer(liveTriggers:_*)
+      
+      valuedates.foreach{case (vd, index) => 
+        val tempBond = triggerShifted(tempTrigger.toList)
+        tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
+      }
+//      println(s"""${id} : ${tempTrigger.map(t => t.map(tt => tt.asDouble).mkString(" ")).mkString(",")}""")
+      tempTrigger.toList
     }
-    println(s"""${id} : ${tempTrigger.map(t => t.map(tt => tt.asDouble).mkString(" ")).mkString(",")}""")
-    tempTrigger.toList
   }
   
   /*  

@@ -105,4 +105,15 @@ object DisplayUtils {
     (coeffstr + addsign + conststr).replace("+-", "-")
   }
   
+  def measuredProcess[T](id:String, processName:String, showStart:Boolean = true, result:T => String = (x:T) => "")(p: => T):T = {
+    if (showStart) println(s"${id} : Start ${processName}")
+    val t1 = System.currentTimeMillis
+    val x = p
+    val t2 = System.currentTimeMillis
+    println(s"""${id} : Done ${processName} ${result(x)} (${"%.2fs".format(((t2 - t1) / 1000.0))} ${Date.currentTimestamp.toString})""")
+    x
+  }
+  
+  def standardOutput(s:Any*) = println(s.map(_.toString).mkString(" "))
+  
 }
