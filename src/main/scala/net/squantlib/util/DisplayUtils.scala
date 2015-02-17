@@ -111,16 +111,16 @@ object DisplayUtils {
     val x = p
     val t2 = System.currentTimeMillis
     val r = result(x)
-    println(s"""${id} : Done ${processName} ${if (r == null) "" else r} (${"%.2fs".format(((t2 - t1) / 1000.0))} ${Date.currentTimestamp.toString})""")
+    println(s"""${id} : Done ${processName} ${if (r == null) "" else s"- ${r}"} (${"%.2fs".format(((t2 - t1) / 1000.0))} ${Date.currentTimestamp.toString})""")
     x
   }
   
   def standardOutput(s:Any*) = 
     if (s.size == 1) println(s.head.toString)
-    else println((s.head.toString + " : " + s.tail.map(_.toString)).mkString(" "))
+    else println((s.head.toString :: " : " :: s.tail.map(_.toString).toList).mkString(" "))
 
   def errorOutput(s:Any*) = 
     if (s.size == 1) println(s.head.toString)
-    else println((s.head.toString + " : " + s.tail.map(_.toString)).mkString(" "))
+    else println((s.head.toString :: " : " :: s.tail.map(_.toString).toList).mkString(" "))
 
 }

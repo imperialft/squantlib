@@ -22,8 +22,8 @@ trait StaticAnalysis {
   }
   
   def historicalVol(nbDays:Int, annualDays:Double = 260, nbResult:Int = 0):SortedMap[Date, Double] = {
-	val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
-	val source = priceHistory takeRight (if(sourcesize > 0) sourcesize else 10000)
+    val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
+    val source = priceHistory takeRight (if(sourcesize > 0) sourcesize else 10000)
     Volatility.calculate(source, nbDays, annualDays)
   }
   
@@ -74,7 +74,7 @@ trait StaticAnalysis {
   def getCorrelation(asset:BasicAsset, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double) = StaticAnalysis.getCorrelation(this, asset, valuedate, nbDays, periodicity, correl)
   
   def historicalCorrel(asset:BasicAsset, nbDays:Int, nbResult:Int = 0):SortedMap[Date, Double] = {
-	val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
+  val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
     val intersection:SortedMap[Date, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory) takeRight sourcesize
     Correlation.calculate(intersection, nbDays)
   }
@@ -102,15 +102,15 @@ object StaticAnalysis {
   def getCorrelation(asset1:String, id1:String, asset2:String, id2:String, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
     new dbCorrelation(
         id = asset1 + "-" + id1 + ":" + asset2 + "-" + id2,
-	    underlying1asset = getAsset(asset1),
-	    underlying1id = id1,
-	    underlying2asset = getAsset(asset2),
-	    underlying2id = id2,
-	    valuedate = valuedate.java,
-	    periodicity = periodicity,
-	    nbdays = nbDays,
-	    value = correl,
-	    lastmodified = Date.currentTimestamp)
+        underlying1asset = getAsset(asset1),
+        underlying1id = id1,
+        underlying2asset = getAsset(asset2),
+        underlying2id = id2,
+        valuedate = valuedate.java,
+        periodicity = periodicity,
+        nbdays = nbDays,
+        value = correl,
+        lastmodified = Date.currentTimestamp)
   
   
 
