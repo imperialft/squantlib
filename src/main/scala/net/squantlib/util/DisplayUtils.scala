@@ -115,8 +115,12 @@ object DisplayUtils {
     x
   }
   
-  def standardOutput(s:Any*) = println((s.head.toString + " : " + s.tail.map(_.toString)).mkString(" "))
+  def standardOutput(s:Any*) = 
+    if (s.size == 1) println(s.head.toString)
+    else println((s.head.toString + " : " + s.tail.map(_.toString)).mkString(" "))
 
-  def errorOutput(s:Any*) = println((s.head.toString + " : " + s.tail.map(_.toString)).mkString(" "))
+  def errorOutput(s:Any*) = 
+    if (s.size == 1) println(s.head.toString)
+    else println((s.head.toString + " : " + s.tail.map(_.toString)).mkString(" "))
 
 }
