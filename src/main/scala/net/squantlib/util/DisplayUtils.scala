@@ -110,10 +110,13 @@ object DisplayUtils {
     val t1 = System.currentTimeMillis
     val x = p
     val t2 = System.currentTimeMillis
-    println(s"""${id} : Done ${processName} ${result(x)} (${"%.2fs".format(((t2 - t1) / 1000.0))} ${Date.currentTimestamp.toString})""")
+    val r = result(x)
+    println(s"""${id} : Done ${processName} ${if (r == null) "" else r} (${"%.2fs".format(((t2 - t1) / 1000.0))} ${Date.currentTimestamp.toString})""")
     x
   }
   
-  def standardOutput(s:Any*) = println(s.map(_.toString).mkString(" "))
-  
+  def standardOutput(s:Any*) = println((s.head.toString + " : " + s.tail.map(_.toString)).mkString(" "))
+
+  def errorOutput(s:Any*) = println((s.head.toString + " : " + s.tail.map(_.toString)).mkString(" "))
+
 }
