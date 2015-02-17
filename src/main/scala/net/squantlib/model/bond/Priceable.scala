@@ -235,7 +235,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   def fxFrontiers:List[List[Option[Double]]] = fxFrontiers(1.00, 0.001, 20)
     
   def fxFrontiers(target:Double, accuracy:Double, maxIteration:Int, paths:Int = 0):List[List[Option[Double]]] = {
-    measuredProcess[List[List[Option[Double]]]](db.id, "FX frontiers", false, x => x.map(t => t.map(tt => tt.asDouble).mkString(" ")).mkString(",")) {
+    measuredProcess[List[List[Option[Double]]]](db.id, "FX frontiers", false, x => x.map(t => t.map(tt => tt.asDouble(2)).mkString(" ")).mkString(",")) {
       val valuedates = livePayoffs
         .zipWithIndex
         .filter{case (c, _) => c._3.isBermuda && !c._3.isTrigger}
