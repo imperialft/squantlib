@@ -9,15 +9,33 @@ trait GreekAnalysis {
   
   self : PriceableBond => 
   
-  def greek(target:PriceableBond => Option[Double], operation:Market => Option[Market]):Option[Double] = market.flatMap { case mkt =>
-    val initprice = target(this)
-    val newBond = this.copy
-	newBond.modelCalibrated = true
-	newBond.requiresCalibration = false
+  def greek(
+      target:PriceableBond => Option[Double], 
+      operation:Market => Option[Market],
+      initialPrice:Option[Double] = None,
+      editableBond:Boolean = false
+  ):Option[Double] = market.flatMap { case mkt =>
+    
+    val initprice = initialPrice match {
+      case Some(p) => Some(p)
+      case None => target(this)
+    }
+    
+    val newBond = if (editableBond) this else {
+      val b = this.copy
+      b.modelCalibrated = true
+      b.requiresCalibration = false
+      b
+    }
+    
     val newmkt = operation(mkt).orNull
+    
     if (newmkt == null) {return None}
+    
     newBond.market = newmkt
+    
     val newprice = target(newBond)
+    
     (initprice, newprice) match { 
       case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some(n - i) 
       case _ => None }
