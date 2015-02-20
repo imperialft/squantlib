@@ -13,6 +13,7 @@ import net.squantlib.model.rates.DiscountCurve
 import org.codehaus.jackson.JsonNode
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
+import net.squantlib.util.DisplayUtils._
 
 case class IndexMc1f(valuedate:Date, 
 					  mcengine:Montecarlo1f, 
@@ -27,25 +28,23 @@ case class IndexMc1f(valuedate:Date,
 	
 	def modelPaths(paths:Int, pricing:List[Double] => List[Double]):List[List[Double]] = {
 	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
-	  if (mcYears.exists(_ < 0.0)) {println("MC paths : cannot compute past dates"); List.empty}
+	  if (mcYears.exists(_ < 0.0)) {errorOutput(bondid, "MC paths : cannot compute past dates"); List.empty}
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, pricing)
 	  if (mcdates.sameElements(mcYears)) mcpaths
-	  else { println("invalid mc dates"); List.empty}
+	  else { errorOutput(bondid, "invalid mc dates"); List.empty}
 	}
 	 
 	def mcPrice(paths:Int):List[Double] = {
 	  try { 
 	    val mpaths = modelPaths(paths)
 	    if (mpaths.isEmpty) scheduledPayoffs.price
-	    else {
-//	      mpaths.transpose.map(_.sum / paths.toDouble) 
-        concatList(mpaths).map(_ / paths.toDouble)
-	    }
+	    else concatList(mpaths).map(_ / paths.toDouble)
 	  }
     catch {case e:Throwable => 
       val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
       modelOutput("error", List(errormsg))
-	  println(s"MC calculation error : ${bondid} vd ${index.valuedate} ${errormsg}"); List.empty}
+	    errorOutput(bondid, s"MC calculation error : ${bondid} vd ${index.valuedate} ${errormsg}")
+	    List.empty}
   }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
@@ -110,11 +109,11 @@ object IndexMc1f {
 	  val scheduledPayoffs = bond.livePayoffs(valuedate)
 	  
 	  if (scheduledPayoffs.underlyings.size != 1) { 
-	    println(bond.id + " : payoff not compatible with Index1d model")
+	    errorOutput(bond.id, "payoff not compatible with Index1d model")
 	    return None}
 	  
 	  if (scheduledPayoffs.calls.isBermuda) { 
-	    println(bond.id + " : callability not supported on Index1d model")
+	    errorOutput(bond.id, "callability not supported on Index1d model")
 	    return None}
 	  
 	  val variable = scheduledPayoffs.underlyings.head
@@ -122,17 +121,17 @@ object IndexMc1f {
 	  val index = market.getIndex(variable).orNull
 	  
 	  if (index == null) {
-	    println(bond.id + " : invalid index underlying - " + variable + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid index underlying - " + variable + " in market " + market.paramset)
 	    return None}
 	  
 	  if (index.currency != bond.currency) {
-	    println(bond.id + " : quanto product not supported by this model IndexMc1f - " + variable)
+	    errorOutput(bond.id, "quanto product not supported by this model IndexMc1f - " + variable)
 	    return None}
 	  
 	  val mcmodel = mcengine(index).orNull
 	  
 	  if (mcmodel == null) {
-	    println(bond.id + " : model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error")
 	    return None}
 	  
 	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths, bond.id))
@@ -156,11 +155,11 @@ object IndexQtoMc1f {
 	  val scheduledPayoffs = bond.livePayoffs(valuedate)
 	  
 	  if (scheduledPayoffs.underlyings.size != 1) { 
-	    println(bond.id + " : payoff not compatible with Index1d model")
+	    errorOutput(bond.id, "payoff not compatible with Index1d model")
 	    return None}
 	  
 	  if (scheduledPayoffs.calls.isBermuda) { 
-	    println(bond.id + " : callability not supported on Index1d model")
+	    errorOutput(bond.id, "callability not supported on Index1d model")
 	    return None}
 	  
 	  val variable = scheduledPayoffs.underlyings.head
@@ -168,23 +167,23 @@ object IndexQtoMc1f {
 	  val index = market.getIndex(variable).orNull
 	  
 	  if (index == null) {
-	    println(bond.id + " : invalid index underlying - " + variable + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid index underlying - " + variable + " in market " + market.paramset)
 	    return None}
 	  
 	  if (index.currency == bond.currency) {
-	    println(bond.id + " : non-quanto products not supported by this model IndexQtoMc1f - " + variable)
+	    errorOutput(bond.id, "non-quanto products not supported by this model IndexQtoMc1f - " + variable)
 	    return None}
 	  
 	  val fx = market.getFX(bond.currency.code, index.currency.code).orNull
 
 	  if (fx == null) {
-	    println(bond.id + " : invalid fx underlying for quanto model - FX " + (if (fx == null) "null" else fx.id) + " in market " + (if (market == null) "null" else market.paramset))
+	    errorOutput(bond.id, "invalid fx underlying for quanto model - FX " + (if (fx == null) "null" else fx.id) + " in market " + (if (market == null) "null" else market.paramset))
 	    return None}
 	  
 	  val mcmodel = mcengine(index, fx).orNull
 	  
 	  if (mcmodel == null) {
-	    println(bond.id + " : model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error")
 	    return None}
 	  
 	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths, bond.id))

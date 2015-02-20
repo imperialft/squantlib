@@ -3,6 +3,7 @@ package net.squantlib.schedule
 import scala.collection.mutable.MutableList
 import scala.collection.LinearSeq
 import net.squantlib.util.Date
+import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.initializer.Calendars
 import net.squantlib.model.rates.DiscountCurve
 import org.jquantlib.daycounters.DayCounter
@@ -174,7 +175,7 @@ object Schedule{
           tempdates.sortBy(_.eventDate).toList
   
         case _ => 
-          println("Unknown schedule rule")
+          errorOutput("Unknown schedule rule")
           List.empty
       }
     

@@ -10,6 +10,7 @@ import org.codehaus.jackson.`type`.TypeReference;
 import java.util.{List => JavaList, Map => JavaMap}
 import java.lang.{String => JavaString}
 import scala.annotation.tailrec
+import net.squantlib.util.DisplayUtils._
 
 object JsonUtils {
   
@@ -34,7 +35,7 @@ object JsonUtils {
       else list.map(v => if (v == null) null else v.toString)
     mapper.valueToTree(scalaListToJavaList(elems))
   } catch {case e:Throwable => 
-    println("failed to create json node from : " + list.toString)
+    errorOutput("failed to create json node from : " + list.toString)
     newArrayNode}
    
   case class ExtendedJson(node:JsonNode) {
@@ -84,7 +85,7 @@ object JsonUtils {
         case Some(s) if s.size < 8 || !s.contains("/") => None
         case Some(s) => ignoreErr {
            try{ Some(Date(jsonDateFormat.parse(s)))} 
-          catch { case e:Throwable => println(s + " could not be parsed"); e.printStackTrace; None}
+          catch { case e:Throwable => errorOutput(s + " could not be parsed"); e.printStackTrace; None}
         }
       }
     
@@ -184,7 +185,7 @@ object JsonUtils {
       case _ => List.empty
     }
       
-    def jsonArray(name:String):List[JsonNode] = jsonNode(name) match {
+    def jsonArray(name:String):List[JsonNode] = jsonNode(name) match { 
       case Some(n) if n isArray => n.getElements.toList
       case Some(n) => List(n)
       case _ => List.empty

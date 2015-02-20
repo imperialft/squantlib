@@ -10,6 +10,7 @@ import net.squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import net.squantlib.model.market.Market
 import net.squantlib.pricing.model.NoModel
 import org.jquantlib.currencies.Currency
+import net.squantlib.util.DisplayUtils._
 
 
 trait PriceableBond extends BondModel with Priceable {
@@ -68,7 +69,7 @@ trait PriceableBond extends BondModel with Priceable {
     initializeModel(recalib)
   }
   
-  private def disp(name:String, f: => Any) = println(name + (" " * math.max(10 - name.size, 0)) + "\t" + (f match {
+  private def disp(name:String, f: => Any) = standardOutput(id, name + (" " * math.max(10 - name.size, 0)) + "\t" + (f match {
     case null => "null"
     case s:Option[Any] => s.getOrElse("None")
     case s => s.toString
@@ -135,16 +136,16 @@ trait PriceableBond extends BondModel with Priceable {
       disp("initial", underlyings.map(u => u + " -> " + fixingInformation.initialFixing.getOrElse(u, "not fixed")).mkString(" "))
       disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse("not fixed")).mkString(" ")}.getOrElse("no market"))
       disp("termination", earlyTerminationDate.getOrElse("not terminated"))
-      println("Full schedule:")
-      println(scheduledPayoffs.toString)
+      standardOutput(id, "Full schedule:")
+      standardOutput(id, scheduledPayoffs.toString)
     }
   
   
   def showUnderlyingInfo:Unit = {
     val eventDates:List[Date] = scheduledPayoffs.schedule.eventDates
     getUnderlyings.foreach{
-      case (k, Some(u)) => println(k); u.show(eventDates)
-      case (k, None) => println(k); println("not found in market or market not calibrated")
+      case (k, Some(u)) => standardOutput(k); u.show(eventDates)
+      case (k, None) => standardOutput(k); errorOutput("not found in market or market not calibrated")
     }
   }  
   

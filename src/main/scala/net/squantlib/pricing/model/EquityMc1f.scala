@@ -13,6 +13,7 @@ import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.util.Date
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
+import net.squantlib.util.DisplayUtils._
 
 
 case class EquityMc1f(valuedate:Date, 
@@ -28,10 +29,10 @@ case class EquityMc1f(valuedate:Date,
 	
 	def modelPaths(paths:Int, pricer:List[Double] => List[Double]):List[List[Double]] = {
 	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
-	  if (mcYears.exists(_ < 0.0)) {println("MC paths : cannot compute past dates"); List.empty}
+	  if (mcYears.exists(_ < 0.0)) {errorOutput(bondid, "MC paths - cannot compute past dates"); List.empty}
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, pricer)
 	  if (mcdates.sameElements(mcYears)) mcpaths
-	  else { modelOutput("error", List("invalid mc dates")); println("invalid mc dates"); List.empty}
+	  else { modelOutput("error", List("invalid mc dates")); errorOutput(bondid, "invalid mc dates"); List.empty}
 	}
 	 
 	def mcPrice(paths:Int):List[Double] = {
@@ -43,7 +44,7 @@ case class EquityMc1f(valuedate:Date,
 	  catch {case e:Throwable => 
 	    val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
 	    modelOutput("error", List(errormsg))
-	    println(s"MC calculation error : ${bondid} vd ${equity.valuedate} ${errormsg}"); List.empty}
+	    errorOutput(bondid, s"MC calculation error vd ${equity.valuedate} ${errormsg}"); List.empty}
 	}
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
@@ -115,11 +116,11 @@ object EquityMc1f {
 	  val scheduledPayoffs = bond.livePayoffs(valuedate)
 	  
 	  if (scheduledPayoffs.underlyings.size != 1) { 
-	    println(bond.id + " : payoff not compatible with Equity1d model")
+	    errorOutput(bond.id, "payoff not compatible with Equity1d model")
 	    return None}
 	  
 	  if (scheduledPayoffs.calls.isBermuda) { 
-	    println(bond.id + " : callability not supported on Equity1d model")
+	    errorOutput(bond.id, "callability not supported on Equity1d model")
 	    return None}
 	  
 	  val variable = scheduledPayoffs.underlyings.head
@@ -127,17 +128,17 @@ object EquityMc1f {
 	  val equity = market.getEquity(variable).orNull
 	  
 	  if (equity == null) {
-	    println(bond.id + " : invalid Equity underlying - " + variable + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid Equity underlying - " + variable + " in market " + market.paramset)
 	    return None}
 	  
 	  if (equity.currency != bond.currency) {
-	    println(bond.id + " : quanto model not supported - " + variable)
+	    errorOutput(bond.id, "quanto model not supported - " + variable)
 	    return None}
 	  
 	  val mcmodel = mcengine(equity).orNull
 	  
 	  if (mcmodel == null) {
-	    println(bond.id + " : model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error")
 	    return None}
 	  
 	  Some(EquityMc1f(valuedate, mcmodel, scheduledPayoffs, equity, paths, bond.id))
@@ -161,11 +162,11 @@ object EquityQtoMc1f {
 	  val scheduledPayoffs = bond.livePayoffs(valuedate)
 	  
 	  if (scheduledPayoffs.underlyings.size != 1) { 
-	    println(bond.id + " : payoff not compatible with Equity1d model")
+	    errorOutput(bond.id, "payoff not compatible with Equity1d model")
 	    return None}
 	  
 	  if (scheduledPayoffs.calls.isBermuda) { 
-	    println(bond.id + " : callability not supported on Equity1d model")
+	    errorOutput(bond.id, "callability not supported on Equity1d model")
 	    return None}
 	  
 	  val variable = scheduledPayoffs.underlyings.head
@@ -173,23 +174,23 @@ object EquityQtoMc1f {
 	  val equity = market.getEquity(variable).orNull
 	  
 	  if (equity == null) {
-	    println(bond.id + " : invalid Equity underlying - " + variable + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid Equity underlying - " + variable + " in market " + market.paramset)
 	    return None}
 	  
 	  if (equity.currency == bond.currency) {
-	    println(bond.id + " : non-quanto model not supported - " + variable)
+	    errorOutput(bond.id, "non-quanto model not supported - " + variable)
 	    return None}
 	  
 	  val fx = market.getFX(bond.currency.code, equity.currency.code).orNull
 
 	  if (fx == null) {
-	    println(bond.id + " : invalid fx underlying for quanto model - " + fx.id + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid fx underlying for quanto model - " + fx.id + " in market " + market.paramset)
 	    return None}
 	  
 	  val mcmodel = mcengine(equity, fx).orNull
 	  
 	  if (mcmodel == null) {
-	    println(bond.id + " : model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error")
 	    return None}
 	  
 	  Some(EquityMc1f(valuedate, mcmodel, scheduledPayoffs, equity, paths, bond.id))

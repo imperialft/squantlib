@@ -2,6 +2,7 @@ package net.squantlib.pricing.mcengine
 
 import net.squantlib.math.random.RandomGenerator
 import net.squantlib.math.statistical.NormSInv
+import net.squantlib.util.DisplayUtils._
 
 trait MontecarloEngine {
   
@@ -38,7 +39,7 @@ trait Montecarlo1f extends MontecarloEngine {
   
   def analyzePaths(dates:List[Double], paths:List[List[Double]]):Unit = {
     val average = paths.transpose.map(_.sum).map(_ / paths.size)
-    average.foreach (println)
+    average.foreach (a => standardOutput(a))
   }
   
 }
@@ -63,7 +64,7 @@ trait MontecarloNf extends MontecarloEngine {
   
   def analyzePaths(dates:List[Double], paths:List[List[Double]]):Unit = {
     val average = paths.transpose.map(_.sum).map(_ / paths.size)
-    average.foreach (println)
+    average.foreach (a => standardOutput(a))
   }
   
 }

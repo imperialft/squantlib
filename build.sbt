@@ -23,10 +23,12 @@ libraryDependencies ++= Seq(
   "org.codehaus.jackson" % "jackson-core-asl" % "1.9.10" % "provided",
   "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.10" % "provided",
   "com.mchange" % "mchange-commons-java" % "0.2.3.3" % "provided",
-  "log4j" % "log4j" % "1.2.17" % "provided",
   "org.jfree" % "jcommon" % "1.0.17" % "provided",
   "org.jfree" % "jfreechart" % "1.0.14" % "provided",
-  "mysql" % "mysql-connector-java" % "5.1.10" % "provided"
+  "mysql" % "mysql-connector-java" % "5.1.10" % "provided",
+  "com.typesafe" %% "scalalogging-slf4j" % "1.0.0",
+  "org.slf4j" % "slf4j-api" % "1.7.1",
+  "ch.qos.logback" % "logback-classic" % "1.0.7"
 )
 
 EclipseKeys.skipParents := false

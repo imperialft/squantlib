@@ -78,13 +78,10 @@ case class PutDIAmericanPayoff(
     }
     catch {
       case e:Throwable => 
-        println("ERROR CHECKING KNOCK-IN")
-        println("Variables")
-        println(variables)
-        println("Fixings")
-        println(fixings)
-        println("TriggerMap")
-        println(triggerMap)
+        errorOutput("ERROR CHECKING KNOCK-IN")
+        errorOutput("Variables", variables)
+        errorOutput("Fixings", fixings)
+        errorOutput("TriggerMap", triggerMap)
         false
     }
     

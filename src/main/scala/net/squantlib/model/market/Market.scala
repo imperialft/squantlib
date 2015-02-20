@@ -8,6 +8,7 @@ import net.squantlib.model.fx._
 import net.squantlib.model.index._
 import net.squantlib.model.equity._
 import net.squantlib.util.Date
+import net.squantlib.util.DisplayUtils._
 import org.jquantlib.currencies.Currency
 import org.jquantlib.time.{Period => qlPeriod}
 import net.squantlib.model.index.IndexInitializer
@@ -119,9 +120,9 @@ class Market(
    * Returns discount curve from full given parameter.
    */
   private def getDiscountCurve(ccy:String, discountccy:String, spread:YieldParameter, cdsid:String) : Option[DiscountCurve] = {
-    def errorMsg(msg:String) = println("Market " + (if (paramset == null) "" else paramset) + " is " + msg)
+    def errorMsg(msg:String) = errorOutput((if (paramset == null) "" else paramset), msg)
       
-    if (!curves.contains(ccy)) {println(paramset + " : curve " + ccy + " not found"); None}
+    if (!curves.contains(ccy)) {errorOutput(paramset, "curve " + ccy + " not found"); None}
     else if (contains(ccy, cdsid)) Some(repository(cdsid)(ccy))
     else {
       val newcurve:Option[DiscountCurve] = ccy match {
@@ -444,18 +445,18 @@ class Market(
   
   
   def show:Unit = {
-    println("Curves:")
-    println(curves.keySet.toList.sorted.mkString(" "))
-    println("Credit Spreads:")
-    println(cdscurves.keySet.toList.sorted.mkString(" "))
-    println("Indices:")
-    println(indexInitializers.keySet.toList.sorted.mkString(" "))
-    println("Equities:")
-    println(equityInitializers.keySet.toList.sorted.mkString(" "))
-    println("FX:")
-    println(fxInitializers.keySet.toList.sorted.mkString(" "))
-    println("Fixings:")
-    println(fixings.keySet.toList.sorted.mkString(" "))
+    standardOutput("Curves")
+    standardOutput(curves.keySet.toList.sorted.mkString(" "))
+    standardOutput("Credit Spreads:")
+    standardOutput(cdscurves.keySet.toList.sorted.mkString(" "))
+    standardOutput("Indices:")
+    standardOutput(indexInitializers.keySet.toList.sorted.mkString(" "))
+    standardOutput("Equities:")
+    standardOutput(equityInitializers.keySet.toList.sorted.mkString(" "))
+    standardOutput("FX:")
+    standardOutput(fxInitializers.keySet.toList.sorted.mkString(" "))
+    standardOutput("Fixings:")
+    standardOutput(fixings.keySet.toList.sorted.mkString(" "))
     
   }
   

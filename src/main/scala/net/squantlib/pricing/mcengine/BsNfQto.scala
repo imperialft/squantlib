@@ -51,7 +51,7 @@ case class BsNfQto(
   
   def getCholeskyMatrix:Array[Array[Double]] = {
     val decomp = Cholesky.decomposition(correl).orNull
-    if (decomp == null) {println("Correlation matrix is not definite positive"); return Array.empty}
+    if (decomp == null) {errorOutput("Correlation matrix is not definite positive"); return Array.empty}
     val (chol, pChol) = decomp
     for (i <- 0 to chol.size - 1) chol(i)(i) = pChol(i)
     chol
@@ -98,7 +98,7 @@ case class BsNfQto(
     if (eventDates.isEmpty) {return (List.empty, List.empty)}
     
     val chol = getCholeskyMatrix
-    if (chol.isEmpty) {println("Correlation matrix is not definite positive"); return (List.empty, List.empty)}
+    if (chol.isEmpty) {errorOutput("Correlation matrix is not definite positive"); return (List.empty, List.empty)}
     
     val mcdates:List[Double] = getEventDates(eventDates)
     val divs:List[List[Double]] = mcdates.map(d => (d, dividends.map(dd => dd.get(d).getOrElse(0.0)))).map(_._2)

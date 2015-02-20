@@ -7,6 +7,7 @@ import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.pricing.mcengine.MontecarloEngine
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
+import net.squantlib.util.DisplayUtils._
 
 trait PricingModel {
   
@@ -144,7 +145,7 @@ trait PricingModel {
   /*
    * model output capacity
    */
-  var modelOutput:(String, List[Any]) => Unit = (_, _) => println("missing model output setting")
+  var modelOutput:(String, List[Any]) => Unit = (_, _) => errorOutput("missing model output setting")
   
 }
 

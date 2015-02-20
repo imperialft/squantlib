@@ -3,8 +3,9 @@ package net.squantlib.util
 import org.codehaus.jackson.JsonNode
 import scala.language.implicitConversions
 import scala.annotation.tailrec
+import com.typesafe.scalalogging.slf4j._
 
-object DisplayUtils {
+object DisplayUtils extends Logging {
   
   var defaultNaNdisplay = "[]"
   
@@ -106,21 +107,21 @@ object DisplayUtils {
   }
   
   def measuredProcess[T](id:String, processName:String, showStart:Boolean = true, result:T => String = (x:T) => "")(p: => T):T = {
-    if (showStart) println(s"${id} : Start ${processName}")
+    if (showStart) logger.info(s"${id} : Start ${processName}")
     val t1 = System.currentTimeMillis
     val x = p
     val t2 = System.currentTimeMillis
     val r = result(x)
-    println(s"""${id} : Done ${processName} ${if (r == null) "" else s"- ${r}"} (${"%.2fs".format(((t2 - t1) / 1000.0))} ${Date.currentTimestamp.toString})""")
+    logger.info(s"""${id} : Done ${processName} ${if (r == null || r.isEmpty) "" else s"- ${r}"} (${"%.2fs".format(((t2 - t1) / 1000.0))})""")
     x
   }
   
   def standardOutput(s:Any*) = 
-    if (s.size == 1) println(s.head.toString)
-    else println((s.head.toString :: " : " :: s.tail.map(_.toString).toList).mkString(" "))
+    if (s.size == 1) logger.info(s.head.toString)
+    else logger.info((s.head.toString :: " : " :: s.tail.map(_.toString).toList).mkString(" "))
 
   def errorOutput(s:Any*) = 
-    if (s.size == 1) println(s.head.toString)
-    else println((s.head.toString :: " : " :: s.tail.map(_.toString).toList).mkString(" "))
+    if (s.size == 1) logger.error(s.head.toString)
+    else logger.error((s.head.toString :: " : " :: s.tail.map(_.toString).toList).mkString(" "))
 
 }

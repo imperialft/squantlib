@@ -34,7 +34,6 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   
   def market_= (newMarket:Market) = {
     val recalib = market.collect{case mkt => mkt.valuedate.eq(newMarket.valuedate) }.getOrElse(true)
-//    println("set market recalib? " + recalib + " : " + market.collect{case mkt => mkt.valuedate}.getOrElse("None") + " -> " + newMarket.valuedate)
     _market = Some(newMarket)
     initializeModel(recalib)
   }
@@ -99,31 +98,30 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    * Returns dirty price of the bond. (ie. including accrued interest)
    */
   def dirtyPrice:Option[Double] = 
-    if(!scheduledPayoffs.isPriceable) {println(id + " : invalid payoff or trigger"); None}
+    if(!scheduledPayoffs.isPriceable) {errorOutput(id, "invalid payoff or trigger"); None}
     else (earlyTerminationDate, valueDate) match {
-      case (Some(td), Some(vd)) if td le vd => println(id + " : terminated on " + td); None
+      case (Some(td), Some(vd)) if td le vd => standardOutput(id, "terminated on " + td); None
       case _ => (model, discountCurve) match {
         case (Some(m), Some(c)) => m.price(c)
-        case (Some(m), None) => println(id + " : missing discount curve"); m.price
-        case _ => println(id + " : missing model"); None
+        case (Some(m), None) => errorOutput(id, "missing discount curve"); m.price
+        case _ => errorOutput(id, "missing model"); None
   }}
   
   def dirtyPriceWithPaths(nbPath:Int):Option[Double] = 
-    if(!scheduledPayoffs.isPriceable) {println(id + " : invalid payoff or trigger"); None}
+    if(!scheduledPayoffs.isPriceable) {errorOutput(id, "invalid payoff or trigger"); None}
     else (earlyTerminationDate, valueDate) match {
-      case (Some(td), Some(vd)) if td le vd => println(id + " : terminated on " + td); None
+      case (Some(td), Some(vd)) if td le vd => standardOutput(id, "terminated on " + td); None
       case _ => model match {
         case Some(m) => 
           val originalPaths = m.mcPaths
           m.mcPaths = nbPath
           val result = discountCurve match {
             case Some(c) => m.price(c)
-            case None => println(id + " : missing discount curve"); m.price
+            case None => errorOutput(id, "missing discount curve"); m.price
           }
           m.mcPaths = originalPaths
           result
-        case _ => 
-          println(id + " : missing model"); None
+        case _ => errorOutput(id, "missing model"); None
   }}
   
   /*  
@@ -249,7 +247,6 @@ trait Priceable extends ExtendedSchedule with Cloneable {
         val tempBond = triggerShifted(tempTrigger.toList)
         tempTrigger(index) = tempBond.fxFrontier(1.00, accuracy, maxIteration, vd, paths)
       }
-//      println(s"""${id} : ${tempTrigger.map(t => t.map(tt => tt.asDouble).mkString(" ")).mkString(",")}""")
       tempTrigger.toList
     }
   }

@@ -1,6 +1,7 @@
 package net.squantlib.model.rates
 
 import net.squantlib.util.Date
+import net.squantlib.util.DisplayUtils._
 import net.squantlib.model.yieldparameter.{YieldParameter, SplineEExtrapolation, FlatVector}
 import org.jquantlib.time.{Period => qlPeriod, TimeUnit}
 import org.jquantlib.daycounters.Thirty360
@@ -29,7 +30,7 @@ case class FXDiscountCurve(swappoint:SwapPointCurve, fx:Double) extends FXCurve{
 	 * - Not available for FX curve as risk-free rate is defined only in terms of another currency.
 	 */
 	def getZC(spread : YieldParameter) : DiscountCurve = {
-	  println("Cannot discount FX-defined curve without reference to pivot currency")
+	  errorOutput("Cannot discount FX-defined curve without reference to pivot currency")
 	  return null
 	}
 

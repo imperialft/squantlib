@@ -213,10 +213,10 @@ trait Underlying extends StaticAsset {
   override protected def getDbForwardPrice = DB.getForwardPrices(assetID, id)
   
   def show(vd:List[Date]):Unit = {
-    println("id:\t" + id)
-    println("valuedate:\t" + valuedate)
-    println("spot:\t" + spot.asDouble)
-    vd.foreach(d => println(d.toString + "\t" + forward(d).asDouble + "\t" + volatility(d).asPercent(2)))
+    standardOutput("id:", id)
+    standardOutput("valuedate", valuedate)
+    standardOutput("spot", spot.asDouble)
+    vd.foreach(d => standardOutput(d.toString, forward(d).asDouble, volatility(d).asPercent(2)))
   }
   
   def defaultShowPeriods = List("3M", "6M", "1Y", "2Y", "3Y", "5Y", "10Y", "20Y", "30Y").map(p => 

@@ -14,6 +14,7 @@ import net.squantlib.model.market.Market
 import net.squantlib.pricing.model.NoModel
 import org.jquantlib.currencies.Currency
 import net.squantlib.util.FixingInformation
+import net.squantlib.util.DisplayUtils._
 
 trait AnalyzableBond 
 	extends PriceableBond 
@@ -78,15 +79,15 @@ object Bond {
     implicit val fixingInfo:FixingInformation = if (customFixings == null) db.fixingInformation else customFixings
     
     val coupon:Payoffs = Payoffs(db.coupon, schedule.size - 1).orNull
-    if (coupon == null || coupon.size + 1 != schedule.size) {println(db.id + ": cannot initialize coupon"); return None}
+    if (coupon == null || coupon.size + 1 != schedule.size) {errorOutput(db.id, "cannot initialize coupon"); return None}
       
     val redemption = Payoff(db.redemprice).orNull
-    if (redemption == null) {println(db.id + ": cannot initialize redemption"); return None}
+    if (redemption == null) {errorOutput(db.id, "cannot initialize redemption"); return None}
       
     val underlyings:List[String] = db.underlyingList
       
     val calls = Callabilities(db.call, underlyings, schedule.size)
-    if (calls == null) {println(db.id + ": cannot initialize calls"); return None}
+    if (calls == null) {errorOutput(db.id, "cannot initialize calls"); return None}
       
     val scheduledPayoffs = valuedate match {
       case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d)
@@ -95,7 +96,7 @@ object Bond {
     }
     
     if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {
-      println(db.id + ": cannot initialize scheduled payoffs")
+      errorOutput(db.id, "cannot initialize scheduled payoffs")
       None
     } else Some(scheduledPayoffs)
   }

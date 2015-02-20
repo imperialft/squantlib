@@ -6,6 +6,7 @@ import org.jquantlib.time.{Period => qlPeriod }
 import org.jquantlib.time.Calendar
 import scala.collection.{SortedSet, SortedMap}
 import net.squantlib.util.Date
+import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.initializer.Calendars
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
@@ -14,7 +15,7 @@ case class TimeSeries(ts:SortedMap[Date, Double]) extends SortedMap[Date, Double
   
   implicit def sortedMapToTS(smap:SortedMap[Date, Double]) = TimeSeries(ts)
 
-  def show = ts.foreach(t => println(t._1.toString + "\t" + t._2))
+  def show = ts.foreach(t => standardOutput(t._1.toString, t._2))
   
   def intersectionWith(ts2:TimeSeries):SortedMap[Date, (Double, Double)] = {
   val commonkeys:SortedSet[Date] = ts.keySet & ts2.keySet

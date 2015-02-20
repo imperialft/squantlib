@@ -13,6 +13,7 @@ import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.util.Date
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
+import net.squantlib.util.DisplayUtils._
 
 
 case class McNf(
@@ -30,10 +31,10 @@ case class McNf(
 
   def modelPaths(paths:Int, pricer: List[Map[String,Double]] => List[Double]):List[List[Double]] = {
     val mcYears = scheduledPayoffs.eventDateYears(valuedate)
-	  if (mcYears.exists(_ < 0.0)) {println("MC paths : cannot compute past dates"); List.empty}
+	  if (mcYears.exists(_ < 0.0)) {errorOutput(bondid, "MC paths : cannot compute past dates"); List.empty}
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, pricer)
 	  if (mcdates.sameElements(mcYears)) mcpaths
-	  else { println("invalid mc dates"); List.empty}
+	  else { errorOutput(bondid, "invalid mc dates"); List.empty}
 	}
 	
 	def mcPrice(paths:Int):List[Double] = {
@@ -48,7 +49,7 @@ case class McNf(
     catch {case e:Throwable => 
       val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
       modelOutput("error", List(errormsg))
-	  println(s"MC calculation error : ${bondid} vd ${underlyings.headOption.collect{case u => u.valuedate}.getOrElse("NA")} ${errormsg}"); List.empty}
+      errorOutput(bondid, s"MC calculation error vd ${underlyings.headOption.collect{case u => u.valuedate}.getOrElse("NA")} ${errormsg}"); List.empty}
   }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
@@ -95,10 +96,10 @@ case class McNf(
 	  
 	override def generatePaths(paths:Int):List[List[Map[String, Double]]] = {
 	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
-	  if (mcYears.exists(_ < 0.0)) {println("MC paths : cannot compute past dates"); List.empty}
+	  if (mcYears.exists(_ < 0.0)) {errorOutput(bondid, "MC paths : cannot compute past dates"); List.empty}
 	  val (mcdates, mcpaths) = mcengine.generatePaths(mcYears, paths, p => p)
 	  if (mcdates.sameElements(mcYears)) mcpaths
-	  else { println("invalid mc dates"); List.empty}
+	  else { errorOutput(bondid, "invalid mc dates"); List.empty}
 	}
 	   
 	override def priceInfo = {
@@ -135,29 +136,29 @@ object McNf {
 	  val variables:List[String] = bond.underlyings
 	  
 	  if (variables.size <= 1) { 
-	    println(bond.id + " : payoff not compatible with EquityNd model - need more than 2 variables")
+	    errorOutput(bond.id, "payoff not compatible with EquityNd model - need more than 2 variables")
 	    return None}
 	  
 	  if (scheduledPayoffs.calls.isBermuda) { 
-	    println(bond.id + " : callability not supported on McNd model")
+	    errorOutput(bond.id, "callability not supported on McNd model")
 	    return None}
 	  
 	  val underlyings = variables.map(v => market.getUnderlying(v).orNull)
 	  
 	  if (underlyings.exists(ul => ul == null)) {
 	    val nullvariables = (variables, underlyings).zipped.withFilter{case (vv, uu) => uu == null}.map(_._1)
-	    println(bond.id + " : invalid underlying - " + nullvariables.mkString(", ") + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid underlying - " + nullvariables.mkString(", ") + " in market " + market.paramset)
 	    return None}
 	  
 	  if (underlyings.exists(ul => ul.currency != bond.currency)) {
 	    val qtovariables = (variables, underlyings).zipped.withFilter{case (vv, uu) => uu == null}.map(_._1)
-	    println(bond.id + " : quanto model not supported - " + qtovariables.mkString(", "))
+	    errorOutput(bond.id, "quanto model not supported - " + qtovariables.mkString(", "))
 	    return None}
 	  
 	  val mcmodel = mcengine(underlyings).orNull
 	  
 	  if (mcmodel == null) {
-	    println(bond.id + " : model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error")
 	    return None} 
 	  
 	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths, bond.id))
@@ -187,23 +188,23 @@ object McNfQto {
 	  val variables:List[String] = bond.underlyings
 	  
 	  if (variables.size <= 1) { 
-	    println(bond.id + " : payoff not compatible with EquityNd model - need more than 2 variables")
+	    errorOutput(bond.id, "payoff not compatible with EquityNd model - need more than 2 variables")
 	    return None}
 	  
 	  if (scheduledPayoffs.calls.isBermuda) { 
-	    println(bond.id + " : callability not supported on McNd model")
+	    errorOutput(bond.id, "callability not supported on McNd model")
 	    return None}
 	  
 	  val underlyings = variables.map(v => market.getUnderlying(v).orNull)
 	  
 	  if (underlyings.exists(ul => ul == null)) {
 	    val nullvariables = (variables, underlyings).zipped.withFilter{case (vv, uu) => uu == null}.map(_._1)
-	    println(bond.id + " : invalid underlying - " + nullvariables.mkString(", ") + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid underlying - " + nullvariables.mkString(", ") + " in market " + market.paramset)
 	    return None}
 	  
 	  if (!underlyings.exists(ul => ul.currency != bond.currency)) {
 	    val qtovariables = (variables, underlyings).zipped.withFilter{case (vv, uu) => uu == null}.map(_._1)
-	    println(bond.id + " : non-quanto model not supported - " + qtovariables.mkString(", "))
+	    errorOutput(bond.id, "non-quanto model not supported - " + qtovariables.mkString(", "))
 	    return None}
 	  
 	  val fxs:List[Option[FX]] = underlyings.map(ul => 
@@ -211,13 +212,13 @@ object McNfQto {
 	    else Some(market.getFX(bond.currency.code, ul.currency.code).orNull))
 
 	  if (fxs.exists(_ == Some(null))) {
-	    println(bond.id + " : invalid fx underlying for quanto model - " + underlyings.map(_.currency.code).mkString(", ") + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid fx underlying for quanto model - " + underlyings.map(_.currency.code).mkString(", ") + " in market " + market.paramset)
 	    return None}
 	  
 	  val mcmodel = mcengine(underlyings, fxs).orNull
 	  
 	  if (mcmodel == null) {
-	    println(bond.id + " : model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error")
 	    return None} 
 	  
 	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths, bond.id))

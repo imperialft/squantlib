@@ -1,6 +1,7 @@
 package net.squantlib.database
 
 import net.squantlib.util.JsonUtils._
+import net.squantlib.util.DisplayUtils._
 import scala.collection.JavaConversions._
 import net.squantlib.util.JsonUtils._
 import org.codehaus.jackson.JsonNode
@@ -10,9 +11,9 @@ package object schemadefinitions {
   def getObjectFieldMap[T <: AnyRef](obj:T): Map[String, Any] = {
     val fieldsAsPairs = for (field <- obj.getClass.getDeclaredFields) yield {
       field.setAccessible(true)
-	  (field.getName, field.get(obj))
-	}
-	Map(fieldsAsPairs :_*)
+      (field.getName, field.get(obj))
+    }
+    Map(fieldsAsPairs :_*)
   }
   
   protected def emptyStringToNull(s:Any) = s match {
@@ -26,11 +27,11 @@ package object schemadefinitions {
     case (k, _) if ignoredFields contains k => true
     case (k, _) if k.head == '_' => true
     case (k, v) => m2.get(k) match {
-      case Some(vv) => if (compareValues(v, vv)) true else {println("field " + k + " changed"); false}
-      case None => println("field " + k + " changed"); false
-      }
+      case Some(vv) if (compareValues(v, vv)) => true 
+      case _ => standardOutput(k, "field changed"); false
     }
-  
+  }
+
   def compareObjects[T <: AnyRef](a:T, b:T, ignoredFields:Set[String]):Boolean = {
     compareMap(getObjectFieldMap(a), getObjectFieldMap(b), ignoredFields)
   }
@@ -40,10 +41,10 @@ package object schemadefinitions {
   def booleanList(s:String, compareTo:String):List[Boolean] = s.parseJsonStringList.map(_.orNull == compareTo)
   
   def multipleReplace(v:String, replacements:Map[String, Any]):String = {
-	if (v == null) {return null}
-	var result = v
-	replacements.foreach{case (k, d) => result = result.replace(k, d.toString)}
-	result
+    if (v == null) {return null}
+    var result = v
+    replacements.foreach{case (k, d) => result = result.replace(k, d.toString)}
+    result
   }
 
 }
