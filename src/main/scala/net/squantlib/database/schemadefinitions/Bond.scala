@@ -1,5 +1,6 @@
 package net.squantlib.database.schemadefinitions
 
+import java.sql.Timestamp
 import java.util.{Date => JavaDate}
 import scala.collection.JavaConversions._
 import scala.language.postfixOps
@@ -80,8 +81,8 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("Information")      var information: String,
               @Column("CalculationAgentID")      var calculation_agent_id: String,
               @Column("InitialPrice")      var initial_price: Option[Double],
-              @Column("Created")			var created: Option[JavaDate],
-              @Column("LastModified")		var lastmodified : Option[JavaDate]
+              @Column("Created")			override var created: Timestamp,
+              @Column("LastModified")		override var lastmodified : Timestamp
               ) extends StringEntity {
   
   def autoUpdateFields = Set(
@@ -373,8 +374,8 @@ class Bond(	  @Column("ID")					override var id: String,
 		information = null,
 		calculation_agent_id = null,
 		initial_price = None,
-		created = None,
-		lastmodified  = None)
+		created = null,
+		lastmodified  = null)
   
   
 }

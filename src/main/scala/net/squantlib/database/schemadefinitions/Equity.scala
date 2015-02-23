@@ -1,5 +1,6 @@
 package net.squantlib.database.schemadefinitions
 
+import java.sql.Timestamp
 import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
@@ -11,7 +12,8 @@ class Equity(@Column("ID")					override var id:String,
               @Column("DIV_FREQ")			var divfreq:Int,
               @Column("VOLATILITY")			var volatility:Double,
               @Column("PARAMDATE")			var paramdate:Date,
-              @Column("LastModified")		var lastmodified:Date
+              @Column("Created")			override var created: Timestamp,
+              @Column("LastModified")		override var lastmodified : Timestamp
               ) extends StringEntity {
   
   def this() = this(
@@ -21,7 +23,9 @@ class Equity(@Column("ID")					override var id:String,
       divfreq = -99999,
       volatility = -999999,
       paramdate = null,
-      lastmodified = null)
+      created = null,
+      lastmodified = null
+      )
 
   override def toString():String = "%-5s %-5s %-15s %-15s".format(id, currencyid, basedivdate, divfreq)
 }

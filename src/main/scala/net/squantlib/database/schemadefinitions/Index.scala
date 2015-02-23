@@ -1,5 +1,6 @@
 package net.squantlib.database.schemadefinitions
 
+import java.sql.Timestamp
 import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
@@ -9,8 +10,8 @@ class Index(@Column("ID")					override var id:String,
               @Column("CurrencyID")			var currencyid:String,
               @Column("VOLATILITY")			var volatility:Double,
               @Column("PARAMDATE")			var paramdate:Date,
-              @Column("created_at")			var created: Date,
-              @Column("updated_at")			var lastmodified: Date
+              @Column("created_at")			override var created: Timestamp,
+              @Column("updated_at")		override var lastmodified : Timestamp
               ) extends StringEntity {
   
   def this() = this(

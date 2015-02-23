@@ -1,5 +1,6 @@
 package net.squantlib.database.schemadefinitions
 
+import java.sql.Timestamp
 import java.util.Date
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
@@ -13,7 +14,8 @@ class Correlation(@Column("ID")				override var id:String,
               @Column("Periodicity")		var periodicity:Int,
               @Column("NbDays")				var nbdays:Int,
               @Column("Value")				var value:Double,
-              @Column("LastModified")		var lastmodified:Date
+              @Column("Created")			override var created: Timestamp,
+              @Column("LastModified")		override var lastmodified : Timestamp
               ) extends StringEntity {
   
   def this() = this(
@@ -26,7 +28,9 @@ class Correlation(@Column("ID")				override var id:String,
       periodicity = -999999,
       nbdays = -99999,
       value = -99999999,
-      lastmodified = null)
+      created = null,
+      lastmodified = null
+      )
 
   override def toString():String = "%-10s %-15s %-15s".format(underlying1id, underlying2id, value) + "%tY/%<tm/%<td".format(valuedate)
 }

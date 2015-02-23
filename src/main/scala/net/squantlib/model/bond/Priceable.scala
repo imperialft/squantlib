@@ -158,7 +158,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
       case po if po.size == 1 && po.head._1.paymentDate == terminationDate =>
         po.head match {case (dd, pp, _) => Some(Date.daycount(dd.startDate, mkt.valuedate, dd.daycounter) * pp.price(mkt))}
       case po => po.filter{case (dd, pp, _) => (dd.isCurrentPeriod(mkt.valuedate))} match {
-        case pos if pos.isEmpty => None
+        case pos if pos.isEmpty => Some(0.0)
         case pos => Some(pos.map{case (ddd, ppp, _) => (ddd.accrued(mkt.valuedate)) * ppp.price(mkt)}.sum)
     }})
     

@@ -6,7 +6,7 @@ import scala.annotation.tailrec
 import com.typesafe.scalalogging.slf4j._
 
 object DisplayUtils extends Logging {
-  
+   
   var defaultNaNdisplay = "[]"
   
   implicit def stringToExtendedString(s:String) = ExtendedString(s)

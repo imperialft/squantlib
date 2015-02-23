@@ -110,7 +110,8 @@ object StaticAnalysis {
         periodicity = periodicity,
         nbdays = nbDays,
         value = correl,
-        lastmodified = Date.currentTimestamp)
+        lastmodified = Date.currentTimestamp,
+        created = Date.currentTimestamp)
   
   
 
