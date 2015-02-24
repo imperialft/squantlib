@@ -123,7 +123,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	 * @param fixings market parameters as Map(variable name -> value) in order of event dates, in order of payoff.
 	 */
 	def price(fixings:List[List[Map[String, Double]]])(implicit d:DI, d2:DI, d3:DI):List[Double] = {
-	  assert(fixings.size == payoffs.size)
+    assert(fixings.size == payoffs.size, s"Number of fixings(${fixings.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings}")
 	  priceRec(payoffs, fixings, List.empty)
 	}
 	
@@ -132,7 +132,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	 * @param fixings market parameter fixing value
 	 */
 	def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double]):List[Double] = {
-	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
+    assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
 	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
 	}
 	
@@ -141,7 +141,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
 	 */
 	def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double])(implicit d1:DI):List[Double] = {
-	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
+    assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
 	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
 	}
 	
@@ -150,7 +150,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	 * @param fixings market parameter fixing value
 	 */
 	def price(fixings:List[List[Double]], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d1:DI, d2:DI):List[Double] = {
-	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
+    assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
 	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
 	}
 	
@@ -160,7 +160,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
 	 */
 	def price(fixings:List[List[Map[String, Double]]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double])(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
-	  assert(fixings.size == payoffs.size && fixings.size == trigger.size)
+    assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
 	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
 	}
 	
