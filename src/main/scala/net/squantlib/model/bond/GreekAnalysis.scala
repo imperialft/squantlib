@@ -32,7 +32,8 @@ trait GreekAnalysis {
     
     if (newmkt == null) {return None}
     
-    newBond.market = newmkt
+//    newBond.market = newmkt
+    newBond.setMarketNoCalibration(newmkt)
     
     val newprice = target(newBond)
     
