@@ -81,6 +81,8 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("Information")      var information: String,
               @Column("CalculationAgentID")      var calculation_agent_id: String,
               @Column("InitialPrice")      var initial_price: Option[Double],
+              @Column("DistributorCount")      var distributor_count: Int,
+              @Column("BranchCount")      var branch_count: Int,
               @Column("Created")			override var created: Timestamp,
               @Column("LastModified")		override var lastmodified : Timestamp
               ) extends StringEntity {
@@ -109,7 +111,9 @@ class Bond(	  @Column("ID")					override var id: String,
       "characteristics",
       "chartsettings",
       "information",
-      "initial_price"
+      "initial_price",
+      "branch_count",
+      "distributor_count"
   )
   
   def getFieldMap:Map[String, Any] = getObjectFieldMap(this)
@@ -374,6 +378,8 @@ class Bond(	  @Column("ID")					override var id: String,
 		information = null,
 		calculation_agent_id = null,
 		initial_price = None,
+		distributor_count = 0,
+		branch_count = 0,
 		created = null,
 		lastmodified  = null)
   
