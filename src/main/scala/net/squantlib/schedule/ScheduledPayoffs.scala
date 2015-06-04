@@ -138,8 +138,8 @@ case class ScheduledPayoffs(
 
   def between(vd:Date, lastvd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => (cp.paymentDate le vd) && (cp.paymentDate gt vd)})
   
-  def called(vd:Date, redemAmount:Double, calendar:Calendar, convention:BusinessDayConvention):ScheduledPayoffs = 
-    before(vd).addCashflow(vd, redemAmount, calendar, convention)
+  def called(vd:Date, redemAmount:Double, paymentCalendar:Calendar, convention:BusinessDayConvention):ScheduledPayoffs = 
+    before(vd).addCashflow(vd, redemAmount, paymentCalendar, convention)
   
   def insert(cp:CalculationPeriod, p:Payoff, c:Callability):ScheduledPayoffs = {
     ScheduledPayoffs(scheduledPayoffs :+ (cp, p, c), valuedate).sorted

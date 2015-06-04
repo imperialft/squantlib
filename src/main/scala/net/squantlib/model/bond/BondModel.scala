@@ -51,7 +51,9 @@ trait BondModel {
   
   def period:qlPeriod = (db.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
-  val calendar:Calendar = db.calendar
+  val fixingCalendar:Calendar = db.fixingCalendar
+
+  val paymentCalendar:Calendar = db.paymentCalendar
   
   def issuePrice:Option[Double] = db.issueprice
   

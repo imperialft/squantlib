@@ -47,20 +47,21 @@ object CalculationPeriod {
       notice:Int, 
       inarrears:Boolean, 
       daycount:DayCounter, 
-      calendar:Calendar, 
+      fixingCalendar:Calendar, 
+      paymentCalendar:Calendar, 
       paymentConvention:BusinessDayConvention,
       nominal:Double = 1.0):CalculationPeriod = {
     
-    val eventDate = (if (inarrears) endDate else startDate).advance(calendar, -notice, TimeUnit.Days)
-    val paymentDate = endDate.adjust(calendar, paymentConvention)
+    val eventDate = (if (inarrears) endDate else startDate).advance(fixingCalendar, -notice, TimeUnit.Days)
+    val paymentDate = endDate.adjust(paymentCalendar, paymentConvention)
     new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount, nominal)
   }
   
   def simpleCashflow(
       paymentDate:Date, 
-      calendar:Calendar, 
+      paymentCalendar:Calendar,
       paymentConvention:BusinessDayConvention):CalculationPeriod = 
         
-    apply(paymentDate, paymentDate, 0, false, new Absolute, calendar, paymentConvention)
+    apply(paymentDate, paymentDate, 0, false, new Absolute, paymentCalendar, paymentCalendar, paymentConvention)
   
 }

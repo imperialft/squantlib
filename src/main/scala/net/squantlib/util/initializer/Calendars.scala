@@ -21,71 +21,83 @@ object Calendars extends Initializer[DbCalendar] {
 	
 	def empty:Calendar = EmptyCalendar()
 	
-  val currencyMapper = Map(
-    ("ARS" -> DbCalendar(new Argentina, Set("ARG"), DB.lastHoliday.ql)),
-    ("AUD" -> DbCalendar(new Australia, Set("AUS"), DB.lastHoliday.ql)),
-    ("BRL" -> DbCalendar(new Brazil, Set("BRA"), DB.lastHoliday.ql)),
-    ("CAD" -> DbCalendar(new Canada, Set("CAN"), DB.lastHoliday.ql)),
-    ("CNY" -> DbCalendar(new China, Set("CHN"), DB.lastHoliday.ql)),
-    ("CZK" -> DbCalendar(new CzechRepublic, Set("CZE"), DB.lastHoliday.ql)),
-    ("DKK" -> DbCalendar(new Denmark, Set("DNK"), DB.lastHoliday.ql)),
-    ("HKD" -> DbCalendar(new HongKong, Set("HKG"), DB.lastHoliday.ql)),
-    ("HUF" -> DbCalendar(new Hungary, Set("HUN"), DB.lastHoliday.ql)),
-    ("ISK" -> DbCalendar(new Iceland, Set("ISL"), DB.lastHoliday.ql)),
-    ("INR" -> DbCalendar(new India, Set("IND"), DB.lastHoliday.ql)),
-    ("IDR" -> DbCalendar(new Indonesia, Set("IDN"), DB.lastHoliday.ql)),
-    ("JPY" -> DbCalendar(new Japan, Set("JPN"), DB.lastHoliday.ql)),
-    ("MXN" -> DbCalendar(new Mexico, Set("MEX"), DB.lastHoliday.ql)),
-    ("NZD" -> DbCalendar(new NewZealand, Set("NZL"), DB.lastHoliday.ql)),
-    ("NOK" -> DbCalendar(new Norway, Set("NOR"), DB.lastHoliday.ql)),
-    ("PLN" -> DbCalendar(new Poland, Set("POL"), DB.lastHoliday.ql)),
-    ("RON" -> DbCalendar(new Romania, Set("ROU"), DB.lastHoliday.ql)),
-    ("RUB" -> DbCalendar(new Russia, Set("RUS"), DB.lastHoliday.ql)),
-    ("SAR" -> DbCalendar(new SaudiArabia, Set("SAU"), DB.lastHoliday.ql)),
-    ("SGD" -> DbCalendar(new Singapore, Set("SGP"), DB.lastHoliday.ql)),
-    ("ZAR" -> DbCalendar(new SouthAfrica, Set("ZAF"), DB.lastHoliday.ql)),
-    ("KRW" -> DbCalendar(new SouthKorea, Set("KOR"), DB.lastHoliday.ql)),
-    ("SEK" -> DbCalendar(new Sweden, Set("SWE"), DB.lastHoliday.ql)),
-    ("CHF" -> DbCalendar(new Switzerland, Set("CHE"), DB.lastHoliday.ql)),
-    ("TWD" -> DbCalendar(new Taiwan, Set("TWN"), DB.lastHoliday.ql)),
-    ("EUR" -> DbCalendar(new Target, Set("EUR"), DB.lastHoliday.ql)),
-    ("TRY" -> DbCalendar(new Turkey, Set("TUR"), DB.lastHoliday.ql)),
-    ("GBP" -> DbCalendar(new UnitedKingdom, Set("GBR"), DB.lastHoliday.ql)),
-    ("USD" -> DbCalendar(new UnitedStates, Set("USA"), DB.lastHoliday.ql))
-  )
+	def defaultCurrencyCalendars = Map(
+    "ARS" -> new Argentina,
+    "AUD" -> new Australia,
+    "BRL" -> new Brazil,
+    "CAD" -> new Canada,
+    "CNY" -> new China,
+    "CZK" -> new CzechRepublic,
+    "DKK" -> new Denmark,
+    "HKD" -> new HongKong,
+    "HUF" -> new Hungary,
+    "ISK" -> new Iceland,
+    "INR" -> new India,
+    "IDR" -> new Indonesia,
+    "JPY" -> new Japan,
+    "MXN" -> new Mexico,
+    "NZD" -> new NewZealand,
+    "NOK" -> new Norway,
+    "PLN" -> new Poland,
+    "RON" -> new Romania,
+    "RUB" -> new Russia,
+    "SAR" -> new SaudiArabia,
+    "SGD" -> new Singapore,
+    "ZAR" -> new SouthAfrica,
+    "KRW" -> new SouthKorea,
+    "SEK" -> new Sweden,
+    "CHF" -> new Switzerland,
+    "TWD" -> new Taiwan,
+    "EUR" -> new Target,
+    "TRY" -> new Turkey,
+    "GBP" -> new UnitedKingdom,
+    "USD" -> new UnitedStates
+	)
+	
+  def currencyMapper:Map[String, DbCalendar] = DB.getCurrencyHolidayMapping.map{case (currencyId, holidayId) =>
+    (currencyId, DbCalendar(defaultCountryCalendars.getOrElse(currencyId, new NullCalendar), Set(holidayId), DB.lastHoliday.ql))
+  }
 
-  val countryMapper = Map(
-    ("ARG" -> DbCalendar(new Argentina, Set("ARG"), DB.lastHoliday.ql)),
-    ("AUS" -> DbCalendar(new Australia, Set("AUS"), DB.lastHoliday.ql)),
-    ("BRA" -> DbCalendar(new Brazil, Set("BRA"), DB.lastHoliday.ql)),
-    ("CAN" -> DbCalendar(new Canada, Set("CAN"), DB.lastHoliday.ql)),
-    ("CHN" -> DbCalendar(new China, Set("CHN"), DB.lastHoliday.ql)),
-    ("CZE" -> DbCalendar(new CzechRepublic, Set("CZE"), DB.lastHoliday.ql)),
-    ("DNK" -> DbCalendar(new Denmark, Set("DNK"), DB.lastHoliday.ql)),
-    ("HKG" -> DbCalendar(new HongKong, Set("HKG"), DB.lastHoliday.ql)),
-    ("HUN" -> DbCalendar(new Hungary, Set("HUN"), DB.lastHoliday.ql)),
-    ("ISL" -> DbCalendar(new Iceland, Set("ISL"), DB.lastHoliday.ql)),
-    ("IND" -> DbCalendar(new India, Set("IND"), DB.lastHoliday.ql)),
-    ("IDN" -> DbCalendar(new Indonesia, Set("IDN"), DB.lastHoliday.ql)),
-    ("JPN" -> DbCalendar(new Japan, Set("JPN"), DB.lastHoliday.ql)),
-    ("MEX" -> DbCalendar(new Mexico, Set("MEX"), DB.lastHoliday.ql)),
-    ("NZL" -> DbCalendar(new NewZealand, Set("NZL"), DB.lastHoliday.ql)),
-    ("NOR" -> DbCalendar(new Norway, Set("NOR"), DB.lastHoliday.ql)),
-    ("POL" -> DbCalendar(new Poland, Set("POL"), DB.lastHoliday.ql)),
-    ("ROU" -> DbCalendar(new Romania, Set("ROU"), DB.lastHoliday.ql)),
-    ("RUS" -> DbCalendar(new Russia, Set("RUS"), DB.lastHoliday.ql)),
-    ("SAU" -> DbCalendar(new SaudiArabia, Set("SAU"), DB.lastHoliday.ql)),
-    ("SGP" -> DbCalendar(new Singapore, Set("SGP"), DB.lastHoliday.ql)),
-    ("ZAF" -> DbCalendar(new SouthAfrica, Set("ZAF"), DB.lastHoliday.ql)),
-    ("KOR" -> DbCalendar(new SouthKorea, Set("KOR"), DB.lastHoliday.ql)),
-    ("SWE" -> DbCalendar(new Sweden, Set("SWE"), DB.lastHoliday.ql)),
-    ("CHE" -> DbCalendar(new Switzerland, Set("CHE"), DB.lastHoliday.ql)),
-    ("TWN" -> DbCalendar(new Taiwan, Set("TWN"), DB.lastHoliday.ql)),
-    ("EUR" -> DbCalendar(new Target, Set("EUR"), DB.lastHoliday.ql)),
-    ("TUR" -> DbCalendar(new Turkey, Set("TUR"), DB.lastHoliday.ql)),
-    ("GBR" -> DbCalendar(new UnitedKingdom, Set("GBR"), DB.lastHoliday.ql)),
-    ("USA" -> DbCalendar(new UnitedStates, Set("USA"), DB.lastHoliday.ql))
-  )
+  
+	def defaultCountryCalendars = Map(
+    "ARG" -> new Argentina,
+    "AUS" -> new Australia,
+    "BRA" -> new Brazil,
+    "CAN" -> new Canada,
+    "CHN" -> new China,
+    "CZE" -> new CzechRepublic,
+    "DNK" -> new Denmark,
+    "HKG" -> new HongKong,
+    "HUN" -> new Hungary,
+    "ISL" -> new Iceland,
+    "IND" -> new India,
+    "IDN" -> new Indonesia,
+    "JPN" -> new Japan,
+    "MEX" -> new Mexico,
+    "NZL" -> new NewZealand,
+    "NOR" -> new Norway,
+    "POL" -> new Poland,
+    "ROU" -> new Romania,
+    "RUS" -> new Russia,
+    "SAU" -> new SaudiArabia,
+    "SGP" -> new Singapore,
+    "ZAF" -> new SouthAfrica,
+    "KOR" -> new SouthKorea,
+    "SWE" -> new Sweden,
+    "CHE" -> new Switzerland,
+    "TWN" -> new Taiwan,
+    "EUR" -> new Target,
+    "TUR" -> new Turkey,
+    "GBR" -> new UnitedKingdom,
+    "USA" -> new UnitedStates
+	)
+	
+  def countryToDbCalendar(countryId:String, defaultCalendar:Calendar):Option[(String, DbCalendar)] = 
+    DB.getCountryHolidayMapping.get(countryId).collect{case holidayId => (countryId, DbCalendar(defaultCalendar, Set(holidayId), DB.lastHoliday.ql))}
+
+  def countryMapper:Map[String, DbCalendar] = DB.getCountryHolidayMapping.map{case (countryId, holidayId) =>
+    (countryId, DbCalendar(defaultCountryCalendars.getOrElse(holidayId, new NullCalendar), Set(holidayId), DB.lastHoliday.ql))
+  }
   
   val mapper:Map[String, DbCalendar] = countryMapper ++ currencyMapper		
 }

@@ -32,8 +32,10 @@ trait BasicAsset {
   
   def assetEndDate:Option[Date] = None // to be implemented in subclass
   
-  def calendar:Calendar // to be implemented in subclass
-  
+  def fixingCalendar:Calendar // to be implemented in subclass
+
+  def paymentCalendar:Calendar // to be implemented in subclass
+
   /*
    * Spot price
    */
@@ -55,7 +57,7 @@ trait BasicAsset {
   
   protected def getPriceHistory:TimeSeries // to be implemented in subclass
   
-  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", getPriceHistory.getBusinessDayFilledTimeSeries(calendar))
+  def priceHistory:TimeSeries = cachedPrice.getOrElseUpdate("HISTORICAL", getPriceHistory.getBusinessDayFilledTimeSeries(fixingCalendar))
   
   def priceHistory(cal:Calendar):TimeSeries = priceHistory.filter{case (d, v) => d.isBusinessday(cal)}
   

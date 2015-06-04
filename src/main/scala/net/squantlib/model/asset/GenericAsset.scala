@@ -15,7 +15,8 @@ case class GenericAsset(
   override val expectedCoupon:Option[Double],
   override val getDbForwardPrice:TimeSeries,
   override val getPriceHistory:TimeSeries,
-  override val calendar:Calendar,
+  override val fixingCalendar:Calendar,
+  override val paymentCalendar:Calendar,
   override val currency:Currency = Currencies("JPY").get,
   override val isPriced:Boolean = true
   ) extends StaticAsset {

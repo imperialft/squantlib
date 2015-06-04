@@ -99,7 +99,8 @@ object Schedule{
     effectiveDate:Date,
     terminationDate:Date,
     tenor:Period,
-    calendar:Calendar,
+    fixingCalendar: Calendar,
+    paymentCalendar:Calendar,
     calendarConvention:BusinessDayConvention,
     paymentConvention:BusinessDayConvention,
     terminationDateConvention:BusinessDayConvention,
@@ -118,10 +119,10 @@ object Schedule{
     val nullCalendar = Calendars.empty
     
     def calcperiod(startdate:Date, enddate:Date):CalculationPeriod = 
-      CalculationPeriod(startdate, enddate, noticeDay, fixingInArrears, daycount, calendar, if (enddate == terminationDate) terminationDateConvention else paymentConvention)
+      CalculationPeriod(startdate, enddate, noticeDay, fixingInArrears, daycount, fixingCalendar, paymentCalendar, if (enddate == terminationDate) terminationDateConvention else paymentConvention)
     
     val redemptionLegs:List[CalculationPeriod] = 
-      if(addRedemption) List(CalculationPeriod(effectiveDate, terminationDate, maturityNotice, true, new Absolute, calendar, terminationDateConvention))
+      if(addRedemption) List(CalculationPeriod(effectiveDate, terminationDate, maturityNotice, true, new Absolute, fixingCalendar, paymentCalendar, terminationDateConvention))
       else List.empty
     
     val couponLegs:List[CalculationPeriod] = 
@@ -186,7 +187,8 @@ object Schedule{
     effectiveDate:JavaDate,
     terminationDate:JavaDate,
     tenor:Period,
-    calendar:Calendar,
+    fixingCalendar:Calendar,
+    paymentCalendar:Calendar,
     calendarConvention:BusinessDayConvention,
     paymentConvention:BusinessDayConvention,
     terminationDateConvention:BusinessDayConvention,
@@ -202,7 +204,8 @@ object Schedule{
       Date(effectiveDate), 
       Date(terminationDate), 
       tenor, 
-      calendar, 
+      fixingCalendar,
+      paymentCalendar, 
       calendarConvention, 
       paymentConvention,
       terminationDateConvention, 
@@ -221,14 +224,15 @@ object Schedule{
     endDate:Date, 
     period:Period, 
     convention:BusinessDayConvention, 
-    calendar:Calendar):List[Date] = {
+    paymentCalendar:Calendar
+  ):List[Date] = {
     
     var periods = 1
     var currentPeriod = 0
     var currentDate = startDate
     var tempdates:MutableList[Date] = MutableList(currentDate)
     do {
-        currentDate = Date(calendar.advance(startDate.ql, period.mul(periods), convention))
+        currentDate = Date(paymentCalendar.advance(startDate.ql, period.mul(periods), convention))
         tempdates += (if (currentDate ge endDate) endDate else currentDate)
         periods = periods + 1
     } while (endDate gt currentDate)

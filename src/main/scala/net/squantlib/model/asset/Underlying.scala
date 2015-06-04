@@ -25,8 +25,10 @@ trait Underlying extends StaticAsset {
   var spot:Double  // TO BE DEFINED IN SUBCLASS
   
   val currency:Currency // TO BE DEFINED IN SUBCLASS
-  
-  override lazy val calendar = Calendars(currency.code).getOrElse(Calendars.empty)
+
+  override lazy val fixingCalendar = Calendars(currency.code).getOrElse(Calendars.empty)
+
+  override lazy val paymentCalendar = Calendars(currency.code).getOrElse(Calendars.empty)
   
   override def isPriced:Boolean = true
     

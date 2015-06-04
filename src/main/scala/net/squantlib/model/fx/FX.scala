@@ -22,7 +22,9 @@ trait FX extends Underlying {
 	val currencyFor:Currency = curveFor.currency
 	override val currency = currencyDom
 	
-	override lazy val calendar = Calendars.empty
+	override lazy val fixingCalendar = Calendars.empty
+	
+  override lazy val paymentCalendar = Calendars.empty
 	
 	require (curveDom.valuedate eq curveFor.valuedate)
 	val valuedate = curveDom.valuedate

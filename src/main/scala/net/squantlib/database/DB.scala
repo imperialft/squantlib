@@ -21,6 +21,10 @@ trait DbRepository {
 
   def getHolidays(id:String):Set[Date]
   
+  def getCountryHolidayMapping: Map[String, String]
+
+  def getCurrencyHolidayMapping: Map[String, String]
+
   val lastHoliday:Date
 
 }
@@ -89,6 +93,11 @@ object DB {
   def getIndices:Set[Index] = repository.collect{case repo => repo.getIndices}.getOrElse(Set.empty)
   
   def getHolidays(id:String):Set[Date] = repository.collect{case repo => repo.getHolidays(id)}.getOrElse(Set.empty)
+
+  def getCountryHolidayMapping: Map[String, String] = repository.collect{case repo => repo.getCountryHolidayMapping}.getOrElse(Map.empty)
+
+  def getCurrencyHolidayMapping: Map[String, String] = repository.collect{case repo => repo.getCurrencyHolidayMapping}.getOrElse(Map.empty)
+
   
   def lastHoliday:Date = repository.collect{case repo => repo.lastHoliday}.getOrElse(Date.currentDate)
   

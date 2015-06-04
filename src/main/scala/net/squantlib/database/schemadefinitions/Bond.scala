@@ -125,9 +125,23 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def currency:Currency = Currencies(currencyid).orNull
 		
-  def calendar:Calendar = 
+  def paymentCalendarSet:Set[String] = calendar_str.jsonArray.map(j => j.asText).toSet
+    
+  def paymentCalendar:Calendar = 
     if (calendar_str == null) Calendars(currencyid).get
-  	else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
+//  	else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
+    else {
+      Calendars(paymentCalendarSet).getOrElse(Calendars(currencyid).get)
+    }
+  
+  def fixingCalendarSet:Set[String] = fixing_calendar.jsonArray.map(j => j.asText).toSet
+    
+  def fixingCalendar:Calendar = 
+    if (fixing_calendar == null) Calendars(currencyid).get
+//    else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
+    else {
+      Calendars(fixingCalendarSet).getOrElse(Calendars(currencyid).get)
+    }
   
   protected def replaceFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
   						
@@ -200,7 +214,8 @@ class Bond(	  @Column("ID")					override var id: String,
         effectiveDate = issueDate,
         terminationDate = maturityDate,
         tenor = period,
-        calendar = calendar,
+        fixingCalendar = fixingCalendar,
+        paymentCalendar = paymentCalendar,
         calendarConvention = calendarAdjust,
         paymentConvention = paymentAdjust,
         terminationDateConvention = maturityAdjust,
