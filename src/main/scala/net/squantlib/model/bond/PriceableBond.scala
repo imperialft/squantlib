@@ -121,7 +121,7 @@ trait PriceableBond extends BondModel with Priceable {
     case s if s > trigger.size => trig takeRight trigger.size
     }
 //  val newSchedule = ScheduledPayoffs(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
-    val newSchedule = ScheduledPayoffs.noFixing(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
+    val newSchedule = ScheduledPayoffs.noFixing(schedule, payoffs, Callabilities(bermudan, newtrig, targetRedemptions, underlyings))
     copy(db, newSchedule, underlyings)
   }
   

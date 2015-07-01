@@ -32,6 +32,10 @@ trait Payoff extends FixingLeg {
   
   var nominal:Double = 1.0
   
+//  var targetRedemption:Option[Double] = None
+//  
+//  var targetCapped:Boolean = false
+  
   val keywords:Set[String] = jsonMapImpl.keySet
   
   def jsonMap:Map[String, Any] = inputString.jsonNode match {
@@ -167,6 +171,14 @@ object Payoff {
         case Some(n) => po.nominal = n
         case _ => {}
       }
+
+//      targetRedemption(inputString) match {
+//        case Some(n) => 
+//          po.targetRedemption = Some(n)
+//          po.targetCapped = targetCap(inputString)
+//        case _ => {}
+//      }
+      
       Some(po)
     }
   }
@@ -186,6 +198,16 @@ object Payoff {
     case f if f.parseDouble.isDefined => None
     case f => formula.parseJsonDouble("nominal")
     }
+  
+//  def targetRedemption(formula:String):Option[Double] = formula match {
+//    case f if f.parseDouble.isDefined => None
+//    case f => formula.parseJsonDouble("target_redemption")
+//    }
+//
+//  def targetCap(formula:String):Boolean = formula match {
+//    case f if f.parseDouble.isDefined => false
+//    case f => formula.parseJsonString("target_cap") == Some("1")
+//    }
   
   def simpleCashFlow(amount:Double) = FixedPayoff(amount)(FixingInformation.empty)
   

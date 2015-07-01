@@ -8,9 +8,12 @@ import net.squantlib.util.FixingInformation
 case class Callability(
     bermudan:Boolean, 
     triggers:Map[String, Double], 
+    targetRedemption:Option[Double],
     bonus:Double,
     inputString:List[String],
-    var simulatedFrontier:Map[String, Double] = Map.empty)(implicit val fixingInfo:FixingInformation) extends FixingLeg {
+    var accumulatedPayments:Option[Double],
+    var simulatedFrontier:Map[String, Double] = Map.empty
+    )(implicit val fixingInfo:FixingInformation) extends FixingLeg {
   
   override val variables = triggers.keySet
   
@@ -22,14 +25,26 @@ case class Callability(
   
   def isTrigger:Boolean = !triggers.isEmpty
   
+  def isTargetRedemption:Boolean = targetRedemption.isDefined
+  
   override def isFixed = isTrigger && (variables.isEmpty || !preFixings.isEmpty)
   
   def isPriceable:Boolean = !triggers.values.exists(v => v.isNaN || v.isInfinity)
   
-  def isEmpty:Boolean = !bermudan && triggers.isEmpty
+  def isEmpty:Boolean = !bermudan && triggers.isEmpty && targetRedemption.isEmpty
   
-  def fixedTrigger:Option[Boolean] = if (isFixed) Some(triggers.forall{case (k, v) => v <= getFixings(k)}) else None
+  def fixedTriggerByTrigger:Option[Boolean] = if (isFixed && isTrigger) Some(triggers.forall{case (k, v) => v <= getFixings(k)}) else None
   
+  def fixedTriggerByTargetRedemption:Option[Boolean] = (targetRedemption, accumulatedPayments) match {
+    case (Some(tgt), Some(acc)) => Some(acc >= tgt - 0.0000000001)
+    case _ => None
+  }
+  
+  def fixedTrigger:Option[Boolean] = fixedTriggerByTrigger match {
+    case Some(t) => Some(t)
+    case None => fixedTriggerByTargetRedemption
+  }
+
   def judgeTrigger(f:Map[String, Double]):Boolean = 
     isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) && triggers.forall{case (k, v) => v <= f(k)}
   
@@ -48,6 +63,7 @@ case class Callability(
     List(
 	    if (bermudan) "call " else "",
 	    if (isTrigger) (triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
+	    targetRedemption.collect{case t => "target : " + t.asPercent}.getOrElse(""),
 	    if (bonus != 0.0) "bonus " + bonus.asPercent(3) else "",
 	    if (isEmpty) "no call" else ""
 	    ).mkString("") 
@@ -55,6 +71,6 @@ case class Callability(
 
 object Callability {
   
-  val empty = Callability(false, ListMap.empty, 0.0, List.empty)(FixingInformation.empty)
+  val empty = Callability(false, ListMap.empty, None, 0.0, List.empty, None)(FixingInformation.empty)
 }
 

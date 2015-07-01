@@ -7,6 +7,8 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.schedule.FixingLegs
 import net.squantlib.util.FixingInformation
+import net.squantlib.schedule.Schedule
+import net.squantlib.schedule.payoff.Payoffs
 import org.codehaus.jackson.JsonNode
 
 case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] with FixingLegs[Callability]{
@@ -23,7 +25,15 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	
 	def triggerValues(variables:List[String]):List[List[Option[Double]]] = calls.map(_.triggerValues(variables))
 	
-	def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
+	def isTargetRedemption = calls.exists(c => c.targetRedemption.isDefined)
+
+	def targetRedemptions:List[Option[Double]] = calls.map(_.targetRedemption)
+	
+	def isTriggeredByTrigger:Boolean = calls.exists(c => c.isFixed && c.fixedTriggerByTrigger == Some(true))
+
+  def isTriggeredByTarget:Boolean = calls.exists(c => c.fixedTriggerByTargetRedemption == Some(true))
+
+	def isTriggered:Boolean = calls.exists(c => c.fixedTrigger == Some(true))
   
 	val isPriceable:Boolean = calls.forall(_.isPriceable)
 	
@@ -45,7 +55,7 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
     
   def isBermuda:Boolean = calls.exists(_.bermudan)
     
-  val isTrigger = calls.exists(_.isTrigger) && !isTriggered
+  val isTrigger = calls.exists(_.isTrigger) && !isTriggeredByTrigger
     
 	def triggerCheck(fixings:List[Map[String, Double]]):List[Boolean] = (fixings, calls).zipped.map{case (f, c) => c.isTriggered(f)}
 	
@@ -67,6 +77,13 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	
 	override val fixinglegs = calls
 	
+	def assignAccumulatedPayments(schedule:Schedule, payoffs:Payoffs) = {
+    val payments = (schedule, payoffs).zipped.map{case (s, p) => (s.paymentDate, if (p.price.isNaN) 0.0 else p.price * s.dayCount)}
+    (schedule, calls).zipped.foreach{case (s, c) => 
+      c.accumulatedPayments = Some(payments.filter{case (d, p) => d <= s.paymentDate}.map{case (d, p) => p}.sum)
+    }
+	}
+	
 }
 
 
@@ -86,6 +103,17 @@ object Callabilities {
     case Some(b) if b isArray => List.fill(nbLegs - 2 - b.size)(false) ++ b.map(_.parseString == Some("berm")).toList ++ List(false, false)
     case _ => List.fill(nbLegs)(false)
   }
+  
+  def target(formula:String, legs:Int):List[Option[Double]] = targetList(formula, legs) match {
+    case targets if !targets.isEmpty && targets.takeRight(1).head.isDefined => targets.dropRight(1) :+ None
+    case targets => targets
+  }
+  
+  def targetList(formula:String, nbLegs:Int):List[Option[Double]] = formula.jsonNode match {
+    case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.get("target").parseDouble) ++ List(None, None)
+    case Some(b) if b isArray => List.fill(nbLegs - 2 - b.size)(None) ++ b.map(_.get("target").parseDouble).toList ++ List(None, None)
+    case _ => List.fill(nbLegs)(None)
+  }
 
   def triggerList(formula:String, nbLegs:Int):List[List[String]] = formula.jsonNode match {
     case Some(b) if b.isArray && b.size == 1 => 
@@ -102,11 +130,17 @@ object Callabilities {
 	   )
 	}
     
-  def apply(formula:String, underlyings:List[String], legs:Int)(implicit fixingInfo:FixingInformation):Callabilities = {
+  def apply(
+      formula:String, 
+      underlyings:List[String], 
+      legs:Int
+    )(implicit fixingInfo:FixingInformation):Callabilities = {
+    
     val bermudans = bermudan(formula, legs)
     val trigFormulas = triggerList(formula, legs)
     val trigMap = triggerMap(trigFormulas, underlyings)
-    val calls = (bermudans, trigFormulas, trigMap).zipped.map{case (berm, formula, trig) => Callability(berm, trig, 0.0, formula)}
+    val targets = targetList(formula, legs)
+    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).map{case ((berm, formula), (trig, tgt)) => Callability(berm, trig, tgt, 0.0, formula, None)}
 	  Callabilities(calls)
   }
 	  
@@ -114,24 +148,29 @@ object Callabilities {
 	def apply(
     bermudans:List[Boolean], 
     triggers:List[List[Option[Double]]], 
+    targets:List[Option[Double]],
     underlyings:List[String], 
     bonus:List[Double])(implicit fixingInfo:FixingInformation):Callabilities = {
-    val trigmap = triggers.map(trigs => {
-      val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut)
-      t
-    })
-    Callabilities((bermudans, trigmap, bonus).zipped.map{case (b, t, n) => Callability(b, t, n, List.empty)})
+
+    val trigmap = triggerMap(underlyings, triggers)
+    Callabilities(bermudans.zip(trigmap).zip(bonus.zip(targets)).map{case ((berm, trig), (b, tgt)) => Callability(berm, trig, tgt, b, List.empty, None)})
   }
 	  
 	def apply(
     bermudans:List[Boolean], 
     triggers:List[List[Option[Double]]], 
+    targets:List[Option[Double]],
     underlyings:List[String])(implicit fixingInfo:FixingInformation):Callabilities = {
-    val trigmap = triggers.map(trigs => {
+	  
+    val trigmap = triggerMap(underlyings, triggers)
+    Callabilities((bermudans, trigmap, targets).zipped.map{case (berm, trig, tgt) => Callability(berm, trig, tgt, 0.0, List.empty, None)})
+  }
+	
+	def triggerMap(underlyings:List[String], triggers:List[List[Option[Double]]]):List[Map[String, Double]] = {
+	  triggers.map(trigs => {
       val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut)
       t
     })
-    Callabilities((bermudans, trigmap).zipped.map{case (b, t) => Callability(b, t, 0.0, List.empty)})
-  }
-	
+	}
+
 }

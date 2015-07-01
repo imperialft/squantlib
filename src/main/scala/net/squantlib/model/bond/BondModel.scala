@@ -42,7 +42,9 @@ trait BondModel {
   def bermudan:List[Boolean] = calls.bermudans
   
   def trigger:List[List[Option[Double]]] = calls.triggerValues(underlyings)
-  
+
+  def targetRedemptions:List[Option[Double]] = calls.targetRedemptions
+
   def nominal:Option[Double] = db.nominal
   
   def currency:Currency = db.currency

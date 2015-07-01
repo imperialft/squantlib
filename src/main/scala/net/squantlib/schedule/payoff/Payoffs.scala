@@ -67,12 +67,31 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	  else priceRec(paylist.tail, fixlist.tail, fi.price(fixlist.head, paylist.head) :: acc)
 	}
 	
-	@tailrec private def priceTrig[T, U](paylist:List[Payoff], fixlist:List[T], acc:List[Double], triglist:List[Option[U]], trigamt:List[Double], triggered:Boolean)
-	(implicit fi:FixingInterpreter[T, U]):List[Double] = {
+	@tailrec private def priceTrig[T, U](
+	    paylist:List[Payoff], 
+	    fixlist:List[T], 
+	    acc:List[Double], 
+	    triglist:List[Option[U]], 
+	    trigamt:List[Double], 
+	    targets:List[Option[Double]], 
+	    dayCounts:List[Double], 
+	    accruedPayment:Double, 
+	    triggered:Boolean
+    )(implicit fi:FixingInterpreter[T, U]):List[Double] = {
+	  
 	  if (paylist.isEmpty) acc.reverse
 	  else if (triggered) acc.reverse ++ List.fill(paylist.tail.size)(0.0)
-	  else if (fi.triggered(fixlist.head, triglist.head)) ((fi.price(fixlist.head, paylist.head) + trigamt.head)::acc).reverse ++ List.fill(paylist.tail.size)(0.0)
-	  else priceTrig(paylist.tail, fixlist.tail, fi.price(fixlist.head, paylist.head) :: acc, triglist.tail, trigamt.tail, false)
+	  else {
+	    val couponRate = fi.price(fixlist.head, paylist.head)
+  	  if (fi.triggered(fixlist.head, triglist.head)) ((couponRate + trigamt.head)::acc).reverse ++ List.fill(paylist.tail.size)(0.0)
+  	  else {
+  	    val paidAmount = accruedPayment + couponRate * dayCounts.head
+  	    targets.head match {
+    	    case Some(tgt) if paidAmount >= tgt => ((couponRate + trigamt.head)::acc).reverse ++ List.fill(paylist.tail.size)(0.0)
+    	    case _ => priceTrig(paylist.tail, fixlist.tail, couponRate :: acc, triglist.tail, trigamt.tail, targets.tail, dayCounts.tail, paidAmount, false)
+  	    }
+  	  }
+	  }
 	}
 	
 	/*
@@ -131,27 +150,48 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	 * Returns price array, to be used when there's only one fixing dates per payoff, with trigger and only one variable.
 	 * @param fixings market parameter fixing value
 	 */
-	def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double]):List[Double] = {
+	def price(
+	    fixings:List[Double], 
+	    trigger:List[Option[Double]], 
+	    trigAmount:List[Double], 
+	    targets:List[Option[Double]], 
+	    dayCounts:List[Double], 
+	    accruedPayment:Option[Double]
+    ):List[Double] = {
     assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
 	}
 	
 	/*
 	 * Returns price array, to be used when there's only one fixing dates per payoff and with trigger.
 	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
 	 */
-	def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double])(implicit d1:DI):List[Double] = {
+	def price(
+	    fixings:List[Map[String, Double]], 
+	    trigger:List[Option[Map[String, Double]]], 
+	    trigAmount:List[Double], 
+	    targets:List[Option[Double]], 
+	    dayCounts:List[Double], 
+	    accruedPayment:Option[Double]
+    )(implicit d1:DI):List[Double] = {
     assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
 	}
 	
 	/*
 	 * Returns price array, to be used when there's more than one fixing dates per payoff, with trigger and only one variable.
 	 * @param fixings market parameter fixing value
 	 */
-	def price(fixings:List[List[Double]], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d1:DI, d2:DI):List[Double] = {
+	def price(
+	    fixings:List[List[Double]], 
+	    trigger:List[Option[Double]], 
+	    trigAmount:List[Double],
+      targets:List[Option[Double]], 
+      dayCounts:List[Double], 
+      accruedPayment:Option[Double]
+	  )(implicit d1:DI, d2:DI):List[Double] = {
     assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
 	}
 	
 	
@@ -159,9 +199,16 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	 * Returns price array, to be used when there's more than one fixing dates per payoff and with trigger.
 	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
 	 */
-	def price(fixings:List[List[Map[String, Double]]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double])(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
+	def price(
+	    fixings:List[List[Map[String, Double]]], 
+	    trigger:List[Option[Map[String, Double]]], 
+	    trigAmount:List[Double],
+      targets:List[Option[Double]], 
+      dayCounts:List[Double], 
+      accruedPayment:Option[Double]
+    )(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
     assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, false)
+	  priceTrig(payoffs, fixings, List.empty, trigger, trigAmount, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
 	}
 	
 	def ++(another:Payoffs) = new Payoffs(payoffs ++ another.payoffs)
@@ -201,7 +248,7 @@ object Payoffs {
 	def apply(formula:String, legs:Int = 1)(implicit fixingInfo:FixingInformation):Option[Payoffs] =	{
 	  if (legs == 0) Some(Payoffs(List.empty))
 	  else if (formula == null || formula.trim.isEmpty) {
-	    def getNullPayoff = new NullPayoff
+	    def getNullPayoff = new NullPayoff()
 	    Some(Payoffs(List.fill(legs)(getNullPayoff)))
 	  }
 	  else {
