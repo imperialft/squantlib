@@ -105,16 +105,22 @@ case class ScheduledPayoffs(
         payoffs.price(priceMapper(fixings), trig, bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
       }
       else List.fill(fixings.size)(Double.NaN)
-    } 
+    }
+    else if (calls.isTargetRedemption) {
+      payoffs.price(priceMapper(fixings), List.fill(calls.size)(None), bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
+    }
     else payoffs.price(priceMapper(fixings))
 
   def price(fixings:List[Map[String, Double]]):List[Double] = {
-    if (calls.isTrigger) {
+    if (calls.isTrigger || calls.isTargetRedemption) {
       if (calls.isPriceable) payoffs.price(priceMapper(fixings), calls.triggers, bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
       else List.fill(fixings.size)(Double.NaN)
     }
-    else payoffs.price(priceMapper(fixings))
+    else if (calls.isTargetRedemption) {
+      payoffs.price(priceMapper(fixings), List.fill(calls.size)(None), bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
     }
+    else payoffs.price(priceMapper(fixings))
+  }
   
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]]):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
