@@ -10,7 +10,7 @@ case class Callability(
     triggers:Map[String, Double], 
     targetRedemption:Option[Double],
     bonus:Double,
-    inputString:List[String],
+    inputString:Map[String, String],
     var accumulatedPayments:Option[Double],
     var simulatedFrontier:Map[String, Double] = Map.empty
     )(implicit val fixingInfo:FixingInformation) extends FixingLeg {
@@ -71,6 +71,6 @@ case class Callability(
 
 object Callability {
   
-  val empty = Callability(false, ListMap.empty, None, 0.0, List.empty, None)(FixingInformation.empty)
+  val empty = Callability(false, ListMap.empty, None, 0.0, Map.empty, None)(FixingInformation.empty)
 }
 

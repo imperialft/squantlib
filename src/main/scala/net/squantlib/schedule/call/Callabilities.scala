@@ -140,7 +140,7 @@ object Callabilities {
     val trigFormulas = triggerList(formula, legs)
     val trigMap = triggerMap(trigFormulas, underlyings)
     val targets = targetList(formula, legs)
-    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).map{case ((berm, formula), (trig, tgt)) => Callability(berm, trig, tgt, 0.0, formula, None)}
+    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).map{case ((berm, f), (trig, tgt)) => Callability(berm, trig, tgt, 0.0, (underlyings, f).zipped.toMap, None)}
 	  Callabilities(calls)
   }
 	  
@@ -153,7 +153,7 @@ object Callabilities {
     bonus:List[Double])(implicit fixingInfo:FixingInformation):Callabilities = {
 
     val trigmap = triggerMap(underlyings, triggers)
-    Callabilities(bermudans.zip(trigmap).zip(bonus.zip(targets)).map{case ((berm, trig), (b, tgt)) => Callability(berm, trig, tgt, b, List.empty, None)})
+    Callabilities(bermudans.zip(trigmap).zip(bonus.zip(targets)).map{case ((berm, trig), (b, tgt)) => Callability(berm, trig, tgt, b, Map.empty, None)})
   }
 	  
 	def apply(
@@ -163,7 +163,7 @@ object Callabilities {
     underlyings:List[String])(implicit fixingInfo:FixingInformation):Callabilities = {
 	  
     val trigmap = triggerMap(underlyings, triggers)
-    Callabilities((bermudans, trigmap, targets).zipped.map{case (berm, trig, tgt) => Callability(berm, trig, tgt, 0.0, List.empty, None)})
+    Callabilities((bermudans, trigmap, targets).zipped.map{case (berm, trig, tgt) => Callability(berm, trig, tgt, 0.0, Map.empty, None)})
   }
 	
 	def triggerMap(underlyings:List[String], triggers:List[List[Option[Double]]]):List[Map[String, Double]] = {
