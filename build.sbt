@@ -16,7 +16,7 @@ scalaVersion := "2.10.5"
 
 libraryDependencies ++= Seq(
 "com.mchange" % "c3p0" % "0.9.2.1" % "provided",
-"org.squeryl" % "squeryl_2.10" % "0.9.6-RC2" % "provided",
+"org.squeryl" %% "squeryl" % "0.9.6-RC1",
 "org.apache.commons" % "commons-lang3" % "3.1" % "provided",
 "org.apache.commons" % "commons-math3" % "3.0" % "provided",
 "com.google.gdata" % "core" % "1.47.1" % "provided",
