@@ -228,14 +228,13 @@ object ScheduledPayoffs {
     ScheduledPayoffs((schedule, payoffs, calls).zipped.toList, None)
   }
     
-  def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
+  def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities, keepFinalLeg:Boolean = false):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     val fixingMap = getFixings(payoffs.underlyings ++ calls.underlyings, schedule.eventDates)
     payoffs.assignFixings(fixingMap)
     calls.assignFixings(fixingMap)
-//    if (calls.isTargetRedemption) {calls.assignAccumulatedPayments(schedule, payoffs)}
     calls.assignAccumulatedPayments(schedule, payoffs)
-    ScheduledPayoffs(schedule.sortWith(payoffs, calls), None)
+    ScheduledPayoffs(schedule.sortWith(payoffs, calls, keepFinalLeg), None)
   }
   
   def getFixings(underlyings:Set[String], dates:List[Date]):List[Map[String, Double]] = 
@@ -255,7 +254,7 @@ object ScheduledPayoffs {
     fixings ++ exterps
   }
   
-  def extrapolate(schedule:Schedule, payoffs:Payoffs, calls:Callabilities, valuedate:Date):ScheduledPayoffs = {
+  def extrapolate(schedule:Schedule, payoffs:Payoffs, calls:Callabilities, valuedate:Date, keepFinalLeg:Boolean = false):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     val (datesbefore, datesafter) = schedule.eventDates.span(_ le valuedate)
     val fixingMap:List[Map[String, Double]] = getExterpolatedFixings(payoffs.underlyings ++ calls.underlyings, datesbefore, valuedate) ++ List.fill(datesafter.size)(Map.empty[String, Double])
@@ -263,7 +262,7 @@ object ScheduledPayoffs {
     calls.assignFixings(fixingMap)
 //    if (calls.isTargetRedemption) {calls.assignAccumulatedPayments(schedule, payoffs)}
     calls.assignAccumulatedPayments(schedule, payoffs)
-    ScheduledPayoffs(schedule.sortWith(payoffs, calls), None)
+    ScheduledPayoffs(schedule.sortWith(payoffs, calls, keepFinalLeg), None)
   }
   
   def noFixing(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {

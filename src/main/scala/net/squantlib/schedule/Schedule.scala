@@ -20,6 +20,13 @@ class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationP
   
   def sortWith[A, B](obj1:LinearSeq[A], obj2:LinearSeq[B]):LinearSeq[(CalculationPeriod, A, B)] =
     (dates, obj1, obj2).zipped.toList.sortBy{case (d, _, _) => (d.paymentDate, d.dayCount)}
+
+  def sortWith[A, B](obj1:LinearSeq[A], obj2:LinearSeq[B], keepFinalLeg:Boolean):LinearSeq[(CalculationPeriod, A, B)] =
+    if (keepFinalLeg) {
+      val polist = (dates, obj1, obj2).zipped.toList
+      if (polist.size <= 1) polist 
+      else (polist.dropRight(1).sortBy{case (d, _, _) => (d.paymentDate, d.dayCount)} :+ polist.last)
+    } else sortWith(obj1, obj2)
   
   def apply(i:Int):CalculationPeriod = dates(i)
   
