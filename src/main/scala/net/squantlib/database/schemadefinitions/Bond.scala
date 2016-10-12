@@ -86,6 +86,9 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("FixingCalendar")      var fixing_calendar: String,
               @Column("FixingPage")      var fixing_page: String,
               @Column("Subordinated")      var subordinated: Int,
+              @Column("DistributionType")      var distribution_type: String,
+              @Column("NominalFixed")      var nominal_fixed: Int,
+              @Column("BondStatus")      var bond_status: String,
               @Column("Created")			override var created: Timestamp,
               @Column("LastModified")		override var lastmodified : Timestamp
               ) extends StringEntity {
@@ -401,8 +404,11 @@ class Bond(	  @Column("ID")					override var id: String,
 		fixing_calendar = null,
 		fixing_page = null,
 		subordinated = 0,
+        distribution_type = null,
+        nominal_fixed = 1,
+        bond_status = null,
 		created = null,
-		lastmodified  = null)
+		lastmodified = null)
   
 }
 
