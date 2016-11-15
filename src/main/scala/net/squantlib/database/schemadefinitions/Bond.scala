@@ -26,6 +26,7 @@ class Bond(	  @Column("ID")					override var id: String,
               @Column("SELLSTART")			var sellstart: JavaDate,
               @Column("SELLEND")			var sellend: JavaDate,
               @Column("ISSUEDATE")			var issuedate: JavaDate,
+              @Column("Settlement")			var settlement: JavaDate,
               @Column("MATURITY")			var maturity: JavaDate,
               @Column("TERMINATIONDATE")	var terminationdate: Option[JavaDate],
               @Column("ISMATURED")			var ismatured: Int,
@@ -194,7 +195,9 @@ class Bond(	  @Column("ID")					override var id: String,
   def period = (coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
   def issueDate = Date(issuedate)
-  
+
+  def settlementDate = Date(settlement)
+
   def maturityDate = Date(maturity)
   
   def fixingDate = fixingdate.collect{case d => Date(d)}
@@ -214,7 +217,7 @@ class Bond(	  @Column("ID")					override var id: String,
 
   def schedule:Option[Schedule] = try {
     val schedule = Schedule(
-        effectiveDate = issueDate,
+        effectiveDate = (if (settlementDate == null) issueDate else settlementDate),
         terminationDate = maturityDate,
         tenor = period,
         fixingCalendar = fixingCalendar,
@@ -343,6 +346,7 @@ class Bond(	  @Column("ID")					override var id: String,
 		filing = null,
 		sellstart = null,
 		sellend = null,
+		settlement = null,
 		issuedate = null,
 		maturity = null,
 		terminationdate = None,
