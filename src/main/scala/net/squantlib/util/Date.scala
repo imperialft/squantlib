@@ -1,6 +1,6 @@
 package net.squantlib.util
 
-import java.util.{Date => JavaDate}
+import java.util.{Date => JavaDate, Calendar => JavaCalendar}
 import java.sql.Timestamp
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
 import org.jquantlib.time.Weekday
@@ -18,7 +18,7 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
   
   def ge(d:Date):Boolean = ql ge d.ql
   
-  def le(d:Date):Boolean = ql le d.ql
+  def le(d:Date):Boolean = ql le d.ql 
   
   def gt(d:Date):Boolean = ql gt d.ql
   
@@ -89,6 +89,18 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
   
   def yyyymmdd(yString:String = "", mString:String = "", dString:String = ""):String = s"""%tY${yString}%<tm${mString}%<td${dString}""".format(java)
   
+  def getTimestamp:Timestamp = new Timestamp(java.getTime)
+  
+  def getTimestamp(hour:Int, minute:Int, second:Int, millisecond:Int = 0):Timestamp = {
+    val cal = JavaCalendar.getInstance()
+    cal.setTime(java)
+    cal.set(JavaCalendar.HOUR_OF_DAY, hour)
+    cal.set(JavaCalendar.MINUTE, minute)
+    cal.set(JavaCalendar.SECOND, second)
+    cal.set(JavaCalendar.MILLISECOND, millisecond)
+    new Timestamp(cal.getTimeInMillis)
+  }
+  
   override def toString = yyyymmdd("/", "/", "")
   
 }
@@ -108,9 +120,11 @@ object Date {
     else new QlDateImpl(new qlDate(day, month, year))
   }
   
+//  def apply(t:Timestamp):Date = apply(t.getTime)
+  
   def currentDate:Date = apply(currentTime)
   
-  def currentTime:JavaDate = java.util.Calendar.getInstance.getTime
+  def currentTime:JavaDate = JavaCalendar.getInstance.getTime
   
   def currentTimestamp:Timestamp = new Timestamp(currentTime.getTime)
   
@@ -127,7 +141,7 @@ object Date {
   def min(d1:Date, d2:Date):Date = Date(if (d1 lt d2) d1.serialNumber else d2.serialNumber)
   
   def max(d1:Date, d2:Date):Date = Date(if (d1 gt d2) d1.serialNumber else d2.serialNumber)
-
+  
 }
 
 class JavaDateImpl(d:JavaDate) extends Date{
