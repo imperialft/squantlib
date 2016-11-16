@@ -66,6 +66,10 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
   def sub(d:Date):Long = ql sub d.ql
   
   def sub(d:Int):Date= Date(ql sub d)
+
+  def beginningOfMonth:Date = Date(year, month, 1)
+  
+  def endOfMonth:Date = addMonths(1).beginningOfMonth.sub(1)
   
   def serialNumber:Long = ql.serialNumber
   
