@@ -118,20 +118,45 @@ object Schedule{
     firstDate:Option[Date],
     nextToLastDate:Option[Date],
     addRedemption:Boolean,
-    maturityNotice:Int):Schedule = {
+    maturityNotice:Int,
+    fixedDayOfMonth:Option[Int]):Schedule = {
     
     assert(firstDate.isEmpty || firstDate.get.gt(effectiveDate))
     assert(nextToLastDate.isEmpty || nextToLastDate.get.lt(terminationDate))
     
     val nullCalendar = Calendars.empty
     
-    def calcperiod(startdate:Date, enddate:Date):CalculationPeriod = 
-      CalculationPeriod(startdate, enddate, noticeDay, fixingInArrears, daycount, fixingCalendar, paymentCalendar, if (enddate == terminationDate) terminationDateConvention else paymentConvention)
-    
-    val redemptionLegs:List[CalculationPeriod] = 
-      if(addRedemption) List(CalculationPeriod(effectiveDate, terminationDate, maturityNotice, true, new Absolute, fixingCalendar, paymentCalendar, terminationDateConvention))
+    def calcperiod(startdate:Date, enddate:Date):CalculationPeriod = {
+      CalculationPeriod(
+          startdate, 
+          enddate, 
+          noticeDay, 
+          fixingInArrears, 
+          daycount, 
+          fixingCalendar, 
+          paymentCalendar, 
+          if (enddate == terminationDate) terminationDateConvention else paymentConvention, 
+          1.0,
+          fixedDayOfMonth
+      )
+    }
+
+    val redemptionLegs:List[CalculationPeriod] = {
+      if(addRedemption) List(CalculationPeriod(
+          effectiveDate, 
+          terminationDate, 
+          maturityNotice, 
+          true, 
+          new Absolute, 
+          fixingCalendar, 
+          paymentCalendar, 
+          terminationDateConvention, 
+          1.0,
+          fixedDayOfMonth
+      ))
       else List.empty
-    
+    }
+
     val couponLegs:List[CalculationPeriod] = 
       if (tenor.length == 0) List.empty
       else rule match {
@@ -146,7 +171,7 @@ object Schedule{
             case None => terminationDate
           }
           
-          var periods=1
+          var periods = 1
           var startDate:Date = initialDate
           var endDate:Date = terminationDate
   
@@ -206,7 +231,8 @@ object Schedule{
     firstDate:Option[JavaDate],
     nextToLastDate:Option[JavaDate],
     addRedemption:Boolean,
-    maturityNotice:Int):Schedule 
+    maturityNotice:Int,
+    fixedDayOfMonth:Option[Int]):Schedule 
     = apply(
       Date(effectiveDate), 
       Date(terminationDate), 
@@ -223,7 +249,8 @@ object Schedule{
       firstDate.collect{case d => Date(d)}, 
       nextToLastDate.collect{case d => Date(d)}, 
       addRedemption, 
-      maturityNotice)
+      maturityNotice,
+      fixedDayOfMonth)
 
         
   def periodicalDates(

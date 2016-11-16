@@ -5,6 +5,7 @@ import org.jquantlib.daycounters._
 import net.squantlib.util.Date
 import org.jquantlib.daycounters.DayCounter
 import org.jquantlib.time.{Calendar, BusinessDayConvention, TimeUnit}
+import org.jquantlib.time.calendars.NullCalendar
 
 case class CalculationPeriod(
     eventDate:Date, 
@@ -50,10 +51,27 @@ object CalculationPeriod {
       fixingCalendar:Calendar, 
       paymentCalendar:Calendar, 
       paymentConvention:BusinessDayConvention,
-      nominal:Double = 1.0):CalculationPeriod = {
+      nominal:Double = 1.0,
+      fixedDayOfMonth:Option[Int] = None):CalculationPeriod = {
     
-    val eventDate = (if (inarrears) endDate else startDate).advance(fixingCalendar, -notice, TimeUnit.Days)
+    
+    val calculationDate = if (inarrears) endDate else startDate
+    
+    val baseDate = fixedDayOfMonth match {
+	  case Some(d) => 
+	    if (d <= calculationDate.dayOfMonth) // same month
+	      Date(calculationDate.year, calculationDate.month, d)
+        else { // previous month
+          val prevmonth = calculationDate.advance(new NullCalendar, -1, TimeUnit.Months)
+	      Date(prevmonth.year, prevmonth.month, d)
+        }
+	   
+	  case None => calculationDate
+	}
+    
+    val eventDate = baseDate.advance(fixingCalendar, -notice, TimeUnit.Days)
     val paymentDate = endDate.adjust(paymentCalendar, paymentConvention)
+    
     new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount, nominal)
   }
   

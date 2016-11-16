@@ -232,7 +232,8 @@ class Bond(	  @Column("ID")					override var id: String,
         firstDate = None,
         nextToLastDate = None,
         addRedemption = true,
-        maturityNotice = redemptionNotice
+        maturityNotice = redemptionNotice,
+        fixedDayOfMonth = settingMap.get("fixingdate").collect{case d => d.toInt}
     )
     if (schedule == null) None else Some(schedule)
   }
