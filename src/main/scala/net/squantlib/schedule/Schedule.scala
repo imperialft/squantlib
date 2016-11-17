@@ -167,7 +167,9 @@ object Schedule{
           var tempdates:MutableList[CalculationPeriod] = MutableList.empty
             
           val initialDate = nextToLastDate match {
-            case Some(d) => tempdates += calcperiod(d, terminationDate); d
+            case Some(d) if d lt terminationDate => 
+              tempdates += calcperiod(d, terminationDate)
+              d
             case None => terminationDate
           }
           

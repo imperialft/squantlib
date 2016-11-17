@@ -1,6 +1,7 @@
 package net.squantlib.util
 
 import java.util.{Date => JavaDate, Calendar => JavaCalendar}
+import java.text.SimpleDateFormat
 import java.sql.Timestamp
 import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
 import org.jquantlib.time.Weekday
@@ -69,7 +70,8 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
 
   def beginningOfMonth:Date = Date(year, month, 1)
   
-  def endOfMonth:Date = addMonths(1).beginningOfMonth.sub(1)
+  //def endOfMonth:Date = addMonths(1).beginningOfMonth.sub(1)
+  def endOfMonth:Date = Date(year, month, Date.lastDayOfMonth(year, month))
   
   def serialNumber:Long = ql.serialNumber
   
@@ -124,7 +126,25 @@ object Date {
     else new QlDateImpl(new qlDate(day, month, year))
   }
   
+  def apply(day:Int, month:Int, year:Int, adjustMonthEnd:Boolean):Date = {
+    if (adjustMonthEnd == false) apply(day, month, year)
+    else if (day >= 1900) apply(day, month, Math.min(lastDayOfMonth(day, month), year))
+    else apply(Math.min(lastDayOfMonth(year, month), day), month, year)
+  }
+  
 //  def apply(t:Timestamp):Date = apply(t.getTime)
+  
+  def getDate(d:String, stringFormat:String = "yyyy-mm-dd"):Option[Date] = {
+    if (d == null || d == "" )
+      None
+    val dateFormat = new SimpleDateFormat(stringFormat)
+    dateFormat.setLenient(false)
+    try {
+      Some(Date(dateFormat.parse(d)))
+    } catch {case e:Exception  =>
+      None
+    } 
+  }
   
   def currentDate:Date = apply(currentTime)
   
@@ -145,6 +165,13 @@ object Date {
   def min(d1:Date, d2:Date):Date = Date(if (d1 lt d2) d1.serialNumber else d2.serialNumber)
   
   def max(d1:Date, d2:Date):Date = Date(if (d1 gt d2) d1.serialNumber else d2.serialNumber)
+
+  val monthEnds:Map[Int, Map[Int, Int]] = (1990 to 2100).map(yr => (yr, (1 to 12).map(mth => (mth, Date(yr, mth, 1).addMonths(1).sub(1).dayOfMonth)).toMap)).toMap
+  
+  def lastDayOfMonth(yr:Int, m:Int):Int = {
+    if (yr >= monthEnds.keys.min && yr <= monthEnds.keys.max) monthEnds(yr)(m)
+    else Date(yr, m, 1).addMonths(1).sub(1).dayOfMonth
+  }
   
 }
 

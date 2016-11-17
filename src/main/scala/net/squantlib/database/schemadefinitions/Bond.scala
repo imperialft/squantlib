@@ -216,6 +216,28 @@ class Bond(	  @Column("ID")					override var id: String,
   def redemptionNotice:Int = redemnotice.getOrElse(couponNotice)
   
   def remainLife(valuedate:Date):Double = math.max(0.0, endDate.sub(valuedate).toDouble / 365.25)
+  
+  @Transient
+  lazy val lastRollDate:Option[Date] = {
+    val bondSettings = settingMap
+    
+    bondSettings.get("lastroll").flatMap{case d => Date.getDate(d)} match {
+	    case Some(d) => Some(d)
+
+	    case _ => bondSettings.get("paymentdate").flatMap{case v => try {Some(v.toInt)} catch {case e:Throwable => None}} match {
+	      case Some(dd) if dd >= 1 && dd <= 31 => 
+	        val baseDate = maturityDate
+	        if (dd == baseDate.dayOfMonth) None
+	        else if (dd < baseDate.dayOfMonth) Some(Date(baseDate.year, baseDate.month, dd))
+            else {
+              val prevm = baseDate.addMonths(-1)
+              Some(Date(prevm.year, prevm.month, dd))
+            }
+            
+	      case _ => None
+	    }
+    }
+  }
 
   def schedule:Option[Schedule] = try {
     val schedule = Schedule(
@@ -232,7 +254,7 @@ class Bond(	  @Column("ID")					override var id: String,
         noticeDay = couponNotice,
         daycount = daycounter, 
         firstDate = None,
-        nextToLastDate = None,
+        nextToLastDate = lastRollDate,
         addRedemption = true,
         maturityNotice = redemptionNotice,
         fixedDayOfMonth = settingMap.get("fixingdate").collect{case d => d.toInt}
@@ -268,7 +290,8 @@ class Bond(	  @Column("ID")					override var id: String,
 
   @Transient
   lazy val fixingInformationObj = {
-    def getDblSetting(key:String):Option[Double] = settingMap.get(key).flatMap{case v => try {Some(v.toDouble)} catch {case e:Throwable => None}}
+    val currentSetting = settingMap
+    def getDblSetting(key:String):Option[Double] = currentSetting.get(key).flatMap{case v => try {Some(v.toDouble)} catch {case e:Throwable => None}}
     FixingInformation(getDblSetting("tbd"), getDblSetting("tbd_min"), getDblSetting("tbd_max"), getInitialFixings)
   }
   

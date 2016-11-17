@@ -60,14 +60,12 @@ object CalculationPeriod {
     val baseDate = fixedDayOfMonth match {
 	  case Some(d) => 
 	    if (d <= calculationDate.dayOfMonth) { // same month
-	      val maxDay = calculationDate.endOfMonth.dayOfMonth
-	      Date(calculationDate.year, calculationDate.month, Math.min(d, maxDay))
+	      Date(calculationDate.year, calculationDate.month, d)
 	    }
 	    
         else { // previous month
           val prevmonth = calculationDate.addMonths(-1)
-	      val maxDay = prevmonth.endOfMonth.dayOfMonth
-	      Date(prevmonth.year, prevmonth.month, Math.min(d, maxDay))
+	      Date(prevmonth.year, prevmonth.month, d, true)
         }
 	   
 	  case None => calculationDate
