@@ -158,6 +158,7 @@ object Payoff {
         case "linear1d" => Linear1dPayoff(inputString)
         case "putdi" => PutDIPayoff(inputString)
         case "putdiamerican" => PutDIAmericanPayoff(inputString)
+        case "callui" => CallUIPayoff(inputString)
         case "forward" => ForwardPayoff(inputString)
         case "rangeforward" => RangeForwardPayoff(inputString)
         case "null" => NullPayoff(inputString)

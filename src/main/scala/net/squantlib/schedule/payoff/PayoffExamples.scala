@@ -97,6 +97,20 @@ object PayoffExamples {
 	      refend:"2014/12/31", 
 	      description:"Put DI American"
 	      }""")
+
+      val callui = Payoff("""
+	    {"type" : "callui", 
+	    "variable" : ["USDJPY", "NKY"], 
+	    "trigger" : "110%", 
+	    "strike" : [100, 20000], 
+        "add" : "0%", 
+        "mult": "100%",
+        "min": "100%",
+        "max": "150%",
+        "baseAmount":"100%", 
+        "basket":"max",
+	    "description" : "Call Up&In"
+	    }""")
 	    
       val general_json = Payoff("""{"type":"general", "payoff":"24.00%*AUDJPY/strike-20.00% > 1% < 6%", "strike":"80.2"}""")
       val general = Payoff("""24.00%*AUDJPY/80.2-20.00% > 1% < 6%""")
