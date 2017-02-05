@@ -7,8 +7,10 @@ import net.squantlib.util.FixingInformation
 
 case class Callability(
     bermudan:Boolean, 
-    triggers:Map[String, Double], 
+    triggers:Map[String, Double],
+    triggerUp: Boolean,
     targetRedemption:Option[Double],
+    forward: Map[String, Double],
     bonus:Double,
     inputString:Map[String, String],
     var accumulatedPayments:Option[Double],
@@ -56,8 +58,8 @@ case class Callability(
     isTriggered(f) || (bermudan && !simulatedFrontier.isEmpty && (simulatedFrontier.keySet subsetOf f.keySet) && simulatedFrontier.forall{case (k, v) => v <= f(k)})
     
   def isProbablyCalled:Boolean = if (isFixed) isProbablyCalled(getFixings) else false
-    
-  def redemptionAmount:Double = 1.0 + bonus
+     
+  def redemptionAmount:Double = 1.0 + bonus 
   
   override def toString:String = 
     List(
@@ -71,6 +73,7 @@ case class Callability(
 
 object Callability {
   
-  val empty = Callability(false, ListMap.empty, None, 0.0, Map.empty, None)(FixingInformation.empty)
+  val empty = Callability(false, ListMap.empty, true, None, Map.empty, 0.0, Map.empty, None)(FixingInformation.empty)
+
 }
 
