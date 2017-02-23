@@ -25,7 +25,9 @@ case class FxMc1f(valuedate:Date,
             bondid:String) extends PricingModel {
   
   mcPaths = defaultPaths
-  val redemamt = scheduledPayoffs.bonusAmount.takeRight(trigger.size)
+  val redemamt = scheduledPayoffs.bonusAmounts.takeRight(trigger.size)
+  val triggerUps = scheduledPayoffs.triggerUps
+  val forwardStrikes = scheduledPayoffs.forwardStrikes
 
   override def modelPaths(paths:Int):List[List[Double]] = modelPaths(paths, (p:List[Double]) => scheduledPayoffs.price(p, trigger, redemamt))
   
@@ -91,7 +93,7 @@ case class FxMc1f(valuedate:Date,
   override def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
     val discounts = scheduledPayoffs.schedule.paymentDates.map(d => curve(d))
     val data = modelPaths(paths, binaryPathMtM(range, discounts))
-    data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => 1.0 + p.bonus - b}
+    data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
   })
   
   override val priceType = "MODEL"

@@ -79,8 +79,8 @@ case class EquityMc1f(valuedate:Date,
 	
 	override def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
 	  val discounts = scheduledPayoffs.schedule.paymentDates.map(d => curve(d))
-	  val data = modelPaths(paths, binaryPathMtM(range, discounts))
-	  data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => 1.0 + p.bonus - b}
+	  val data:List[List[Double]] = modelPaths(paths, binaryPathMtM(range, discounts))
+	  data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
   })
 	
 	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)

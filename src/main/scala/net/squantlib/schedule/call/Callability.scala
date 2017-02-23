@@ -8,15 +8,16 @@ import net.squantlib.util.FixingInformation
 case class Callability(
     bermudan:Boolean, 
     triggers:Map[String, Double],
-    triggerUp: Boolean,
+    triggerUp:Boolean,
     targetRedemption:Option[Double],
     forward: Map[String, Double],
-    bonus:Double,
+    bonusAmount:Double,
     inputString:Map[String, String],
     var accumulatedPayments:Option[Double],
     var simulatedFrontier:Map[String, Double] = Map.empty
-    )(implicit val fixingInfo:FixingInformation) extends FixingLeg {
+  )(implicit val fixingInfo:FixingInformation) extends FixingLeg {
   
+
   override val variables = triggers.keySet
   
   def isBermuda:Boolean = bermudan 
@@ -27,15 +28,17 @@ case class Callability(
   
   def isTrigger:Boolean = !triggers.isEmpty
   
+  def isForward:Boolean = !forward.isEmpty
+  
   def isTargetRedemption:Boolean = targetRedemption.isDefined
   
   override def isFixed = isTrigger && (variables.isEmpty || !preFixings.isEmpty)
   
-  def isPriceable:Boolean = !triggers.values.exists(v => v.isNaN || v.isInfinity)
+  def isPriceable:Boolean = !triggers.values.exists(v => v.isNaN || v.isInfinity) && !forward.values.exists(v => v.isNaN || v.isInfinity || v <= 0.0000000000001) && forward.keySet.subsetOf(triggers.keySet)
   
   def isEmpty:Boolean = !bermudan && triggers.isEmpty && targetRedemption.isEmpty
   
-  def fixedTriggerByTrigger:Option[Boolean] = if (isFixed && isTrigger) Some(triggers.forall{case (k, v) => v <= getFixings(k)}) else None
+  def fixedTriggerByTrigger:Option[Boolean] = if (isFixed && isTrigger) Some(triggers.forall{case (k, v) => if (triggerUp) v <= getFixings(k) else v >= getFixings(k)}) else None
   
   def fixedTriggerByTargetRedemption:Option[Boolean] = (targetRedemption, accumulatedPayments) match {
     case (Some(tgt), Some(acc)) => Some(acc >= tgt - 0.0000000001)
@@ -48,32 +51,104 @@ case class Callability(
   }
 
   def judgeTrigger(f:Map[String, Double]):Boolean = 
-    isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) && triggers.forall{case (k, v) => v <= f(k)}
+    isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) && triggers.forall{case (k, v) => if (triggerUp) v <= f(k) else v >= f(k)}
   
   def isTriggered(f:Map[String, Double]):Boolean = judgeTrigger(if (isFixed) getFixings else f)
   
   def isTriggered:Boolean = if (isFixed) isTriggered(getFixings) else false
     
   def isProbablyCalled(f:Map[String, Double]):Boolean = 
-    isTriggered(f) || (bermudan && !simulatedFrontier.isEmpty && (simulatedFrontier.keySet subsetOf f.keySet) && simulatedFrontier.forall{case (k, v) => v <= f(k)})
+    isTriggered(f) || (bermudan && !simulatedFrontier.isEmpty && (simulatedFrontier.keySet subsetOf f.keySet) && simulatedFrontier.forall{case (k, v) => if (triggerUp) v <= f(k) else v >= f(k)})
     
   def isProbablyCalled:Boolean = if (isFixed) isProbablyCalled(getFixings) else false
      
-  def redemptionAmount:Double = 1.0 + bonus 
+//  def redemptionAmount:Double = 1.0 + bonus 
+  
+  def redemptionNominal = 1.0 + bonusAmount
+
+  def redemptionAmount(f:Map[String, Double]):Double = 
+    if (forward.isEmpty) redemptionNominal
+    else if (forward.keySet.subsetOf(f.keySet)) forward.map{case (ul, fk) => redemptionNominal * f(ul) / fk}.min
+    else Double.NaN
+    
+  def fixedRedemptionAmount:Option[Double] = if (isFixed && isProbablyCalled) Some(redemptionAmount(getFixings)) else None
+  
+  val fixedRedemptionAmountAtTrigger:Double = {
+    if (isForward) redemptionNominal * forward.map{case (k, v) => triggers(k) / v}.min
+    else redemptionNominal
+  }
   
   override def toString:String = 
     List(
 	    if (bermudan) "call " else "",
 	    if (isTrigger) (triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
+	    if (triggerUp) "up" else "down",
 	    targetRedemption.collect{case t => "target : " + t.asPercent}.getOrElse(""),
-	    if (bonus != 0.0) "bonus " + bonus.asPercent(3) else "",
+	    if (bonusAmount != 0.0) "bonus " + bonusAmount.asPercent(3) else "",
+	    if (forward.isEmpty) "" else "forward " + forward.map{case (k, v) => k + ":" + v.asDouble}.mkString(" "),
 	    if (isEmpty) "no call" else ""
 	    ).mkString("") 
+
+
 }
 
 object Callability {
   
-  val empty = Callability(false, ListMap.empty, true, None, Map.empty, 0.0, Map.empty, None)(FixingInformation.empty)
+  val empty = Callability(
+    bermudan = false,
+    triggers = ListMap.empty,
+    targetRedemption = None,
+    callOption = CallOption.empty,
+    inputString = Map.empty,
+    accumulatedPayments = None,
+    simulatedFrontier= Map.empty
+  )(FixingInformation.empty)
 
+  def apply(
+    bermudan:Boolean,
+    triggers:Map[String, Double],
+    targetRedemption:Option[Double],
+    callOption: CallOption,
+    inputString:Map[String, String],
+    accumulatedPayments:Option[Double],
+    simulatedFrontier:Map[String, Double]
+  )(implicit fixingInfo:FixingInformation):Callability = 
+    Callability(
+      bermudan = bermudan,
+      triggers = triggers,
+      triggerUp = callOption.triggerUp,
+      targetRedemption = targetRedemption,
+      forward = callOption.forward,
+      bonusAmount = callOption.bonus,
+      inputString = inputString,
+      accumulatedPayments = accumulatedPayments,
+      simulatedFrontier
+    )
+
+  def apply(
+    underlyings:List[String],
+    bermudan:Boolean, 
+    triggers:List[Option[Double]],
+    triggerUp:Boolean,
+    targetRedemption:Option[Double],
+    forward: Map[String, Double],
+    bonusAmount:Double,
+    inputString:Map[String, String],
+    accumulatedPayments:Option[Double],
+    simulatedFrontier:Map[String, Double]
+    )(implicit fixingInfo:FixingInformation):Callability = 
+    Callability(
+      bermudan = bermudan,
+      triggers = underlyings.zip(triggers).collect{case (k, Some(v)) => (k, v)}.toMap,
+      triggerUp = triggerUp,
+      targetRedemption = targetRedemption,
+      forward = forward,
+      bonusAmount = bonusAmount,
+      inputString = inputString,
+      accumulatedPayments = accumulatedPayments,
+      simulatedFrontier
+    )
+  
+  
 }
 

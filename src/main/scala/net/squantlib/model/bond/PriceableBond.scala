@@ -4,7 +4,7 @@ import net.squantlib.util.Date
 import net.squantlib.database.schemadefinitions.{Bond => dbBond}
 import net.squantlib.util.{SimpleCache, FormulaParser}
 import net.squantlib.pricing.model.PricingModel
-import net.squantlib.schedule.call.Callabilities
+import net.squantlib.schedule.call.{Callability, Callabilities}
 import net.squantlib.schedule.payoff.{Payoff, Payoffs}
 import net.squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import net.squantlib.model.market.Market
@@ -115,13 +115,27 @@ trait PriceableBond extends BondModel with Priceable {
    * Creates clone of the same bond with trigger replaced with given triggers.
    */
   def triggerShifted(trig:List[List[Option[Double]]]):PriceableBond = {
-    val newtrig = trig.size match {
+    val newtrig:List[List[Option[Double]]] = trig.size match {
       case s if s == trigger.size => trig
       case s if s < trigger.size => List.fill(trigger.size - trig.size)(List.empty) ++ trig
     case s if s > trigger.size => trig takeRight trigger.size
     }
 //  val newSchedule = ScheduledPayoffs(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
-    val newSchedule = ScheduledPayoffs.noFixing(schedule, payoffs, Callabilities(bermudan, newtrig, targetRedemptions, underlyings))
+    val newCalls:List[Callability] = (calls, newtrig).zipped.map{case (c, t) => Callability(
+      underlyings = underlyings,
+      bermudan = c.bermudan, 
+      triggers = t,
+      triggerUp = c.triggerUp,
+      targetRedemption = c.targetRedemption,
+      forward = c.forward,
+      bonusAmount = c.bonusAmount,
+      inputString = Map.empty,
+      accumulatedPayments = c.accumulatedPayments,
+      simulatedFrontier = Map.empty
+    )}.toList
+    
+    val newSchedule = ScheduledPayoffs.noFixing(schedule, payoffs, Callabilities(newCalls))
+
     copy(db, newSchedule, underlyings)
   }
   

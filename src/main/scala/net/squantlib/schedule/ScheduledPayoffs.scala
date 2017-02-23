@@ -35,7 +35,22 @@ case class ScheduledPayoffs(
   def isPriceable = payoffs.isPriceable && calls.isPriceable
 
   def trigCheckPayoff:ScheduledPayoffs = {
-    val newcalls = calls.map(c => if (c.isTrigger) Callability(false, c.triggers, None, 0.0, c.inputString, None, c.simulatedFrontier)(c.fixingInfo) else c)
+    val newcalls = calls.map(c => {
+      if (c.isTrigger) 
+        Callability(
+          bermudan = false,
+          triggers = c.triggers,
+          triggerUp = c.triggerUp,
+          targetRedemption = None,
+          forward = c.forward,
+          bonusAmount = c.bonusAmount,
+          inputString = c.inputString,
+          accumulatedPayments = None,
+          simulatedFrontier= c.simulatedFrontier)(c.fixingInfo) 
+
+        else c
+    })
+
     val newpayoffs = scheduledPayoffs.map{case (cp, p, c) => if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)}
     val newScheduledPayoff = ScheduledPayoffs.noFixing(schedule, Payoffs(newpayoffs), Callabilities(newcalls))
     ScheduledPayoffs(newScheduledPayoff, valuedate)
@@ -45,8 +60,14 @@ case class ScheduledPayoffs(
   
   lazy val bonusCoeff = schedule.map(_.dayCount)
   
-  lazy val bonusAmount = calls.map(_.bonus + 1.0).toList
+  lazy val bonusAmounts:List[Double] = calls.map(_.bonusAmount + 1.0).toList
   
+  lazy val triggerUps:List[Boolean] = calls.map(_.triggerUp).toList
+
+  lazy val forwardStrikes:List[Option[Map[String, Double]]] = calls.map(c => if (c.forward.isEmpty) None else Some(c.forward)).toList
+  
+  lazy val forwardStrikeSingleUnderlying:List[Option[Double]] = calls.map(c => c.forward.get(underlyings.head)).toList
+
   def amountToRate(amount:List[Double]) = (amount, bonusCoeff).zipped.map(_ / _)
   
   def currentPayoffs(vd:Date):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd)}.map(_._2) (collection.breakOut)
@@ -57,10 +78,13 @@ case class ScheduledPayoffs(
   
   def triggeredDate:Option[(CalculationPeriod, Double)] = {
     val trigDays = scheduledPayoffs.filter{case (cp, p, c) => c.fixedTrigger == Some(true)}
-    if (trigDays.isEmpty) None else Some(trigDays.map{case (cp, p, c) => (cp, c.redemptionAmount)}.minBy{case (cp, c) => cp.eventDate})
+    
+    if (trigDays.isEmpty) None 
+    else Some(trigDays.map{case (cp, p, c) => (cp, c.fixedRedemptionAmount)}.collect{case (cp, Some(cc)) => (cp, cc)}.minBy{case (cp, c) => cp.eventDate})
+
   }
   
-  lazy val bonusRate = amountToRate(bonusAmount)
+  lazy val bonusRates = amountToRate(bonusAmounts)
   
   val eventDateLegs:List[List[Date]] = {
     val dates:List[List[Date]] = scheduledPayoffs.map{
@@ -98,41 +122,47 @@ case class ScheduledPayoffs(
   
   def fixingPrices(fixings:List[Map[String, Double]])(implicit d:DummyImplicit):List[List[Map[String, Double]]] = priceMapper(fixings)
     
-  def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = 
+  // Single Underlying
+  def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = {
+    val fwdstk:List[Option[Double]] = calls.calls.map(_.forward.values.headOption)
+
     if (calls.isTrigger) {
       if (calls.isPriceable){
         val trig:List[Option[Double]] = calls.calls.map(_.triggers.values.headOption)
-        payoffs.price(priceMapper(fixings), trig, bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
+        
+        payoffs.price(priceMapper(fixings), trig, calls.triggerUps, bonusRates, fwdstk, calls.targetRedemptions, schedule.dayCounts, None)
       }
       else List.fill(fixings.size)(Double.NaN)
     }
     else if (calls.isTargetRedemption) {
-      payoffs.price(priceMapper(fixings), List.fill(calls.size)(None), bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
+      payoffs.price(priceMapper(fixings), List.fill(calls.size)(None), calls.triggerUps, bonusRates, fwdstk, calls.targetRedemptions, schedule.dayCounts, None)
     }
     else payoffs.price(priceMapper(fixings))
+  }
 
+  // multiple underlyings
   def price(fixings:List[Map[String, Double]]):List[Double] = {
     if (calls.isTrigger || calls.isTargetRedemption) {
-      if (calls.isPriceable) payoffs.price(priceMapper(fixings), calls.triggers, bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
+      if (calls.isPriceable) payoffs.price(priceMapper(fixings), calls.triggers, calls.triggerUps, bonusRates, calls.forwardStrikes, calls.targetRedemptions, schedule.dayCounts, None)
       else List.fill(fixings.size)(Double.NaN)
     }
     else if (calls.isTargetRedemption) {
-      payoffs.price(priceMapper(fixings), List.fill(calls.size)(None), bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
+      payoffs.price(priceMapper(fixings), List.fill(calls.size)(None), calls.triggerUps, bonusRates, calls.forwardStrikes, calls.targetRedemptions, schedule.dayCounts, None)
     }
     else payoffs.price(priceMapper(fixings))
   }
   
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]]):List[Double] = 
-    payoffs.price(priceMapper(fixings), trigger, bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
+    payoffs.price(priceMapper(fixings), trigger, triggerUps, bonusRates, forwardStrikes, calls.targetRedemptions, schedule.dayCounts, None)
     
   def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double]):List[Double] = 
-    payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount), calls.targetRedemptions, schedule.dayCounts, None)
+    payoffs.price(priceMapper(fixings), trigger, triggerUps, amountToRate(trigAmount), forwardStrikes, calls.targetRedemptions, schedule.dayCounts, None)
     
   def price(fixings:List[Double], trigger:List[Option[Double]])(implicit d:DummyImplicit):List[Double] = 
-    payoffs.price(priceMapper(fixings), trigger, bonusRate, calls.targetRedemptions, schedule.dayCounts, None)
+    payoffs.price(priceMapper(fixings), trigger, triggerUps, bonusRates, forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
     
   def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = 
-    payoffs.price(priceMapper(fixings), trigger, amountToRate(trigAmount), calls.targetRedemptions, schedule.dayCounts, None)
+    payoffs.price(priceMapper(fixings), trigger, triggerUps, amountToRate(trigAmount), forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
   
   def price:List[Double] = if (calls.isTrigger) List.fill(payoffs.size)(Double.NaN) else payoffs.price
 

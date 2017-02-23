@@ -161,7 +161,12 @@ trait GreekAnalysis {
       else mkt.underlyingShifted(shifts) match {
         case Some(newmkt) => 
           dateshifted.market = newmkt
-          dateshifted.dirtyPrice.collect{case p => 1.0 + c.bonus - p}
+          val fwdPnl = if (c.isForward) c.forward.map{case (k, v) => mkt.getUnderlying(k) match {
+            case Some(ul) if ul.spot > 0.0 => ul.spot / v
+            case _ => Double.NaN
+          }}.min else 1.0
+          
+          dateshifted.dirtyPrice.collect{case p => (1.0 + c.bonusAmount) * fwdPnl - p}
         case _ => None
       }
     case _ => None
