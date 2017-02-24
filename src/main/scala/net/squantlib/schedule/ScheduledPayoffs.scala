@@ -42,8 +42,8 @@ case class ScheduledPayoffs(
           triggers = c.triggers,
           triggerUp = c.triggerUp,
           targetRedemption = None,
-          forward = c.forward,
-          bonusAmount = c.bonusAmount,
+          forward = Map.empty, //c.forward,
+          bonusAmount = 0.0, //c.bonusAmount,
           inputString = c.inputString,
           accumulatedPayments = None,
           simulatedFrontier= c.simulatedFrontier)(c.fixingInfo) 

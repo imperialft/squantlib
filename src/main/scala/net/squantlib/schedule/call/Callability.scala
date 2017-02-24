@@ -12,13 +12,21 @@ case class Callability(
     targetRedemption:Option[Double],
     forward: Map[String, Double],
     bonusAmount:Double,
-    inputString:Map[String, String],
+    inputString:Map[String, Any],
     var accumulatedPayments:Option[Double],
     var simulatedFrontier:Map[String, Double] = Map.empty
   )(implicit val fixingInfo:FixingInformation) extends FixingLeg {
   
 
   override val variables = triggers.keySet
+  
+  def triggerInputString:Map[String, String] = inputString.get("trigger") match {
+    case Some(trig:Map[_, _]) => trig.map{
+        case (k:String, v:String) => (k, v)
+        case (k, v) => (k.toString, v.toString)
+      }.toMap
+    case _ => Map.empty
+  }
   
   def isBermuda:Boolean = bermudan 
   
@@ -82,12 +90,12 @@ case class Callability(
     List(
 	    if (bermudan) "call " else "",
 	    if (isTrigger) (triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
-	    if (triggerUp) "up" else "down",
+	    if (isTrigger) {if (triggerUp) "up" else "down"} else "",
 	    targetRedemption.collect{case t => "target : " + t.asPercent}.getOrElse(""),
 	    if (bonusAmount != 0.0) "bonus " + bonusAmount.asPercent(3) else "",
 	    if (forward.isEmpty) "" else "forward " + forward.map{case (k, v) => k + ":" + v.asDouble}.mkString(" "),
 	    if (isEmpty) "no call" else ""
-	    ).mkString("") 
+	    ).mkString(" ") 
 
 
 }
@@ -109,7 +117,7 @@ object Callability {
     triggers:Map[String, Double],
     targetRedemption:Option[Double],
     callOption: CallOption,
-    inputString:Map[String, String],
+    inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:Map[String, Double]
   )(implicit fixingInfo:FixingInformation):Callability = 
@@ -133,7 +141,7 @@ object Callability {
     targetRedemption:Option[Double],
     forward: Map[String, Double],
     bonusAmount:Double,
-    inputString:Map[String, String],
+    inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:Map[String, Double]
     )(implicit fixingInfo:FixingInformation):Callability = 

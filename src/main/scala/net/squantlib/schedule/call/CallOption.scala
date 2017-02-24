@@ -8,9 +8,14 @@ import net.squantlib.util.FixingInformation
 case class CallOption(
   triggerUp: Boolean,
   forward: Map[String, Double],
-  bonus: Double
-)
+  bonus: Double,
+  invertedStrike:Boolean
+) {
+  
+//  def toMap:Map[String, Any] = if (invertedStrike) Map("inverted_strike" -> 1) else Map.empty
+
+}
 
 object CallOption {
-  def empty = CallOption(true, Map.empty, 0.0)
+  def empty = CallOption(true, Map.empty, 0.0, false)
 }

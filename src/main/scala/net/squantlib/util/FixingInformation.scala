@@ -8,10 +8,15 @@ case class FixingInformation(
     var minRange:Option[Double], 
     var maxRange:Option[Double], 
     var initialFixing:Map[String, Double]) {
+  
+  def initialFixingFull:Map[String, Double] = {
+    val inv:Map[String, Double] = initialFixing.withFilter{case (k, v) => k.size == 6}.map{case (k, v) => (((k takeRight 3) + (k take 3)), (if (v == 0.0) 0.0 else 1.0 / v))}.toMap
+    if (inv.isEmpty) initialFixing else initialFixing ++ inv
+  }
     
   def all:Map[String, Double] = tbd match {
-    case Some(c) => initialFixing.updated("tbd", c)
-    case None => initialFixing
+    case Some(c) => initialFixingFull.updated("tbd", c)
+    case None => initialFixingFull
   }
     
   def update(p:String):String = multipleReplace(p, all.map{case (k, v) => ("@" + k, v)})
