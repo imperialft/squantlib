@@ -144,6 +144,7 @@ object Callabilities {
         CallOption(
           if (invertedStrike) !triggerUp else triggerUp, 
           if (invertedStrike && forward.keys.forall(_.size == 6)) forward.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap else forward,
+          forwardMap,
           bonus,
           invertedStrike
         )
@@ -217,11 +218,21 @@ object Callabilities {
 
     val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions).map{
       case (((berm, f), (trig, tgt)), callOption) => 
-        val inputString:Map[String, Any] = 
+        var inputString:Map[String, Any] = 
           if (berm) Map("type" -> "berm")
           else if (tgt.isDefined) Map("type" -> "target", "target" -> tgt.getOrElse(Double.NaN))
-          else if (!f.isEmpty) Map("type" -> "trigger", "trigger" -> f)
+          else if (!f.isEmpty) Map("type" -> "trigger", "trigger" -> f, "trigger_type" -> (if(callOption.triggerUp) "up" else "down"))
           else Map("type" -> "unknown")
+          
+        if (!callOption.forward.isEmpty) {
+          inputString = inputString.updated("forward", callOption.forwardInputString)
+        }
+        
+        if (callOption.invertedStrike) {
+          inputString = inputString.updated("inverted_strike", 1)
+        }
+        
+        inputString = inputString.updated("bonus", callOption.bonus)
           
         Callability(
           bermudan = berm,
