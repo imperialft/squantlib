@@ -77,10 +77,12 @@ case class ScheduledPayoffs(
   def isTriggered:Boolean = calls.isTriggered
   
   def triggeredDate:Option[(CalculationPeriod, Double)] = {
-    val trigDays = scheduledPayoffs.filter{case (cp, p, c) => c.fixedTrigger == Some(true)}
+    val trigDays = scheduledPayoffs.filter{case (cp, p, c) => c.isFixed && c.fixedTrigger == Some(true)}
     
     if (trigDays.isEmpty) None 
-    else Some(trigDays.map{case (cp, p, c) => (cp, c.fixedRedemptionAmount)}.collect{case (cp, Some(cc)) => (cp, cc)}.minBy{case (cp, c) => cp.eventDate})
+    else {
+      Some(trigDays.map{case (cp, p, c) => (cp, c.fixedRedemptionAmount)}.collect{case (cp, Some(cc)) => (cp, cc)}.minBy{case (cp, c) => cp.eventDate})
+    }
 
   }
   

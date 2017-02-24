@@ -40,13 +40,20 @@ case class Callability(
   
   def isTargetRedemption:Boolean = targetRedemption.isDefined
   
-  override def isFixed = isTrigger && (variables.isEmpty || !preFixings.isEmpty)
+  override def isFixed = isFixedTrigger || isFixedTargetRedemption
+  
+  def isFixedTrigger = isTrigger && (variables.isEmpty || !preFixings.isEmpty)
+  
+  def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && targetRedemption.isDefined
   
   def isPriceable:Boolean = !triggers.values.exists(v => v.isNaN || v.isInfinity) && !forward.values.exists(v => v.isNaN || v.isInfinity || v <= 0.0000000000001) && forward.keySet.subsetOf(triggers.keySet)
   
   def isEmpty:Boolean = !bermudan && triggers.isEmpty && targetRedemption.isEmpty
   
-  def fixedTriggerByTrigger:Option[Boolean] = if (isFixed && isTrigger) Some(triggers.forall{case (k, v) => if (triggerUp) v <= getFixings(k) else v >= getFixings(k)}) else None
+  def fixedTriggerByTrigger:Option[Boolean] = 
+    if (isFixed && isTrigger) 
+      Some(triggers.forall{case (k, v) => if (triggerUp) v <= getFixings(k) else v >= getFixings(k)}) 
+    else None
   
   def fixedTriggerByTargetRedemption:Option[Boolean] = (targetRedemption, accumulatedPayments) match {
     case (Some(tgt), Some(acc)) => Some(acc >= tgt - 0.0000000001)
@@ -64,9 +71,21 @@ case class Callability(
   def isTriggered(f:Map[String, Double]):Boolean = judgeTrigger(if (isFixed) getFixings else f)
   
   def isTriggered:Boolean = if (isFixed) isTriggered(getFixings) else false
-    
+
+//  def isTargetRedeemed:Boolean = (accumulatedPayments, targetRedemption) match {
+//    case (Some(acc), Some(tgt)) => acc >= tgt
+//    case _ => false
+//  }
+
   def isProbablyCalled(f:Map[String, Double]):Boolean = 
-    isTriggered(f) || (bermudan && !simulatedFrontier.isEmpty && (simulatedFrontier.keySet subsetOf f.keySet) && simulatedFrontier.forall{case (k, v) => if (triggerUp) v <= f(k) else v >= f(k)})
+    isTriggered(f) || 
+    fixedTriggerByTargetRedemption.getOrElse(false) ||
+    (
+      bermudan && 
+      !simulatedFrontier.isEmpty && 
+      (simulatedFrontier.keySet subsetOf f.keySet) && 
+      simulatedFrontier.forall{case (k, v) => if (triggerUp) v <= f(k) else v >= f(k)}
+    )
     
   def isProbablyCalled:Boolean = if (isFixed) isProbablyCalled(getFixings) else false
      
