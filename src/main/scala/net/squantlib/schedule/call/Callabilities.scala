@@ -218,12 +218,22 @@ object Callabilities {
 
     val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions).map{
       case (((berm, f), (trig, tgt)), callOption) => 
-        var inputString:Map[String, Any] = 
-          if (berm) Map("type" -> "berm")
-          else if (tgt.isDefined) Map("type" -> "target", "target" -> tgt.getOrElse(Double.NaN))
-          else if (!f.isEmpty) Map("type" -> "trigger", "trigger" -> f, "trigger_type" -> (if(callOption.triggerUp) "up" else "down"))
-          else Map("type" -> "unknown")
-          
+
+        var inputString:Map[String, Any] = Map(
+          "type" -> {
+            if (berm) "berm"
+            else if (tgt.isDefined) "target"
+            else if (!f.isEmpty) "trigger"
+            else "unknown"
+          }
+        )
+        
+        if (tgt.isDefined) {
+          inputString = inputString.updated("target", tgt.getOrElse(Double.NaN))
+        } else if (!f.isEmpty) {
+          inputString = inputString.updated("trigger", f).updated("trigger_type", (if(callOption.triggerUp) "up" else "down"))
+        }
+  
         if (!callOption.forward.isEmpty) {
           inputString = inputString.updated("forward", callOption.forwardInputString)
         }
