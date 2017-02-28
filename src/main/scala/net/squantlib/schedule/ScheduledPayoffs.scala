@@ -66,7 +66,12 @@ case class ScheduledPayoffs(
 
   lazy val forwardStrikes:List[Option[Map[String, Double]]] = calls.map(c => if (c.forward.isEmpty) None else Some(c.forward)).toList
   
-  lazy val forwardStrikeSingleUnderlying:List[Option[Double]] = calls.map(c => c.forward.get(underlyings.head)).toList
+  lazy val forwardStrikeSingleUnderlying:List[Option[Double]] = calls.map(c => {
+    underlyings.headOption match {
+      case Some(h) => c.forward.get(h)
+      case _ => None
+    }
+  }).toList
 
   def amountToRate(amount:List[Double]) = (amount, bonusCoeff).zipped.map(_ / _)
   
