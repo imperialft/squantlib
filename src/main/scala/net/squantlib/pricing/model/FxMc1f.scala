@@ -23,7 +23,9 @@ case class FxMc1f(valuedate:Date,
             frontierFunction:() => List[Option[Double]],
             parameterRepository:Any => Unit,
             bondid:String) extends PricingModel {
-  
+
+  assert(trigger.size == scheduledPayoffs.calls.size, s"Number of calls(${scheduledPayoffs.calls.size}), trigger(${trigger.size})")
+
   mcPaths = defaultPaths
   val redemamt = scheduledPayoffs.bonusAmounts.takeRight(trigger.size)
   val triggerUps = scheduledPayoffs.triggerUps
@@ -39,12 +41,12 @@ case class FxMc1f(valuedate:Date,
   }
    
   def mcPrice(paths:Int):List[Double] = {
-    try { 
+//    try { 
       val mpaths = modelPaths(paths)
       if (mpaths.isEmpty) scheduledPayoffs.price
       else concatList(mpaths).map(_ / paths.toDouble)
-    }
-    catch {case e:Throwable => errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
+//    }
+//    catch {case e:Throwable => errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
   }
   
   override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
@@ -112,15 +114,35 @@ object FxMc1f {
   
   def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
   
-  def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
-    val trig = bond.getCalibrationCache("FXMontecarlo1f") match {
-      case Some(t:List[Any]) => t.map{
+  def cachedFrontier(bond:PriceableBond):List[Option[Double]] = bond.getCalibrationCache("FXMontecarlo1f") match {
+    case Some(t:List[Any]) => 
+      t.map{
         case Some(v:Double) => Some(v)
         case _ => None
       }.toList
-      case _ => bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head)
-    } 
-    apply(market, bond, mcengine, paths, frontierPths, trig)
+    case _ => List.empty
+  }
+  
+  def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
+//    val frontierTrig = bond.getCalibrationCache("FXMontecarlo1f") match {
+//      case Some(t:List[Any]) => 
+//        t.map{
+//          case Some(v:Double) => Some(v)
+//          case _ => None
+//        }.toList.takeRight(bond.livePayoffCount(market.valuedate))
+//
+//      case _ => 
+//        bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head)
+//    } 
+
+    val cachedTrig = cachedFrontier(bond)
+    val frontierTrig = if (cachedTrig.isEmpty) bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head) else cachedTrig.takeRight(bond.livePayoffCount(market.valuedate))
+    
+//    println("frontierTrig")
+//    println(frontierTrig.size)
+//    println(frontierTrig.mkString(", "))
+
+    apply(market, bond, mcengine, paths, frontierPths, frontierTrig)
   }
   
   def apply(

@@ -51,6 +51,13 @@ trait ExtendedSchedule {
     }
     p
   }
+
+  def livePayoffCount(vd:Date):Int =
+    earlyTerminationDate match {
+      case Some(d) if vd ge d => 0
+      case Some(d) => scheduledPayoffs.countBetween(vd, d) + 1
+      case _ => scheduledPayoffs.countAfter(vd)
+    }
   
   def liveCoupons:ScheduledPayoffs = livePayoffs.filtered{case (period, _, _) => !period.isAbsolute}
   

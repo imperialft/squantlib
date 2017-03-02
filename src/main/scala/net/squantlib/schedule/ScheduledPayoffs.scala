@@ -86,9 +86,9 @@ case class ScheduledPayoffs(
     
     if (trigDays.isEmpty) None 
     else {
-      Some(trigDays.map{case (cp, p, c) => (cp, c.fixedRedemptionAmount)}.collect{case (cp, Some(cc)) => (cp, cc)}.minBy{case (cp, c) => cp.eventDate})
+      val dateRedemptionAmounts = trigDays.map{case (cp, p, c) => (cp, c.fixedRedemptionAmount)}.collect{case (cp, Some(cc)) => (cp, cc)}
+      if (dateRedemptionAmounts.isEmpty) None else Some(dateRedemptionAmounts.minBy{case (cp, c) => cp.eventDate})
     }
-
   }
   
   lazy val bonusRates = amountToRate(bonusAmounts)
@@ -168,18 +168,50 @@ case class ScheduledPayoffs(
   def price(fixings:List[Double], trigger:List[Option[Double]])(implicit d:DummyImplicit):List[Double] = 
     payoffs.price(priceMapper(fixings), trigger, triggerUps, bonusRates, forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
     
-  def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = 
+  def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = {
+//    if (priceMapper(fixings).size != trigger.size) {
+//      println("calls")
+//      println(calls.size)
+//      calls.foreach(println)
+//      println("payoffs")
+//      println(payoffs.size)
+//      payoffs.foreach(println)
+//      println("fixings")
+//      println(priceMapper(fixings).size)
+//      println(priceMapper(fixings))
+//      println("triggers")
+//      println(trigger.size)
+//      println(trigger)
+//    }
+    
     payoffs.price(priceMapper(fixings), trigger, triggerUps, amountToRate(trigAmount), forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
+  }
   
   def price:List[Double] = if (calls.isTrigger) List.fill(payoffs.size)(Double.NaN) else payoffs.price
 
   def withValueDate(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs, Some(vd))
     
-  def after(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate gt vd})
+  //def after(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate gt vd})
+  private def filterAfter(vd:Date):CalculationPeriod => Boolean = cp => cp.paymentDate gt vd
   
-  def before(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate le vd})
+  def after(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, _, _) => filterAfter(vd)(cp)})
 
-  def between(vd:Date, lastvd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => (cp.paymentDate le vd) && (cp.paymentDate gt vd)})
+  def countAfter(vd:Date):Int = scheduledPayoffs.count{case (cp, _, _) => filterAfter(vd)(cp)}
+  
+//  def before(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => cp.paymentDate le vd})
+  private def filterBefore(vd:Date):CalculationPeriod => Boolean = cp => cp.paymentDate le vd
+  
+  def before(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, _, _) => filterBefore(vd)(cp)})
+
+  def countBefore(vd:Date):Int = scheduledPayoffs.count{case (cp, _, _) => filterBefore(vd)(cp)}
+  
+//  def between(vd:Date, lastvd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, p, c) => (cp.paymentDate le vd) && (cp.paymentDate gt vd)})
+  private def filterBetween(vdFrom:Date, vdTo:Date):CalculationPeriod => Boolean = cp => (cp.paymentDate le vdTo) && (cp.paymentDate gt vdFrom)
+  
+  def between(vdFrom:Date, vdTo:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs.filter{case (cp, _, _) => filterBetween(vdFrom, vdTo)(cp)})
+
+  def countBetween(vdFrom:Date, vdTo:Date):Int = scheduledPayoffs.count{case (cp, _, _) => filterBetween(vdFrom, vdTo)(cp)}
+
   
   def called(vd:Date, redemAmount:Double, paymentCalendar:Calendar, convention:BusinessDayConvention):ScheduledPayoffs = 
     before(vd).addCashflow(vd, redemAmount, paymentCalendar, convention)
