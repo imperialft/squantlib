@@ -133,7 +133,7 @@ case class LEPS1dComponent (coeff:Option[Double], constant:Option[Double], minRa
 object LEPS1dComponent {
   
   def apply(subnode:JsonNode):LEPS1dComponent = {
-    val coeff:Option[Double] = Some(subnode.parseDouble("mult").getOrElse(1.0))
+    val coeff:Option[Double] = Some(subnode.parseDouble("mult").getOrElse(0.0))
     val constant:Option[Double] = subnode.parseDouble("add")
     val minRange:Option[Double] = subnode.parseDouble("minrange")
     val maxRange:Option[Double] = subnode.parseDouble("maxrange")

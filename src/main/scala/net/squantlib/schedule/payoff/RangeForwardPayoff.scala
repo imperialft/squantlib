@@ -15,9 +15,10 @@ import net.squantlib.util.FixingInformation
  */
 case class RangeForwardPayoff(
     variable:String, 
-    triggerLow:Double, 
-    triggerHigh:Double, 
+    triggerLow:Option[Double], 
+    triggerHigh:Option[Double], 
     strike:Double, 
+    forwardInRange:Boolean = true,
     amount:Double = 1.0, 
     description:String = null,
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
@@ -26,8 +27,14 @@ case class RangeForwardPayoff(
   nominal = amount
   
   override val isPriceable:Boolean = 
-    !triggerHigh.isNaN && !triggerHigh.isInfinity && 
-    !triggerLow.isNaN && !triggerLow.isInfinity && 
+    (triggerHigh match {
+      case Some(v) => !v.isNaN && !v.isInfinity
+      case _ => true
+    }) && 
+    (triggerLow match {
+      case Some(v) => !v.isNaN && !v.isInfinity
+      case _ => true
+    }) && 
     !strike.isNaN && !strike.isInfinity
   
 //  def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
@@ -40,10 +47,23 @@ case class RangeForwardPayoff(
       case Some(v) if !v.isNaN && !v.isInfinity => priceImpl(v)
       case None => Double.NaN
     }
-    
+  
+  private def satisfyRange(fixing:Double):Boolean = {
+    val r = (triggerLow, triggerHigh) match {
+      case (Some(l), Some(h)) => fixing >= l && fixing <= h
+      case (None, Some(h)) => fixing <= h
+      case (Some(l), None) => fixing >= l
+      case (None, None) => true
+    }
+    if (forwardInRange) r else !r
+  }
+  
   override def priceImpl(fixing:Double):Double =
-    if (fixing < triggerLow || fixing > triggerHigh) 1.0
-    else fixing / strike
+    if (satisfyRange(fixing)) fixing / strike
+    else 1.0
+
+    //    if (fixing < triggerLow || fixing > triggerHigh) 1.0
+//    else fixing / strike
    
   override def toString =
     nominal.asPercent + " [" + triggerHigh.asDouble + ", " + triggerLow.asDouble + "] " + nominal.asPercent + " x " + variable + " / " + strike.asDouble + ""
@@ -67,12 +87,13 @@ object RangeForwardPayoff {
     val fixed = fixingInfo.update(formula)
     
     val variable:String = formula.parseJsonString("variable").getOrElse(null)
-    val triggerHigh:Double = fixed.parseJsonDouble("triggerhigh").getOrElse(Double.NaN)
-    val triggerLow:Double = fixed.parseJsonDouble("triggerlow").getOrElse(Double.NaN)
+    val triggerHigh:Option[Double] = fixed.parseJsonDouble("triggerhigh")
+    val triggerLow:Option[Double] = fixed.parseJsonDouble("triggerlow")
     val strike:Double = fixed.parseJsonDouble("strike").getOrElse(Double.NaN)
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
+    val forwardInRange:Boolean = formula.parseJsonString("range_type").orNull == "in"
     val description:String = formula.parseJsonString("description").orNull
-    RangeForwardPayoff(variable, triggerLow, triggerHigh, strike, amount, description, inputString)
+    RangeForwardPayoff(variable, triggerLow, triggerHigh, strike, forwardInRange, amount, description, inputString)
   }
   
 }

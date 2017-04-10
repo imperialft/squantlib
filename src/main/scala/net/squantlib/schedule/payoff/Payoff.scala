@@ -30,6 +30,16 @@ trait Payoff extends FixingLeg {
   
   var isAbsolute:Boolean = false
   
+  val physical:Boolean = false
+
+  override def assignSettlementFixings(f:Map[String, Double]):Unit = {
+    if (physical && (variables subsetOf f.keySet) || f.isEmpty) {
+      settlementFixings = f
+    }
+  }
+
+  override def isSettlementFixed:Boolean = variables.isEmpty || !physical || !settlementFixings.isEmpty
+  
   var nominal:Double = 1.0
   
 //  var targetRedemption:Option[Double] = None
@@ -49,6 +59,8 @@ trait Payoff extends FixingLeg {
     val infoMap:JavaMap[String, Any] = jsonMap
     (new ObjectMapper).writeValueAsString(infoMap)
   }
+  
+  def isPaymentFixed:Boolean = isFixed && (!physical || isSettlementFixed)
 
   def jsonMapImpl:Map[String, Any]  
   
@@ -56,7 +68,7 @@ trait Payoff extends FixingLeg {
    * Price assuming all variables fixed at spot market.
    */  
   final def price(market:Market):Double = 
-    if (isFixed) price(getFixings)
+    if (isPaymentFixed) price(getFixings)
     else if (isPriceable) priceImpl(market) 
     else Double.NaN
   
@@ -66,7 +78,7 @@ trait Payoff extends FixingLeg {
    * Price given variable fixings, where set of necessary variables are provided by variables function.
    */  
   final def price(fixings:Map[String, Double]):Double = 
-    if (isFixed) priceImpl(getFixings)
+    if (isPaymentFixed) priceImpl(getFixings)
     else if (isPriceable) priceImpl(fixings) 
     else Double.NaN
   
@@ -76,7 +88,7 @@ trait Payoff extends FixingLeg {
    * Returns price if there's only one variable. Returns NaN in case of >1 variables.
    */  
   final def price(fixing:Double):Double = 
-    if (isFixed) price(getFixings)
+    if (isPaymentFixed) price(getFixings)
     else if (isPriceable) priceImpl(fixing) 
     else Double.NaN
   
@@ -86,7 +98,7 @@ trait Payoff extends FixingLeg {
    * Returns price if there's no variable. Returns NaN in case of >0 variables.
    */  
   final def price:Double = 
-    if (isFixed) price(getFixings)
+    if (isPaymentFixed) price(getFixings)
     else if (isPriceable) priceImpl 
     else Double.NaN
   
@@ -97,7 +109,7 @@ trait Payoff extends FixingLeg {
    * Only refers to the last variable by default but can be overridden.
    */  
   final def price(fixings:List[Map[String, Double]]):Double = 
-    if (isFixed) price(getFixings)
+    if (isPaymentFixed) price(getFixings)
     else if (isPriceable) priceImpl(fixings) 
     else Double.NaN
   
@@ -110,7 +122,7 @@ trait Payoff extends FixingLeg {
    * Only refers to the last variable by default but can be overridden.
    */  
   final def price[T:ClassTag](fixings:List[Double]):Double = 
-    if (isFixed) price(getFixings)
+    if (isPaymentFixed) price(getFixings)
     else if (isPriceable) priceImpl[T](fixings) 
     else Double.NaN
   

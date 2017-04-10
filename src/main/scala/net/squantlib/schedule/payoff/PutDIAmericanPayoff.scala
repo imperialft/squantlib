@@ -23,7 +23,8 @@ case class PutDIAmericanPayoff(
     strike:List[Double], 
     refstart:Date, 
     refend:Date, 
-    var knockedIn:Boolean, 
+    var knockedIn:Boolean,
+    override val physical:Boolean,
     amount:Double = 1.0, 
     description:String = null,
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
@@ -56,7 +57,12 @@ case class PutDIAmericanPayoff(
         if (i >= end - 180 && i % mcPeriod6m == basemod)
         || (i >= end - 360 && i % mcPeriod1y == basemod)
         || (i % mcPeriodbefore == basemod)) yield Date(i)) (collection.breakOut)
-    if (dates.head == refstart) dates else refstart :: dates
+        
+    if (physical) {
+      if (dates.head == refstart) dates :+ period.paymentDate else (refstart :: dates) :+ period.paymentDate
+    } else {
+      if (dates.head == refstart) dates else refstart :: dates
+    }
   }
   
   trait FixingInterpreter[T] {
@@ -64,8 +70,15 @@ case class PutDIAmericanPayoff(
     def price(fixings:T, isKnockedIn:Boolean):Double // Method to be implemented
     
     def isKnockIn(fixings:List[T]):Boolean = knockedIn || fixings.exists(isKnockIn(_))
-    def price(fixings:T):Double = price(fixings, isKnockIn(fixings))
-    def price(fixings:List[T]):Double = price(fixings.last, isKnockIn(fixings))
+
+    def price(fixings:T):Double = 
+      if (physical) Double.NaN
+      else price(fixings, isKnockIn(fixings))
+    
+    def price(fixings:List[T]):Double = {
+      if (physical) price(fixings.last, isKnockIn(fixings.dropRight(1)))
+      else price(fixings.last, isKnockIn(fixings))
+    }
   }
   
   implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
@@ -155,11 +168,12 @@ object PutDIAmericanPayoff {
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val refstart:Date = formula.parseJsonDate("refstart").orNull
     val refend:Date = formula.parseJsonDate("refend").orNull
+    val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val description:String = formula.parseJsonString("description").orNull
     
     val knockedIn:Boolean = false
     
-    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, amount, description, inputString)
+    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, physical, amount, description, inputString)
   }
   
 }
