@@ -28,6 +28,15 @@ case class PutDIPayoff(
   val variables = putVariables.toSet
   
   nominal = amount
+  
+  var knockedIn:Boolean = fixingKnockedIn
+  
+  def fixingKnockedIn:Boolean = {
+    variables.exists(p => getFixings.get(p) match { 
+      case Some(v) if triggerMap.contains(p) => v <= triggerMap(p) 
+      case None => false
+    })
+  }
 
   val strikeMap:Map[String, Double] = (putVariables zip strike) (collection.breakOut)
    
