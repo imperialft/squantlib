@@ -131,7 +131,10 @@ trait Payoff extends FixingLeg {
   /*
    * Event dates, usually used in case of >1 fixing dates.
    */  
-  def eventDates(d:CalculationPeriod):List[Date] = List(d.eventDate)
+  def eventDates(d:CalculationPeriod):List[Date] = {
+    if (physical) List(d.eventDate, d.paymentDate)
+    else List(d.eventDate)
+  }
   
   /*
    * Returns FixedPayoff if all variables fixing are available on given date. 

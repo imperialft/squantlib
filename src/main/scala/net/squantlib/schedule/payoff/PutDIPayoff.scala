@@ -6,6 +6,8 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import java.util.{Map => JavaMap}
 import net.squantlib.util.FixingInformation
+import net.squantlib.util.Date
+import net.squantlib.schedule.CalculationPeriod
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -16,7 +18,8 @@ import net.squantlib.util.FixingInformation
 case class PutDIPayoff(
     putVariables:List[String], 
     trigger:List[Double], 
-    strike:List[Double], 
+    strike:List[Double],
+    override val physical:Boolean,
     amount:Double = 1.0,
     description:String = null,
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
@@ -26,25 +29,34 @@ case class PutDIPayoff(
   nominal = amount
   
   override val isPriceable:Boolean = !trigger.exists(v => v.isNaN || v.isInfinity) && !strike.exists(v => v.isNaN || v.isInfinity)
+
+  override def eventDates(period:CalculationPeriod):List[Date] = {
+    if (!isPriceable) List(period.endDate)
+    else if (physical) List(period.eventDate, period.paymentDate)
+    else List(period.eventDate)
+  }
   
-  def getFixings(fixings:Map[String, Double]):Option[List[Double]] = 
+  def getFixings(fixings:Map[String, Double]):Option[List[Double]] = {
     if (variables.toSet subsetOf fixings.keySet) 
       Some((0 to putVariables.size - 1).toList.map(i => fixings(putVariables(i))))
     else None
+  }
       
-  override def priceImpl(fixings:Map[String, Double]) = 
+  override def priceImpl(fixings:Map[String, Double]) = {
     getFixings(fixings) match {
       case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => 
         if (fixValues.corresponds(trigger) {_ >= _}) 1.0
         else math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
       case None => Double.NaN
     }
+  }
     
-  override def priceImpl(fixing:Double) =
+  override def priceImpl(fixing:Double) = {
     if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
     else if (fixing >= trigger.head) 1.0
     else math.min(1.00, fixing / strike.head)
-   
+  }
+  
   override def toString =
     nominal.asPercent + " [" + trigger.mkString(",") + "] " + nominal.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])"
   
@@ -70,7 +82,8 @@ object PutDIPayoff {
     val strike:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val description:String = formula.parseJsonString("description").orNull
-    PutDIPayoff(variable, trigger, strike, amount, description, inputString)
+    val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
+    PutDIPayoff(variable, trigger, strike, physical, amount, description, inputString)
   }
   
 }
