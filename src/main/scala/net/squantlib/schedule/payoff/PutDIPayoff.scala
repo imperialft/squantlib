@@ -8,6 +8,7 @@ import java.util.{Map => JavaMap}
 import net.squantlib.util.FixingInformation
 import net.squantlib.util.Date
 import net.squantlib.schedule.CalculationPeriod
+import scala.reflect.ClassTag
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -27,6 +28,10 @@ case class PutDIPayoff(
   val variables = putVariables.toSet
   
   nominal = amount
+
+  val strikeMap:Map[String, Double] = (putVariables zip strike) (collection.breakOut)
+   
+  val triggerMap:Map[String, Double] = (putVariables zip trigger) (collection.breakOut)
   
   override val isPriceable:Boolean = !trigger.exists(v => v.isNaN || v.isInfinity) && !strike.exists(v => v.isNaN || v.isInfinity)
 
@@ -35,32 +40,104 @@ case class PutDIPayoff(
     else if (physical) List(period.eventDate, period.paymentDate)
     else List(period.eventDate)
   }
-  
-  def getFixings(fixings:Map[String, Double]):Option[List[Double]] = {
-    if (variables.toSet subsetOf fixings.keySet) 
-      Some((0 to putVariables.size - 1).toList.map(i => fixings(putVariables(i))))
-    else None
-  }
-      
-  override def priceImpl(fixings:Map[String, Double]) = {
-    getFixings(fixings) match {
-      case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => 
-        if (fixValues.corresponds(trigger) {_ >= _}) 1.0
-        else math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
-      case None => Double.NaN
+
+  trait FixingInterpreter[T] {
+    def isKnockIn(fixings:T):Boolean // Method to be implemented
+    def price(fixings:T, isKnockedIn:Boolean):Double // Method to be implemented
+    
+    def price(fixings:T):Double = {
+      if (physical) {
+        if (isFixed) price(fixings, knockedIn)
+        else Double.NaN
+      }
+      else price(fixings, isKnockIn(fixings))
+    }
+    
+    def price(fixings:List[T]):Double = {
+      fixings.lastOption match {
+        case Some(lastFixing) => 
+          if (physical) {
+            val fixingSize = fixings.length
+            if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings(fixings.length - 2)))
+            else Double.NaN
+          }
+          else price(lastFixing, isKnockIn(lastFixing))
+        case None => Double.NaN
+      }
     }
   }
+  
+  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
     
-  override def priceImpl(fixing:Double) = {
-    if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
-    else if (fixing >= trigger.head) 1.0
-    else math.min(1.00, fixing / strike.head)
+    override def isKnockIn(fixings:Map[String, Double]):Boolean = {
+      variables.exists(p => fixings.get(p) match { 
+        case Some(v) if triggerMap.contains(p) => v <= triggerMap(p) 
+        case None => false
+      })
+    }
+
+    override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
+      if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
+        if (isKnockedIn) variables.map(v => fixings(v) / strikeMap(v)).min
+        else 1.0
+      } else Double.NaN
+    }
   }
+  
+  implicit object DoubleInterpreter extends FixingInterpreter[Double] {
+
+    override def isKnockIn(fixing:Double):Boolean = fixing <= trigger.head
+
+    override def price(fixing:Double, isKnockedIn:Boolean):Double = {
+      if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
+      else {
+        if (isKnockedIn) fixing / strike.head
+        else 1.0
+      }
+    }
+  }
+
+  def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
+  
+  def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
+  
+  override def priceImpl(fixings:List[Map[String, Double]]):Double = priceList(fixings)
+
+  override def priceImpl(fixings:Map[String, Double]):Double = priceSingle(fixings)
+  
+  override def priceImpl[T:ClassTag](fixings:List[Double]):Double = priceList(fixings)
+  
+  override def priceImpl(fixing:Double):Double = priceSingle(fixing)
+  
+  override def priceImpl = Double.NaN
+  
+  
+  
+//  def getFixings(fixings:Map[String, Double]):Option[List[Double]] = {
+//    if (variables.toSet subsetOf fixings.keySet) 
+//      Some((0 to putVariables.size - 1).toList.map(i => fixings(putVariables(i))))
+//    else None
+//  }
+//      
+//  override def priceImpl(fixings:Map[String, Double]) = {
+//    getFixings(fixings) match {
+//      case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => 
+//        if (fixValues.corresponds(trigger) {_ >= _}) 1.0
+//        else math.min(1.00, (fixValues, strike).zipped.map((v, k) => v/k).min)
+//      case None => Double.NaN
+//    }
+//  }
+//    
+//  override def priceImpl(fixing:Double) = {
+//    if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
+//    else if (fixing >= trigger.head) 1.0
+//    else math.min(1.00, fixing / strike.head)
+//  }
   
   override def toString =
     nominal.asPercent + " [" + trigger.mkString(",") + "] " + nominal.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.mkString(",") + "])"
   
-  override def priceImpl = Double.NaN
+//  override def priceImpl = Double.NaN
   
   override def jsonMapImpl = Map(
     "type" -> "putdi", 

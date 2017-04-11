@@ -25,6 +25,7 @@ case class PutDIAmericanPayoff(
     refend:Date, 
     var knockedIn:Boolean,
     override val physical:Boolean,
+    forward:Boolean,
     amount:Double = 1.0, 
     description:String = null,
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
@@ -57,7 +58,7 @@ case class PutDIAmericanPayoff(
         if (i >= end - 180 && i % mcPeriod6m == basemod)
         || (i >= end - 360 && i % mcPeriod1y == basemod)
         || (i % mcPeriodbefore == basemod)) yield Date(i)) (collection.breakOut)
-        
+          
     if (physical) {
       if (dates.head == refstart) dates :+ period.paymentDate else (refstart :: dates) :+ period.paymentDate
     } else {
@@ -67,50 +68,70 @@ case class PutDIAmericanPayoff(
   
   trait FixingInterpreter[T] {
     def isKnockIn(fixings:T):Boolean // Method to be implemented
+    def minBelowStrike(fixings:T):Boolean // Method to be implemented
     def price(fixings:T, isKnockedIn:Boolean):Double // Method to be implemented
     
-    def isKnockIn(fixings:List[T]):Boolean = knockedIn || fixings.exists(isKnockIn(_))
+    def isKnockIn(fixings:List[T]):Boolean = {
+      if (fixings.isEmpty) knockedIn
+      else (knockedIn || fixings.exists(isKnockIn(_))) && (forward || minBelowStrike(fixings.last))
+    }
 
-    def price(fixings:T):Double = 
-      if (physical) Double.NaN
+    def price(fixings:T):Double = {
+      if (physical) {
+        if (isFixed) price(fixings, knockedIn)
+        else Double.NaN
+      }
       else price(fixings, isKnockIn(fixings))
+    }
     
     def price(fixings:List[T]):Double = {
-      if (physical) price(fixings.last, isKnockIn(fixings.dropRight(1)))
+      if (fixings.isEmpty) Double.NaN
+      else if (physical) price(fixings.last, isKnockIn(fixings.dropRight(1)))
       else price(fixings.last, isKnockIn(fixings))
     }
   }
   
   implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
-    override def isKnockIn(fixings:Map[String, Double]):Boolean = try{
-      knockedIn || 
-      variables.exists(p => fixings.get(p) match { 
+    
+    override def isKnockIn(fixings:Map[String, Double]):Boolean = {
+      knockedIn || variables.exists(p => fixings.get(p) match { 
         case Some(v) if triggerMap.contains(p) => v <= triggerMap(p) 
         case None => false
       })
     }
-    catch {
-      case e:Throwable => 
-        errorOutput("ERROR CHECKING KNOCK-IN")
-        errorOutput("Variables", variables)
-        errorOutput("Fixings", fixings)
-        errorOutput("TriggerMap", triggerMap)
-        false
+
+    override def minBelowStrike(fixings:Map[String, Double]):Boolean = {
+      variables.exists(p => fixings.get(p) match { 
+        case Some(v) if strikeMap.contains(p) => v <= strikeMap(p) 
+        case None => false
+      })
     }
-    
+
     override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
       if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
-        if (isKnockedIn) math.min(1.00, variables.map(v => fixings(v) / strikeMap(v)).min)
+        if (isKnockedIn) variables.map(v => fixings(v) / strikeMap(v)).min
         else 1.0
       } else Double.NaN
-  }}
+    }
+
+  }
   
   implicit object DoubleInterpreter extends FixingInterpreter[Double] {
+
     override def isKnockIn(fixing:Double):Boolean = knockedIn || fixing <= trigger.head
+
+    override def minBelowStrike(fixing:Double):Boolean = fixing <= strike.head
+
     override def price(fixing:Double, isKnockedIn:Boolean):Double = 
       if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
-      else if (isKnockedIn) math.min(1.0, fixing / strike.head)
-      else 1.0
+      else if (physical) {
+        if (isKnockedIn) fixing / strike.head
+        else 1.0
+      }
+      else {
+        if (isKnockedIn && (forward || minBelowStrike(fixing))) fixing / strike.head
+        else 1.0
+      }
     }
   
   def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
@@ -169,11 +190,12 @@ object PutDIAmericanPayoff {
     val refstart:Date = formula.parseJsonDate("refstart").orNull
     val refend:Date = formula.parseJsonDate("refend").orNull
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
+    val forward:Boolean = formula.parseJsonString("forward").getOrElse("0") == "1"
     val description:String = formula.parseJsonString("description").orNull
     
     val knockedIn:Boolean = false
     
-    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, physical, amount, description, inputString)
+    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, physical, forward, amount, description, inputString)
   }
   
 }
