@@ -18,6 +18,7 @@ case class RangeForwardPayoff(
     triggerLow:Option[Double], 
     triggerHigh:Option[Double], 
     strike:Double, 
+    var fixedPrice: Option[Double],
     forwardInRange:Boolean = true,
     amount:Double = 1.0, 
     description:String = null,
@@ -62,8 +63,11 @@ case class RangeForwardPayoff(
     if (satisfyRange(fixing)) fixing / strike
     else 1.0
 
-    //    if (fixing < triggerLow || fixing > triggerHigh) 1.0
-//    else fixing / strike
+  override def clearFixings = {
+    super.clearFixings
+    fixedPrice = None
+  }
+    
    
   override def toString =
     nominal.asPercent + " [" + triggerHigh.asDouble + ", " + triggerLow.asDouble + "] " + nominal.asPercent + " x " + variable + " / " + strike.asDouble + ""
@@ -93,7 +97,7 @@ object RangeForwardPayoff {
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val forwardInRange:Boolean = formula.parseJsonString("range_type").orNull == "in"
     val description:String = formula.parseJsonString("description").orNull
-    RangeForwardPayoff(variable, triggerLow, triggerHigh, strike, forwardInRange, amount, description, inputString)
+    RangeForwardPayoff(variable, triggerLow, triggerHigh, strike, None, forwardInRange, amount, description, inputString)
   }
   
 }

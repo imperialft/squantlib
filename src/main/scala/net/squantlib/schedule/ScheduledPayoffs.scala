@@ -95,8 +95,8 @@ case class ScheduledPayoffs(
   
   val eventDateLegs:List[List[Date]] = {
     val dates:List[List[Date]] = scheduledPayoffs.map{
-      case (d, p, t) if p.isFixed && t.isFixed => List.empty
-      case (d, p, t) if p.isFixed => List(p.eventDates(d).last)
+      case (d, p, t) if p.isPaymentFixed && t.isFixed => List.empty
+      case (d, p, t) if p.isPaymentFixed => List(p.eventDates(d).last)
       case (d, p, t) => p.eventDates(d)
       }(collection.breakOut)
     
@@ -239,7 +239,7 @@ case class ScheduledPayoffs(
           p.toString, 
           c.toString, 
           if (underlyings.isEmpty || (p.variables.isEmpty && c.variables.isEmpty)) "fixed"
-          else if (!p.isFixed && !c.isFixed) "not fixed" 
+          else if (!p.isPaymentFixed && !c.isFixed) "not fixed" 
           else "fixed:" + (p.getFixings ++ c.getFixings).map{case (k, v) => k + ":" + v}.mkString(" ")
           )}.toList
     (title, sched)
@@ -267,7 +267,7 @@ case class ScheduledPayoffs(
     
   override def toList:List[(CalculationPeriod, Payoff, Callability)] = scheduledPayoffs.toList
   
-  def isFixed:Boolean = payoffs.isFixed && calls.isFixed
+  def isFixed:Boolean = payoffs.isPaymentFixed && calls.isFixed
   
   def sorted = ScheduledPayoffs(schedule.sortWith(payoffs, calls), valuedate)
   

@@ -28,6 +28,8 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	val isPriceable:Boolean = payoffs.forall(_.isPriceable)
 	
 	override val fixinglegs = payoffs
+
+    def isPaymentFixed:Boolean = payoffs.forall(_.isPaymentFixed)
 	
 	abstract class FixingInterpreter[T, U] {
 	  def price(fixing:T, payoff:Payoff):Double

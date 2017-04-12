@@ -20,6 +20,7 @@ case class PutDIPayoff(
     putVariables:List[String], 
     trigger:List[Double], 
     strike:List[Double],
+    var knockedIn:Boolean,
     override val physical:Boolean,
     amount:Double = 1.0,
     description:String = null,
@@ -29,15 +30,6 @@ case class PutDIPayoff(
   
   nominal = amount
   
-  var knockedIn:Boolean = fixingKnockedIn
-  
-  def fixingKnockedIn:Boolean = {
-    variables.exists(p => getFixings.get(p) match { 
-      case Some(v) if triggerMap.contains(p) => v <= triggerMap(p) 
-      case None => false
-    })
-  }
-
   val strikeMap:Map[String, Double] = (putVariables zip strike) (collection.breakOut)
    
   val triggerMap:Map[String, Double] = (putVariables zip trigger) (collection.breakOut)
@@ -67,7 +59,8 @@ case class PutDIPayoff(
         case Some(lastFixing) => 
           if (physical) {
             val fixingSize = fixings.length
-            if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings(fixings.length - 2)))
+            if (isFixed) price(lastFixing, knockedIn)
+            else if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings(fixings.length - 2)))
             else Double.NaN
           }
           else price(lastFixing, isKnockIn(lastFixing))
@@ -119,7 +112,20 @@ case class PutDIPayoff(
   override def priceImpl(fixing:Double):Double = priceSingle(fixing)
   
   override def priceImpl = Double.NaN
-  
+
+  override def clearFixings = {
+    super.clearFixings
+    knockedIn = false
+  }
+
+  override def assignFixings(f:Map[String, Double]):Unit = {
+    super.assignFixings(f)
+    checkKnockIn
+  }
+    
+  def checkKnockIn:Unit = {
+    knockedIn = implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)
+  }
   
   
 //  def getFixings(fixings:Map[String, Double]):Option[List[Double]] = {
@@ -169,7 +175,7 @@ object PutDIPayoff {
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val description:String = formula.parseJsonString("description").orNull
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
-    PutDIPayoff(variable, trigger, strike, physical, amount, description, inputString)
+    PutDIPayoff(variable, trigger, strike, false, physical, amount, description, inputString)
   }
   
 }

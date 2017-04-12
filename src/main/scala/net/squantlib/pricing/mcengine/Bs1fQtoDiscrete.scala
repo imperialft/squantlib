@@ -132,9 +132,9 @@ class Bs1fQtoDiscrete(
     
     val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
     
-    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.00001, a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0)), 0.0, List.empty)
+    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.00001, a1 * a1 * b1 - a0 * a0 * b0 / (b1 - b0))), 0.0, List.empty)
     
-    val fsigmafx:List[Double] = volfx.head :: acc[Double](volfx, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.00001, a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0)), 0.0, List.empty)
+    val fsigmafx:List[Double] = volfx.head :: acc[Double](volfx, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.00001, a1 * a1 * b1 - a0 * a0 * b0 / (b1 - b0))), 0.0, List.empty)
     
 	val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, fsigmafx, stepsize, List.empty)
 	

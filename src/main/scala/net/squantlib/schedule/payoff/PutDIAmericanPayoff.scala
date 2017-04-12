@@ -83,12 +83,27 @@ case class PutDIAmericanPayoff(
       }
       else price(fixings, isKnockIn(fixings))
     }
-    
+
     def price(fixings:List[T]):Double = {
-      if (fixings.isEmpty) Double.NaN
-      else if (physical) price(fixings.last, isKnockIn(fixings.dropRight(1)))
-      else price(fixings.last, isKnockIn(fixings))
+      fixings.lastOption match {
+        case Some(lastFixing) => 
+          if (physical) {
+            val fixingSize = fixings.length
+            if (isFixed) price(lastFixing, knockedIn)
+            else if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings.dropRight(1)))
+            else Double.NaN
+          }
+          else price(lastFixing, isKnockIn(fixings))
+        case None => Double.NaN
+      }
     }
+    
+    
+//    def price(fixings:List[T]):Double = {
+//      if (fixings.isEmpty) Double.NaN
+//      else if (physical) price(fixings.last, isKnockIn(fixings.dropRight(1)))
+//      else price(fixings.last, isKnockIn(fixings))
+//    }
   }
   
   implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
@@ -160,7 +175,12 @@ case class PutDIAmericanPayoff(
     "refend" -> (if (refend == null) null else refend.toString),
     "description" -> description)
     
-  
+
+  override def clearFixings = {
+    super.clearFixings
+    knockedIn = false
+  }
+    
   override def assignFixings(f:Map[String, Double]):Unit = {
     super.assignFixings(f)
     checkKnockIn
@@ -169,12 +189,14 @@ case class PutDIAmericanPayoff(
   def checkKnockIn:Unit = {
     knockedIn = 
       if (refstart == null || refend == null) false
-      else (putVariables zip trigger).exists{case (v, trig) => DB.getHistorical(v, refstart, refend) match {
-        case h if h.isEmpty => false
-        case h => h.exists{case (_, x) => x <= trig}
-      }}
+      else (putVariables zip trigger).exists{case (v, trig) => 
+        DB.getHistorical(v, refstart, refend) match {
+          case hs if hs.isEmpty => false
+          case hs if hs.get(refend).isDefined => implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)
+          case hs => hs.exists{case (_, x) => x <= trig}
+        }
+      }
   }
-    
   
 }
 

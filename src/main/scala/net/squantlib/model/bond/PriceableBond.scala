@@ -5,7 +5,7 @@ import net.squantlib.database.schemadefinitions.{Bond => dbBond}
 import net.squantlib.util.{SimpleCache, FormulaParser}
 import net.squantlib.pricing.model.PricingModel
 import net.squantlib.schedule.call.{Callability, Callabilities}
-import net.squantlib.schedule.payoff.{Payoff, Payoffs}
+import net.squantlib.schedule.payoff._
 import net.squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import net.squantlib.model.market.Market
 import net.squantlib.pricing.model.NoModel
@@ -99,10 +99,13 @@ trait PriceableBond extends BondModel with Priceable {
       p.clearFixings
       c.clearFixings
     }
-    payoffs.foreach{
-      case p:net.squantlib.schedule.payoff.PutDIAmericanPayoff => p.knockedIn = false
-      case p => {}
-    }
+//    payoffs.foreach{
+//      case p:PutDIAmericanPayoff => p.knockedIn = false
+//      case p:PutDIPayoff => p.knockedIn = false
+//      case p:CallUIPayoff => p.fixedPrice = None
+//      case p:RangeForwardPayoff => p.fixedPrice = None
+//      case p => {}
+//    }
   }
   
   /*

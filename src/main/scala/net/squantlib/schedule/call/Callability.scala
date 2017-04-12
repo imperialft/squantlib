@@ -40,7 +40,7 @@ case class Callability(
   
   def isTargetRedemption:Boolean = targetRedemption.isDefined
   
-  override def isFixed = isFixedTrigger || isFixedTargetRedemption
+  override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty
   
   def isFixedTrigger = isTrigger && (variables.isEmpty || !preFixings.isEmpty)
   
