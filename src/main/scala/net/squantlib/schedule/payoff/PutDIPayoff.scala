@@ -79,10 +79,9 @@ case class PutDIPayoff(
     }
 
     override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
-      if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
-        if (isKnockedIn) variables.map(v => fixings(v) / strikeMap(v)).min
-        else 1.0
-      } else Double.NaN
+      if (!isKnockedIn) 1.0
+      else if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) variables.map(v => fixings(v) / strikeMap(v)).min
+      else Double.NaN
     }
   }
   
@@ -91,11 +90,9 @@ case class PutDIPayoff(
     override def isKnockIn(fixing:Double):Boolean = fixing <= trigger.head
 
     override def price(fixing:Double, isKnockedIn:Boolean):Double = {
-      if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
-      else {
-        if (isKnockedIn) fixing / strike.head
-        else 1.0
-      }
+      if (!isKnockedIn) 1.0
+      else if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
+      else fixing / strike.head
     }
   }
 

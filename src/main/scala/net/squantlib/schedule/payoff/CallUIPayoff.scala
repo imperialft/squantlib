@@ -120,12 +120,11 @@ case class CallUIPayoff(
     override def basketPerformance(fixing:Double):Option[Double] = Some(fixing / strike.head)
 
     override def price(fixing:Double, currentFixedPrice:Option[Double]):Double = {
-      if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
-      else {
-        currentFixedPrice match {
-          case Some(f) => f
-          case None => basketPerformance(fixing).collect{case v => getPerformance(v)}.getOrElse(Double.NaN)
-        }
+      currentFixedPrice match {
+        case Some(f) => f
+        case None => 
+          if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
+          else basketPerformance(fixing).collect{case v => getPerformance(v)}.getOrElse(Double.NaN)
       }
     }
   }
