@@ -192,7 +192,7 @@ case class PutDIAmericanPayoff(
       else (putVariables zip trigger).exists{case (v, trig) => 
         DB.getHistorical(v, refstart, refend) match {
           case hs if hs.isEmpty => false
-          case hs if hs.get(refend).isDefined => implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)
+          case hs if hs.get(refend).isDefined => implicitly[FixingInterpreter[Double]] isKnockIn(hs.values.toList)
           case hs => hs.exists{case (_, x) => x <= trig}
         }
       }
