@@ -4,6 +4,9 @@ import net.squantlib.util.Date
 import net.squantlib.util.{SimpleCache, FormulaParser}
 import net.squantlib.model.market.Market
 import scala.collection.breakOut
+import net.squantlib.util.{MultiOrderNumber, MultiOrderMap}
+import net.squantlib.util.DisplayUtils._
+
 
 trait GreekAnalysis {
   
@@ -39,7 +42,60 @@ trait GreekAnalysis {
     
     (initprice, newprice) match { 
       case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some(n - i) 
-      case _ => None }
+      case _ => None 
+    }
+  }
+  
+  def greekSecond(
+      target:PriceableBond => Option[Double], 
+      operation: Double => (Market => Option[Market]),
+      shiftUp:Double, 
+      shiftDown:Double,
+      initialPrice:Option[Double] = None,
+      editableBond:Boolean = false
+  ):MultiOrderNumber = market match { 
+    case None => MultiOrderNumber.empty
+
+    case Some(mkt) =>
+      val initprice = initialPrice match {
+        case Some(p) => Some(p)
+        case None => target(this)
+      }
+      
+      val newBond = if (editableBond) this else {
+        val b = this.copy
+        b.modelCalibrated = true
+        b.requiresCalibration = false
+        b
+      }
+      
+      def computePrice(s:Double, inverse:Boolean):Option[Double] = {
+        val newmkt = operation(s)(mkt).orNull
+        if (newmkt == null) {return None}
+        newBond.setMarketNoCalibration(newmkt)
+        val newprice = target(newBond)
+        (initprice, newprice) match { 
+          case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => if (inverse) Some(i - n) else Some(n - i) 
+          case _ => None 
+        }
+      }
+
+      //val pos = measuredProcess[Option[Double]](id, s"compute shift up ${shiftUp}", false) {computePrice(shiftUp, false)}
+      val pos = computePrice(shiftUp, false)
+      println(s"result ${shiftUp} up ${pos}")
+      
+      val neg = computePrice(shiftDown, true)
+      //val neg = measuredProcess[Option[Double]](id, s"compute shift down ${shiftDown}", false) {computePrice(shiftDown, true)}
+      println(s"result ${shiftDown} down ${neg}")
+      
+      val (delta, gamma) = (pos, neg) match {
+        case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
+        case _ => (None, None)
+      }
+
+      println(s"result ${((shiftUp - shiftDown) / 2.0)} gamma ${gamma}")
+      
+      MultiOrderNumber(delta, gamma)
   }
   
   /*  
@@ -113,7 +169,23 @@ trait GreekAnalysis {
     val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
     uls.map(ul => (ul, underlyingDelta(ul, shift)))(collection.breakOut)
   }
+
+  /*  
+   * Returns gamma for any underlying
+   */
+  def underlyingGamma(id:String, shiftUp:Double, shiftDown:Double):MultiOrderNumber = {
+    greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingShifted(id, s)), shiftUp, shiftDown)
+  }
+
+  def underlyingGammas(shiftUp:Double, shiftDown:Double):MultiOrderMap = {
+    val modifieduls = underlyings.map(u => if(FormulaParser.isFX(u) && u.take(3) == "JPY") u.takeRight(3) + u.take(3) else u)
+    val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
+    MultiOrderMap(uls.map(ul => (ul -> underlyingGamma(ul, shiftUp, shiftDown))))
+  }
   
+  /*  
+   * Returns vega for any underlying
+   */
   def underlyingVega(id:String, shift:Double):Option[Double] = greek((b:PriceableBond) => b.modelPriceJpy, (m:Market) => m.underlyingVolShifted(id, shift))
   
   def underlyingVegas(shift:Double):Map[String, Option[Double]] = {
@@ -121,7 +193,19 @@ trait GreekAnalysis {
     val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
     uls.map(ul => (ul, underlyingVega(ul, shift))) (collection.breakOut)
   }
+
+  /*  
+   * Returns gamma vol for any underlying
+   */
+  def underlyingVolGamma(id:String, shiftUp:Double, shiftDown:Double):MultiOrderNumber = {
+    greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingVolShifted(id, s)), shiftUp, shiftDown)
+  }
   
+  def underlyingVolGammas(shiftUp:Double, shiftDown:Double):MultiOrderMap = {
+    val modifieduls = underlyings.map(u => if(FormulaParser.isFX(u) && u.take(3) == "JPY") u.takeRight(3) + u.take(3) else u)
+    val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
+    MultiOrderMap(uls.map(ul => (ul -> underlyingVolGamma(ul, shiftUp, shiftDown))))
+  }
   
   def effectiveConvexity(shift:Double):Option[Double] = {
     val durationlow = rateDelta(-shift)
