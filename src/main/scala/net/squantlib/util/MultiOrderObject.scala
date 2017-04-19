@@ -51,17 +51,24 @@ case class MultiOrderNumber(
 object MultiOrderNumber {
   def empty = MultiOrderNumber(None, None, None)
   
-  def priceToHigherOrder(prices:Iterable[(Double, Double)]):Set[MultiOrderNumber] = {
-    if (prices.size < 2) {return Set.empty}
+  def priceToHigherOrder(prices:Iterable[(Double, Double)]):Set[(Double, MultiOrderNumber)] = {
+    if (prices.size <= 2) {return Set.empty}
 
     val priceList:List[(Double, Double)] = prices.toList.sortBy{case (k, v) => k}
+    val first = computeGradient(priceList, None, List.empty)
+    val second = computeGradient(first, None, List.empty)
+    val third = computeGradient(second, None, List.empty)
     
-//    @tailrec def computeGradient(ls:List[(Double, Double)], acc:List[(Double, Double)]) = ls match {
-//      case Nil => acc.reverse
-//      case (k, v)::t if t.isEmpty => 
-//    }
-    null
-    
+    (first, second, third).zipped.map{case ((k, f), (_, s), (_, t)) => (k, MultiOrderNumber(Some(f), Some(s), Some(t)))}.toSet
   }
 
+  @tailrec def computeGradient(ls:List[(Double, Double)], prev:Option[Double], acc:List[(Double, Double)]):List[(Double, Double)] = ls match {
+    case Nil => acc.reverse
+    case (k, v)::t if t.isEmpty => ((k, prev.getOrElse(0.0)) :: acc).reverse
+    case (k1, v1) ::(k2, v2) :: t => 
+      val current:Double = (v2 - v1) / (k2 - k1)
+      val result:Double = prev.collect{case p => (current + p) / 2}.getOrElse(current)
+     computeGradient((k2, v2)::t, Some(current), (k1, result) :: acc)
+  }
+  
 }
