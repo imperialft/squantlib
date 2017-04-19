@@ -31,17 +31,26 @@ trait GreekAnalysis {
       b
     }
     
-    val newmkt = operation(mkt).orNull
+    operation(mkt) match {
+      case Some(newmkt) =>
+        newBond.setMarketNoCalibration(newmkt)
+        (initprice, target(newBond)) match { 
+          case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some(n - i) 
+          case _ => None 
+        }
+      case _ => None
+    }
+  }
+
+  def greekNewMarket(
+      target:PriceableBond => Option[Double], 
+      newMarket: Market,
+      initialPrice:Double
+  ):Option[Double] = market.flatMap { case mkt =>
     
-    if (newmkt == null) {return None}
-    
-//    newBond.market = newmkt
-    newBond.setMarketNoCalibration(newmkt)
-    
-    val newprice = target(newBond)
-    
-    (initprice, newprice) match { 
-      case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some(n - i) 
+    setMarketNoCalibration(newMarket)
+    target(this) match { 
+      case Some(n) if !n.isNaN && !n.isInfinity => Some(n - initialPrice) 
       case _ => None 
     }
   }
@@ -69,31 +78,57 @@ trait GreekAnalysis {
         b
       }
       
-      def computePrice(s:Double, inverse:Boolean):Option[Double] = {
+      def computeDelta(s:Double):Option[Double] = {
         val newmkt = operation(s)(mkt).orNull
         if (newmkt == null) {return None}
         newBond.setMarketNoCalibration(newmkt)
         val newprice = target(newBond)
         (initprice, newprice) match { 
-          case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => if (inverse) Some(i - n) else Some(n - i) 
+          case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some((n - i) / s)
           case _ => None 
         }
       }
 
-      //val pos = measuredProcess[Option[Double]](id, s"compute shift up ${shiftUp}", false) {computePrice(shiftUp, false)}
-      val pos = computePrice(shiftUp, false)
-      println(s"result ${shiftUp} up ${pos}")
-      
-      val neg = computePrice(shiftDown, true)
-      //val neg = measuredProcess[Option[Double]](id, s"compute shift down ${shiftDown}", false) {computePrice(shiftDown, true)}
-      println(s"result ${shiftDown} down ${neg}")
+      val pos = computeDelta(shiftUp)
+      val neg = computeDelta(shiftDown)
       
       val (delta, gamma) = (pos, neg) match {
         case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
         case _ => (None, None)
       }
 
-      println(s"result ${((shiftUp - shiftDown) / 2.0)} gamma ${gamma}")
+      MultiOrderNumber(delta, gamma)
+  }
+
+  def greekSecondNewMarket(
+      target:PriceableBond => Option[Double], 
+      shiftUp:Double,
+      marketUp:Market, 
+      shiftDown:Double,
+      marketDown:Market,
+      initialPrice:Double
+  ):MultiOrderNumber = {
+    
+      def computePrice(newmkt:Market, shift:Double):Option[Double] = {
+        setMarketNoCalibration(newmkt)
+        target(this) match { 
+          case Some(n) if !n.isNaN && !n.isInfinity => Some((n - initialPrice) / shift)
+          case _ => None 
+        }
+      }
+
+      val pos = computePrice(marketUp, shiftUp)
+      println(s"delta positive ${pos.toString}")
+      val neg = computePrice(marketDown, shiftDown)
+      println(s"delta negative ${neg.toString}")
+      
+      val (delta, gamma) = (pos, neg) match {
+        case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
+        case _ => (None, None)
+      }
+
+      println(s"delta result ${delta.toString}")
+      println(s"gamma result ${gamma.toString}")
       
       MultiOrderNumber(delta, gamma)
   }

@@ -1,5 +1,8 @@
 package net.squantlib.util
 
+import net.squantlib.util.DisplayUtils._
+import scala.annotation.tailrec
+
 class MultiOrderObject[T](
   firstOrder:T,
   secondOrder:T,
@@ -19,6 +22,10 @@ case class MultiOrderMap(
   def secondOrderMap = optionMapToDouble(secondOrder)
  
   def thirdOrderMap = optionMapToDouble(thirdOrder)
+  
+  override def toString = List(("1", firstOrderMap), ("2", secondOrderMap), ("3", thirdOrderMap))
+    .filter{case (k, v) => !v.isEmpty}
+    .map{case (k, vs) => s"<${k}> ${vs.map{case (kk, vv) => kk + ":" + vv.asPercent(5)}.mkString(" ")}"}.mkString(" ")
   
 }
 
@@ -43,4 +50,18 @@ case class MultiOrderNumber(
 
 object MultiOrderNumber {
   def empty = MultiOrderNumber(None, None, None)
+  
+  def priceToHigherOrder(prices:Iterable[(Double, Double)]):Set[MultiOrderNumber] = {
+    if (prices.size < 2) {return Set.empty}
+
+    val priceList:List[(Double, Double)] = prices.toList.sortBy{case (k, v) => k}
+    
+//    @tailrec def computeGradient(ls:List[(Double, Double)], acc:List[(Double, Double)]) = ls match {
+//      case Nil => acc.reverse
+//      case (k, v)::t if t.isEmpty => 
+//    }
+    null
+    
+  }
+
 }
