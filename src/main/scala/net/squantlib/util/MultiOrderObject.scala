@@ -51,15 +51,15 @@ case class MultiOrderNumber(
 object MultiOrderNumber {
   def empty = MultiOrderNumber(None, None, None)
   
-  def priceToHigherOrder(prices:Iterable[(Double, Double)]):Set[(Double, MultiOrderNumber)] = {
-    if (prices.size <= 2) {return Set.empty}
+  def priceToHigherOrder(prices:Iterable[(Double, Double)]):List[(Double, MultiOrderNumber)] = {
+    if (prices.size <= 2) {return List.empty}
 
     val priceList:List[(Double, Double)] = prices.toList.sortBy{case (k, v) => k}
     val first = computeGradient(priceList, None, List.empty)
     val second = computeGradient(first, None, List.empty)
     val third = computeGradient(second, None, List.empty)
     
-    (first, second, third).zipped.map{case ((k, f), (_, s), (_, t)) => (k, MultiOrderNumber(Some(f), Some(s), Some(t)))}.toSet
+    (first, second, third).zipped.map{case ((k, f), (_, s), (_, t)) => (k, MultiOrderNumber(Some(f), Some(s), Some(t)))}.toList
   }
 
   @tailrec def computeGradient(ls:List[(Double, Double)], prev:Option[Double], acc:List[(Double, Double)]):List[(Double, Double)] = ls match {
