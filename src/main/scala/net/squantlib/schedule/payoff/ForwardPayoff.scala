@@ -41,7 +41,7 @@ case class ForwardPayoff(
   override def priceImpl(fixings:Map[String, Double]) = 
     parseFixings(fixings) match {
       case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => (fixValues, strike).zipped.map((v, k) => v/k).min
-      case None => Double.NaN
+      case _ => Double.NaN
     }
     
   override def priceImpl(fixing:Double) =

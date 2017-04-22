@@ -74,7 +74,7 @@ case class PutDIPayoff(
     override def isKnockIn(fixings:Map[String, Double]):Boolean = {
       variables.exists(p => fixings.get(p) match { 
         case Some(v) if triggerMap.contains(p) => v <= triggerMap(p) 
-        case None => false
+        case _ => false
       })
     }
 
