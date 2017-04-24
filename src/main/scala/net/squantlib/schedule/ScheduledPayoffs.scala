@@ -169,21 +169,6 @@ case class ScheduledPayoffs(
     payoffs.price(priceMapper(fixings), trigger, triggerUps, bonusRates, forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
     
   def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = {
-//    if (priceMapper(fixings).size != trigger.size) {
-//      println("calls")
-//      println(calls.size)
-//      calls.foreach(println)
-//      println("payoffs")
-//      println(payoffs.size)
-//      payoffs.foreach(println)
-//      println("fixings")
-//      println(priceMapper(fixings).size)
-//      println(priceMapper(fixings))
-//      println("triggers")
-//      println(trigger.size)
-//      println(trigger)
-//    }
-    
     payoffs.price(priceMapper(fixings), trigger, triggerUps, amountToRate(trigAmount), forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
   }
   

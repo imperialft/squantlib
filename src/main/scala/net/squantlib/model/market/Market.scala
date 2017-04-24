@@ -15,6 +15,7 @@ import net.squantlib.model.index.IndexInitializer
 import net.squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import net.squantlib.model.asset.Underlying
 import scala.language.postfixOps
+import scala.annotation.tailrec
 
 /** 
  * Stores market information and initialize discount curves as requested.
@@ -422,8 +423,6 @@ class Market(
   def getUnderlying(id:String):Option[Underlying] = UnderlyingParsers.getUnderlying(id, this)
   
   def underlyingShifted(id:String, shift:Double):Option[Market] = UnderlyingParsers.get(id).flatMap{case p => p.getShiftedMarket(shift, this)}
-  
-  import scala.annotation.tailrec
   
   def underlyingShifted(shift:Map[String, Double]):Option[Market] = {
     @tailrec def shifted(shifts:List[(String, Double)], mkt:Market):Option[Market] = shifts match {

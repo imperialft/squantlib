@@ -118,18 +118,13 @@ trait GreekAnalysis {
       }
 
       val pos = computePrice(marketUp, shiftUp)
-      //println(s"delta positive ${pos.toString}")
       val neg = computePrice(marketDown, shiftDown)
-      //println(s"delta negative ${neg.toString}")
       
       val (delta, gamma) = (pos, neg) match {
         case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
         case _ => (None, None)
       }
 
-      //println(s"delta result ${delta.toString}")
-      //println(s"gamma result ${gamma.toString}")
-      
       MultiOrderNumber(delta, gamma)
   }
   

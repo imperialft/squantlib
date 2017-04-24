@@ -131,6 +131,16 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
     case _ => None
   }
+
+  def setMcPaths(paths:Int):Boolean = model match {
+    case Some(m) => 
+      m.mcPaths = paths
+      clearCache
+      true
+    case _ => false
+  }
+  
+  def mcPaths:Option[Int] = model.collect{case m => m.mcPaths}
   
   /*  
    * Returns clean price of the bond (ie. Dirty price - accrued coupon)
