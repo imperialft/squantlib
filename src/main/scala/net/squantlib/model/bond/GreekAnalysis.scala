@@ -11,33 +11,27 @@ import net.squantlib.util.DisplayUtils._
 trait GreekAnalysis {
   
   self : PriceableBond => 
+    
+  private def getUncalibratedBond = {
+    val b = this.copy
+    b.modelCalibrated = true
+    b.requiresCalibration = false
+    b
+  }
+  
+  private def getInitialPrice(target:PriceableBond => Option[Double], initialPrice:Option[Double]) = initialPrice match {
+    case Some(p) => Some(p)
+    case None => target(this)
+  }
   
   def greek(
       target:PriceableBond => Option[Double], 
       operation:Market => Option[Market],
-      initialPrice:Option[Double] = None,
-      editableBond:Boolean = false
+      calculatedInitialPrice:Option[Double] = None
   ):Option[Double] = market.flatMap { case mkt =>
     
-    val initprice = initialPrice match {
-      case Some(p) => Some(p)
-      case None => target(this)
-    }
-    
-    val newBond = if (editableBond) this else {
-      val b = this.copy
-      b.modelCalibrated = true
-      b.requiresCalibration = false
-      b
-    }
-    
-    operation(mkt) match {
-      case Some(newmkt) =>
-        newBond.setMarketNoCalibration(newmkt)
-        (initprice, target(newBond)) match { 
-          case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some(n - i) 
-          case _ => None 
-        }
+    (operation(mkt), getInitialPrice(target, calculatedInitialPrice)) match {
+      case (Some(newMarket), Some(initialPrice)) => GreekAnalysis.greekNewMarket(getUncalibratedBond, target, newMarket, initialPrice)
       case _ => None
     }
   }
@@ -46,14 +40,7 @@ trait GreekAnalysis {
       target:PriceableBond => Option[Double], 
       newMarket: Market,
       initialPrice:Double
-  ):Option[Double] = market.flatMap { case mkt =>
-    
-    setMarketNoCalibration(newMarket)
-    target(this) match { 
-      case Some(n) if !n.isNaN && !n.isInfinity => Some(n - initialPrice) 
-      case _ => None 
-    }
-  }
+  ):Option[Double] = GreekAnalysis.greekNewMarket(this, target, newMarket, initialPrice)
   
   def greekSecond(
       target:PriceableBond => Option[Double], 
@@ -62,46 +49,13 @@ trait GreekAnalysis {
       shiftUp:Double, 
       paramDown:Double,
       shiftDown:Double,
-      calculatedInitialPrice:Option[Double] = None,
-      editableBond:Boolean = false
+      calculatedInitialPrice:Option[Double] = None
   ):MultiOrderNumber = {
     
-    val initPriceOpt = calculatedInitialPrice match {
-      case None => target(this)
-      case p => p
-    }
-
-    (market, initPriceOpt) match { 
-  
+    (market, getInitialPrice(target, calculatedInitialPrice)) match { 
       case (Some(mkt), Some(initialPrice)) =>
-        val newBond = if (editableBond) this else {
-          val b = this.copy
-          b.modelCalibrated = true
-          b.requiresCalibration = false
-          b
-        }
-        
         (operation(paramUp)(mkt), operation(paramDown)(mkt)) match {
-          case (Some(marketUp), Some(marketDown)) => 
-  
-            def computePrice(newmkt:Market, shift:Double):Option[Double] = {
-              setMarketNoCalibration(newmkt)
-              target(this) match { 
-                case Some(n) if !n.isNaN && !n.isInfinity => Some((n - initialPrice) / shift)
-                case _ => None 
-              }
-            }
-      
-            val pos = computePrice(marketUp, shiftUp)
-            val neg = computePrice(marketDown, shiftDown)
-      
-            val (delta, gamma) = (pos, neg) match {
-              case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
-              case _ => (None, None)
-            }
-      
-            MultiOrderNumber(Some(initialPrice), delta, gamma)
-        
+          case (Some(marketUp), Some(marketDown)) => GreekAnalysis.greekSecondNewMarket(getUncalibratedBond, target, shiftUp, marketUp, shiftDown, marketDown, initialPrice)
           case _ => MultiOrderNumber.empty
         }
         
@@ -117,26 +71,8 @@ trait GreekAnalysis {
       shiftDown:Double,
       marketDown:Market,
       initialPrice:Double
-  ):MultiOrderNumber = {
-    
-      def computePrice(newmkt:Market, shift:Double):Option[Double] = {
-        setMarketNoCalibration(newmkt)
-        target(this) match { 
-          case Some(n) if !n.isNaN && !n.isInfinity => Some((n - initialPrice) / shift)
-          case _ => None 
-        }
-      }
-
-      val pos = computePrice(marketUp, shiftUp)
-      val neg = computePrice(marketDown, shiftDown)
-
-      val (delta, gamma) = (pos, neg) match {
-        case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
-        case _ => (None, None)
-      }
-
-      MultiOrderNumber(Some(initialPrice), delta, gamma)
-  }
+  ):MultiOrderNumber = GreekAnalysis.greekSecondNewMarket(this, target, shiftUp, marketUp, shiftDown, marketDown, initialPrice)
+  
   
   /*  
    * Returns rate delta
@@ -319,4 +255,50 @@ trait GreekAnalysis {
     case _ => None
   }
 
+}
+
+object GreekAnalysis {
+
+  def greekNewMarket(
+      bond: PriceableBond,
+      target:PriceableBond => Option[Double], 
+      newMarket: Market,
+      initialPrice:Double
+  ):Option[Double] = { 
+    bond.setMarketNoCalibration(newMarket)
+    target(bond) match { 
+      case Some(n) if !n.isNaN && !n.isInfinity => Some(n - initialPrice) 
+      case _ => None 
+    }
+  }
+  
+  def greekSecondNewMarket(
+      bond: PriceableBond,
+      target:PriceableBond => Option[Double], 
+      shiftUp:Double,
+      marketUp:Market, 
+      shiftDown:Double,
+      marketDown:Market,
+      initialPrice:Double
+  ):MultiOrderNumber = {
+    
+      def computePrice(newmkt:Market, shift:Double):Option[Double] = {
+        bond.setMarketNoCalibration(newmkt)
+        target(bond) match { 
+          case Some(n) if !n.isNaN && !n.isInfinity => Some((n - initialPrice) / shift)
+          case _ => None 
+        }
+      }
+
+      val pos = computePrice(marketUp, shiftUp)
+      val neg = computePrice(marketDown, shiftDown)
+
+      val (delta, gamma) = (pos, neg) match {
+        case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
+        case _ => (None, None)
+      }
+
+      MultiOrderNumber(Some(initialPrice), delta, gamma)
+  }
+  
 }

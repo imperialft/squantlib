@@ -62,6 +62,10 @@ object MultiOrderNumber {
 
     val priceList:List[(Double, Double)] = prices.toList.sortBy{case (k, v) => k}
     val first = computeGradient(priceList, None, List.empty)
+//    val simpleFirst = computeSimpleGradient(priceList, None, List.empty)
+//    val second = computeGradient(simpleFirst, None, List.empty)
+//    val simpleSecond = computeSimpleGradient(simpleFirst, None, List.empty)
+//    val third = computeGradient(simpleSecond, None, List.empty)
     val second = computeGradient(first, None, List.empty)
     val third = computeGradient(second, None, List.empty)
     
@@ -76,5 +80,13 @@ object MultiOrderNumber {
       val result:Double = prev.collect{case p => (current + p) / 2}.getOrElse(current)
      computeGradient((k2, v2)::t, Some(current), (k1, result) :: acc)
   }
+
+//  @tailrec def computeSimpleGradient(ls:List[(Double, Double)], prev:Option[Double], acc:List[(Double, Double)]):List[(Double, Double)] = ls match {
+//    case Nil => acc.reverse
+//    case (k, v)::t if t.isEmpty => ((k, prev.getOrElse(0.0)) :: acc).reverse
+//    case (k1, v1) ::(k2, v2) :: t => 
+//      val current:Double = (v2 - v1) / (k2 - k1)
+//     computeSimpleGradient((k2, v2)::t, Some(current), (k1, current) :: acc)
+//  }
   
 }
