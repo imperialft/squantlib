@@ -58,46 +58,56 @@ trait GreekAnalysis {
   def greekSecond(
       target:PriceableBond => Option[Double], 
       operation: Double => (Market => Option[Market]),
+      paramUp:Double,
       shiftUp:Double, 
+      paramDown:Double,
       shiftDown:Double,
-      initialPrice:Option[Double] = None,
+      calculatedInitialPrice:Option[Double] = None,
       editableBond:Boolean = false
-  ):MultiOrderNumber = market match { 
-    case None => MultiOrderNumber.empty
+  ):MultiOrderNumber = {
+    
+    val initPriceOpt = calculatedInitialPrice match {
+      case None => target(this)
+      case p => p
+    }
 
-    case Some(mkt) =>
-      val initprice = initialPrice match {
-        case Some(p) => Some(p)
-        case None => target(this)
-      }
-      
-      val newBond = if (editableBond) this else {
-        val b = this.copy
-        b.modelCalibrated = true
-        b.requiresCalibration = false
-        b
-      }
-      
-      def computeDelta(s:Double):Option[Double] = {
-        val newmkt = operation(s)(mkt).orNull
-        if (newmkt == null) {return None}
-        newBond.setMarketNoCalibration(newmkt)
-        val newprice = target(newBond)
-        (initprice, newprice) match { 
-          case (Some(i), Some(n)) if !i.isNaN && !n.isNaN && !i.isInfinity && !n.isInfinity => Some((n - i) / s)
-          case _ => None 
+    (market, initPriceOpt) match { 
+  
+      case (Some(mkt), Some(initialPrice)) =>
+        val newBond = if (editableBond) this else {
+          val b = this.copy
+          b.modelCalibrated = true
+          b.requiresCalibration = false
+          b
         }
-      }
-
-      val pos = computeDelta(shiftUp)
-      val neg = computeDelta(shiftDown)
+        
+        (operation(paramUp)(mkt), operation(paramDown)(mkt)) match {
+          case (Some(marketUp), Some(marketDown)) => 
+  
+            def computePrice(newmkt:Market, shift:Double):Option[Double] = {
+              setMarketNoCalibration(newmkt)
+              target(this) match { 
+                case Some(n) if !n.isNaN && !n.isInfinity => Some((n - initialPrice) / shift)
+                case _ => None 
+              }
+            }
       
-      val (delta, gamma) = (pos, neg) match {
-        case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
-        case _ => (None, None)
-      }
-
-      MultiOrderNumber(delta, gamma)
+            val pos = computePrice(marketUp, shiftUp)
+            val neg = computePrice(marketDown, shiftDown)
+      
+            val (delta, gamma) = (pos, neg) match {
+              case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
+              case _ => (None, None)
+            }
+      
+            MultiOrderNumber(Some(initialPrice), delta, gamma)
+        
+          case _ => MultiOrderNumber.empty
+        }
+        
+      case _ => MultiOrderNumber.empty
+        
+    }
   }
 
   def greekSecondNewMarket(
@@ -119,13 +129,13 @@ trait GreekAnalysis {
 
       val pos = computePrice(marketUp, shiftUp)
       val neg = computePrice(marketDown, shiftDown)
-      
+
       val (delta, gamma) = (pos, neg) match {
         case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
         case _ => (None, None)
       }
 
-      MultiOrderNumber(delta, gamma)
+      MultiOrderNumber(Some(initialPrice), delta, gamma)
   }
   
   /*  
@@ -204,7 +214,7 @@ trait GreekAnalysis {
    * Returns gamma for any underlying
    */
   def underlyingGamma(id:String, shiftUp:Double, shiftDown:Double):MultiOrderNumber = {
-    greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingShifted(id, s)), shiftUp, shiftDown)
+    greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingShifted(id, s)), shiftUp, shiftUp - 1.0, shiftDown, shiftDown - 1.0)
   }
 
   def underlyingGammas(shiftUp:Double, shiftDown:Double):MultiOrderMap = {
@@ -228,13 +238,36 @@ trait GreekAnalysis {
    * Returns gamma vol for any underlying
    */
   def underlyingVolGamma(id:String, shiftUp:Double, shiftDown:Double):MultiOrderNumber = {
-    greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingVolShifted(id, s)), shiftUp, shiftDown)
+    greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingVolShifted(id, s)), shiftUp, shiftUp, shiftDown, shiftDown)
   }
   
   def underlyingVolGammas(shiftUp:Double, shiftDown:Double):MultiOrderMap = {
     val modifieduls = underlyings.map(u => if(FormulaParser.isFX(u) && u.take(3) == "JPY") u.takeRight(3) + u.take(3) else u)
     val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
     MultiOrderMap(uls.map(ul => (ul -> underlyingVolGamma(ul, shiftUp, shiftDown))))
+  }
+
+  /*  
+   * Returns vanna for any underlying
+   */
+  def underlyingVanna(id:String, shiftUp:Double, shiftDown:Double):MultiOrderNumber = {
+    MultiOrderNumber.empty
+    //greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingVolShifted(id, s)), shiftUp, shiftDown)
+  }
+  
+  def underlyingVannas(priceShiftUp:Double, priceShiftDown:Double, volShift:Double):MultiOrderMap = {
+     MultiOrderMap.empty
+//    val modifieduls = underlyings.map(u => if(FormulaParser.isFX(u) && u.take(3) == "JPY") u.takeRight(3) + u.take(3) else u)
+//    val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
+//    MultiOrderMap(uls.map(ul => (ul -> underlyingVolGamma(ul, shiftUp, shiftDown))))
+  }
+
+  /*  
+   * Returns vanna for any underlying
+   */
+  def underlyingTheta:Map[Int, Double] = {
+    Map.empty
+    //greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingVolShifted(id, s)), shiftUp, shiftDown)
   }
   
   def effectiveConvexity(shift:Double):Option[Double] = {

@@ -4,26 +4,30 @@ import net.squantlib.util.DisplayUtils._
 import scala.annotation.tailrec
 
 class MultiOrderObject[T](
+  spot:T,
   firstOrder:T,
   secondOrder:T,
   thirdOrder:T
 )
 
 case class MultiOrderMap(
+  spot:Map[String, Option[Double]],
   firstOrder: Map[String, Option[Double]],
   secondOrder: Map[String, Option[Double]] = Map.empty,
   thirdOrder: Map[String, Option[Double]] = Map.empty
-) extends MultiOrderObject[Map[String, Option[Double]]](firstOrder, secondOrder, thirdOrder) {
+) extends MultiOrderObject[Map[String, Option[Double]]](spot, firstOrder, secondOrder, thirdOrder) {
   
   private def optionMapToDouble(m:Map[String, Option[Double]]):Map[String, Double] = m.collect{case (a, Some(b)) => (a -> b)}
   
+  def spotMap = optionMapToDouble(spot)
+
   def firstOrderMap = optionMapToDouble(firstOrder)
 
   def secondOrderMap = optionMapToDouble(secondOrder)
  
   def thirdOrderMap = optionMapToDouble(thirdOrder)
   
-  override def toString = List(("1", firstOrderMap), ("2", secondOrderMap), ("3", thirdOrderMap))
+  override def toString = List(("0", spotMap), ("1", firstOrderMap), ("2", secondOrderMap), ("3", thirdOrderMap))
     .filter{case (k, v) => !v.isEmpty}
     .map{case (k, vs) => s"<${k}> ${vs.map{case (kk, vv) => kk + ":" + vv.asPercent(5)}.mkString(" ")}"}.mkString(" ")
   
@@ -32,24 +36,26 @@ case class MultiOrderMap(
 object MultiOrderMap {
   
   def apply(a:Iterable[(String, MultiOrderNumber)]):MultiOrderMap = {
+    def spot:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.spot)}(collection.breakOut)
     def firstOrder:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.firstOrder)}(collection.breakOut)
     def secondOrder:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.secondOrder)}(collection.breakOut)
     def thirdOrder:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.thirdOrder)}(collection.breakOut)
-    MultiOrderMap(firstOrder, secondOrder, thirdOrder)
+    MultiOrderMap(spot, firstOrder, secondOrder, thirdOrder)
   }
   
-  def empty = MultiOrderMap(Map.empty)
+  def empty = MultiOrderMap(Map.empty, Map.empty)
   
 }
 
 case class MultiOrderNumber(
+  spot: Option[Double],
   firstOrder: Option[Double],
   secondOrder: Option[Double] = None,
   thirdOrder: Option[Double] = None
-) extends MultiOrderObject[Option[Double]](firstOrder, secondOrder, thirdOrder) 
+) extends MultiOrderObject[Option[Double]](spot, firstOrder, secondOrder, thirdOrder) 
 
 object MultiOrderNumber {
-  def empty = MultiOrderNumber(None, None, None)
+  def empty = MultiOrderNumber(None, None, None, None)
   
   def priceToHigherOrder(prices:Iterable[(Double, Double)]):List[(Double, MultiOrderNumber)] = {
     if (prices.size <= 2) {return List.empty}
@@ -59,7 +65,7 @@ object MultiOrderNumber {
     val second = computeGradient(first, None, List.empty)
     val third = computeGradient(second, None, List.empty)
     
-    (first, second, third).zipped.map{case ((k, f), (_, s), (_, t)) => (k, MultiOrderNumber(Some(f), Some(s), Some(t)))}.toList
+    priceList.zip(first).zip(second.zip(third)).map{case (((k, n), (_, f)), ((_, s), (_, t))) => (k, MultiOrderNumber(Some(n), Some(f), Some(s), Some(t)))}.toList
   }
 
   @tailrec def computeGradient(ls:List[(Double, Double)], prev:Option[Double], acc:List[(Double, Double)]):List[(Double, Double)] = ls match {
