@@ -14,7 +14,9 @@ case class MultiOrderMap(
   spot:Map[String, Option[Double]],
   firstOrder: Map[String, Option[Double]],
   secondOrder: Map[String, Option[Double]] = Map.empty,
-  thirdOrder: Map[String, Option[Double]] = Map.empty
+  thirdOrder: Map[String, Option[Double]] = Map.empty,
+  priceUp: Map[String, Option[Double]] = Map.empty,
+  priceDown: Map[String, Option[Double]] = Map.empty
 ) extends MultiOrderObject[Map[String, Option[Double]]](spot, firstOrder, secondOrder, thirdOrder) {
   
   private def optionMapToDouble(m:Map[String, Option[Double]]):Map[String, Double] = m.collect{case (a, Some(b)) => (a -> b)}
@@ -40,10 +42,31 @@ object MultiOrderMap {
     def firstOrder:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.firstOrder)}(collection.breakOut)
     def secondOrder:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.secondOrder)}(collection.breakOut)
     def thirdOrder:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.thirdOrder)}(collection.breakOut)
-    MultiOrderMap(spot, firstOrder, secondOrder, thirdOrder)
+    def priceUp:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.priceUp)}(collection.breakOut)
+    def priceDown:Map[String, Option[Double]] = a.map{case (k, v) => (k -> v.priceDown)}(collection.breakOut)
+    MultiOrderMap(spot, firstOrder, secondOrder, thirdOrder, priceUp, priceDown)
   }
   
   def empty = MultiOrderMap(Map.empty, Map.empty)
+  
+}
+
+case class MultiOrderMap2D(
+  first: MultiOrderMap,
+  second: MultiOrderMap,
+  cross: MultiOrderMap
+)
+
+object MultiOrderMap2D {
+  
+  def empty = MultiOrderMap2D(MultiOrderMap.empty, MultiOrderMap.empty,MultiOrderMap.empty)
+  
+  def apply(a:Iterable[(String, MultiOrderNumber2D)]):MultiOrderMap2D = {
+    val first:MultiOrderMap = MultiOrderMap(a.map{case (k, v) => (k -> v.first)}) 
+    val second:MultiOrderMap = MultiOrderMap(a.map{case (k, v) => (k -> v.second)}) 
+    val cross:MultiOrderMap = MultiOrderMap(a.map{case (k, v) => (k -> v.cross)}) 
+    MultiOrderMap2D(first, second, cross)
+  }
   
 }
 
@@ -51,7 +74,9 @@ case class MultiOrderNumber(
   spot: Option[Double],
   firstOrder: Option[Double],
   secondOrder: Option[Double] = None,
-  thirdOrder: Option[Double] = None
+  thirdOrder: Option[Double] = None,
+  priceUp:Option[Double] = None,
+  priceDown:Option[Double] = None
 ) extends MultiOrderObject[Option[Double]](spot, firstOrder, secondOrder, thirdOrder) 
 
 object MultiOrderNumber {
@@ -89,4 +114,14 @@ object MultiOrderNumber {
 //     computeSimpleGradient((k2, v2)::t, Some(current), (k1, current) :: acc)
 //  }
   
+}
+
+case class MultiOrderNumber2D (
+  first: MultiOrderNumber,
+  second: MultiOrderNumber,
+  cross: MultiOrderNumber
+)
+
+object MultiOrderNumber2D {
+  def empty = new MultiOrderNumber2D(MultiOrderNumber.empty, MultiOrderNumber.empty, MultiOrderNumber.empty)
 }
