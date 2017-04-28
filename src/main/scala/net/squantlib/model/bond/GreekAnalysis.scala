@@ -164,7 +164,7 @@ trait GreekAnalysis {
 //  ):MultiOrderNumber2D = GreekAnalysis.greekMultiOpCompute(this, target, shift1, shift2, shift12, initialPrice)
   
 
-  private def getUncalibratedBond = {
+  def getUncalibratedBond = {
     val b = this.copy
     b.modelCalibrated = true
     b.requiresCalibration = false
@@ -306,14 +306,6 @@ trait GreekAnalysis {
     val modifieduls = underlyings.map(u => if(FormulaParser.isFX(u) && u.take(3) == "JPY") u.takeRight(3) + u.take(3) else u)
     val uls = modifieduls ++ currencyList.filter(c => c != "JPY" && !modifieduls.contains(c + "JPY")).map(_ + "JPY")
     MultiOrderMap2D(uls.map(ul => (ul -> underlyingVanna(ul, spotShiftUp, spotShiftDown, volShiftUp, volShiftDown))))
-  }
-
-  /*  
-   * Returns vanna for any underlying
-   */
-  def underlyingTheta:Map[Int, Double] = {
-    Map.empty
-    //greekSecond((b:PriceableBond) => b.modelPriceJpy, (s:Double) => ((m:Market) => m.underlyingVolShifted(id, s)), shiftUp, shiftDown)
   }
   
   def effectiveConvexity(shift:Double):Option[Double] = {
