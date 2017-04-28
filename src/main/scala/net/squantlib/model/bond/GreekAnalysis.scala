@@ -62,60 +62,106 @@ trait GreekAnalysis {
       initialPrice:Double
   ):MultiOrderNumber = GreekAnalysis.greekSecondCompute(this, target, shiftUp, marketUp, shiftDown, marketDown, initialPrice)
 
-  
+
   def greekMultiOp (
       target:PriceableBond => Option[Double], 
       operation1: Double => (Market => Option[Market]),
       shift1:(Double, Double), 
       operation2: Double => (Market => Option[Market]),
       shift2:(Double, Double),
-      calculatedInitialPrice:Option[Double] = None
-  ):MultiOrderNumber2D  = {
-    
-    (market, getInitialPrice(target, calculatedInitialPrice)) match { 
-      case (Some(mkt), Some(initialPrice)) =>
-        
-        val s1 = shift1 match {
-          case (shiftUp, shiftDown) => 
-            (operation1(shiftUp)(mkt), operation1(shiftDown)(mkt)) match {
-              case (Some(marketUp), Some(marketDown)) => Some((shiftUp, marketUp), (shiftDown, marketDown))
-              case _ => None
-            }
-        }
-
-        val s2 = shift2 match {
-          case (shiftUp, shiftDown) => 
-            (operation2(shiftUp)(mkt), operation2(shiftDown)(mkt)) match {
-              case (Some(marketUp), Some(marketDown)) => Some((shiftUp, marketUp), (shiftDown, marketDown))
-              case _ => None
-            }
-        }
-        
-        val s12 = (shift1, shift2) match {
-          case ((shiftUp, shiftDown), (shiftUp2, _)) => 
-            (operation1(shiftUp)(mkt).flatMap{case m => operation2(shiftUp2)(m)}, operation1(shiftDown)(mkt).flatMap{case m => operation2(shiftUp2)(m)}) match {
-              case (Some(marketUp), Some(marketDown)) => Some(marketUp, marketDown)
-              case _ => None
-            }
-        }
-        
-        (s1, s2, s12) match {
-          case (Some(a), Some(b), Some(c)) => GreekAnalysis.greekMultiOpCompute(getUncalibratedBond, target, a, b, c, initialPrice)
-          case _ => MultiOrderNumber2D.empty
-        }
-        
-        
-      case _ => MultiOrderNumber2D.empty
-    }
+      calculatedInitialPrice:Option[Double] = None,
+      editableBond:Boolean = false
+  ):MultiOrderNumber2D  = (market, getInitialPrice(target, calculatedInitialPrice)) match { 
+    case (Some(mkt), Some(initialPrice)) =>
+      GreekAnalysis.greekMultiOpCompute(
+        if (editableBond) this else getUncalibratedBond,
+        mkt,
+        target,
+        operation1,
+        shift1,
+        operation2,
+        shift2,
+        initialPrice
+      )
+    case _ => MultiOrderNumber2D.empty
   }
 
-  def greekMultiOpNewMarket(
+  def greekMultiOp (
       target:PriceableBond => Option[Double], 
-      shift1: ((Double, Market), (Double, Market)),
-      shift2: ((Double, Market), (Double, Market)),
-      shift12: (Market, Market),
-      initialPrice:Double
-  ):MultiOrderNumber2D = GreekAnalysis.greekMultiOpCompute(this, target, shift1, shift2, shift12, initialPrice)
+      mkt: Market,
+      operation1: Double => (Market => Option[Market]),
+      shift1:(Double, Double), 
+      operation2: Double => (Market => Option[Market]),
+      shift2:(Double, Double),
+      initialPrice:Double,
+      editableBond:Boolean
+  ):MultiOrderNumber2D  = {
+      GreekAnalysis.greekMultiOpCompute(
+        if (editableBond) this else getUncalibratedBond,
+        mkt,
+        target,
+        operation1,
+        shift1,
+        operation2,
+        shift2,
+        initialPrice
+      )
+  }
+  
+    
+//  def greekMultiOp (
+//      target:PriceableBond => Option[Double], 
+//      operation1: Double => (Market => Option[Market]),
+//      shift1:(Double, Double), 
+//      operation2: Double => (Market => Option[Market]),
+//      shift2:(Double, Double),
+//      calculatedInitialPrice:Option[Double] = None
+//  ):MultiOrderNumber2D  = {
+//    
+//    (market, getInitialPrice(target, calculatedInitialPrice)) match { 
+//      case (Some(mkt), Some(initialPrice)) =>
+//        
+//        val s1 = shift1 match {
+//          case (shiftUp, shiftDown) => 
+//            (operation1(shiftUp)(mkt), operation1(shiftDown)(mkt)) match {
+//              case (Some(marketUp), Some(marketDown)) => Some((shiftUp, marketUp), (shiftDown, marketDown))
+//              case _ => None
+//            }
+//        }
+//
+//        val s2 = shift2 match {
+//          case (shiftUp, shiftDown) => 
+//            (operation2(shiftUp)(mkt), operation2(shiftDown)(mkt)) match {
+//              case (Some(marketUp), Some(marketDown)) => Some((shiftUp, marketUp), (shiftDown, marketDown))
+//              case _ => None
+//            }
+//        }
+//        
+//        val s12 = (shift1, shift2) match {
+//          case ((shiftUp, shiftDown), (shiftUp2, _)) => 
+//            (operation1(shiftUp)(mkt).flatMap{case m => operation2(shiftUp2)(m)}, operation1(shiftDown)(mkt).flatMap{case m => operation2(shiftUp2)(m)}) match {
+//              case (Some(marketUp), Some(marketDown)) => Some(marketUp, marketDown)
+//              case _ => None
+//            }
+//        }
+//        
+//        (s1, s2, s12) match {
+//          case (Some(a), Some(b), Some(c)) => GreekAnalysis.greekMultiOpCompute(getUncalibratedBond, target, a, b, c, initialPrice)
+//          case _ => MultiOrderNumber2D.empty
+//        }
+//        
+//        
+//      case _ => MultiOrderNumber2D.empty
+//    }
+//  }
+//
+//  def greekMultiOpNewMarket(
+//      target:PriceableBond => Option[Double], 
+//      shift1: ((Double, Market), (Double, Market)),
+//      shift2: ((Double, Market), (Double, Market)),
+//      shift12: (Market, Market),
+//      initialPrice:Double
+//  ):MultiOrderNumber2D = GreekAnalysis.greekMultiOpCompute(this, target, shift1, shift2, shift12, initialPrice)
   
 
   private def getUncalibratedBond = {
@@ -251,7 +297,8 @@ trait GreekAnalysis {
       shift1 = (spotShiftUp - 1.0, spotShiftDown - 1.0),
       operation2 = (s:Double) => ((m:Market) => m.underlyingVolShifted(id, s)),
       shift2 = (volShiftUp, volShiftDown),
-      calculatedInitialPrice = None
+      calculatedInitialPrice = None,
+      editableBond = false
     )
   }
   
@@ -366,21 +413,58 @@ object GreekAnalysis {
       MultiOrderNumber(Some(initialPrice), delta, gamma, None, priceUp, priceDown)
   }
 
+  def greekSecondCompute(
+      bond: PriceableBond,
+      mkt: Market,
+      target:PriceableBond => Option[Double], 
+      operation: Double => (Market => Option[Market]),
+      shiftUp:Double,
+      shiftDown:Double,
+      initialPrice:Double
+  ):MultiOrderNumber = {
+    
+      def computePrice(s:Double):Option[Double] = {
+        operation(s)(mkt) match {
+          case Some(newmkt) => 
+            bond.setMarketNoCalibration(newmkt)
+            target(bond) match { 
+              case Some(n) if !n.isNaN && !n.isInfinity => Some(n)
+              case _ => None 
+            }
+          case _ => None
+        }
+      }
+
+      val priceUp = computePrice(shiftUp)
+      val pos = priceUp.collect{case n => (n - initialPrice) / shiftUp}
+      val priceDown = computePrice(shiftDown)
+      val neg = priceDown.collect{case n => (n - initialPrice) / shiftDown}
+
+      val (delta, gamma) = (pos, neg) match {
+        case (Some(p), Some(n)) => (Some((p + n) / 2.0), Some((p - n) / ((shiftUp - shiftDown) / 2.0)))
+        case _ => (None, None)
+      }
+
+      MultiOrderNumber(Some(initialPrice), delta, gamma, None, priceUp, priceDown)
+  }
+  
   def greekMultiOpCompute(
       bond: PriceableBond,
+      mkt: Market, 
       target: PriceableBond => Option[Double], 
-      shift1: ((Double, Market), (Double, Market)),
-      shift2: ((Double, Market), (Double, Market)),
-      shift12: (Market, Market),
+      operation1: Double => (Market => Option[Market]),
+      shift1: (Double, Double),
+      operation2: Double => (Market => Option[Market]),
+      shift2: (Double, Double),
       initialPrice:Double
   ):MultiOrderNumber2D = {
     
-    val greek1 = shift1 match {case ((shiftUp, marketUp), (shiftDown, marketDown)) => 
-      GreekAnalysis.greekSecondCompute(bond, target, shiftUp, marketUp, shiftDown, marketDown, initialPrice)
+    val greek1 = shift1 match {case (shiftUp, shiftDown) =>
+      GreekAnalysis.greekSecondCompute(bond, mkt, target, operation1, shiftUp, shiftDown, initialPrice)
     }
 
-    val greek2 = shift2 match {case ((shiftUp, marketUp), (shiftDown, marketDown)) => 
-      GreekAnalysis.greekSecondCompute(bond, target, shiftUp, marketUp, shiftDown, marketDown, initialPrice)
+    val greek2 = shift2 match {case (shiftUp, shiftDown) =>
+      GreekAnalysis.greekSecondCompute(bond, mkt, target, operation2, shiftUp, shiftDown, initialPrice)
     }
 
     def computePrice(newmkt:Market, spotShift:Double, spotShiftedPrice:Double, volShift:Double, spotVega:Double):Option[Double] = {
@@ -393,14 +477,15 @@ object GreekAnalysis {
       }
     }
     
-    val (shiftUp, shiftDown) = shift1 match {case ((s1, _), (s2, _)) => (s1, s2)}
-    val shiftV = shift2 match {case ((s1, _), (s2, _)) => s1}
-    val (marketUp, marketDown) = shift12
+    val (shiftUp, shiftDown) = shift1
+    val shiftV = shift2 match {case (s1, _) => s1}
 
     val (pos, neg) = (greek1.priceUp, greek1.priceDown, greek2.priceUp, greek2.spot) match {
       case (Some(pup), Some(pdown), Some(vpup), Some(vspot)) => 
         val spotVega = (vpup - vspot) / shiftV
-        (computePrice(marketUp, shiftUp, pup, shiftV, spotVega), computePrice(marketDown, shiftDown, pdown, shiftV, spotVega))
+        val p1 = operation1(shiftUp)(mkt).flatMap{case m => operation2(shiftV)(m)}.flatMap{case m => computePrice(m, shiftUp, pup, shiftV, spotVega)}
+        val p2 = operation1(shiftDown)(mkt).flatMap{case m => operation2(shiftV)(m)}.flatMap{case m => computePrice(m, shiftUp, pup, shiftV, spotVega)}
+        (p1, p2)
       case _ => (None, None)
     }
     
@@ -411,7 +496,7 @@ object GreekAnalysis {
 
     val greek12 = MultiOrderNumber(greek2.firstOrder, delta, gamma, None, pos, neg)
     
-    new MultiOrderNumber2D(greek1, greek2, greek12)
+    MultiOrderNumber2D(greek1, greek2, greek12)
   }
   
 }

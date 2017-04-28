@@ -31,7 +31,7 @@ case class MultiOrderMap(
   
   override def toString = List(("0", spotMap), ("1", firstOrderMap), ("2", secondOrderMap), ("3", thirdOrderMap))
     .filter{case (k, v) => !v.isEmpty}
-    .map{case (k, vs) => s"<${k}> ${vs.map{case (kk, vv) => kk + ":" + vv.asPercent(5)}.mkString(" ")}"}.mkString(" ")
+    .map{case (k, vs) => s"${k}> ${vs.map{case (kk, vv) => kk + ":" + vv.asPercent(5)}.mkString(" ")}"}.mkString(" ")
   
 }
 
@@ -55,7 +55,11 @@ case class MultiOrderMap2D(
   first: MultiOrderMap,
   second: MultiOrderMap,
   cross: MultiOrderMap
-)
+) {
+
+  override def toString = List(("0", first), ("1", second), ("2", cross)).map{case (k, vs) => s"<${k}> ${vs.toString}"}.mkString(" ")
+  
+}
 
 object MultiOrderMap2D {
   
