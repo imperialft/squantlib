@@ -13,7 +13,9 @@ case class CalculationPeriod(
     endDate:Date, 
     paymentDate:Date, 
     var daycounter:DayCounter, 
-    var nominal:Double) {
+    isRedemption: Boolean,
+    var nominal:Double
+    ) {
   
   def dayCount:Double = Date.daycount(startDate, endDate, daycounter)
 	
@@ -35,7 +37,7 @@ case class CalculationPeriod(
       case _ => false
     }
 	
-  def shifted(shift:Int):CalculationPeriod = CalculationPeriod(eventDate.add(shift), startDate.add(shift), endDate.add(shift), paymentDate.add(shift), daycounter, nominal)
+  def shifted(shift:Int):CalculationPeriod = CalculationPeriod(eventDate.add(shift), startDate.add(shift), endDate.add(shift), paymentDate.add(shift), daycounter, isRedemption, nominal)
   
   override def toString = eventDate.toString + " " + startDate.toString + " " + endDate.toString + " " + paymentDate.toString + " " + daycounter.toString
 }
@@ -51,6 +53,7 @@ object CalculationPeriod {
       fixingCalendar:Calendar, 
       paymentCalendar:Calendar, 
       paymentConvention:BusinessDayConvention,
+      isRedemption: Boolean,
       nominal:Double = 1.0,
       fixedDayOfMonth:Option[Int] = None):CalculationPeriod = {
     
@@ -74,14 +77,15 @@ object CalculationPeriod {
     val eventDate = baseDate.advance(fixingCalendar, -notice, TimeUnit.Days)
     val paymentDate = endDate.adjust(paymentCalendar, paymentConvention)
     
-    new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount, nominal)
+    new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount, isRedemption, nominal)
   }
   
   def simpleCashflow(
       paymentDate:Date, 
       paymentCalendar:Calendar,
-      paymentConvention:BusinessDayConvention):CalculationPeriod = 
+      paymentConvention:BusinessDayConvention,
+      isRedemption: Boolean):CalculationPeriod = 
         
-    apply(paymentDate, paymentDate, 0, false, new Absolute, paymentCalendar, paymentCalendar, paymentConvention)
+    apply(paymentDate, paymentDate, 0, false, new Absolute, paymentCalendar, paymentCalendar, paymentConvention, isRedemption)
   
 }

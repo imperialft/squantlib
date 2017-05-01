@@ -51,7 +51,11 @@ case class ScheduledPayoffs(
         else c
     })
 
-    val newpayoffs = scheduledPayoffs.map{case (cp, p, c) => if (cp.isAbsolute) FixedPayoff(1.0)(p.fixingInfo) else FixedPayoff(0.0)(p.fixingInfo)}
+    val newpayoffs = scheduledPayoffs.map{case (cp, p, c) => 
+      if (cp.isRedemption) FixedPayoff(1.0)(p.fixingInfo) 
+      else FixedPayoff(0.0)(p.fixingInfo)
+    }
+
     val newScheduledPayoff = ScheduledPayoffs.noFixing(schedule, Payoffs(newpayoffs), Callabilities(newcalls))
     ScheduledPayoffs(newScheduledPayoff, valuedate)
   }
@@ -77,7 +81,7 @@ case class ScheduledPayoffs(
   
   def currentPayoffs(vd:Date):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd)}.map(_._2) (collection.breakOut)
   
-  def currentCoupons(vd:Date):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd) && !d.isAbsolute}.map(_._2) (collection.breakOut)
+  def currentCoupons(vd:Date):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd) && !d.isRedemption}.map(_._2) (collection.breakOut)
   
   def isTriggered:Boolean = calls.isTriggered
   
@@ -199,14 +203,14 @@ case class ScheduledPayoffs(
 
   
   def called(vd:Date, redemAmount:Double, paymentCalendar:Calendar, convention:BusinessDayConvention):ScheduledPayoffs = 
-    before(vd).addCashflow(vd, redemAmount, paymentCalendar, convention)
+    before(vd).addCashflow(vd, redemAmount, paymentCalendar, convention, true)
   
   def insert(cp:CalculationPeriod, p:Payoff, c:Callability):ScheduledPayoffs = {
     ScheduledPayoffs(scheduledPayoffs :+ (cp, p, c), valuedate).sorted
   }
   
-  def addCashflow(paymentDate:Date, amount:Double, calendar:Calendar, paymentConvention:BusinessDayConvention):ScheduledPayoffs = {
-    val cp = CalculationPeriod.simpleCashflow(paymentDate, calendar, paymentConvention)
+  def addCashflow(paymentDate:Date, amount:Double, calendar:Calendar, paymentConvention:BusinessDayConvention, isRedemption: Boolean):ScheduledPayoffs = {
+    val cp = CalculationPeriod.simpleCashflow(paymentDate, calendar, paymentConvention, isRedemption)
     val p = Payoff.simpleCashFlow(amount)
     val c = Callability.empty
     insert(cp, p, c)

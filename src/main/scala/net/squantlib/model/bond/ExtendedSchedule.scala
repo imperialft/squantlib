@@ -59,9 +59,9 @@ trait ExtendedSchedule {
       case _ => scheduledPayoffs.countAfter(vd)
     }
   
-  def liveCoupons:ScheduledPayoffs = livePayoffs.filtered{case (period, _, _) => !period.isAbsolute}
+  def liveCoupons:ScheduledPayoffs = livePayoffs.filtered{case (period, _, _) => !period.isRedemption}
   
-  def liveCoupons(vd:Date):ScheduledPayoffs = livePayoffs(vd).filtered{case (period, _, _) => !period.isAbsolute}
+  def liveCoupons(vd:Date):ScheduledPayoffs = livePayoffs(vd).filtered{case (period, _, _) => !period.isRedemption}
   
   /*  
    * Returns "live" triggers

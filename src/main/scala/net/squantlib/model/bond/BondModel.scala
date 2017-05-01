@@ -70,9 +70,10 @@ trait BondModel {
   def isFixedRateBond = payoffs.underlyings.size == 0
   
   def redemption:Payoff = {
-    val abslegs = scheduledPayoffs.filter{case (s, p, t) => s.isAbsolute}
-    val finalleg = if (abslegs.size > 0) abslegs.maxBy{case (s, p, t) => s.paymentDate}
-            else scheduledPayoffs.maxBy{case (s, p, t) => s.paymentDate}
+    val abslegs = scheduledPayoffs.filter{case (s, p, t) => s.isRedemption}
+    val finalleg = 
+      if (abslegs.size > 0) abslegs.maxBy{case (s, p, t) => s.paymentDate}
+      else scheduledPayoffs.maxBy{case (s, p, t) => s.paymentDate}
     finalleg._2
   }
   

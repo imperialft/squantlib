@@ -126,7 +126,7 @@ object Schedule{
     
     val nullCalendar = Calendars.empty
     
-    def calcperiod(startdate:Date, enddate:Date):CalculationPeriod = {
+    def calcperiod(startdate:Date, enddate:Date, isRedemption: Boolean):CalculationPeriod = {
       CalculationPeriod(
           startdate, 
           enddate, 
@@ -136,6 +136,7 @@ object Schedule{
           fixingCalendar, 
           paymentCalendar, 
           if (enddate == terminationDate) terminationDateConvention else paymentConvention, 
+          isRedemption,
           1.0,
           fixedDayOfMonth
       )
@@ -151,6 +152,7 @@ object Schedule{
           fixingCalendar, 
           paymentCalendar, 
           terminationDateConvention, 
+          true, 
           1.0,
           fixedDayOfMonth
       ))
@@ -161,14 +163,14 @@ object Schedule{
       if (tenor.length == 0) List.empty
       else rule match {
         
-        case Zero => List(calcperiod(effectiveDate, terminationDate))
+        case Zero => List(calcperiod(effectiveDate, terminationDate, false))
   
         case Backward => 
           var tempdates:MutableList[CalculationPeriod] = MutableList.empty
             
           val initialDate = nextToLastDate match {
             case Some(d) if d lt terminationDate => 
-              tempdates += calcperiod(d, terminationDate)
+              tempdates += calcperiod(d, terminationDate, false)
               d
             case None => terminationDate
           }
@@ -181,7 +183,7 @@ object Schedule{
             endDate = startDate
             startDate = initialDate.advance(nullCalendar, tenor.mul(periods).negative, calendarConvention)
             if (Math.abs(effectiveDate.sub(startDate)) < 14) {startDate = effectiveDate}
-            tempdates += calcperiod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate)
+            tempdates += calcperiod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate, false)
             periods = periods + 1
           } while (startDate gt effectiveDate)
            
@@ -191,7 +193,7 @@ object Schedule{
           var tempdates:MutableList[CalculationPeriod] = MutableList.empty
             
           val initialDate = firstDate match {
-            case Some(d) => tempdates += calcperiod(effectiveDate, d); d
+            case Some(d) => tempdates += calcperiod(effectiveDate, d, false); d
             case None => effectiveDate
           }
           
@@ -203,7 +205,7 @@ object Schedule{
             startDate = endDate
             endDate = initialDate.advance(nullCalendar, tenor.mul(periods), calendarConvention)
             if (Math.abs(terminationDate.sub(endDate)) < 14) {endDate = terminationDate}
-            tempdates += calcperiod(startDate, if (endDate ge terminationDate) terminationDate else endDate)
+            tempdates += calcperiod(startDate, if (endDate ge terminationDate) terminationDate else endDate, false)
             periods = periods + 1
           } while (endDate lt terminationDate)
             

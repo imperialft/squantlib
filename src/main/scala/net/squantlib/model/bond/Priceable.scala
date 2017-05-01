@@ -164,7 +164,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   def accruedAmount:Option[Double] = market.flatMap(mkt => 
     if (issueDate ge mkt.valuedate) Some(0.0)
     else if (coupon isEmpty) Some(0.0)
-    else livePayoffs.filter{case (d, p, _) => !d.isAbsolute} match {
+    else livePayoffs.filter{case (d, p, _) => !d.isRedemption} match {
       case po if po.size == 1 && po.head._1.paymentDate == terminationDate =>
         po.head match {case (dd, pp, _) => Some(Date.daycount(dd.startDate, mkt.valuedate, dd.daycounter) * pp.price(mkt))}
       case po => po.filter{case (dd, pp, _) => (dd.isCurrentPeriod(mkt.valuedate))} match {
@@ -299,10 +299,12 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    * Returns present value of adding 1 basis point of coupon for the remainder of the bond.
    */
   def bpvalue:Option[Double] = (valueDate, discountCurve) match {
-    case (Some(vd), Some(curve)) => Some(livePayoffs.schedule.map{
-      case d if d.isAbsolute => 0.0
-      case d => d.dayCountAfter(vd) * curve(d.paymentDate)
-    }.sum * 0.0001) 
+    case (Some(vd), Some(curve)) => 
+      val bpv = livePayoffs.schedule.map{
+          case d if d.isRedemption => 0.0
+          case d => d.dayCountAfter(vd) * curve(d.paymentDate)
+        }.sum * 0.0001
+      Some(bpv) 
     case _ => None
   }
   
