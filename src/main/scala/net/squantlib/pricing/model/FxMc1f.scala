@@ -40,11 +40,21 @@ case class FxMc1f(valuedate:Date,
     else { errorOutput(bondid, "invalid mc dates"); List.empty}
   }
    
-  def mcPrice(paths:Int):List[Double] = {
+  def mcPriceFullPath(paths:Int):List[Double] = {
     try { 
       val mpaths = modelPaths(paths)
       if (mpaths.isEmpty) scheduledPayoffs.price
       else concatList(mpaths).map(_ / paths.toDouble)
+    }
+    catch {case e:Throwable => errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
+  }
+
+  def mcPrice(paths:Int):List[Double] = {
+    try { 
+    val mcYears = scheduledPayoffs.eventDateYears(valuedate)
+    val (mcdates, mcpaths) = mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p, trigger, redemamt))
+    if (mcdates.sameElements(mcYears)) mcpaths
+    else { errorOutput(bondid, "invalid mc dates"); List.empty}
     }
     catch {case e:Throwable => errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} " + e.getStackTrace.mkString(sys.props("line.separator"))); List.empty}
   }

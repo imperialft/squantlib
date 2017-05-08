@@ -77,6 +77,49 @@ class Bs1fContinuous(
     (dates, result.toList)
   }
 
+  override def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[Double]) = {
+    if (eventDates.isEmpty) {return (List.empty, List.empty)}
+    
+    val randomGenerator = getRandomGenerator
+    def normSInv(x:Double) = NormSInv(x)
+    
+    val dates = eventDates.sorted
+    val steps = dates.size
+    val stepsize = dates.head :: (dates.tail, dates).zipped.map(_ - _)
+
+    val ratedom = dates.map(rate)
+    val ratefor = dates.map(dividendYield)
+    val sigma = dates.map(volatility)
+
+    val fratedom:List[Double] = ratedom.head :: acc[Double](ratedom, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
+    
+    val fratefor:List[Double] = ratefor.head :: acc[Double](ratefor, dates, (r0, r1, t0, t1) => (r1 * t1 - r0 * t0) / (t1 - t0), 0.0, List.empty)
+    
+    val fsigma:List[Double] = sigma.head :: acc[Double](sigma, dates, (a0, a1, b0, b1) => math.sqrt(math.max(0.000001, (a1 * a1 * b1 - a0 * a0 * b0) / (b1 - b0))), 0.0, List.empty)
+    
+    val drift:List[Double] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
+  
+    val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
+    
+    val spotList = List(spot)
+    
+    @tailrec def getApath(steps:List[Double], drft:List[Double], siggt:List[Double], current:List[Double]):List[Double] = {
+      if (steps.isEmpty) payoff(current.reverse.tail)
+      else {
+        val rnd = randomGenerator.sample
+        val ninv1 = normSInv(rnd)
+        val spot = if (steps.head < smallvalue) current.head else current.head * scala.math.exp(drft.head + (siggt.head * ninv1))
+        getApath(steps.tail, drft.tail, siggt.tail, spot :: current)
+      }
+    }
+    
+    @tailrec def getPrices(nbpath:Int, current:List[Double]):List[Double] = 
+      if (nbpath == 0) current 
+      else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, spotList), current).zipped.map(_ + _))
+ 
+    (dates, getPrices(paths, List.fill(dates.size)(0.0)).map(a => a / paths.toDouble))
+  }
+  
   @tailrec private def acc[A](r:List[A], t:List[Double], f:(A, A, Double, Double) => A, d:A, current:List[A]):List[A] = 
     if (r.isEmpty || r.tail.isEmpty) current.reverse
     else if (t.tail.head - t.head < smallvalue)  acc(r.tail, t.tail, f, d, d :: current)

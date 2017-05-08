@@ -3,6 +3,7 @@ package net.squantlib.pricing.mcengine
 import net.squantlib.math.random.RandomGenerator
 import net.squantlib.math.statistical.NormSInv
 import net.squantlib.util.DisplayUtils._
+import scala.annotation.tailrec
 
 trait MontecarloEngine {
   
@@ -41,6 +42,21 @@ trait Montecarlo1f extends MontecarloEngine {
     val average = paths.transpose.map(_.sum).map(_ / paths.size)
     average.foreach (a => standardOutput(a))
   }
+
+  def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[Double]) = {
+    val (mcDates, mcPaths) = generatePaths(eventDates, paths, payoff)
+    if (mcDates.sameElements(eventDates)) (eventDates, concatList(mcPaths).map(_ / paths.toDouble))
+    else (List.empty, List.empty)
+  }
+
+  def concatList(data:List[List[Double]]):List[Double] = 
+    if (data.isEmpty) List.empty[Double]
+    else concatListRec(data, List.fill(data.head.size)(0.0))
+  
+  @tailrec private def concatListRec(data:List[List[Double]], result:List[Double]):List[Double] = data match {
+    case Nil => result
+    case h::t => concatListRec(t, (result, h).zipped.map(_ + _))
+  }
   
 }
 
@@ -57,10 +73,12 @@ trait MontecarloNf extends MontecarloEngine {
    * ie. Order of output paths might not correspond to order of input eventDates if it's not sorted.
   */
   
-  def generatePaths[A](
-      eventDates:List[Double], 
-      paths:Int, 
-      payoff:List[Map[String, Double]] => List[A]):(List[Double], List[List[A]])
+  def generatePaths[A](eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[A]):(List[Double], List[List[A]])
+      
+  def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[Double]):(List[Double], List[Double]) = {
+    errorOutput("MC paths", "montecarlo price calculation not implemented for current model")
+    (List.empty, List.empty)
+  }
   
   def analyzePaths(dates:List[Double], paths:List[List[Double]]):Unit = {
     val average = paths.transpose.map(_.sum).map(_ / paths.size)

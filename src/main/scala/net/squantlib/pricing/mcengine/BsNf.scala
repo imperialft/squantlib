@@ -12,10 +12,10 @@ import net.squantlib.util.DisplayUtils
  * - Continuous dividend
  * - Volatility is constant over time without smile
  * - No rate & dividend volatility
- * @param spot 		current underlying price
- * @param rate(t)	continuous compounding risk-free rate of pricing currency at time t as number of years
- * @param dividendYield(t)	continuous compounding risk-free dividend yield at time t as number of years
- * @param sigma(t)	volatility of the underlying FX
+ * @param spot     current underlying price
+ * @param rate(t)  continuous compounding risk-free rate of pricing currency at time t as number of years
+ * @param dividendYield(t)  continuous compounding risk-free dividend yield at time t as number of years
+ * @param sigma(t)  volatility of the underlying FX
  */
 
 case class BsNf(
@@ -32,8 +32,8 @@ case class BsNf(
   override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
 
   /* Generates FX paths.
-   * @param eventdates	FX observation dates as number of years
-   * @param paths 	Number of Montecarlo paths to be generated
+   * @param eventdates  FX observation dates as number of years
+   * @param paths   Number of Montecarlo paths to be generated
    * @returns Montecarlo paths
    * 
    * CAUTION: Order of event dates are automatically sorted and duplicates removed by the function.
@@ -103,9 +103,9 @@ case class BsNf(
 
     val (fratedom, fratefor, fsigma) = getForwards(mcdates, ratedom, ratefor, sigma)
     
-	val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
-	
-	val sigt:List[List[Double]] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig.map(s => s * math.sqrt(ss))}
+    val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
+    
+    val sigt:List[List[Double]] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig.map(s => s * math.sqrt(ss))}
     
     @tailrec def iter(sp:List[Double], gauss:List[Double], dev:List[Double], drft:List[Double], divv:List[Double], current:List[Double]):List[Double] = 
       if (sp.isEmpty) current.reverse 
@@ -127,13 +127,64 @@ case class BsNf(
     
     @tailrec def getPathes(nbpath:Int, current:List[List[A]]):List[List[A]] = 
       if (nbpath == 0) current else getPathes(nbpath - 1, getApath(stepsize, drift, sigt, divs, List(spot))::current)
-	
+  
     (eventDates.sorted, getPathes(paths, List.empty))
+  }
+
+
+  override def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[Double]):(List[Double], List[Double]) = {
+    if (eventDates.isEmpty) {return (List.empty, List.empty)}
+    
+    val chol = getCholeskyMatrix
+    if (chol.isEmpty) {errorOutput("Correlation matrix is not definite positive"); return (List.empty, List.empty)}
+    
+    val mcdates:List[Double] = getEventDates(eventDates)
+    val divs:List[List[Double]] = mcdates.map(d => (d, dividends.map(dd => dd.get(d).getOrElse(0.0)))).map(_._2)
+    
+    val stepsize = mcdates.head :: (mcdates.tail, mcdates).zipped.map(_ - _)
+    val pathmapper = eventDates.sorted.map(mcdates.indexOf(_))
+    
+    val uls = spot.size
+    val ratedom = mcdates.map(rate)
+    val ratefor:List[List[Double]] = mcdates.map(d => (dividendYield, repoYield).zipped.map{case (dy, ry) => dy(d) + ry(d)})
+    val sigma:List[List[Double]] = mcdates.map(d => volatility.map(_(d)))
+
+    val (fratedom, fratefor, fsigma) = getForwards(mcdates, ratedom, ratefor, sigma)
+    
+    val drift:List[List[Double]] = driftacc(fratedom, fratefor, fsigma, stepsize, List.empty)
+    
+    val sigt:List[List[Double]] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig.map(s => s * math.sqrt(ss))}
+    
+    @tailrec def iter(sp:List[Double], gauss:List[Double], dev:List[Double], drft:List[Double], divv:List[Double], current:List[Double]):List[Double] = 
+      if (sp.isEmpty) current.reverse 
+      else iter(sp.tail, gauss.tail, dev.tail, drft.tail, divv.tail, (sp.head * math.exp(gauss.head * dev.head + drft.head) - divv.head) :: current)
+      
+    val randomGenerator = getRandomGenerator
+    def normSInv(x:Double) = NormSInv(x)
+    val reversePathMapper = pathmapper.map(i => stepsize.size - i - 1)
+    
+    val spotList = List(spot)
+ 
+    @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[Double] = 
+      if (steps.isEmpty) {
+        payoff(reversePathMapper.map(i => (variables zip current(i)).toMap))
+      }
+      else {
+        val independentGaussian = List.fill(uls)(normSInv(randomGenerator.sample))
+        val correlatedGaussian = Mathematical.lowerTriangleMatrixMult(chol, independentGaussian)
+        getApath(steps.tail, drft.tail, siggt.tail, divv.tail, iter(current.head, correlatedGaussian, siggt.head, drft.head, divv.head, List.empty) :: current)
+      }
+    
+    @tailrec def getPrices(nbpath:Int, current:List[Double]):List[Double] = 
+      if (nbpath == 0) current 
+      else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, divs, spotList), current).zipped.map(_ + _))
+ 
+    (eventDates.sorted, getPrices(paths, List.fill(eventDates.size)(0.0)).map(a => a / paths.toDouble))
   }
   
   @tailrec private def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
-	if (rd.isEmpty) current.reverse
-	else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, driftacc2(rd.head, rf.head, sig.head, stepp.head, List.empty) :: current)
+    if (rd.isEmpty) current.reverse
+    else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, driftacc2(rd.head, rf.head, sig.head, stepp.head, List.empty) :: current)
     
   @tailrec private def driftacc2(rd:Double, rf:List[Double], sig:List[Double], stepp:Double, current:List[Double]):List[Double] = 
     if (rf.isEmpty) current.reverse
@@ -162,26 +213,26 @@ case class BsNf(
 
     val (fratedom, fratefor, fsigma) = getForwards(mcdates, ratedom, ratefor, sigma)
     
-	val title = List("valuedate", "forward", "rate", "repo", "sigma", "div")
-	
-  	@tailrec def accr(adate:Double, aspots:List[Double], aratedom:Double, aratefors:List[Double], asiggs:List[Double], adivvs:List[Double], current:List[List[String]]):List[List[String]] = 
-	    if (aspots.isEmpty) current.reverse
-	    else {
-	      val msg = List(adate.asDouble, aspots.head.asDouble, aratedom.asPercent(2), aratefors.head.asPercent(2), asiggs.head.asPercent(2), adivvs.head.asDouble)
-	      accr(adate, aspots.tail, aratedom, aratefors.tail, asiggs.tail, adivvs.tail, msg :: current)
-	}
+    val title = List("valuedate", "forward", "rate", "repo", "sigma", "div")
+  
+    @tailrec def accr(adate:Double, aspots:List[Double], aratedom:Double, aratefors:List[Double], asiggs:List[Double], adivvs:List[Double], current:List[List[String]]):List[List[String]] = 
+      if (aspots.isEmpty) current.reverse
+      else {
+        val msg = List(adate.asDouble, aspots.head.asDouble, aratedom.asPercent(2), aratefors.head.asPercent(2), asiggs.head.asPercent(2), adivvs.head.asDouble)
+        accr(adate, aspots.tail, aratedom, aratefors.tail, asiggs.tail, adivvs.tail, msg :: current)
+      }
     
-	@tailrec def schedule(sp:List[Double], datez:List[Double], steps:List[Double], rd:List[Double], rf:List[List[Double]], sigg:List[List[Double]], divvs:List[List[Double]], acc:List[List[List[String]]]):List[List[List[String]]] = 
-	    if (steps.isEmpty) acc.reverse
-	    else {
-	      val spp = (sp, rf.head, divvs.head).zipped.map{case (ssp, rrf, dvv) => ssp * scala.math.exp((rd.head - rrf) * steps.head) - dvv}
-	      val msgs = accr(datez.head, spp, rd.head, rf.head, sigg.head, divvs.head, List.empty)
-	      schedule(spp, datez.tail, steps.tail, rd.tail, rf.tail, sigg.tail, divvs.tail, msgs::acc)
-	}
-	  
-	var spotprice = spot
-	val aschedule = schedule(spot, mcdates, stepsize, fratedom, fratefor, fsigma, divs, List.empty)
-	val s = aschedule.transpose.flatten
+    @tailrec def schedule(sp:List[Double], datez:List[Double], steps:List[Double], rd:List[Double], rf:List[List[Double]], sigg:List[List[Double]], divvs:List[List[Double]], acc:List[List[List[String]]]):List[List[List[String]]] = 
+      if (steps.isEmpty) acc.reverse
+      else {
+        val spp = (sp, rf.head, divvs.head).zipped.map{case (ssp, rrf, dvv) => ssp * scala.math.exp((rd.head - rrf) * steps.head) - dvv}
+        val msgs = accr(datez.head, spp, rd.head, rf.head, sigg.head, divvs.head, List.empty)
+        schedule(spp, datez.tail, steps.tail, rd.tail, rf.tail, sigg.tail, divvs.tail, msgs::acc)
+      }
+    
+    var spotprice = spot
+    val aschedule = schedule(spot, mcdates, stepsize, fratedom, fratefor, fsigma, divs, List.empty)
+    val s = aschedule.transpose.flatten
     
     val correlmatrix = correl.map(_.map(_.asPercent(2)).toList).toList
     val cholmatrix = chol.map(_.map(_.asPercent(2)).toList).toList
@@ -194,21 +245,21 @@ case class BsNf(
 object BsNf {
   
   def apply(uls:List[Underlying]):Option[BsNf] = 
-	try {
-	  val variables:List[String] = uls.map(_.id)
-	  val spots:List[Double] = uls.map(_.spot)
-	  val rates:Double => Double = uls.head.discountRateY
-	  val dividendyield:List[Double => Double] = uls.map(ul => {val q:Double => Double = ul.assetYieldY; q})
-	  val repoyield:List[Double => Double] = uls.map(ul => {val q:Double => Double = ul.repoRateY; q})
+  try {
+    val variables:List[String] = uls.map(_.id)
+    val spots:List[Double] = uls.map(_.spot)
+    val rates:Double => Double = uls.head.discountRateY
+    val dividendyield:List[Double => Double] = uls.map(ul => {val q:Double => Double = ul.assetYieldY; q})
+    val repoyield:List[Double => Double] = uls.map(ul => {val q:Double => Double = ul.repoRateY; q})
 
-	  val dividends:List[Map[Double, Double]] = uls.map(_.dividendsY)
-	  val volatility:List[Double => Double] = uls.map(ul => (d:Double) => ul.volatilityY(d))
-	  val correl:Array[Array[Double]] = uls.map(ul => uls.map(u => u.impliedCorrelation(ul).getOrElse(Double.NaN)).toArray).toArray
-	  
-	  if (correl.exists(c => c.exists(d => d.isNaN))) None
-	  else Some(new BsNf(variables, spots, rates, dividendyield, repoyield, dividends, volatility, correl)) 
-	 } 
-	catch { case _:Throwable => None}
-	
+    val dividends:List[Map[Double, Double]] = uls.map(_.dividendsY)
+    val volatility:List[Double => Double] = uls.map(ul => (d:Double) => ul.volatilityY(d))
+    val correl:Array[Array[Double]] = uls.map(ul => uls.map(u => u.impliedCorrelation(ul).getOrElse(Double.NaN)).toArray).toArray
+    
+    if (correl.exists(c => c.exists(d => d.isNaN))) None
+    else Some(new BsNf(variables, spots, rates, dividendyield, repoyield, dividends, volatility, correl)) 
+   } 
+  catch { case _:Throwable => None}
+  
 }
 

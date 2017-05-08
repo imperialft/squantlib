@@ -34,7 +34,7 @@ case class IndexMc1f(valuedate:Date,
 	  else { errorOutput(bondid, "invalid mc dates"); List.empty}
 	}
 	 
-	def mcPrice(paths:Int):List[Double] = {
+	def mcPriceFullPath(paths:Int):List[Double] = {
 	  try { 
 	    val mpaths = modelPaths(paths)
 	    if (mpaths.isEmpty) scheduledPayoffs.price
@@ -45,6 +45,21 @@ case class IndexMc1f(valuedate:Date,
       modelOutput("error", List(errormsg))
 	    errorOutput(bondid, s"MC calculation error : ${bondid} vd ${index.valuedate} ${errormsg}")
 	    List.empty}
+  }
+
+  def mcPrice(paths:Int):List[Double] = {
+    try { 
+      val mcYears = scheduledPayoffs.eventDateYears(valuedate)
+      if (mcYears.exists(_ < 0.0)) {errorOutput(bondid, "MC paths : cannot compute past dates"); List.empty}
+      val (mcdates, mcpaths) = mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p))
+      if (mcdates.sameElements(mcYears)) mcpaths
+      else { errorOutput(bondid, "invalid mc dates"); List.empty}
+    }
+    catch {case e:Throwable => 
+      val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
+      modelOutput("error", List(errormsg))
+      errorOutput(bondid, s"MC calculation error : ${bondid} vd ${index.valuedate} ${errormsg}")
+      List.empty}
   }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)
