@@ -175,6 +175,7 @@ case class BsNfQto(
     def normSInv(x:Double) = NormSInv(x)
     val reversePathMapper = pathmapper.map(i => stepsize.size - i - 1)
     val spotList = List(spot)
+    val priceLegs = payoff(List.fill(eventDates.size)((variables zip spot).toMap)).size
  
     @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[Double] = 
       if (steps.isEmpty) {
@@ -190,7 +191,7 @@ case class BsNfQto(
       if (nbpath == 0) current 
       else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, divs, spotList), current).zipped.map(_ + _))
   
-    (eventDates.sorted, getPrices(paths, List.fill(eventDates.size)(0.0)).map(a => a / paths.toDouble))
+    (eventDates.sorted, getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble))
   }
   
   @tailrec private def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], sigfx:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
