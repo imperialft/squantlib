@@ -132,7 +132,9 @@ class Bs1fQtoDiscrete(
     val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
     
     val spotList = List(spot)
-  
+
+    val priceLegs = payoff(List.fill(dates.size)(spot)).size
+    
     @tailrec def getApath(steps:List[Double], drft:List[Double], siggt:List[Double], divv:List[Double], current:List[Double]):List[Double] = {
       if (steps.isEmpty) payoff(pathmapper.map(current.reverse.tail))
       else {
@@ -147,7 +149,7 @@ class Bs1fQtoDiscrete(
       if (nbpath == 0) current 
       else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, divs, spotList), current).zipped.map(_ + _))
     
-    (sortedEventDates, getPrices(paths, List.fill(sortedEventDates.size)(0.0)).map(a => a / paths.toDouble))
+    (sortedEventDates, getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble))
   }
   
   
