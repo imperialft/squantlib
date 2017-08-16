@@ -106,7 +106,16 @@ trait Underlying extends StaticAsset {
    * @param strike 
    */
   def volatility(days:Double, strike:Double):Double // TO BE DEFINED IN SUBCLASS
+
+  /**
+   * Returns the local volatility corresponding to the given date & strike.
+   * @param days observation date as the number of calendar days after value date.
+   * @param strike 
+   */
+  def localVolatility(days:Double, strike:Double):Double = Double.NaN
   
+  val isSmiledVol = localVolatility(30.0, spot) > 0.0
+
   /**
    * Returns the implied volatility corresponding to the given date & strike.
    * @param observation date as day count fraction and its day count method.

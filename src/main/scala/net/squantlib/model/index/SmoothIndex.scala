@@ -2,20 +2,29 @@ package net.squantlib.model.index
 
 import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
+import org.jquantlib.time.Calendar
 import net.squantlib.util.Date
 import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Period => qlPeriod}
+import net.squantlib.util.EmptyCalendar
+import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
+import org.jquantlib.termstructures.{BlackVolatilityTermStructure, BlackVolTermStructure}
+import org.jquantlib.termstructures.yieldcurves.FlatForward
+import org.jquantlib.daycounters.Actual365Fixed
+import org.jquantlib.termstructures.volatilities.LocalVolSurface
+import net.squantlib.util.DisplayUtils._
 
 /**
  * Orthodox index with continuous dividend yield.
  */
 case class SmoothIndex(
     id:String, 
-	var spot:Double,
+    var spot:Double,
     rateCurve:DiscountCurve, 
     dividend:DividendCurve, 
     repo:RepoCurve, 
-    vol:(Double, Double) => Double) extends Index {
+    vol:(Double, Double) => Double,
+    override val isSmiledVol:Boolean,
+    localVolGrid: YieldParameter3D = null) extends Index  {
   
 	override val valuedate = rateCurve.valuedate
 	
@@ -23,8 +32,8 @@ case class SmoothIndex(
 	
 	override val latestPrice = Some(spot)
 	
-    override val dividends:Map[Double, Double] = Map.empty
-	
+  override val dividends:Map[Double, Double] = Map.empty
+  
 	/**
 	 * Returns the volatility corresponding to the given date & strike.
 	 * @param days observation date as the number of calendar days after value date.
@@ -32,6 +41,9 @@ case class SmoothIndex(
 	 */
 	override def volatility(days:Double):Double = vol(days, spot)
 	override def volatility(days:Double, strike:Double):Double = vol(days, strike)
+	
+	
+	override def localVolatility(days:Double, strike:Double):Double = if (localVolGrid == null) Double.NaN else localVolGrid(days, strike)
 	
 	/**
 	 * Returns the value corresponding to the given date.
@@ -52,10 +64,11 @@ case class SmoothIndex(
 
 object SmoothIndex {
   
-  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, vol:YieldParameter):SmoothIndex = 
-    SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double, s:Double) => vol(y))
+  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, vol:YieldParameter, isSmiledVol:Boolean):SmoothIndex = 
+    SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double, s:Double) => vol(y), isSmiledVol)
   
-  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, vol:YieldParameter3D):SmoothIndex = 
-    SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double, s:Double) => vol(y, s))
+  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, vol:YieldParameter3D, isSmiledVol:Boolean):SmoothIndex = 
+    SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double, s:Double) => vol(y, s), isSmiledVol)
     
 }
+
