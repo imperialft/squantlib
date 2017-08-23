@@ -14,7 +14,7 @@ import net.squantlib.util.DisplayUtils._
 
 
 trait PriceableBond extends BondModel with Priceable {
-
+  
   override val db:dbBond
   
   override val scheduledPayoffs:ScheduledPayoffs
@@ -24,8 +24,9 @@ trait PriceableBond extends BondModel with Priceable {
   def copy(newdb:dbBond, newSchedule:ScheduledPayoffs, newuls:List[String]):PriceableBond
   
   override def copy:PriceableBond = copy(db, scheduledPayoffs, underlyings)
-  
-  var defaultModel:(Market, PriceableBond) => Option[PricingModel] = null
+
+  //var defaultModel:(Market, PriceableBond) => Option[PricingModel] = null
+
   
   var forceModel:Boolean = false
   
@@ -44,7 +45,7 @@ trait PriceableBond extends BondModel with Priceable {
   /* 
    * Reset model
    */
-  override def initializeModel(reCalibrate:Boolean = false):Unit = {
+  override def initializeModel(reCalibrate:Boolean, modelName:String):Unit = {
     if (reCalibrate) {
       calibrationCache.clear
       modelCalibrated = false
@@ -52,7 +53,16 @@ trait PriceableBond extends BondModel with Priceable {
     
     model = if (isTerminated == Some(false) && scheduledPayoffs.isPriceable) livePayoffs match {
       case po if !po.isEmpty && !forceModel && po.isFixed => Some(NoModel(po))
-      case _ => if (defaultModel == null) None else defaultModel(market.get, this)
+      case _ if modelName != null => models.get(modelName) match {
+        case Some(mo) => 
+          currentModelName = modelName
+          mo(market.get, this)
+        case _ => None
+      }
+      case _ if (defaultModel == null) => None
+      case _ => 
+        currentModelName = defaultModelName
+        defaultModel(market.get, this)
     } else None
     
     cache.clear
@@ -62,11 +72,13 @@ trait PriceableBond extends BondModel with Priceable {
     }
   }
   
-  def reset(newMarket:Market, setter:(Market, BondModel) => Option[PricingModel]) = {
+  override def reset(newMarket:Market, setter:(Market, BondModel) => Option[PricingModel], modelName:String) = {
     val recalib = market.collect{case m => !m.valuedate.eq(newMarket.valuedate)}.getOrElse(true)
     _market = Some(newMarket)
-    defaultModel = setter
-    initializeModel(recalib)
+    models = models + (defaultModelName -> setter)
+    currentModelName = defaultModelName
+    //defaultModel = setter
+    initializeModel(recalib, modelName)
   }
   
   private def disp(name:String, f: => Any) = standardOutput(id, name + (" " * math.max(10 - name.size, 0)) + "\t" + (f match {
@@ -83,7 +95,10 @@ trait PriceableBond extends BondModel with Priceable {
     
   
   def transferSettings[T <: PriceableBond](bond:T):Unit = {
-    bond.defaultModel = this.defaultModel
+    //bond.defaultModel = this.defaultModel
+    bond.defaultModelName = this.defaultModelName
+    bond.currentModelName = this.currentModelName
+    bond.models = this.models
     bond.forceModel = this.forceModel
     bond.useCouponAsYield = this.useCouponAsYield
     bond.requiresCalibration = this.requiresCalibration

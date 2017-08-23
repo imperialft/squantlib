@@ -11,7 +11,7 @@ import net.squantlib.model.rates.DiscountCurve
 class FXsmiled(val curveDom:DiscountCurve, val curveFor:DiscountCurve, vol:(Double, Double) => Double) extends FX {
   
 	override def volatility(days:Double):Double = vol(days, forward(days))
-	override def volatility(days:Double, strike:Double):Double = vol(days, strike)
+//	override def volatility(days:Double, strike:Double):Double = vol(days, strike)
 }
 
 object FXsmiled {

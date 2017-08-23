@@ -52,7 +52,7 @@ trait FX extends Underlying {
 	 * @param strike fx strike
 	 */
 	override def volatility(days:Double):Double
-	override def volatility(days:Double, strike:Double):Double
+	//override def volatility(days:Double, strike:Double):Double
 	  
 	/**
 	 * Returns the value corresponding to the given date.

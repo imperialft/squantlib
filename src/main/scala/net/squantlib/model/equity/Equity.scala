@@ -43,7 +43,7 @@ trait Equity extends Underlying {
 	 * @param strike strike
 	 */
 	override def volatility(days:Double):Double
-	override def volatility(days:Double, strike:Double):Double
+	//override def volatility(days:Double, strike:Double):Double
 	  
 	/**
 	 * Returns the value corresponding to the given date.

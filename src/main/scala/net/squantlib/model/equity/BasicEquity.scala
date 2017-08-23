@@ -29,7 +29,7 @@ case class BasicEquity(
 	 * @param strike index strike
 	 */
 	override def volatility(days:Double):Double = vol(days, spot)
-	override def volatility(days:Double, strike:Double):Double = vol(days, strike)
+	//override def volatility(days:Double, strike:Double):Double = vol(days, strike)
 	
 	/**
 	 * Returns the value corresponding to the given date.

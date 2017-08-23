@@ -25,22 +25,33 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   var _market:Option[Market]
   
   var model:Option[PricingModel]
+
+  var defaultModelName:String = "default" 
+  var currentModelName:String = defaultModelName
+
+  var models: Map[String, (Market, PriceableBond) => Option[PricingModel]] = Map.empty
   
-  def initializeModel(reCalibrate:Boolean = false):Unit
+  def defaultModel:(Market, PriceableBond) => Option[PricingModel] = models.get(defaultModelName).orNull
+
+  def modelNames:Set[String] = models.keySet
   
-  def reset(newMarket:Market, setter:(Market, BondModel) => Option[PricingModel])
+  def initializeModel(reCalibrate:Boolean, modelName:String):Unit
+  
+  def switchModel(modelName:String) = initializeModel(true, modelName)
+  
+  def reset(newMarket:Market, setter:(Market, BondModel) => Option[PricingModel], modelName:String)
     
   override def market:Option[Market] = _market
   
   def market_= (newMarket:Market) = {
     val recalib = market.collect{case mkt => mkt.valuedate.eq(newMarket.valuedate) }.getOrElse(true)
     _market = Some(newMarket)
-    initializeModel(recalib)
+    initializeModel(recalib, currentModelName)
   }
   
   def setMarketNoCalibration(newMarket:Market) = {
     _market = Some(newMarket)
-    initializeModel(false)
+    initializeModel(false, currentModelName)
   }
   
   def getUnderlyings:Map[String, Option[Underlying]] = market match {

@@ -66,7 +66,7 @@ case class CashRate(
 	 */
 	override def volatility(days:Double):Double = Double.NaN
 	
-	override def volatility(days:Double, strike:Double):Double = Double.NaN
+	//override def volatility(days:Double, strike:Double):Double = Double.NaN
 	  
 	/**
 	 * Returns the value corresponding to the given date.

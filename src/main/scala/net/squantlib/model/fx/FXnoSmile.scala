@@ -10,7 +10,7 @@ import net.squantlib.model.yieldparameter._
 class FXnoSmile(val curveDom:DiscountCurve, val curveFor:DiscountCurve, vol:Double => Double) extends FX {
   
 	override def volatility(days:Double):Double = vol(days)
-	override def volatility(days:Double, strike:Double):Double = vol(days)
+	//override def volatility(days:Double, strike:Double):Double = vol(days)
 
 }
 

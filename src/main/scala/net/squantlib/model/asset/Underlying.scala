@@ -99,13 +99,15 @@ trait Underlying extends StaticAsset {
    * @param days observation date as the number of calendar days after value date.
    */
   def volatility(days:Double):Double // TO BE DEFINED IN SUBCLASS
-  def volatility(days:Double, strike:Double):Double = volatility(days) // STRIKE IS IGNORED
+  //def volatility(days:Double, strike:Double):Double = volatility(days) // STRIKE IS IGNORED
 
   /**
    * Returns the smiled implied volatility corresponding to the given date.
    * @param days observation date as the number of calendar days after value date.
    */
-  def smiledVolatility(days:Double):Double = Double.NaN  // TO BE DEFINED IN SUBCLASS
+  val isSmiledVol:Boolean = false // TO BE DEFINED IN SUBCLASS
+  
+  //def smiledVolatility(days:Double):Double = Double.NaN  // TO BE DEFINED IN SUBCLASS
   def smiledVolatility(days:Double, strike:Double):Double = Double.NaN // TO BE DEFINED IN SUBCLASS
   
 
@@ -115,8 +117,6 @@ trait Underlying extends StaticAsset {
    * @param strike 
    */
   def localVolatility(days:Double, strike:Double):Double = Double.NaN
-  
-  val isSmiledVol = localVolatility(30.0, spot) > 0.0
 
   /**
    * Returns the implied volatility corresponding to the given date & strike.
@@ -124,7 +124,7 @@ trait Underlying extends StaticAsset {
    * @param strike
    */
   def volatility(dayfrac:Double, dayCounter:DayCounter):Double = volatility(toDays(dayfrac, dayCounter))  
-  def volatility(dayfrac:Double, dayCounter:DayCounter, strike:Double):Double = volatility(toDays(dayfrac, dayCounter), strike)  
+  //def volatility(dayfrac:Double, dayCounter:DayCounter, strike:Double):Double = volatility(toDays(dayfrac, dayCounter), strike)  
   
   /**
    * Returns the implied volatility corresponding to the given date & strike.
@@ -132,7 +132,7 @@ trait Underlying extends StaticAsset {
    * @param strike
    */
   def volatility(date:Date):Double = volatility(toDays(date))  
-  def volatility(date:Date, strike:Double):Double = volatility(toDays(date), strike)  
+  //def volatility(date:Date, strike:Double):Double = volatility(toDays(date), strike)  
   
   /**
    * Returns the implied volatility corresponding to the given date & strike.
@@ -140,7 +140,7 @@ trait Underlying extends StaticAsset {
    * @param observation date as the period from value date.
    */
   def volatility(period:qlPeriod):Double = volatility(toDays(period))  
-  def volatility(period:qlPeriod, strike:Double):Double = volatility(toDays(period), strike)  
+  //def volatility(period:qlPeriod, strike:Double):Double = volatility(toDays(period), strike)  
   
   /**
    * Returns the implied volatility corresponding to the given date represented in nb of years & strike.
@@ -148,10 +148,11 @@ trait Underlying extends StaticAsset {
    * @param observation date as the period from value date.
    */
   def volatilityY(years:Double):Double = volatility(years * daysPerYr)
-  def volatilityY(years:Double, strike:Double):Double = volatility(years * daysPerYr, strike)
+  //def volatilityY(years:Double, strike:Double):Double = volatility(years * daysPerYr, strike)
 
-  def smiledVolatilityY(years:Double):Double = smiledVolatility(years * daysPerYr)
+  //def smiledVolatilityY(years:Double):Double = smiledVolatility(years * daysPerYr)
   def smiledVolatilityY(years:Double, strike:Double):Double = smiledVolatility(years * daysPerYr, strike)
+  def localVolatilityY(years:Double, strike:Double):Double = localVolatility(years * daysPerYr, strike)
   
   /**
    * Returns the forward price corresponding to the given date.
@@ -194,8 +195,8 @@ trait Underlying extends StaticAsset {
    * Returns forward volatility with strike
    * @param observation date as the nb year from value date.
    */
-  def forwardVol(valuedate:Double, maturity:Double, strike:Double):Double = 
-      math.sqrt((maturity * math.pow(volatility(maturity, strike), 2.0) - valuedate * math.pow(volatility(valuedate, strike), 2.0)) / (maturity - valuedate))    
+//  def forwardVol(valuedate:Double, maturity:Double, strike:Double):Double = 
+//      math.sqrt((maturity * math.pow(volatility(maturity, strike), 2.0) - valuedate * math.pow(volatility(valuedate, strike), 2.0)) / (maturity - valuedate))    
       
   /**
    * Returns forward atm volatility
@@ -208,8 +209,8 @@ trait Underlying extends StaticAsset {
    * Returns forward volatility with strike
    * @param observation date as the nb year from value date.
    */
-  def forwardVol(valuedate:Date, maturity:Date, strike:Double):Double = 
-    math.sqrt((toDays(maturity) * math.pow(volatility(maturity, strike), 2.0) - toDays(valuedate) * math.pow(volatility(valuedate, strike), 2.0)) / (toDays(maturity) - toDays(valuedate))) 
+//  def forwardVol(valuedate:Date, maturity:Date, strike:Double):Double = 
+//    math.sqrt((toDays(maturity) * math.pow(volatility(maturity, strike), 2.0) - toDays(valuedate) * math.pow(volatility(valuedate, strike), 2.0)) / (toDays(maturity) - toDays(valuedate))) 
     
   /**
    * Returns the latest defined date.
