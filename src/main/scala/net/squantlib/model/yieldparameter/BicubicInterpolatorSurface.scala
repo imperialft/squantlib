@@ -51,7 +51,7 @@ object BicubicInterpolatorSurface{
     
 //    println("xs")
 //    xs.foreach(println)
-//    
+//
 //    println("ys")
 //    ys.foreach(println)
     
@@ -66,7 +66,7 @@ object BicubicInterpolatorSurface{
 //    println("vs")
 //    vs.foreach(vv => println(vv.mkString(" / ")))
     
-    if (xs.size >= 3 && ys.size >= 3) {
+    if (xs.size >= 5 && ys.size >= 5) {
       Some(BicubicInterpolatorSurface(valuedate, xs.map(xx => xx.toDouble / roundUnit), ys.map(yy => yy.toDouble / roundUnit), vs))
     } else None
   }
