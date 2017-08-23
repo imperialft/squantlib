@@ -64,20 +64,20 @@ class Bs1fContinuousLocalVol(
 	
 //    val sigt:List[Double] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig * math.sqrt(ss)}
     
-    @tailrec def getApath(dates:List[Double], steps:List[Double], sqSteps:List[Double], rDom:List[Double], rFor:List[Double], current:List[Double]):List[Double] = {
+    @tailrec def getApath(edates:List[Double], steps:List[Double], sqSteps:List[Double], rDom:List[Double], rFor:List[Double], current:List[Double]):List[Double] = {
       if (steps.isEmpty) payoff(current.reverse.tail)
       else {
         val rnd = randomGenerator.sample
         val ninv1 = normSInv(rnd)
         val prevSpot = current.head
-        val fsigma:Double = localVolatility(dates.head, prevSpot)
+        val fsigma:Double = localVolatility(edates.head, prevSpot)
         val drift = (rDom.head - rFor.head - ((fsigma * fsigma) / 2.0)) * steps.head
         val sigt = fsigma * sqSteps.head
         
-        val spot = if (steps.head < smallvalue) prevSpot else prevSpot * scala.math.exp(drift + (sigt * ninv1))
+        val currentSpot = if (steps.head < smallvalue) prevSpot else prevSpot * scala.math.exp(drift + (sigt * ninv1))
 
-        //println("t:" + dates.head + " spot:"  + prevSpot + " => " + spot + " sig:" + fsigma + " drift:" + drift)
-        getApath(dates.tail, steps.tail, sqSteps.tail, rDom.tail, rFor.tail, spot :: current)
+        //println("t:" + edates.head + " spot:"  + prevSpot + " => " + spot + " sig:" + fsigma + " drift:" + drift)
+        getApath(edates.tail, steps.tail, sqSteps.tail, rDom.tail, rFor.tail, currentSpot :: current)
       }
     }
     
@@ -132,22 +132,22 @@ class Bs1fContinuousLocalVol(
 //      }
 //    }
     
-    @tailrec def getApath(dates:List[Double], steps:List[Double], sqSteps:List[Double], rDom:List[Double], rFor:List[Double], current:List[Double]):List[Double] = {
+    @tailrec def getApath(edates:List[Double], steps:List[Double], sqSteps:List[Double], rDom:List[Double], rFor:List[Double], current:List[Double]):List[Double] = {
       if (steps.isEmpty) payoff(current.reverse.tail)
       else {
         val rnd = randomGenerator.sample
         val ninv1 = normSInv(rnd)
         val prevSpot = current.head
-        val fsigma:Double = localVolatility(dates.head, prevSpot)
+        val fsigma:Double = localVolatility(edates.head, prevSpot)
         val drift = (rDom.head - rFor.head - ((fsigma * fsigma) / 2.0)) * steps.head
         val sigt = fsigma * sqSteps.head
         
         val currentSpot = if (steps.head < smallvalue) prevSpot else prevSpot * scala.math.exp(drift + (sigt * ninv1))
 //        val currentSpot = if (steps.head < smallvalue) current.head else current.head * scala.math.exp(drft.head + (siggt.head * ninv1))
 //        getApath(steps.tail, drft.tail, siggt.tail, currentSpot :: current)
-        //println("t:" + dates.head + " spot:"  + prevSpot + " => " + currentSpot + " sig:" + fsigma + " drift:" + drift)
+        //println("t:" + edates.head + " spot:"  + prevSpot + " => " + currentSpot + " sig:" + fsigma + " drift:" + drift)
 
-        getApath(dates.tail, steps.tail, sqSteps.tail, rDom.tail, rFor.tail, currentSpot :: current)
+        getApath(edates.tail, steps.tail, sqSteps.tail, rDom.tail, rFor.tail, currentSpot :: current)
       }
     }
     
