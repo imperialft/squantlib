@@ -33,13 +33,13 @@ trait Index extends Underlying {
 	 */
 	var spot:Double
 	
-	/**
-	 * Returns the volatility corresponding to the given date & strike.
-	 * @param days observation date as the number of calendar days after value date.
-	 * @param strike strike
-	 */
-	override def volatility(days:Double):Double
-	override def volatility(days:Double, strike:Double):Double
+//	/**
+//	 * Returns the volatility corresponding to the given date & strike.
+//	 * @param days observation date as the number of calendar days after value date.
+//	 * @param strike strike
+//	 */
+//	override def volatility(days:Double):Double
+//	override def volatility(days:Double, strike:Double):Double
 	  
 	/**
 	 * Returns the value corresponding to the given date.

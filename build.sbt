@@ -18,7 +18,7 @@ libraryDependencies ++= Seq(
 "com.mchange" % "c3p0" % "0.9.2.1" % "provided",
 "org.squeryl" %% "squeryl" % "0.9.6-RC1",
 "org.apache.commons" % "commons-lang3" % "3.1" % "provided",
-"org.apache.commons" % "commons-math3" % "3.0" % "provided",
+"org.apache.commons" % "commons-math3" % "3.6.1",
 "com.google.gdata" % "core" % "1.47.1" % "provided",
 "org.codehaus.jackson" % "jackson-core-asl" % "1.9.10" % "provided",
 "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.10" % "provided",

@@ -99,13 +99,15 @@ trait Underlying extends StaticAsset {
    * @param days observation date as the number of calendar days after value date.
    */
   def volatility(days:Double):Double // TO BE DEFINED IN SUBCLASS
-  
+  def volatility(days:Double, strike:Double):Double = volatility(days) // STRIKE IS IGNORED
+
   /**
-   * Returns the implied volatility corresponding to the given date & strike.
+   * Returns the smiled implied volatility corresponding to the given date.
    * @param days observation date as the number of calendar days after value date.
-   * @param strike 
    */
-  def volatility(days:Double, strike:Double):Double // TO BE DEFINED IN SUBCLASS
+  def smiledVolatility(days:Double):Double = Double.NaN  // TO BE DEFINED IN SUBCLASS
+  def smiledVolatility(days:Double, strike:Double):Double = Double.NaN // TO BE DEFINED IN SUBCLASS
+  
 
   /**
    * Returns the local volatility corresponding to the given date & strike.
@@ -147,7 +149,10 @@ trait Underlying extends StaticAsset {
    */
   def volatilityY(years:Double):Double = volatility(years * daysPerYr)
   def volatilityY(years:Double, strike:Double):Double = volatility(years * daysPerYr, strike)
-    
+
+  def smiledVolatilityY(years:Double):Double = smiledVolatility(years * daysPerYr)
+  def smiledVolatilityY(years:Double, strike:Double):Double = smiledVolatility(years * daysPerYr, strike)
+  
   /**
    * Returns the forward price corresponding to the given date.
    * @param observation date as the number of calendar days after value date.

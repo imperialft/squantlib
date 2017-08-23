@@ -74,9 +74,16 @@ trait YieldParameter3D {
 
 object YieldParameter3D {
   
-	def apply(valuedate:Date, data:Map[(Double, Double), Double]):YieldParameter3D 
-	= Microsphere3D(valuedate, data)
-	
-	def apply(valuedate:Date, data: => Map[(qlPeriod, qlPeriod), Double]):YieldParameter3D 
-	= Microsphere3D(valuedate, data)
+//	def apply(valuedate:Date, data:Map[(Double, Double), Double]):YieldParameter3D = BicubicInterpolatorSurface(valuedate, data, false)
+//  def apply(valuedate:Date, data:Map[(Double, Double), Double], useExtrapolation:Boolean):YieldParameter3D = BicubicInterpolatorSurface(valuedate, data, useExtrapolation)
+//	
+//  def apply(valuedate:Date, data: => Map[(qlPeriod, qlPeriod), Double]):YieldParameter3D = BicubicInterpolatorSurface(valuedate, data, false)
+//	def apply(valuedate:Date, data: => Map[(qlPeriod, qlPeriod), Double], useExtrapolation:Boolean):YieldParameter3D = BicubicInterpolatorSurface(valuedate, data, useExtrapolation)
+
+  def construct(valuedate:Date, data: => Map[(qlPeriod, qlPeriod), Double]):Option[YieldParameter3D] = construct(valuedate, data.map{case ((d1, d2), v) => ((valuedate.days(d1).toDouble, valuedate.days(d2).toDouble), v)})
+  def construct(valuedate:Date, data: => Map[(qlPeriod, qlPeriod), Double], useExtrapolation:Boolean):Option[YieldParameter3D] = construct(valuedate, data)
+
+  def construct(valuedate:Date, data:Map[(Double, Double), Double]):Option[YieldParameter3D] = BicubicInterpolatorSurface.construct(valuedate, data)
+  def construct(valuedate:Date, data:Map[(Double, Double), Double], useExtrapolation:Boolean):Option[YieldParameter3D] = construct(valuedate, data)
+  
 }

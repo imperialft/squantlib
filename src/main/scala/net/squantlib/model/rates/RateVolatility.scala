@@ -37,8 +37,13 @@ object RateVolatility {
   def apply(surface:YieldParameter3D):RateVolatility 
   = RateVolatility(surface.valuedate, (exp:Double, mat:Double, stk:Option[Double]) => surface(exp, mat))
   
-  def apply(valuedate:Date, points:Map[(qlPeriod, qlPeriod), Double]):RateVolatility 
-  = apply(YieldParameter3D(valuedate, points))
+  def apply(valuedate:Date, points:Map[(qlPeriod, qlPeriod), Double]):RateVolatility = YieldParameter3D.construct(valuedate, points) match {
+    case Some(yp) => apply(yp)
+    case None => YieldParameter(valuedate, points.groupBy{case ((d1, d2), v) => d1}.map{case (ds, vs) => (ds, vs.map{case ((d1, d2), v) => v}.sum / vs.size.toDouble)}) match {
+      case Some(yp1) => expiryFunction(yp1)
+      case None => RateVolatility(valuedate, (exp:Double, mat:Double, stk:Option[Double]) => points.values.sum / points.size.toDouble)
+    }
+  }
   
   def expiryFunction(vector:YieldParameter):RateVolatility 
   = RateVolatility(vector.valuedate, (exp:Double, mat:Double, stk:Option[Double]) => vector(exp))

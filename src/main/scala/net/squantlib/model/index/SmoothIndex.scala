@@ -22,9 +22,11 @@ case class SmoothIndex(
     rateCurve:DiscountCurve, 
     dividend:DividendCurve, 
     repo:RepoCurve, 
-    vol:(Double, Double) => Double,
+    atmVol: Double => Double,
     override val isSmiledVol:Boolean,
-    localVolGrid: YieldParameter3D = null) extends Index  {
+    smiledVolSurface: (Double, Double) => Double,
+    localVolSurface: (Double, Double) => Double
+  ) extends Index  {
   
 	override val valuedate = rateCurve.valuedate
 	
@@ -39,11 +41,11 @@ case class SmoothIndex(
 	 * @param days observation date as the number of calendar days after value date.
 	 * @param strike index strike
 	 */
-	override def volatility(days:Double):Double = vol(days, spot)
-	override def volatility(days:Double, strike:Double):Double = vol(days, strike)
+	override def volatility(days:Double):Double = atmVol(days)
+
+  override def smiledVolatility(days:Double, strike:Double):Double = smiledVolSurface(days, strike)
 	
-	
-	override def localVolatility(days:Double, strike:Double):Double = if (localVolGrid == null) Double.NaN else localVolGrid(days, strike)
+	override def localVolatility(days:Double, strike:Double):Double = if (localVolSurface == null) Double.NaN else localVolSurface(days, strike)
 	
 	/**
 	 * Returns the value corresponding to the given date.
@@ -63,12 +65,18 @@ case class SmoothIndex(
 } 
 
 object SmoothIndex {
+
+  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, atmVol:YieldParameter):SmoothIndex = {
+    SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double) => atmVol(y), false, (d:Double, k:Double) => Double.NaN, (d:Double, k:Double) => Double.NaN)
+  }
+
+  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, atmVol:YieldParameter, isSmiledVol:Boolean, smiledVolSurface:YieldParameter3D, localVolSurface:YieldParameter3D):SmoothIndex = {
+    if (isSmiledVol) SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double) => atmVol(y), true, (d:Double, k:Double) => smiledVolSurface(d, k), (d:Double, k:Double) => localVolSurface(d, k))
+    else apply(name, spot, rateCurve, dividend, repo, atmVol)
+  }
   
-  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, vol:YieldParameter, isSmiledVol:Boolean):SmoothIndex = 
-    SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double, s:Double) => vol(y), isSmiledVol)
-  
-  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, vol:YieldParameter3D, isSmiledVol:Boolean):SmoothIndex = 
-    SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double, s:Double) => vol(y, s), isSmiledVol)
+//  def apply(name:String, spot:Double, rateCurve:DiscountCurve, dividend:DividendCurve, repo:RepoCurve, vol:YieldParameter3D, isSmiledVol:Boolean):SmoothIndex = 
+//    SmoothIndex(name, spot, rateCurve, dividend, repo, (y:Double) => vol(y, spot), true, )
     
 }
 

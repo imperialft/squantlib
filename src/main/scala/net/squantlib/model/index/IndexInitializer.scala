@@ -9,6 +9,7 @@ import org.jquantlib.daycounters.Actual365Fixed
 import org.jquantlib.termstructures.volatilities.LocalVolSurface
 import net.squantlib.util.DisplayUtils._
 import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
+import net.squantlib.math.volatility.DupireLocalVolatility
 
 /**
  * Index specific discount curve calibration.
@@ -58,7 +59,7 @@ case class IndexATMContinuous(
     
     val volCurve:YieldParameter = if (vol.isEmpty) YieldParameter(valuedate, Double.NaN).get else YieldParameter(valuedate, vol).getOrElse(YieldParameter(valuedate, Double.NaN).get)
     
-    Some(SmoothIndex(name, spot, ratecurve, dividend, repoCurve, volCurve, false))
+    Some(SmoothIndex(name, spot, ratecurve, dividend, repoCurve, volCurve))
   }
   
   override def mult(x:Double):IndexInitializer = IndexATMContinuous(
@@ -102,7 +103,8 @@ case class IndexSmiledContinuous(
     spot:Double,
     divYield:Map[qlPeriod, Double],
     repo:Map[qlPeriod, Double],
-    vol:Map[(qlPeriod, Double), Double],
+    atmVol: Map[qlPeriod, Double],
+    smiledVol:Map[(qlPeriod, Double), Double],
     discountCcy:String,
     discountSpread:Double
     ) extends IndexInitializer {
@@ -118,54 +120,61 @@ case class IndexSmiledContinuous(
     if (ratecurve == null) {return None}
     
     val repoCurve:RepoCurve = if (repo.isEmpty) RepoCurve.zeroCurve(valuedate) else RepoCurve(valuedate, repo).getOrElse(RepoCurve.zeroCurve(valuedate))
-    
-    val volCurve:YieldParameter3D = YieldParameter3D(valuedate, vol.map{case ((d, k), v) => ((valuedate.days(d).toDouble, k), v)}.toMap)
 
-    val indexVolTermStructure = IndexVolTermStructure(
-      vd = valuedate.ql,
-      minStrike = spot * 0.05,
-      maxStrike = spot * 2.0,
-      vol = (k, v) => volCurve(k, v),
-      maxDate = valuedate.addMonths(12 * 10).ql
-    )
-  
-    val simpleRateTs = new FlatForward(valuedate.ql, ratecurve.impliedRate(30.0), new Actual365Fixed)
-  
-    val simpleDivTs = new FlatForward(valuedate.ql, dividend(360), new Actual365Fixed)
-  
-    val localVolSurface:Option[LocalVolSurface] = try {
-      Some(new LocalVolSurface(indexVolTermStructure, simpleRateTs, simpleDivTs, spot))
-     } catch {case e:Throwable => 
-      val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
-      errorOutput(name, s"index calibration error - ${errormsg}")
-      None
+    val atmVolCurve:YieldParameter = if (atmVol.isEmpty) YieldParameter(valuedate, Double.NaN).get else YieldParameter(valuedate, atmVol).getOrElse(YieldParameter(valuedate, Double.NaN).get)
+    
+    val inputVols = smiledVol.map{case ((d, k), v) => ((valuedate.days(d).toDouble, k), v)}.toMap
+    
+    val smiledVolCurve:YieldParameter3D = YieldParameter3D.construct(valuedate, inputVols, true).orNull
+    if (smiledVolCurve == null) {return None}
+    
+    val samplePoints2:Map[(Double, Double), Double] = inputVols.map{case ((d, k), v) => 
+      ((d, k), smiledVolCurve(d * 1.01, k * 1.01))
+    }.filter{case ((d, k), v) => !v.isNaN}
+    
+    val localVol:DupireLocalVolatility = DupireLocalVolatility(smiledVolCurve, ratecurve, dividend, spot)
+    
+    val samplePoints:Map[(Double, Double), Double] = inputVols.map{case ((d, k), v) => 
+      ((d, k), localVol.localVolatility(d, k))
+    }.filter{case ((d, k), v) => !v.isNaN}
+
+    val filteredSample = if (samplePoints.size > 0) {
+      val sampleAv = samplePoints.values.sum / samplePoints.size.toDouble
+      samplePoints.filter{case ((d, k), v) => v >= sampleAv / 3.0 && v <= sampleAv * 3.0}
+    } else samplePoints
+    
+    val localVolSurface = YieldParameter3D.construct(valuedate, filteredSample).orNull
+    if (localVolSurface == null) {return None}
+    
+    if (filteredSample.size > Math.max(smiledVol.size * 0.5, 5)) {
+      Some(SmoothIndex(name, spot, ratecurve, dividend, repoCurve, atmVolCurve, true, smiledVolCurve, localVolSurface))
+    } else {
+      Some(SmoothIndex(name, spot, ratecurve, dividend, repoCurve, atmVolCurve))
     }
-     
-    localVolSurface match {
-      case Some(volsurf) => 
-        val samplePoints:Map[(Double, Double), Double] = vol.map{case ((d, k), v) => 
-          val dv = valuedate.days(d).toDouble
-          try{
-            Some(((dv, k), volsurf.localVol(dv / 365.25, k)))
-          } catch {case e:Throwable => None}
-        }.flatMap{case s => s}.toMap
-        if (samplePoints.size > Math.max(vol.size * 0.7, 5) && samplePoints.values.forall(!_.isNaN)) {
-          samplePoints.foreach(println)
-          Some(SmoothIndex(name, spot, ratecurve, dividend, repoCurve, (k, v) => volCurve(k, v), true, YieldParameter3D(valuedate, samplePoints)))
-        } else None
-        
-      case _ => None
-    }
+
+    //println("input vols " + inputVols.size)
+    //inputVols.toList.sortBy{case ((d, k), v) => (d, k)}.foreach(println)
+    
+//    println("all samples2 " + samplePoints2.size)
+//    samplePoints2.toList.sortBy{case ((d, k), v) => d}.foreach(println)
+//    println("vol size " + vol.size)
+//    println("all samples " + samplePoints.size)
+//    samplePoints.toList.sortBy{case ((d, k), v) => d}.foreach(println)
+
+//    println("filtered samples " + filteredSample.size)
+//    filteredSample.toList.sortBy{case ((d, k), v) => d}.foreach(println)
+    
     
   }
-  
+
   override def mult(x:Double):IndexInitializer = IndexSmiledContinuous(
     name, 
     ccy,
     spot * x,
     divYield,
     repo,
-    vol,
+    atmVol,
+    smiledVol,
     discountCcy,
     discountSpread
   )
@@ -176,7 +185,8 @@ case class IndexSmiledContinuous(
     spot,
     divYield,
     repo,
-    vol.map{case ((t, k), v) => ((t, k), v+x)},
+    atmVol.map{case (d, v) => (d, v+x)},
+    smiledVol.map{case ((t, k), v) => ((t, k), v+x)},
     discountCcy,
     discountSpread
   )
@@ -187,24 +197,25 @@ case class IndexSmiledContinuous(
     spot,
     divYield.map{case (t, v) => (t, v+x)},
     repo,
-    vol,
+    atmVol,
+    smiledVol,
     discountCcy,
     discountSpread
   )
 }
 
-case class IndexVolTermStructure (
-    vd: qlDate, 
-    override val minStrike:Double,
-    override val maxStrike:Double,
-    vol: (Double, Double) => Double,
-    override val maxDate: qlDate
-  ) extends BlackVolatilityTermStructure(vd) {
-  
-  override val dayCounter = new Actual365Fixed
-  
-  override def blackVolImpl(maturity:Double, strike:Double):Double = vol(maturity * 365.25, strike)
-}
+//case class IndexVolTermStructure (
+//    vd: qlDate, 
+//    override val minStrike:Double,
+//    override val maxStrike:Double,
+//    vol: (Double, Double) => Double,
+//    override val maxDate: qlDate
+//  ) extends BlackVolatilityTermStructure(vd) {
+//  
+//  override val dayCounter = new Actual365Fixed
+//  
+//  override def blackVolImpl(maturity:Double, strike:Double):Double = vol(maturity * 365.25, strike)
+//}
 
 
 
