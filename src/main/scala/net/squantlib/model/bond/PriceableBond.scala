@@ -52,13 +52,13 @@ trait PriceableBond extends BondModel with Priceable {
     }
     
     model = if (isTerminated == Some(false) && scheduledPayoffs.isPriceable) livePayoffs match {
-      case po if !po.isEmpty && !forceModel && po.isFixed => Some(NoModel(po))
       case _ if modelName != null => models.get(modelName) match {
         case Some(mo) => 
           currentModelName = modelName
           mo(market.get, this)
         case _ => None
       }
+      case po if !po.isEmpty && !forceModel && po.isFixed => Some(NoModel(po))
       case _ if (defaultModel == null) => None
       case _ => 
         currentModelName = defaultModelName
