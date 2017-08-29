@@ -43,7 +43,7 @@ trait UnderlyingParser {
   
   def getUnderlying(mkt:Market):Option[Underlying] 
   
-  def getHistorical(start:Date, end:Date):TimeSeries
+  def getHistorical(start:Date, end:Date, priceType:String):TimeSeries
   
   def getSpot(mkt:Market):Option[Double] = getUnderlying(mkt).collect{case u => u.spot}
   

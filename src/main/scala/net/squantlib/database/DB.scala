@@ -12,6 +12,10 @@ trait DbRepository {
   def latestParamDate:Date
   
   def getHistorical(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries
+
+  def getHistoricalLow(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries
+
+  def getHistoricalHigh(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries
   
   def getForwardPrices(assetId:String, id:String):TimeSeries
   
@@ -83,6 +87,24 @@ object DB {
   
   def getHistorical(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries = repository match {
     case Some(repo) => repo.getHistorical(id, startDate, endDate, assetId)
+    case None => TimeSeries.empty
+  }
+
+  def getHistoricalLow(id:String):TimeSeries = getHistoricalLow(id, null)
+    
+  def getHistoricalLow(id:String, paramType:String):TimeSeries = getHistoricalLow(id, null, null, paramType)
+  
+  def getHistoricalLow(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries = repository match {
+    case Some(repo) => repo.getHistoricalLow(id, startDate, endDate, assetId)
+    case None => TimeSeries.empty
+  }
+  
+  def getHistoricalHigh(id:String):TimeSeries = getHistoricalHigh(id, null)
+    
+  def getHistoricalHigh(id:String, paramType:String):TimeSeries = getHistoricalHigh(id, null, null, paramType)
+  
+  def getHistoricalHigh(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries = repository match {
+    case Some(repo) => repo.getHistoricalHigh(id, startDate, endDate, assetId)
     case None => TimeSeries.empty
   }
   

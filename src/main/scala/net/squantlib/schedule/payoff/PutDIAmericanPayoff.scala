@@ -26,6 +26,7 @@ case class PutDIAmericanPayoff(
     var knockedIn:Boolean,
     override val physical:Boolean,
     forward:Boolean,
+    closeOnly:Boolean,
     amount:Double = 1.0, 
     description:String = null,
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
@@ -190,7 +191,10 @@ case class PutDIAmericanPayoff(
     knockedIn = 
       if (refstart == null || refend == null) false
       else (putVariables zip trigger).exists{case (v, trig) => 
-        DB.getHistorical(v, refstart, refend) match {
+        
+        val historicalPrices = if (closeOnly) DB.getHistorical(v, refstart, refend) else DB.getHistorical(v, refstart, refend) ++ DB.getHistoricalLow(v, refstart, refend)
+        
+        historicalPrices match {
           case hs if hs.isEmpty => false
           case hs if hs.get(refend).isDefined => implicitly[FixingInterpreter[Double]] isKnockIn(hs.values.toList)
           case hs => hs.exists{case (_, x) => x <= trig}
@@ -214,10 +218,11 @@ object PutDIAmericanPayoff {
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val forward:Boolean = formula.parseJsonString("forward").getOrElse("0") == "1"
     val description:String = formula.parseJsonString("description").orNull
+    val closeOnly:Boolean = formula.parseJsonString("reftype").getOrElse("closing") != "continuous"
     
     val knockedIn:Boolean = false
     
-    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, physical, forward, amount, description, inputString)
+    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, physical, forward, closeOnly, amount, description, inputString)
   }
   
 }
