@@ -50,13 +50,23 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   
   def market_= (newMarket:Market) = {
     val recalib = market.collect{case mkt => mkt.valuedate.eq(newMarket.valuedate) }.getOrElse(true)
+    val prevPaths = mcPaths
     _market = Some(newMarket)
     initializeModel(recalib, currentModelName)
+    prevPaths match {
+      case Some(n) => setMcPaths(n)
+      case _ => {}
+    }
   }
   
   def setMarketNoCalibration(newMarket:Market) = {
+    val prevPaths = mcPaths
     _market = Some(newMarket)
     initializeModel(false, currentModelName)
+    prevPaths match {
+      case Some(n) => setMcPaths(n)
+      case _ => {}
+    }
   }
   
   def getUnderlyings:Map[String, Option[Underlying]] = market match {

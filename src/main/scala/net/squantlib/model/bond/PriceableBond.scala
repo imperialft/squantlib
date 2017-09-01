@@ -39,6 +39,8 @@ trait PriceableBond extends BondModel with Priceable {
   var _market:Option[Market] = None
   
   var model:Option[PricingModel] = None
+
+  var defaultMcPaths:Option[Int] = None
     
   override def toString:String = id
   
@@ -106,6 +108,12 @@ trait PriceableBond extends BondModel with Priceable {
     bond._market = this._market
     bond.model = this.model
     bond.fixingInformation = this.fixingInformation
+    bond.defaultMcPaths = this.defaultMcPaths
+    this.mcPaths match {
+      case Some(n) => bond.setMcPaths(n)
+      case _  => {}
+    }
+
     calibrationCache.cache.foreach{case (a, b) => bond.calibrationCache.cache.update(a, b)}
   }
     

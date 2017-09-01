@@ -414,12 +414,12 @@ object GreekAnalysis {
       shiftDown:Double,
       initialPrice:Double
   ):MultiOrderNumber = {
-    
+
       def computePrice(s:Double):Option[Double] = {
         operation(s)(mkt) match {
-          case Some(newmkt) => 
+          case Some(newmkt) =>
             bond.setMarketNoCalibration(newmkt)
-            target(bond) match { 
+            target(bond) match {
               case Some(n) if !n.isNaN && !n.isInfinity => Some(n)
               case _ => None 
             }
@@ -450,7 +450,7 @@ object GreekAnalysis {
       shift2: (Double, Double),
       initialPrice:Double
   ):MultiOrderNumber2D = {
-    
+
     val greek1 = shift1 match {case (shiftUp, shiftDown) =>
       GreekAnalysis.greekSecondCompute(bond, mkt, target, operation1, shiftUp, shiftDown, initialPrice)
     }
@@ -461,7 +461,7 @@ object GreekAnalysis {
 
     def computePrice(newmkt:Market, spotShift:Double, spotShiftedPrice:Double, volShift:Double, spotVega:Double):Option[Double] = {
       bond.setMarketNoCalibration(newmkt)
-      target(bond) match { 
+      target(bond) match {
         case Some(n) if !n.isNaN && !n.isInfinity => 
           val shiftedVega = (n - spotShiftedPrice) / volShift
           Some((shiftedVega - spotVega) / spotShift)
@@ -473,7 +473,7 @@ object GreekAnalysis {
     val shiftV = shift2 match {case (s1, _) => s1}
 
     val (pos, neg) = (greek1.priceUp, greek1.priceDown, greek2.priceUp, greek2.spot) match {
-      case (Some(pup), Some(pdown), Some(vpup), Some(vspot)) => 
+      case (Some(pup), Some(pdown), Some(vpup), Some(vspot)) =>
         val spotVega = (vpup - vspot) / shiftV
         val p1 = operation1(shiftUp)(mkt).flatMap{case m => operation2(shiftV)(m)}.flatMap{case m => computePrice(m, shiftUp, pup, shiftV, spotVega)}
         val p2 = operation1(shiftDown)(mkt).flatMap{case m => operation2(shiftV)(m)}.flatMap{case m => computePrice(m, shiftUp, pup, shiftV, spotVega)}
