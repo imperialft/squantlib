@@ -192,7 +192,7 @@ object FxMc1f {
     val mcmodel = mcengine(fx).orNull
     
     if (mcmodel == null) {
-      errorOutput(bond.id, "model name not found or model calibration error")
+      errorOutput(bond.id, "model name not found or model calibration error - FXMc1f")
       return None}
     
     Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, frontierFunction(bond, frontierPths), paramRepository(bond), bond.id))
@@ -272,7 +272,7 @@ object FxQtoMc1f {
     val mcmodel = mcengine(fx, qtofx).orNull
     
     if (mcmodel == null) {
-      errorOutput(bond.id, "model name not found or model calibration error")
+      errorOutput(bond.id, "model name not found or model calibration error - FxQtoMc1f")
       return None}
     
     Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, FxMc1f.frontierFunction(bond, frontierPths), FxMc1f.paramRepository(bond), bond.id))

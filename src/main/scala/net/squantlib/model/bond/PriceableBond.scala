@@ -110,7 +110,7 @@ trait PriceableBond extends BondModel with Priceable {
     bond.fixingInformation = this.fixingInformation
     bond.defaultMcPaths = this.defaultMcPaths
     this.mcPaths match {
-      case Some(n) => bond.setMcPaths(n)
+      case Some(n) => bond.setMcPaths(n, false)
       case _  => {}
     }
 

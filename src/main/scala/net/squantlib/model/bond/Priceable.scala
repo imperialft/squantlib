@@ -40,8 +40,14 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   def switchModel:Boolean = switchModel(null)
   
   def switchModel(modelName:String):Boolean = {
+    val prevModel = currentModelName
     initializeModel(true, modelName)
-    !model.isEmpty
+    if (model.isEmpty) {
+      initializeModel(true, prevModel)
+      false
+    } else true
+
+    //!model.isEmpty
   }
   
   def reset(newMarket:Market, setter:(Market, BondModel) => Option[PricingModel], modelName:String)
@@ -54,7 +60,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     _market = Some(newMarket)
     initializeModel(recalib, currentModelName)
     prevPaths match {
-      case Some(n) => setMcPaths(n)
+      case Some(n) => setMcPaths(n, false)
       case _ => {}
     }
   }
@@ -64,7 +70,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     _market = Some(newMarket)
     initializeModel(false, currentModelName)
     prevPaths match {
-      case Some(n) => setMcPaths(n)
+      case Some(n) => setMcPaths(n, false)
       case _ => {}
     }
   }
@@ -158,10 +164,10 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     case _ => None
   }
 
-  def setMcPaths(paths:Int):Boolean = model match {
+  def setMcPaths(paths:Int, cacheClear:Boolean = true):Boolean = model match {
     case Some(m) => 
       m.mcPaths = paths
-      clearCache
+      if (cacheClear) clearCache
       true
     case _ => false
   }
