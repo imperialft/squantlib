@@ -171,7 +171,7 @@ object McNf {
 	  val mcmodel = mcengine(underlyings).orNull
 	  
 	  if (mcmodel == null) {
-	    errorOutput(bond.id, "model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error - McNf")
 	    return None} 
 	  
 	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths, bond.id))
@@ -231,7 +231,7 @@ object McNfQto {
 	  val mcmodel = mcengine(underlyings, fxs).orNull
 	  
 	  if (mcmodel == null) {
-	    errorOutput(bond.id, "model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error - McNfQto (uls - " + underlyings.map(_.id).mkString(",") + " fxs - " + fxs.map(_.collect{case fx => fx.id}.getOrElse("NA")).mkString(",") + ")")
 	    return None} 
 	  
 	  Some(McNf(valuedate, mcmodel, scheduledPayoffs, underlyings, paths, bond.id))

@@ -148,7 +148,7 @@ object IndexMc1fLocalVol {
 	  val mcmodel = mcengine(index).orNull
 	  
 	  if (mcmodel == null) {
-	    errorOutput(bond.id, "model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error - IndexMc1fLocalVol")
 	    return None}
 	  
 	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths, bond.id))
@@ -200,7 +200,7 @@ object IndexQtoMc1fLocalVol {
 	  val mcmodel = mcengine(index, fx).orNull
 	  
 	  if (mcmodel == null) {
-	    errorOutput(bond.id, "model name not found or model calibration error")
+	    errorOutput(bond.id, "model name not found or model calibration error - IndexMc1fLocalVol")
 	    return None}
 	  
 	  Some(IndexMc1f(valuedate, mcmodel, scheduledPayoffs, index, paths, bond.id))
