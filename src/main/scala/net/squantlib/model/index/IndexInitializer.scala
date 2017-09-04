@@ -152,19 +152,6 @@ case class IndexSmiledContinuous(
       Some(SmoothIndex(name, spot, ratecurve, dividend, repoCurve, atmVolCurve))
     }
 
-    //println("input vols " + inputVols.size)
-    //inputVols.toList.sortBy{case ((d, k), v) => (d, k)}.foreach(println)
-    
-//    println("all samples2 " + samplePoints2.size)
-//    samplePoints2.toList.sortBy{case ((d, k), v) => d}.foreach(println)
-//    println("vol size " + vol.size)
-//    println("all samples " + samplePoints.size)
-//    samplePoints.toList.sortBy{case ((d, k), v) => d}.foreach(println)
-
-//    println("filtered samples " + filteredSample.size)
-//    filteredSample.toList.sortBy{case ((d, k), v) => d}.foreach(println)
-    
-    
   }
 
   override def mult(x:Double):IndexInitializer = IndexSmiledContinuous(
@@ -204,64 +191,3 @@ case class IndexSmiledContinuous(
   )
 }
 
-//case class IndexVolTermStructure (
-//    vd: qlDate, 
-//    override val minStrike:Double,
-//    override val maxStrike:Double,
-//    vol: (Double, Double) => Double,
-//    override val maxDate: qlDate
-//  ) extends BlackVolatilityTermStructure(vd) {
-//  
-//  override val dayCounter = new Actual365Fixed
-//  
-//  override def blackVolImpl(maturity:Double, strike:Double):Double = vol(maturity * 365.25, strike)
-//}
-
-
-
-
-//
-//case class IndexATMContinuous(
-//    name:String, 
-//    indexparams:Set[RateFXParameter], 
-//    ccy:String,
-//    discountCcy:String = "USD",
-//    discountSpread:Double = 0.00
-//    ) extends IndexInitializer {
-//  
-//  val yieldid = "Yield"
-//  val spotid = "Index"
-//  val volid = "IndexVol"
-//  val repoid = "Repo"
-//  
-//  override def getModel(market:Market):Option[Index] = {
-//    val params = indexparams.groupBy(_.instrument)
-//    if (!params.contains(yieldid) || !params.contains(spotid)) {return None}
-//    
-//    val valuedate = market.valuedate
-//    val yldparam:Map[qlPeriod, Double] = params(yieldid).map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
-//    val dividend = DividendCurve(valuedate, yldparam).orNull
-//    if (dividend == null) {return None}
-//    
-//    val spot:Double = params(spotid).head.value
-//    
-//    val ratecurve = market.getDiscountCurve(ccy, discountCcy, discountSpread).orNull
-//    if (ratecurve == null) {return None}
-//    
-//    val repo = (params.get(repoid) match {
-//      case Some(rs) => 
-//        val repoparam:Map[qlPeriod, Double] = rs.map(p => (new qlPeriod(p.maturity), p.value)) (collection.breakOut)
-//        RepoCurve(valuedate, repoparam)
-//      case None => None
-//    }).getOrElse(RepoCurve.zeroCurve(valuedate))
-//    
-//    val vol:YieldParameter = (params.get(volid) match {
-//      case Some(vols) => YieldParameter(valuedate, vols.map(p => (new qlPeriod(p.maturity), p.value)).toMap)
-//      case None => None
-//    }).getOrElse(YieldParameter(valuedate, Double.NaN).get)
-//     
-//    Some(SmoothIndex(name, spot, ratecurve, dividend, repo, vol))
-//  }
-//
-//}
-//
