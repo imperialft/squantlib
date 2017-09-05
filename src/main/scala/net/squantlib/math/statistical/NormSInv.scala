@@ -72,6 +72,20 @@ object NormSInv {
       }
       else math.log(-1.0)
 	}
-	
-	
+
+  def cumulativeNormalDist(d:Double):Double = {
+    val A1 = 0.31938153
+    val A2 = -0.356563782
+    val A3 = 1.781477937
+    val A4 = -1.821255978
+    val A5 = 1.330274429
+    val RSQRT2PI = 0.39894228040143267793994605993438
+    val gamma = 0.2316419
+
+    val k = 1.0 / (1.0 + gamma * math.abs(d))
+    val cnd = RSQRT2PI * math.exp(-0.5 * d * d) * (k * (A1 + k * (A2 + k * (A3 + k * (A4 + k * A5)))))
+
+    if (d > 0) 1.0 - cnd else cnd
+  }
+
 }
