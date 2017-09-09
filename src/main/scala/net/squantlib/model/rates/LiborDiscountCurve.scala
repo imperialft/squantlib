@@ -90,12 +90,12 @@ case class LiborDiscountCurve (
 	   * @param refinance spread on float rate
 	   */
 	  def getZC(spread : YieldParameter) : DiscountCurve = {
-	    
+
 	    @tailrec def zcRec(dates:List[(Int, qlPeriod)], zc:List[Double], duration:Double):List[Double] = {
 	      if (dates.isEmpty) zc.reverse
 	      else dates.head match {
 	        case (m, p) if m == 0 => zcRec(dates.tail, 1.00 :: zc, duration)
-	        
+
 	        case (m, p) if m < swapstart =>
 	          val c = cash(p) * 1.0
 	          val spr = spread(p) * 1.0
@@ -104,14 +104,14 @@ case class LiborDiscountCurve (
 	          val zcXm:Double = 1 / (1 + (c + spr - bs36) * flfunc * m / 12)
 	          val newDur:Double = if (m % fixperiod == 0) zcXm * fixdaycounts(m) else 0.0
 	          zcRec(dates.tail, zcXm :: zc, duration + newDur)
-	          
+
 	        case (m, p) =>
 	          val realrate = swap(p) + (spread(p) - bs3m6madjust(m)) * floatfraction / fixfraction
-	          val zcXm = (1 - realrate * duration) / (1 + realrate * fixdaycounts(m)) 
+	          val zcXm = (1 - realrate * duration) / (1 + realrate * fixdaycounts(m))
 	          zcRec(dates.tail, zcXm :: zc, duration + zcXm * fixdaycounts(m))
 	      }
 	    }
-	    
+
 	    val zcvalues = zcRec(sortedperiods, List.empty, 0.0)
 	    val zc:Map[qlPeriod, Double] = (sortedperiods.unzip._2 zip zcvalues)(breakOut)
 	    val ZCvector = SplineEExtrapolation(valuedate, zc, 1)
@@ -125,28 +125,28 @@ case class LiborDiscountCurve (
 	   */
 	  def getZC(refincurve:RateCurve, refinZC:DiscountCurve) : DiscountCurve = {
 
-		/**
-		 * annual daycount fraction for discount curve
-		 */
-		val floatfraction2 = refincurve.swap.floatindex.dayCounter().annualDayCount()
-		
-		/**
-		 * initialize ccy basis swap 
-		 */
-		val bsccy = zcperiods.map{case(m, p) => (m, 
-		    if (ispivotcurrency) 
-		      -refincurve.basis(p) 
-	        else 
-	          basis(p)
-          )}
-				  	
-		/**
-		 * initialize refinance spread
-		 */
-		val refinspread = zcperiods.map(p => (p._1, refinZC.discountspread(p._2)))
-		val refinZCvector = zcperiods.filter(p => p._1 % fixperiod == 0).map(p => (p._1, refinZC.zc(p._2)))
-		def durationfunc(i:Int):Double = {if (i == 0) 0.0 else durationfunc(i - fixperiod) + refinZCvector(i) * floatdaycounts(i)}
-		val refinduration = refinZCvector.filter(m => m._1 % fixperiod == 0).map(v => (v._1, durationfunc(v._1)))
+      /**
+       * annual daycount fraction for discount curve
+       */
+      val floatfraction2 = refincurve.swap.floatindex.dayCounter().annualDayCount()
+
+      /**
+       * initialize ccy basis swap
+       */
+      val bsccy = zcperiods.map{case(m, p) => (m,
+          if (ispivotcurrency)
+            -refincurve.basis(p)
+            else
+              basis(p)
+            )}
+
+      /**
+       * initialize refinance spread
+       */
+      val refinspread = zcperiods.map(p => (p._1, refinZC.discountspread(p._2)))
+      val refinZCvector = zcperiods.filter(p => p._1 % fixperiod == 0).map(p => (p._1, refinZC.zc(p._2)))
+      def durationfunc(i:Int):Double = {if (i == 0) 0.0 else durationfunc(i - fixperiod) + refinZCvector(i) * floatdaycounts(i)}
+      val refinduration = refinZCvector.filter(m => m._1 % fixperiod == 0).map(v => (v._1, durationfunc(v._1)))
 	    
 	    @tailrec def zcRec(dates:List[(Int, qlPeriod)], zc:List[Double], zcspread:List[Double], fixduration:Double, floatduration:Double):(List[Double], List[Double]) = {
 	      if (dates.isEmpty) (zc, zcspread)
@@ -182,7 +182,7 @@ case class LiborDiscountCurve (
 	    val spd:Map[qlPeriod, Double] = (sortedperiods.unzip._2 zip spdvalues)(breakOut)
 	    
 	    val zcvector = SplineEExtrapolation(valuedate, zc, 1)
-		val spdvector = SplineNoExtrapolation(valuedate, spd, 2)
+		  val spdvector = SplineNoExtrapolation(valuedate, spd, 2)
 	  
 	    DiscountCurve(currency, zcvector, spdvector, fx, vol)
 	    

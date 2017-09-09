@@ -19,10 +19,11 @@ case class OneTimeSwaptionModel(
 	val swaptionPrice = {
 	  val exp = (optionDate.serialNumber.toDouble - valueDate.serialNumber.toDouble) / 365.0
 	  val mat = (maturity.serialNumber.toDouble - optionDate.serialNumber.toDouble) / 365.0
-	  val fwdRate = curve.forwardRate(optionDate, maturity)
+	  val fwdRate = math.max(curve.forwardRate(optionDate, maturity), 0.00001)
+		val stk = math.max(strike, 0.00001)
 	  val vol = curve.volatility(optionDate, maturity).getOrElse(Double.NaN)
 	  val discount = curve.zc(optionDate)
-	  SwaptionFormula.price(exp, mat, fwdRate, strike, vol, discount,false)
+	  SwaptionFormula.price(exp, mat, fwdRate, stk, vol, discount,false)
 	}
 	
 	override def calculatePrice:List[Double] = scheduledPayoffs.price

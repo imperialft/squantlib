@@ -19,9 +19,9 @@ import java.lang.UnsupportedOperationException
 
 case class DiscountCurve(
     currency:Currency, 
-    zc:YieldParameter, 
-    discountspread:YieldParameter, 
-    fx:Double, 
+    zc:YieldParameter,
+    discountspread:YieldParameter,
+    fx:Double,
     vol:Option[RateVolatility]) extends YieldParameter {
   
 	private var vd = zc.valuedate

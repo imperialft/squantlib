@@ -45,9 +45,10 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     if (model.isEmpty) {
       initializeModel(true, prevModel)
       false
-    } else true
 
-    //!model.isEmpty
+    }
+
+    !model.isEmpty
   }
   
   def reset(newMarket:Market, setter:(Market, BondModel) => Option[PricingModel], modelName:String)
