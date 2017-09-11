@@ -124,17 +124,17 @@ case class IndexSmiledContinuous(
     val atmVolCurve:YieldParameter = if (atmVol.isEmpty) YieldParameter(valuedate, Double.NaN).get else YieldParameter(valuedate, atmVol).getOrElse(YieldParameter(valuedate, Double.NaN).get)
     
     val inputVols = smiledVol.map{case ((d, k), v) => ((valuedate.days(d).toDouble, k), v)}.toMap
-    
+
     val smiledVolCurve:YieldParameter3D = YieldParameter3D.construct(valuedate, inputVols, true).orNull
     if (smiledVolCurve == null) {return None}
     
-    val samplePoints2:Map[(Double, Double), Double] = inputVols.map{case ((d, k), v) => 
-      ((d, k), smiledVolCurve(d * 1.01, k * 1.01))
-    }.filter{case ((d, k), v) => !v.isNaN}
+//    val samplePoints2:Map[(Double, Double), Double] = inputVols.map{case ((d, k), v) =>
+//      ((d, k), smiledVolCurve(d * 1.01, k * 1.01))
+//    }.filter{case ((d, k), v) => !v.isNaN}
     
     val localVol:DupireLocalVolatility = DupireLocalVolatility(smiledVolCurve, ratecurve, dividend, spot)
     
-    val samplePoints:Map[(Double, Double), Double] = inputVols.map{case ((d, k), v) => 
+    val samplePoints:Map[(Double, Double), Double] = inputVols.map{case ((d, k), v) =>
       ((d, k), localVol.localVolatility(d, k))
     }.filter{case ((d, k), v) => !v.isNaN}
 

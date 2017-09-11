@@ -49,7 +49,7 @@ case class FxBlackOption(
 
   private def callPut(isCall:Boolean):Double = if(isCall) 1.0 else -1.0
 
-  def spotDeltaToStrike(expiry:Double, delta:Double, premiumAdjusted:Boolean, isCall:Boolean = true, accuracy:Double = spot * 0.0001, maxIteration:Int = 40):Option[Double] = {
+  def spotDeltaToStrike(expiry:Double, delta:Double, premiumAdjusted:Boolean, isCall:Boolean = true, accuracy:Double = spot * 0.0005, maxIteration:Int = 100):Option[Double] = {
     val fwd = forward(expiry)
     val cp = callPut(isCall)
     val vol = atmVolatility(expiry)
@@ -69,7 +69,7 @@ case class FxBlackOption(
     } else Some(nonPremAdjusted)
   }
 
-  def forwardDeltaToStrike(expiry:Double, delta:Double, premiumAdjusted:Boolean, isCall:Boolean = true, accuracy:Double = spot * 0.0001, maxIteration:Int = 40):Option[Double] = {
+  def forwardDeltaToStrike(expiry:Double, delta:Double, premiumAdjusted:Boolean, isCall:Boolean = true, accuracy:Double = spot * 0.0005, maxIteration:Int = 100):Option[Double] = {
     val fwd = forward(expiry)
     val cp = callPut(isCall)
     val vol = atmVolatility(expiry)
@@ -83,13 +83,34 @@ case class FxBlackOption(
       }
 
       val minRange = Brent.solve(minRangeFormula, 0.0, nonPremAdjusted, spot * 0.001, maxIteration).getOrElse(0.0)
+//      println("minRange:" + minRange + " deltaMin:"+ deltaFormula(minRange))
 
       Brent.solve(deltaFormula, minRange, nonPremAdjusted, accuracy, maxIteration)
     } else Some(nonPremAdjusted)
   }
 
-  def solveDeltaToStrike(expiry:Double, delta:Double, premiumAdjusted:Boolean, isCall:Boolean = true, accuracy:Double = 0.005, maxIteration:Int = 40):Option[Double] = {
+  def solveDeltaToStrike(expiry:Double, delta:Double, premiumAdjusted:Boolean, isCall:Boolean = true, accuracy:Double = 0.005, maxIteration:Int = 100):Option[Double] = {
     NewtonRaphson.solve((k:Double) => spotDelta(expiry, k, premiumAdjusted, isCall) - delta, spot, accuracy, spot * 0.1, maxIteration)
+  }
+
+  def smiledCall(expiry:Double, delta:Double, riskReversal:Double, strangle:Double, forwardDelta:Boolean = true, premiumAdjusted:Boolean = true):Option[(Double, Double)] = {
+    val volCall = atmVolatility(expiry) + 0.5 * riskReversal + strangle
+    val strikeCall = if (forwardDelta) forwardDeltaToStrike(expiry, delta, premiumAdjusted, true) else spotDeltaToStrike(expiry, delta, premiumAdjusted, true)
+//    println("expiry:" + expiry + " delta:" + delta + " RR:" + riskReversal + " fwdDt:" + forwardDelta + " premAdj:" + premiumAdjusted + " volC:" + volCall + " kCall:" + strikeCall)
+    strikeCall match {
+      case Some(k) => Some(k, volCall)
+      case _ => None
+    }
+  }
+
+  def smiledPut(expiry:Double, delta:Double, riskReversal:Double, strangle:Double, forwardDelta:Boolean = true, premiumAdjusted:Boolean = true):Option[(Double, Double)] = {
+    val volCall = atmVolatility(expiry) - 0.5 * riskReversal + strangle
+    val strikeCall = if (forwardDelta) forwardDeltaToStrike(expiry, delta, premiumAdjusted, false) else spotDeltaToStrike(expiry, delta, premiumAdjusted, false)
+//    println("expiry:" + expiry + " delta:" + delta + " RR:" + riskReversal + " fwdDt:" + forwardDelta + " premAdj:" + premiumAdjusted + " volC:" + volCall + " kCall:" + strikeCall)
+    strikeCall match {
+      case Some(k) => Some(k, volCall)
+      case _ => None
+    }
   }
 
   def smiledParametersToVols(expiry:Double, deltaRrStrangle:Set[(Double, Double, Double)], forwardDelta:Boolean = false, premiumAdjusted:Boolean = true):Set[(Double, Double)] = {

@@ -8,7 +8,7 @@ import net.squantlib.model.yieldparameter._
  */
 
 class FXnoSmile(val curveDom:DiscountCurve, val curveFor:DiscountCurve, vol:Double => Double) extends FX {
-  
+
 	override def volatility(days:Double):Double = vol(days)
 	//override def volatility(days:Double, strike:Double):Double = vol(days)
 
@@ -20,7 +20,9 @@ object FXnoSmile {
 	
 	def apply(curveDom:DiscountCurve, curveFor:DiscountCurve, params:FXInitializer):Option[FXnoSmile] = {
 	  assert(curveDom.valuedate == curveFor.valuedate)
-	  
+
+		println("calibrate no smile")
+
 	  val volYield = params.vol match {
 	    case v if v.isEmpty => null
 	    case v if v.size == 1 => FlatVector(curveDom.valuedate, v)
