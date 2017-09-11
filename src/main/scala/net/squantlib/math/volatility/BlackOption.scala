@@ -33,7 +33,7 @@ case class FxBlackOption(
 
   def price(expiry:Double, strike:Double, isCall:Boolean = true) = forwardPrice(expiry, strike, isCall) * math.exp(-rateDom(expiry) * expiry)
 
-  def deltaNeutralStrike(expiry:Double) = {
+  def deltaNeutralStrike(expiry:Double):Double = {
     val vol = atmVolatility(expiry)
     forward(expiry) * math.exp(0.5 * vol * vol * expiry)
   }

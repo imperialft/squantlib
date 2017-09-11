@@ -222,11 +222,11 @@ class Market(
    * @param currency code
    * @param volatility as function of time t and strike k
    */
-  def getFX(ccyFor:String, ccyDom:String, vol:(Double, Double) => Double) : Option[FX] = {
-    val curveDom = getBaseDiscountCurve(ccyDom)
-    val curveFor = getBaseDiscountCurve(ccyFor)
-    if ((curveDom isDefined) && (curveFor isDefined)) FXsmiled(curveDom.get, curveFor.get, vol) else None
-  }
+//  def getFX(ccyFor:String, ccyDom:String, vol:(Double, Double) => Double) : Option[FX] = {
+//    val curveDom = getBaseDiscountCurve(ccyDom)
+//    val curveFor = getBaseDiscountCurve(ccyFor)
+//    if ((curveDom isDefined) && (curveFor isDefined)) FXsmiled(curveDom.get, curveFor.get, vol) else None
+//  }
   
   def getIndex(name:String) : Option[Index] = {
     indexInitializers.get(name).flatMap{case initializer => initializer.getModel(this)}
