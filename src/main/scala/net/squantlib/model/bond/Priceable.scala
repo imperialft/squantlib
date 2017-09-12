@@ -45,7 +45,6 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     if (model.isEmpty) {
       initializeModel(true, prevModel)
       false
-
     }
 
     !model.isEmpty
@@ -249,7 +248,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     paths:Int = 0, 
     solver:RangedRootFinder = Bisection, 
     highRange:Double = 10.0, 
-    lowRange:Double = 0.01):List[Option[Double]] = (market, valueDate) match {
+    lowRange:Double = 0.1):List[Option[Double]] = (market, valueDate) match {
     
     case (Some(mkt), Some(valuedate)) if dirtyPriceWithPaths(100).isDefined =>
       val bond = dateShifted(valuedate.sub(vd).toInt)

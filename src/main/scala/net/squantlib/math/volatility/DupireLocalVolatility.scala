@@ -14,8 +14,8 @@ import net.squantlib.model.rates.DiscountCurve
 
 case class DupireLocalVolatility(
    impliedVolatility: YieldParameter3D,
-   rateCurve: DiscountCurve,
-   dividendCurve: YieldParameter,
+   rateDom: DiscountCurve,
+   rateFor: Double => Double,
    spotPrice: Double
 ) {
 
@@ -34,13 +34,13 @@ case class DupireLocalVolatility(
     val dSigDt = (sigDtUp - sigma) / dt
 
 
-    val r = rateCurve.impliedRate(expiry)
+    val r = rateDom.impliedRate(expiry)
 
 
-    val div = dividendCurve(expiry)
+    val div = rateFor(expiry)
 
     
-    val dk = strike * 0.05
+    val dk = strike * 0.01
 
 
     val sigDkUp = impliedVolatility(expiry, strike + dk)
@@ -93,5 +93,15 @@ case class DupireLocalVolatility(
   def localVolatility(expiry:Double, strike:Double):Double = Math.sqrt(localVariance(expiry, strike))
 
   
+}
+
+object DupireLocalVolatility{
+
+  def apply(impliedVolatility: YieldParameter3D, rateDom: DiscountCurve, dividendCurve: DividendCurve, spotPrice: Double):DupireLocalVolatility =
+    DupireLocalVolatility(impliedVolatility, rateDom, (d:Double) => dividendCurve(d), spotPrice)
+
+  def apply(impliedVolatility: YieldParameter3D, rateDom: DiscountCurve, rateFor: DiscountCurve, spotPrice: Double):DupireLocalVolatility =
+    DupireLocalVolatility(impliedVolatility, rateDom, (d:Double) => rateFor.impliedRate(d), spotPrice)
+
 }
 

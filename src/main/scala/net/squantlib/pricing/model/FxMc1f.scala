@@ -50,7 +50,7 @@ case class FxMc1f(valuedate:Date,
   }
 
   def mcPrice(paths:Int):List[Double] = {
-    try { 
+    try {
       val mcYears = scheduledPayoffs.eventDateYears(valuedate)
       val (mcdates, mcpaths) = mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p, trigger, redemamt))
       if (mcdates.sameElements(mcYears)) mcpaths
@@ -59,7 +59,7 @@ case class FxMc1f(valuedate:Date,
         List.empty
       }
     }
-    catch {case e:Throwable => 
+    catch {case e:Throwable =>
       errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} " + e.getStackTrace.mkString(sys.props("line.separator")))
       List.empty
     }

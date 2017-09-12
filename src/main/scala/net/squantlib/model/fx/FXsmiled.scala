@@ -27,7 +27,8 @@ case class FXsmiled(
   override val isSmiledVol:Boolean,
   smiledVolSurface: (Double, Double) => Double,
   localVolSurface: (Double, Double) => Double,
-  val bs:FxBlackOption
+  val bs:FxBlackOption,
+  val localVol:DupireLocalVolatility
 ) extends FX  {
 
   /**
@@ -160,12 +161,16 @@ object FXsmiled {
     }
 
     val localVol:DupireLocalVolatility = DupireLocalVolatility(smiledVolCurve, curveDom, curveFor, spot)
-    val allStrikes:Set[Double] = (2 to 10).map(i => i.toDouble * 0.05).toSet ++ (2 to 10).map(i => -i.toDouble * 0.05).toSet
+    val allStrikes:Set[Double] = (3 to 10).map(i => i.toDouble * 0.05).toSet ++ (3 to 9).map(i => -i.toDouble * 0.05).toSet
     val maturities:Set[Double] = inputVols.keys.map{case (d, v) => d}.toSet
+
+//    println("STRIKES " + allStrikes.toString)
+//    println("MATURITIES: " + maturities.toString)
 
     val samplePoints:Map[(Double, Double), Double] = maturities.map{case d =>
       allStrikes.map{case mness =>
-        bs.forwardDeltaToStrike(d / 365.25, mness, true, mness > 0.0) match {
+        val stk = if (math.abs(mness - 0.5) < 0.0001) Some(bs.deltaNeutralStrike(d / 365.25)) else bs.forwardDeltaToStrike(d / 365.25, mness, true, mness > 0.0)
+        stk match {
           case Some(k) =>
 //            println(((d, k), localVol.localVolatility(d, k)).toString )
             ((d, k), localVol.localVolatility(d, k))
@@ -200,7 +205,8 @@ object FXsmiled {
         isSmiledVol = true,
         smiledVolSurface = smiledVolCurve,
         localVolSurface = localVolSurface,
-        bs = bs
+        bs = bs,
+        localVol = localVol
       )
     } else {
       FXnoSmile(curveDom, curveFor, (d:Double) => volYield(d))
@@ -208,8 +214,8 @@ object FXsmiled {
 
   }
 
-  def apply(curveDom:DiscountCurve, curveFor:DiscountCurve, atmVol:YieldParameter, isSmiledVol:Boolean, smiledVolSurface:YieldParameter3D, localVolSurface:YieldParameter3D, bs:FxBlackOption):Option[FX] = {
-    if (isSmiledVol) Some(FXsmiled(curveDom, curveFor, (y:Double) => atmVol(y), true, (d:Double, k:Double) => smiledVolSurface(d, k), (d:Double, k:Double) => localVolSurface(d, k), bs))
+  def apply(curveDom:DiscountCurve, curveFor:DiscountCurve, atmVol:YieldParameter, isSmiledVol:Boolean, smiledVolSurface:YieldParameter3D, localVolSurface:YieldParameter3D, bs:FxBlackOption, localVol:DupireLocalVolatility):Option[FX] = {
+    if (isSmiledVol) Some(FXsmiled(curveDom, curveFor, (y:Double) => atmVol(y), true, (d:Double, k:Double) => smiledVolSurface(d, k), (d:Double, k:Double) => localVolSurface(d, k), bs, localVol))
     else FXnoSmile(curveDom, curveFor, (y:Double) => atmVol(y))
   }
 

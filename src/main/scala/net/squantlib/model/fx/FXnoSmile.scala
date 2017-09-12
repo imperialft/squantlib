@@ -21,7 +21,7 @@ object FXnoSmile {
 	def apply(curveDom:DiscountCurve, curveFor:DiscountCurve, params:FXInitializer):Option[FXnoSmile] = {
 	  assert(curveDom.valuedate == curveFor.valuedate)
 
-		println("calibrate no smile")
+		//println("calibrate no smile")
 
 	  val volYield = params.vol match {
 	    case v if v.isEmpty => null

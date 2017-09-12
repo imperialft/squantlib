@@ -75,17 +75,22 @@ case class FxBlackOption(
     val vol = atmVolatility(expiry)
     val nonPremAdjusted = fwd * math.exp(-cp * vol * math.sqrt(expiry) * NormSInv(cp * delta) + 0.5 * vol * vol * expiry)
     if (premiumAdjusted) {
-      val deltaFormula = (k:Double) => cp * k / forward(expiry) * NormSInv.cumulativeNormalDist(cp * ((math.log(fwd / k) - 0.5 * vol * vol * expiry) / (vol * math.sqrt(expiry))))  - delta
+      val deltaFormula = (k: Double) => cp * k / forward(expiry) * NormSInv.cumulativeNormalDist(cp * ((math.log(fwd / k) - 0.5 * vol * vol * expiry) / (vol * math.sqrt(expiry)))) - delta
 
-      val minRangeFormula = (k:Double) => {
-        val ld2 = d2(expiry, k)
-        nd.density(ld2) - vol * math.sqrt(expiry) * NormSInv.cumulativeNormalDist(ld2)
+      if (isCall) {
+        val minRangeFormula = (k: Double) => {
+          val ld2 = d2(expiry, k)
+          nd.density(ld2) - vol * math.sqrt(expiry) * NormSInv.cumulativeNormalDist(ld2)
+        }
+
+        val minRange = Brent.solve(minRangeFormula, 0.0, nonPremAdjusted, spot * 0.001, maxIteration).getOrElse(0.0)
+        //      println("minRange:" + minRange + " deltaMin:"+ deltaFormula(minRange))
+
+        Brent.solve(deltaFormula, minRange, nonPremAdjusted, accuracy, maxIteration)
+      } else {
+        Brent.solve(deltaFormula, 0.0, nonPremAdjusted, accuracy, maxIteration)
       }
 
-      val minRange = Brent.solve(minRangeFormula, 0.0, nonPremAdjusted, spot * 0.001, maxIteration).getOrElse(0.0)
-//      println("minRange:" + minRange + " deltaMin:"+ deltaFormula(minRange))
-
-      Brent.solve(deltaFormula, minRange, nonPremAdjusted, accuracy, maxIteration)
     } else Some(nonPremAdjusted)
   }
 

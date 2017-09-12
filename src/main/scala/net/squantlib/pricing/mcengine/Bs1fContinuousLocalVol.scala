@@ -28,7 +28,7 @@ class Bs1fContinuousLocalVol(
   override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
 
   val smallvalue = 0.00001
-  
+
   /* Generates FX paths.
    * @param eventdates	FX observation dates as number of years
    * @param paths 	Number of Montecarlo paths to be generated
@@ -145,7 +145,7 @@ class Bs1fContinuousLocalVol(
         val currentSpot = if (steps.head < smallvalue) prevSpot else prevSpot * scala.math.exp(drift + (sigt * ninv1))
 //        val currentSpot = if (steps.head < smallvalue) current.head else current.head * scala.math.exp(drft.head + (siggt.head * ninv1))
 //        getApath(steps.tail, drft.tail, siggt.tail, currentSpot :: current)
-        //println("t:" + edates.head + " spot:"  + prevSpot + " => " + currentSpot + " sig:" + fsigma + " drift:" + drift)
+//        println("t:" + edates.head + " spot:"  + prevSpot + " => " + currentSpot + " sig:" + fsigma + " drift:" + drift + " rdom:" + rDom.head + " rFor:" + rFor.head)
 
         getApath(edates.tail, steps.tail, sqSteps.tail, rDom.tail, rFor.tail, currentSpot :: current)
       }
