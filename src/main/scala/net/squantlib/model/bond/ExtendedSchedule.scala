@@ -103,7 +103,7 @@ trait ExtendedSchedule {
   def spotFixedAmount(vd:Date):List[(Date, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
     
   def spotFixedRatesAll:List[(CalculationPeriod, Double)] = cache.getOrUpdate("SPOTFIXEDRATESALL",
-      scheduledPayoffs.map{case (d, p, _) => 
+      scheduledPayoffs.map{case (d, p, _) =>
         (d, market.collect{case mkt => p.price(mkt)}.getOrElse(Double.NaN))} (collection.breakOut))
     
   def spotFixedAmountAll:List[(Date, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount * period.nominal)}

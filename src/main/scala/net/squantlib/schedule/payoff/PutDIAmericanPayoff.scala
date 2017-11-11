@@ -10,6 +10,7 @@ import net.squantlib.util.Date
 import net.squantlib.schedule.CalculationPeriod
 import net.squantlib.util.FixingInformation
 import scala.reflect.ClassTag
+import net.squantlib.model.market.Market
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -153,7 +154,7 @@ case class PutDIAmericanPayoff(
   def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
   
   def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
-  
+
   override def priceImpl(fixings:List[Map[String, Double]]):Double = priceList(fixings)
 
   override def priceImpl(fixings:Map[String, Double]):Double = priceSingle(fixings)
@@ -161,9 +162,11 @@ case class PutDIAmericanPayoff(
   override def priceImpl[T:ClassTag](fixings:List[Double]):Double = priceList(fixings)
   
   override def priceImpl(fixing:Double):Double = priceSingle(fixing)
-  
+
   override def priceImpl = Double.NaN
-  
+
+  override def priceImpl(market:Market):Double = price(List.fill(2)(market.getFixings(variables)))
+
   override def toString =
     nominal.asPercent + " [" + trigger.map(_.asDouble).mkString(",") + "](Amer) " + nominal.asPercent + " x Min([" + variables.mkString(",") + "] / [" + strike.map(_.asDouble).mkString(",") + "])" 
   
