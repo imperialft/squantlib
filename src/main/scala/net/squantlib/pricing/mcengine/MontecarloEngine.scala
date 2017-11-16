@@ -37,7 +37,7 @@ trait Montecarlo1f extends MontecarloEngine {
   */
   
   def generatePaths(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[List[Double]])
-  
+
   def analyzePaths(dates:List[Double], paths:List[List[Double]]):Unit = {
     val average = paths.transpose.map(_.sum).map(_ / paths.size)
     average.foreach (a => standardOutput(a))
