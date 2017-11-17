@@ -43,10 +43,9 @@ trait Montecarlo1f extends MontecarloEngine {
     average.foreach (a => standardOutput(a))
   }
 
-  def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[Double]) = {
+  def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):List[Double] = {
     val (mcDates, mcPaths) = generatePaths(eventDates, paths, payoff)
-    if (mcDates.sameElements(eventDates)) (eventDates, concatList(mcPaths).map(_ / paths.toDouble))
-    else (List.empty, List.empty)
+    (concatList(mcPaths).map(_ / paths.toDouble))
   }
 
   def concatList(data:List[List[Double]]):List[Double] = 
@@ -75,9 +74,9 @@ trait MontecarloNf extends MontecarloEngine {
   
   def generatePaths[A](eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[A]):(List[Double], List[List[A]])
       
-  def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[Double]):(List[Double], List[Double]) = {
+  def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[Double]):List[Double] = {
     errorOutput("MC paths", "montecarlo price calculation not implemented for current model")
-    (List.empty, List.empty)
+    List.empty
   }
   
   def analyzePaths(dates:List[Double], paths:List[List[Double]]):Unit = {

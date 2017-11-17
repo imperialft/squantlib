@@ -88,8 +88,8 @@ class Bs1fContinuousLocalVol(
 
     //else driftacc(rd.tail, rf.tail, sig.tail, stepp.tail, (rd.head - rf.head - ((sig.head * sig.head) / 2.0)) * stepp.head :: current)
   
-  override def generatePrice(bondEventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[Double]) = {
-    if (bondEventDates.isEmpty) {return (List.empty, List.empty)}
+  override def generatePrice(bondEventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):List[Double] = {
+    if (bondEventDates.isEmpty) {return payoff(List.empty)}
 
     val maxStep:Double = 1.05 / 12.0
     val sortedBondEventDates = bondEventDates.sorted
@@ -136,7 +136,7 @@ class Bs1fContinuousLocalVol(
       if (nbpath == 0) current 
       else getPrices(nbpath - 1, (getApath(eventDates, stepsize, rtStepsize, fratedom, fratefor, spotList), current).zipped.map(_ + _))
  
-    (dates.zip(isPaymentDate).filter{case (d, p) => p}.map(_._1), getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble))
+    getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble)
   }
 
   // With no minimum step size

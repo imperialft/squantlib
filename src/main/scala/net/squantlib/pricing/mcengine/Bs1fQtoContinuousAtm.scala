@@ -85,8 +85,8 @@ class Bs1fQtoContinuousAtm(
     (dates, genpaths)
   }
 
-  override def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[Double]) = {
-    if (eventDates.isEmpty) {return (List.empty, List.empty)}
+  override def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):List[Double] = {
+    if (eventDates.isEmpty) {return payoff(List.empty)}
     
     val randomGenerator = getRandomGenerator
     def normSInv(x:Double) = NormSInv(x)
@@ -130,7 +130,7 @@ class Bs1fQtoContinuousAtm(
       if (nbpath == 0) current 
       else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, spotList), current).zipped.map(_ + _))
  
-    (dates, getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble))
+    getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble)
     
   }
   

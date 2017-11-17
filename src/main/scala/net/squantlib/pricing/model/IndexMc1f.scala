@@ -52,9 +52,10 @@ case class IndexMc1f(valuedate:Date,
     try { 
       val mcYears = scheduledPayoffs.eventDateYears(valuedate)
       if (mcYears.exists(_ < 0.0)) {errorOutput(bondid, "MC paths : cannot compute past dates"); List.empty}
-      val (mcdates, mcpaths) = mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p))
-      if (mcdates.sameElements(mcYears)) mcpaths
-      else { errorOutput(bondid, "invalid mc dates"); List.empty}
+      mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p))
+//      val (mcdates, mcpaths) = mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p))
+//      if (mcdates.sameElements(mcYears)) mcpaths
+//      else { errorOutput(bondid, "invalid mc dates"); List.empty}
     }
     catch {case e:Throwable => 
       val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))

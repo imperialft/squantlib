@@ -132,11 +132,11 @@ case class BsNfAtm(
   }
 
 
-  override def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[Double]):(List[Double], List[Double]) = {
-    if (eventDates.isEmpty) {return (List.empty, List.empty)}
+  override def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[Double]):List[Double] = {
+    if (eventDates.isEmpty) {return payoff(List.empty)}
     
     val chol = getCholeskyMatrix
-    if (chol.isEmpty) {errorOutput("Correlation matrix is not definite positive"); return (List.empty, List.empty)}
+    if (chol.isEmpty) {errorOutput("Correlation matrix is not definite positive"); return List.empty}
     
     val mcdates:List[Double] = getEventDates(eventDates)
     val divs:List[List[Double]] = mcdates.map(d => (d, dividends.map(dd => dd.get(d).getOrElse(0.0)))).map(_._2)
@@ -181,7 +181,7 @@ case class BsNfAtm(
       if (nbpath == 0) current 
       else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, divs, spotList), current).zipped.map(_ + _))
  
-    (eventDates.sorted, getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble))
+    getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble)
   }
   
   @tailrec private def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 

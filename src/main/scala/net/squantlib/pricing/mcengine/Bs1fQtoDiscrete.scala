@@ -95,8 +95,8 @@ class Bs1fQtoDiscrete(
     (sortedEventDates, genpaths)
   }
 
-  override def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):(List[Double], List[Double]) = {
-    if (eventDates.isEmpty) {return (List.empty, List.empty)}
+  override def generatePrice(eventDates:List[Double], paths:Int, payoff:List[Double] => List[Double]):List[Double] = {
+    if (eventDates.isEmpty) {return payoff(List.empty)}
     
     val randomGenerator = getRandomGenerator
     var normSInv: Double => Double = (x:Double) => NormSInv(x)
@@ -149,7 +149,7 @@ class Bs1fQtoDiscrete(
       if (nbpath == 0) current 
       else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, divs, spotList), current).zipped.map(_ + _))
     
-    (sortedEventDates, getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble))
+    getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble)
   }
   
   

@@ -143,8 +143,8 @@ case class BsNfLocalVol(
   }
 
 
-  override def generatePrice(bondEventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[Double]):(List[Double], List[Double]) = {
-    if (bondEventDates.isEmpty) {return (List.empty, List.empty)}
+  override def generatePrice(bondEventDates:List[Double], paths:Int, payoff:List[Map[String, Double]] => List[Double]):List[Double] = {
+    if (bondEventDates.isEmpty) {return payoff(List.empty)}
 
     val maxStep:Double = 1.05 / 12.0
     val sortedBondEventDates = bondEventDates.sorted
@@ -154,7 +154,7 @@ case class BsNfLocalVol(
     val eventDates = dateList
 
     val chol = getCholeskyMatrix
-    if (chol.isEmpty) {errorOutput("Correlation matrix is not definite positive"); return (List.empty, List.empty)}
+    if (chol.isEmpty) {errorOutput("Correlation matrix is not definite positive"); return List.empty}
     
     val mcdates:List[Double] = getEventDates(eventDates)
     val divs:List[List[Double]] = mcdates.map(d => (d, dividends.map(dd => dd.get(d).getOrElse(0.0)))).map(_._2)
@@ -227,7 +227,7 @@ case class BsNfLocalVol(
       if (nbpath == 0) current 
       else getPrices(nbpath - 1, (getApath(eventDates, stepsize, rtStepsize, fratedom, fratefor, divs, spotList), current).zipped.map(_ + _))
 
-    (eventDates.zip(isPaymentDate).filter{case (d, p) => p}.map(_._1), getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble))
+    getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble)
   }
   
   @tailrec private def driftacc(rd:List[Double], rf:List[List[Double]], sig:List[List[Double]], stepp:List[Double], current:List[List[Double]]):List[List[Double]] = 
