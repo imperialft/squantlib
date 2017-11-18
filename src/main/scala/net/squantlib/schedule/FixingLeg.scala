@@ -5,6 +5,8 @@ import scala.collection.LinearSeq
 trait FixingLeg {
   
   protected var preFixings:Map[String, Double] = Map.empty
+
+  protected var futureFixing:Boolean = false
 	
   val variables:Set[String] // to be implemented
 	
@@ -14,10 +16,16 @@ trait FixingLeg {
   def assignFixings(f:Double):Unit = if (variables.size == 1) assignFixings(Map(variables.head -> f))
 	
   def clearFixings = preFixings = Map.empty
-	
+
+  def setFutureFixing = futureFixing = true
+
+  def setPastFixing = futureFixing = false
+
   def getFixings = preFixings
+
+  def isFutureFixing:Boolean = futureFixing
 	
-  def isFixed = variables.isEmpty || !preFixings.isEmpty
+  def isFixed = variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing)
 
   protected var settlementFixings:Map[String, Double] = Map.empty // used for physical settlement only
   

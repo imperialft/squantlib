@@ -40,7 +40,7 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 
   def isTriggeredByTarget:Boolean = calls.exists(c => c.fixedTriggerByTargetRedemption == Some(true))
 
-	def isTriggered:Boolean = calls.exists(c => c.fixedTrigger == Some(true))
+	def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
   
 	val isPriceable:Boolean = calls.forall(_.isPriceable)
 	

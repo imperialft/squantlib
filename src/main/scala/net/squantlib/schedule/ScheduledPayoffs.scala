@@ -259,7 +259,17 @@ case class ScheduledPayoffs(
   def isFixed:Boolean = payoffs.isPaymentFixed && calls.isFixed
   
   def sorted = ScheduledPayoffs(schedule.sortWith(payoffs, calls), valuedate)
-  
+
+  def updateFutureFixings(vd: Date):Unit = scheduledPayoffs.foreach{case (cp, p, c) =>
+    if (cp.eventDate le vd) {
+      p.setPastFixing
+      c.setPastFixing
+    } else {
+      p.setFutureFixing
+      c.setFutureFixing
+    }
+  }
+
 }
 
 
