@@ -83,9 +83,29 @@ trait BondModel {
   }
   
   def isScheduleMaturedOn(d:Date):Boolean = d ge scheduledMaturity
-  
-  lazy val (earlyTerminationPeriod:Option[CalculationPeriod], earlyTerminationAmount:Option[Double]) = 
-    scheduledPayoffs.triggeredDate.collect{case (p, a) => (Some(p), Some(a))}.getOrElse((None, None))
+
+  def earlyTerminationPeriod:Option[CalculationPeriod] = {
+    if (earlyTerminationPeriodFixed == null) {
+      initializeEarlyTermination
+    }
+    earlyTerminationPeriodFixed
+  }
+
+  def earlyTerminationAmount:Option[Double] = {
+    if (earlyTerminationAmountFixed == null) {
+      initializeEarlyTermination
+    }
+    earlyTerminationAmountFixed
+  }
+
+  var earlyTerminationPeriodFixed:Option[CalculationPeriod] = null
+  var earlyTerminationAmountFixed:Option[Double] = null
+
+  def initializeEarlyTermination = {
+    val (v1, v2) = scheduledPayoffs.triggeredDate.collect { case (p, a) => (Some(p), Some(a)) }.getOrElse((None, None))
+    earlyTerminationPeriodFixed = v1
+    earlyTerminationAmountFixed = v2
+  }
   
   lazy val earlyTerminationDate:Option[Date] = earlyTerminationPeriod.collect{case p => p.paymentDate}
   

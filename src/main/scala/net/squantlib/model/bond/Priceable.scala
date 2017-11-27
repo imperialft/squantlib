@@ -58,6 +58,8 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     val recalib = market.collect{case mkt => mkt.valuedate.eq(newMarket.valuedate) }.getOrElse(true)
     val prevPaths = mcPaths
     _market = Some(newMarket)
+    scheduledPayoffs.updateFutureFixings(newMarket.valuedate)
+    initializeEarlyTermination
     initializeModel(recalib, currentModelName)
     prevPaths match {
       case Some(n) => setMcPaths(n, false)
@@ -68,6 +70,8 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   def setMarketNoCalibration(newMarket:Market) = {
     val prevPaths = mcPaths
     _market = Some(newMarket)
+    scheduledPayoffs.updateFutureFixings(newMarket.valuedate)
+    initializeEarlyTermination
     initializeModel(false, currentModelName)
     prevPaths match {
       case Some(n) => setMcPaths(n, false)

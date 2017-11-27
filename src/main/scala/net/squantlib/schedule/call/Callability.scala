@@ -42,9 +42,9 @@ case class Callability(
   
   override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty
   
-  def isFixedTrigger = isTrigger && (variables.isEmpty || !preFixings.isEmpty)
+  def isFixedTrigger = isTrigger && (variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing))
   
-  def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && targetRedemption.isDefined
+  def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && targetRedemption.isDefined && !isFutureFixing
   
   def isPriceable:Boolean = !triggers.values.exists(v => v.isNaN || v.isInfinity) && !forward.values.exists(v => v.isNaN || v.isInfinity || v <= 0.0000000000001) && forward.keySet.subsetOf(triggers.keySet)
   
