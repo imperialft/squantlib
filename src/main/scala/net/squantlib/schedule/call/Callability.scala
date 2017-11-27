@@ -6,7 +6,7 @@ import net.squantlib.schedule.FixingLeg
 import net.squantlib.util.FixingInformation
 
 case class Callability(
-    bermudan:Boolean, 
+    bermudan:Boolean,
     triggers:Map[String, Double],
     triggerUp:Boolean,
     targetRedemption:Option[Double],

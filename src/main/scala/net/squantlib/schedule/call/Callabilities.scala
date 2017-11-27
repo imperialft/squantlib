@@ -157,7 +157,7 @@ object Callabilities {
   }
   
   private def triggerList(formula:String, nbLegs:Int, underlyings:List[String]):List[Map[String, String]] = formula.jsonNode match {
-    case Some(bs) if bs isArray => 
+    case Some(bs) if bs isArray =>
       val trigList:List[Map[String, String]] = bs.map(_ match {
         case n if (n isArray) => 
           (underlyings, n.map(_.parseString.getOrElse("")).toList).zipped.toMap
@@ -179,9 +179,9 @@ object Callabilities {
 
     case _ => List.fill(nbLegs)(Map.empty)
   }
-  
-  
-  private def triggerToAssignedTrigger(trigs:List[Map[String, String]], invertedStrikes:List[Boolean])(implicit fixingInfo:FixingInformation):List[Map[String, Double]] = 
+
+
+  private def triggerToAssignedTrigger(trigs:List[Map[String, String]], invertedStrikes:List[Boolean])(implicit fixingInfo:FixingInformation):List[Map[String, Double]] =
     (trigs, invertedStrikes).zipped.map{
       case (trig, inverted) if inverted => 
         val assignedTrig:Map[String, Double] = assignFixings(trig)
@@ -192,7 +192,8 @@ object Callabilities {
     }.toList
   
   private def assignFixings(stks:Map[String, String])(implicit fixingInfo:FixingInformation):Map[String, Double] = {
-    stks.map{case (k, v) => (k, fixingInfo.updateCompute(v))}.collect{case (k, Some(v)) => (k, v)}.toMap
+    //stks.map{case (k, v) => (k, fixingInfo.updateCompute(v))}.collect{case (k, Some(v)) => (k, v)}.toMap
+    stks.map{case (k, v) => (k, fixingInfo.updateCompute(v))}.collect{case (k, v) => (k, v.getOrElse(Double.NaN))}.toMap
   }
   
     
