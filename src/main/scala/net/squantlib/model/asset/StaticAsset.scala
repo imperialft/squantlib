@@ -1,6 +1,5 @@
 package net.squantlib.model.asset
 
-import net.squantlib.util.Date
 import net.squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
 import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
@@ -8,6 +7,7 @@ import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import net.squantlib.util.initializer.Calendars
 import org.jquantlib.time.Calendar
 import org.jquantlib.currencies.Currency
+import net.squantlib.util.{FixingInformation, Date, DbCalendar}
 
 trait StaticAsset extends BasicAsset with StaticAnalysis 
 
@@ -32,9 +32,9 @@ trait BasicAsset {
   
   def assetEndDate:Option[Date] = None // to be implemented in subclass
   
-  def fixingCalendar:Calendar // to be implemented in subclass
+  def fixingCalendar:DbCalendar // to be implemented in subclass
 
-  def paymentCalendar:Calendar // to be implemented in subclass
+  def paymentCalendar:DbCalendar // to be implemented in subclass
 
   /*
    * Spot price

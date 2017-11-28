@@ -6,29 +6,34 @@ import org.jquantlib.time.Weekday
 import org.jquantlib.time.Weekday._
 import org.jquantlib.time.{Date => qlDate}
 
-case class DbCalendar(calendar:Calendar, countryIds:Set[String], dbLastDate:qlDate) extends Calendar {
+class DbCalendar(val countryIds:Set[String], val holidayList:Set[qlDate]) extends Calendar {
+
+  val dbLastDate = if (holidayList.isEmpty) null else holidayList.max
+
+  def isDbPeriod(d:qlDate) = if (dbLastDate == null) false else d.le(dbLastDate)
   
-  def isDbPeriod(d:qlDate) = d.le(dbLastDate)
-  
-  lazy val dbHolidays:Set[qlDate] = countryIds.map(id => DB.getHolidays(id)).flatten.map(_.ql)
+  //lazy val dbHolidays:Set[qlDate] = countryIds.map(id => DB.getHolidays(id)).flatten.map(_.ql)
   
   override def name:String = "DB calendar " + countryIds.mkString(" ")
 
   override def isWeekend(w:Weekday):Boolean = w == Saturday || w == Sunday
 
-  override def isBusinessDay(date:qlDate):Boolean = 
-    if (isDbPeriod(date)) !isWeekend(date.weekday) && !dbHolidays.contains(date)
-    else calendar.isBusinessDay(date)
-  
+  override def isBusinessDay(date:qlDate):Boolean = !isWeekend(date.weekday) && !holidayList.contains(date)
+//    if (isDbPeriod(date)) !isWeekend(date.weekday) && !holidayList.contains(date)
+//    else calendar.isBusinessDay(date)
+
 }
 
-case class EmptyCalendar() extends Calendar {
-  
+object DbCalendar {
+
+  def apply(countryIds:Set[String]) = {
+    val dbHolidays:Set[qlDate] = countryIds.map(id => DB.getHolidays(id)).flatten.map(_.ql)
+    new DbCalendar(countryIds, dbHolidays)
+  }
+}
+
+
+case class EmptyCalendar() extends DbCalendar(Set.empty, Set.empty) {
   override def name:String = "Empty"
-
-  override def isWeekend(w:Weekday):Boolean = w == Saturday || w == Sunday
-
-  override def isBusinessDay(date:qlDate):Boolean = !isWeekend(date.weekday)
-  
 }
 

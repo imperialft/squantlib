@@ -1,7 +1,7 @@
 package net.squantlib.model.bond
 
 import org.jquantlib.currencies.Currency
-import net.squantlib.util.Date
+import net.squantlib.util.{FixingInformation, Date, DbCalendar}
 import org.jquantlib.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
 import net.squantlib.database.schemadefinitions.{Bond => dbBond}
 import net.squantlib.util.FixingInformation
@@ -53,9 +53,9 @@ trait BondModel {
   
   def period:qlPeriod = (db.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
-  val fixingCalendar:Calendar = db.fixingCalendar
+  val fixingCalendar:DbCalendar = db.fixingCalendar
 
-  val paymentCalendar:Calendar = db.paymentCalendar
+  val paymentCalendar:DbCalendar = db.paymentCalendar
   
   def issuePrice:Option[Double] = db.issueprice
   

@@ -24,12 +24,16 @@ trait DbRepository {
   def getIndices:Set[Index]
 
   def getHolidays(id:String):Set[Date]
+
+  def getCountryIds:Set[String]
+
+  def getCurrencyIds:Set[String]
   
-  def getCountryHolidayMapping: Map[String, String]
+//  def getCountryHolidayMapping: Map[String, String]
+//
+//  def getCurrencyHolidayMapping: Map[String, String]
 
-  def getCurrencyHolidayMapping: Map[String, String]
-
-  val lastHoliday:Date
+//  val lastHoliday:Date
 
 }
 
@@ -116,11 +120,15 @@ object DB {
   
   def getHolidays(id:String):Set[Date] = repository.collect{case repo => repo.getHolidays(id)}.getOrElse(Set.empty)
 
-  def getCountryHolidayMapping: Map[String, String] = repository.collect{case repo => repo.getCountryHolidayMapping}.getOrElse(Map.empty)
+  def getCountryIds:Set[String] = repository.collect{case repo => repo.getCountryIds}.getOrElse(Set.empty)
 
-  def getCurrencyHolidayMapping: Map[String, String] = repository.collect{case repo => repo.getCurrencyHolidayMapping}.getOrElse(Map.empty)
+  def getCurrencyIds:Set[String] = repository.collect{case repo => repo.getCurrencyIds}.getOrElse(Set.empty)
+
+//  def getCountryHolidayMapping: Map[String, String] = repository.collect{case repo => repo.getCountryHolidayMapping}.getOrElse(Map.empty)
+//
+//  def getCurrencyHolidayMapping: Map[String, String] = repository.collect{case repo => repo.getCurrencyHolidayMapping}.getOrElse(Map.empty)
 
   
-  def lastHoliday:Date = repository.collect{case repo => repo.lastHoliday}.getOrElse(Date.currentDate)
+//  def lastHoliday:Date = repository.collect{case repo => repo.lastHoliday}.getOrElse(Date.currentDate)
   
 }

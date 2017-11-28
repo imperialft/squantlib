@@ -1,6 +1,6 @@
 package net.squantlib.util.initializer
 
-trait Initializer[A] {
+trait  Initializer[A] {
    
 	def apply(id:String):Option[A] = mapper.get(id)
 	

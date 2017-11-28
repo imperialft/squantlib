@@ -1,11 +1,11 @@
 package net.squantlib.model.asset
 
-import net.squantlib.util.Date
 import org.jquantlib.currencies.Currency
 import org.jquantlib.currencies.Asia.JPYCurrency
 import org.jquantlib.time.Calendar
 import net.squantlib.math.timeseries.TimeSeries
 import net.squantlib.util.initializer.Currencies
+import net.squantlib.util.{FixingInformation, Date, DbCalendar}
 
 case class GenericAsset(
   override val assetID:String,
@@ -15,8 +15,8 @@ case class GenericAsset(
   override val expectedCoupon:Option[Double],
   override val getDbForwardPrice:TimeSeries,
   override val getPriceHistory:TimeSeries,
-  override val fixingCalendar:Calendar,
-  override val paymentCalendar:Calendar,
+  override val fixingCalendar:DbCalendar,
+  override val paymentCalendar:DbCalendar,
   override val currency:Currency = Currencies("JPY").get,
   override val isPriced:Boolean = true
   ) extends StaticAsset {

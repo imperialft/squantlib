@@ -9,7 +9,7 @@ import net.squantlib.util.JsonUtils._
 import net.squantlib.schedule.Schedule
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
-import net.squantlib.util.{FixingInformation, Date}
+import net.squantlib.util.{FixingInformation, Date, DbCalendar}
 import org.jquantlib.time.{Period => qlPeriod, DateGeneration, Calendar, BusinessDayConvention, TimeUnit}
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
@@ -133,7 +133,7 @@ class Bond(	  @Column("ID")					override var id: String,
 		
   def paymentCalendarSet:Set[String] = calendar_str.jsonArray.map(j => j.asText).toSet
     
-  def paymentCalendar:Calendar = 
+  def paymentCalendar:DbCalendar =
     if (calendar_str == null) Calendars(currencyid).get
 //  	else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
     else {
@@ -142,7 +142,7 @@ class Bond(	  @Column("ID")					override var id: String,
   
   def fixingCalendarSet:Set[String] = fixing_calendar.jsonArray.map(j => j.asText).toSet
     
-  def fixingCalendar:Calendar = 
+  def fixingCalendar:DbCalendar =
     if (fixing_calendar == null) Calendars(currencyid).get
 //    else Calendars(calendar_str.split(",").map(_.trim).toSet).getOrElse(Calendars(currencyid).get)
     else {
