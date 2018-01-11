@@ -11,6 +11,7 @@ import org.jquantlib.time.DateGeneration.Rule._
 import org.jquantlib.time.{Period, Calendar, BusinessDayConvention, DateGeneration}
 import org.jquantlib.daycounters._
 import java.util.{Date => JavaDate}
+import Ordering.Tuple2
 
 class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationPeriod] {
  

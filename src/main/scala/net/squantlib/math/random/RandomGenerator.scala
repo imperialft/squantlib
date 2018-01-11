@@ -6,16 +6,16 @@ import scala.language.reflectiveCalls
  * Abstract random number Generator class. Numbers are lazily generated to save memory.
  *
  */
-trait RandomGenerator extends Stream[Double] {
+trait RandomGenerator {//extends Stream[Double] {
   override def toString = "Generator[Double]"
 
-  override def head() = sum_12_samples_then_minus_6
-  override def tail = this
+  def head() = sum_12_samples_then_minus_6
+  def tail = this
 
   /**
    * Set this Stream to be always filled.
    */
-  override def isEmpty = false
+  def isEmpty = false
 
   /**
    * Set this Stream to be infinitely long.
@@ -32,7 +32,7 @@ trait RandomGenerator extends Stream[Double] {
    * An abstract function to reset the sequence for pseudo-random generators
    *
    */
-  def reset
+  def reset()
   
   /**
    * Generates next random number.

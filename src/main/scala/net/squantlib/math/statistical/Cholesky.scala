@@ -28,7 +28,7 @@ object Cholesky {
       diagg
     }
     
-    Some(acopy, diag)
+    Some((acopy, diag))
   }
   
   def solver(a:Array[Array[Double]], p:Array[Double], b:Array[Double]):Array[Double] ={

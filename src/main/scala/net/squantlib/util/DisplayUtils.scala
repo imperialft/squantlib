@@ -3,9 +3,10 @@ package net.squantlib.util
 import org.codehaus.jackson.JsonNode
 import scala.language.implicitConversions
 import scala.annotation.tailrec
-import com.typesafe.scalalogging.slf4j._
+import com.typesafe.scalalogging._
+//import com.typesafe.scalalogging.slf4j._
 
-object DisplayUtils extends Logging {
+object DisplayUtils extends LazyLogging {
    
   var defaultNaNdisplay = "[]"
   

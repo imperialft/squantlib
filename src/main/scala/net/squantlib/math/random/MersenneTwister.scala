@@ -14,5 +14,5 @@ class MersenneTwister(val seed:Long) extends RandomGenerator {
     
   val generator = new MT(seed)
   
-  def reset = generator match { case m:MT => m.setSeed(seed)}
+  def reset() = generator match { case m:MT => m.setSeed(seed)}
 }

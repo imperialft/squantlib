@@ -103,7 +103,7 @@ case class FxBlackOption(
     val strikeCall = if (forwardDelta) forwardDeltaToStrike(expiry, delta, premiumAdjusted, true) else spotDeltaToStrike(expiry, delta, premiumAdjusted, true)
 //    println("expiry:" + expiry + " delta:" + delta + " RR:" + riskReversal + " fwdDt:" + forwardDelta + " premAdj:" + premiumAdjusted + " volC:" + volCall + " kCall:" + strikeCall)
     strikeCall match {
-      case Some(k) => Some(k, volCall)
+      case Some(k) => Some((k, volCall))
       case _ => None
     }
   }
@@ -113,7 +113,7 @@ case class FxBlackOption(
     val strikeCall = if (forwardDelta) forwardDeltaToStrike(expiry, delta, premiumAdjusted, false) else spotDeltaToStrike(expiry, delta, premiumAdjusted, false)
 //    println("expiry:" + expiry + " delta:" + delta + " RR:" + riskReversal + " fwdDt:" + forwardDelta + " premAdj:" + premiumAdjusted + " volC:" + volCall + " kCall:" + strikeCall)
     strikeCall match {
-      case Some(k) => Some(k, volCall)
+      case Some(k) => Some((k, volCall))
       case _ => None
     }
   }

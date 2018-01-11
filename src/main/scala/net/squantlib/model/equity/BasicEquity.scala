@@ -37,7 +37,7 @@ case class BasicEquity(
 	 */ 
     override def forward(days:Double):Double = {
 	  val divList = dividendList.filter(_._1 <= days).toList.sortBy(_._1)
-	  val periods = if (!divList.isEmpty && divList.last._1 == days) divList else divList :+ (days, 0.0)
+	  val periods = if (!divList.isEmpty && divList.last._1 == days) divList else divList :+ ((days, 0.0))
 	  
 	  @tailrec def fwdRec(s:Double, lastd:Double, dates:List[(Double, Double)]):Double = {
 	    if (dates.isEmpty) s

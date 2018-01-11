@@ -8,7 +8,7 @@ import net.squantlib.util.Date
 /**
  * Encapsulate time series vector parameter with interpolation, extrapolation and other adjustments functions.
  */
-trait YieldParameter extends Iterable[Pair[Date, Double]] {
+trait YieldParameter extends Iterable[(Date, Double)] {
   
 	/**
 	 * Returns base date of this vector. 
@@ -82,11 +82,11 @@ trait YieldParameter extends Iterable[Pair[Date, Double]] {
   /**
    * Returns an Iterator that provides data during mindays..maxdays incremented by 1 day
    */
-    def iterator:Iterator[Pair[Date, Double]] = {
+    def iterator:Iterator[(Date, Double)] = {
       // FIXME: This could be inefficient.
-      val list = MutableList[Pair[Date, Double]]()
+      val list = MutableList[(Date, Double)]()
       for (i <- mindays.toLong to maxdays.toLong)
-        list += Pair(valuedate.add(i.toInt), value(i)) // .toInt, srsly?
+        list += Tuple2(valuedate.add(i.toInt), value(i)) // .toInt, srsly?
       return list.iterator
     }
 	

@@ -14,7 +14,7 @@ class Cauchy(val location:Double, val scale:Double, override val seed:Long) exte
   
   override def toString = "Cauchy[Double]"
     
-  override def head = sample
+  override def head() = sample
   
   override def sample = {
     var n = generator.nextDouble

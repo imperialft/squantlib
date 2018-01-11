@@ -1,17 +1,17 @@
-package net.squantlib.util
+//package net.squantlib.util
 
-import org.codehaus.jackson.JsonNode
-import scala.language.implicitConversions
-import scala.annotation.tailrec
-import com.typesafe.scalalogging.slf4j._
-import ch.qos.logback.classic.Logger
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder
-import ch.qos.logback.core.FileAppender
-import ch.qos.logback.core.util.StatusPrinter
-import org.slf4j.LoggerFactory
-import ch.qos.logback.classic.LoggerContext
-
-object Logging {
+//import org.codehaus.jackson.JsonNode
+//import scala.language.implicitConversions
+//import scala.annotation.tailrec
+//import com.typesafe.scalalogging.slf4j._
+//import ch.qos.logback.classic.Logger
+//import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+//import ch.qos.logback.core.FileAppender
+//import ch.qos.logback.core.util.StatusPrinter
+////import org.slf4j.LoggerFactory
+//import ch.qos.logback.classic.LoggerContext
+//
+//object Logging {
   
 //  var loggerContext: LoggerContext = (LoggerContext) LoggerFactory.getILoggerFactory()
 //  var logbackLogger:Logger = loggerContext.getLogger("Main")
@@ -41,4 +41,4 @@ object Logging {
 //    // log something
 //    logbackLogger.debug("hello");
 //  }
-}
+//}

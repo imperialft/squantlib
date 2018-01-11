@@ -16,6 +16,8 @@ import net.squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import net.squantlib.model.asset.Underlying
 import scala.language.postfixOps
 import scala.annotation.tailrec
+import java.util.{Collections, WeakHashMap => JavaWeakHashMap}
+import scala.collection.JavaConverters._
 
 /** 
  * Stores market information and initialize discount curves as requested.
@@ -68,8 +70,9 @@ class Market(
    * Stores already calculated discount curves.
    * Assumption: for each key, value contains discount curve for both discount and pivot currency.
    */
-  var repository = new WeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]] with SynchronizedMap[String, scala.collection.mutable.Map[String, DiscountCurve]]
-  
+//  var repository = new WeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]] with SynchronizedMap[String, scala.collection.mutable.Map[String, DiscountCurve]]
+  val repository = Collections.synchronizedMap(new JavaWeakHashMap[String, scala.collection.mutable.Map[String, DiscountCurve]]).asScala
+
   /**
    * Returns FX spot ccy1 / ccy2
    */

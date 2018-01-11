@@ -8,6 +8,8 @@ import net.squantlib.util.initializer.Calendars
 import org.jquantlib.time.Calendar
 import org.jquantlib.currencies.Currency
 import net.squantlib.util.{FixingInformation, Date, DbCalendar}
+import java.util.{Collections, WeakHashMap => JavaWeakHashMap}
+import scala.collection.JavaConverters._
 
 trait StaticAsset extends BasicAsset with StaticAnalysis 
 
@@ -82,8 +84,9 @@ trait BasicAsset {
   protected def getDbForwardPrice:TimeSeries  // to be implemented in subclass
   
   def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", getDbForwardPrice.getFilledTimeSeries())
-  
-  
-  var cachedPrice = new WeakHashMap[String, TimeSeries] with SynchronizedMap[String, TimeSeries]
+
+
+  val cachedPrice = Collections.synchronizedMap(new JavaWeakHashMap[String, TimeSeries]).asScala
+//  var cachedPrice = new WeakHashMap[String, TimeSeries] with SynchronizedMap[String, TimeSeries]
   
 } 

@@ -1,10 +1,12 @@
 package net.squantlib.pricing.model
 
 import net.squantlib.schedule.{CalculationPeriod, Schedule, ScheduledPayoffs}
-import net.squantlib.schedule.payoff.{Payoffs, Payoff}
+import net.squantlib.schedule.payoff.{Payoff, Payoffs}
 import net.squantlib.util.Date
 import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.pricing.mcengine.MontecarloEngine
+import java.util.{Collections, WeakHashMap => JavaWeakHashMap}
+import scala.collection.JavaConverters._
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._
@@ -127,8 +129,9 @@ trait PricingModel {
   /*
    * cache to store intermediary values used in the model
    */
-  val modelCache= new WeakHashMap[String, Any] with SynchronizedMap[String, Any]
-  
+  //val modelCache= new WeakHashMap[String, Any] with SynchronizedMap[String, Any]
+  val modelCache = Collections.synchronizedMap(new JavaWeakHashMap[String, Any]).asScala
+
   def getCache[A](k:String):Option[A] = modelCache.get(k).collect{case v => v.asInstanceOf[A]}
   def getOrUpdateCache[A](k:String, f: => A):A = modelCache.getOrElseUpdate(k, f).asInstanceOf[A]
   def clearCache = modelCache.clear

@@ -323,7 +323,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     if (liveCoupons.isEmpty || market.isEmpty) None
     else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => (d.dayCount * p.price(market.get)) match {
       case pr if pr.isNaN || pr.isInfinity => None
-      case pr => Some(d.paymentDate, pr)
+      case pr => Some((d.paymentDate, pr))
    }}
     
   /*  

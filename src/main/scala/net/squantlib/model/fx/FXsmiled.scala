@@ -98,7 +98,7 @@ object FXsmiled {
         forwardDelta = qlPeriodToYears(p) >= 0.98,
         premiumAdjusted = true
       ) match {
-        case Some((k, v)) => Some((qlPeriodToDays(p), k), v)
+        case Some((k, v)) => Some(((qlPeriodToDays(p), k), v))
         case _ => None
       }
     }).flatMap(s => s).toMap
@@ -112,7 +112,7 @@ object FXsmiled {
         forwardDelta = qlPeriodToYears(p) >= 0.98,
         premiumAdjusted = true
       ) match {
-        case Some((k, v)) => Some((qlPeriodToDays(p), k), v)
+        case Some((k, v)) => Some(((qlPeriodToDays(p), k), v))
         case _ => None
       }
     }).flatMap(s => s).toMap
@@ -128,7 +128,7 @@ object FXsmiled {
         forwardDelta = qlPeriodToYears(p) >= 0.98,
         premiumAdjusted = true
       ) match {
-        case Some((k, v)) => Some((qlPeriodToDays(p), k), v)
+        case Some((k, v)) => Some(((qlPeriodToDays(p), k), v))
         case _ => None
       }
     }).flatMap(s => s).toMap
@@ -142,7 +142,7 @@ object FXsmiled {
         forwardDelta = qlPeriodToYears(p) >= 0.98,
         premiumAdjusted = true
       ) match {
-        case Some((k, v)) => Some((qlPeriodToDays(p), k), v)
+        case Some((k, v)) => Some(((qlPeriodToDays(p), k), v))
         case _ => None
       }
     }).flatMap(s => s).toMap

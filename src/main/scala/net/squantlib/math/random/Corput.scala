@@ -2,6 +2,8 @@ package net.squantlib.math.random
 
 import scala.annotation.tailrec
 import scala.collection.mutable.SynchronizedQueue
+import java.util.concurrent.ConcurrentLinkedQueue
+import scala.collection.JavaConverters._
 
 @tailrec class CorputBase2(var N:Long) extends RandomGenerator {
 //   Returns the equivalent first van der Corput sequence number
@@ -21,7 +23,7 @@ import scala.collection.mutable.SynchronizedQueue
 		nextDouble(n2, c + ib * i, ib / 2.0)
     }
   
-  def reset = N = initial
+  def reset() = N = initial
   
 }
 
@@ -45,7 +47,7 @@ class CorputBase2_NR(var N:Long) extends RandomGenerator {
     c
   }
   
-  def reset = N = initial
+  def reset() = N = initial
 }
 
 @tailrec class CorputBaseb(val b:Long, var N:Long) extends RandomGenerator {
@@ -66,7 +68,7 @@ class CorputBase2_NR(var N:Long) extends RandomGenerator {
     }
     else c
     
-  def reset = N = initial
+  def reset() = N = initial
 
 }
 
@@ -87,9 +89,9 @@ object CorputBase2 {
     c
   }
   
-  def generateSet(nbData:Long, initialN:Long):SynchronizedQueue[Double] = {
-    val queue = new SynchronizedQueue[Double]
-    (initialN to (initialN + nbData - 1)).par.foreach(n => queue.enqueue(generate(n)))
+  def generateSet(nbData:Long, initialN:Long):ConcurrentLinkedQueue[Double] = {
+    val queue = new ConcurrentLinkedQueue[Double]
+    (initialN to (initialN + nbData - 1)).par.foreach(n => queue.add(generate(n)))
     queue
   }
 }

@@ -32,7 +32,7 @@ class ParkMiller(seed:Long) extends RandomGenerator {
   var idum:Long = 1
   var iv:Array[Long] = Array.fill(NTAB)(0)
   
-  def initialize:Unit = initialize(1)
+  def initialize():Unit = initialize(1)
 
   def initialize(initIdum:Long):Unit = {
     idum = math.max(initIdum, 1)
@@ -44,7 +44,7 @@ class ParkMiller(seed:Long) extends RandomGenerator {
 
   def nextDouble():Double = uniform
   
-  override def reset = initialize(seed)
+  override def reset() = initialize(seed)
   
   def uniform:Double = {
 	// this is the ran1 function of Numerical recipes
@@ -54,7 +54,7 @@ class ParkMiller(seed:Long) extends RandomGenerator {
 	//successive deviates in a sequence. RNMX should approximate the largest floating value that is
 	//less than 1.
 
-    def shuffle = {
+    def shuffle() = {
       val k = idum / IQ
       idum = IA * (idum - k * IQ) - IR * k //Compute idum=(IA*idum) % IM without over-
       if (idum < 0) idum += IM 

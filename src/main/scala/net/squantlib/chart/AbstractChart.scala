@@ -11,12 +11,12 @@ abstract class AbstractChart {
     return png
   }
 
-  def render(png:String, data:Seq[Pair[Number, Number]], x:String = "X-axis", y:String = "Y-axis", title:String = "Untitled"):String
+  def render(png:String, data:Seq[(Number, Number)], x:String = "X-axis", y:String = "Y-axis", title:String = "Untitled"):String
 
   /**
    * Renders a line chart onto a Window. The image rendered will be saved onto a temporary file. Probably blocks the program until the window closes.
    *
-   * @param data Data to plot. In Seq[Pair[X, Y]] format.
+   * @param data Data to plot. In Seq[(X, Y)] format.
    * @param x Label for X-axis
    * @param y Label for Y-axis
    * @param width Image and window width
@@ -24,7 +24,7 @@ abstract class AbstractChart {
    * @param title Title for the plot.
    *
    */
-  def display(data:Seq[Pair[Number, Number]], x:String = "X-axis", y:String = "Y-axis", title:String = "Untitled", width:Integer = 640, height:Integer = 480):Unit = {
+  def display(data:Seq[(Number, Number)], x:String = "X-axis", y:String = "Y-axis", title:String = "Untitled", width:Integer = 640, height:Integer = 480):Unit = {
     val png = render(File.createTempFile("squantlib-", ".png").getPath(), x = x, y = y, title = title, data = data)
     new Window(imagePath = png, width = width, height = height, title = title)
   }
