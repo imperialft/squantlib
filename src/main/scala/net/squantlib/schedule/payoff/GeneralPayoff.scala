@@ -4,7 +4,7 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.FormulaParser
 import net.squantlib.util.FixingInformation
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
  * Interprets general formula as the sum of weighted variables + constant, with cap and floor.
@@ -67,7 +67,7 @@ object GeneralPayoff {
       var payoffString = fixedString.parseJsonString("payoff") match { case None => ""; case Some(n) => n}
       fixedString.jsonNode match {
         case Some(node) => 
-          val fieldnames = node.getFieldNames.filter(n => !List("type", "description", "payoff", "variable").contains(n))
+          val fieldnames = node.getFieldNames.asScala.filter(n => !List("type", "description", "payoff", "variable").contains(n))
           fieldnames.foreach(n => payoffString = payoffString.replace(n, node.get(n).parseDouble.getOrElse(Double.NaN).toString))
         case None => {}
       }

@@ -1,6 +1,6 @@
 package net.squantlib.schedule.payoff
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import org.codehaus.jackson.map.ObjectMapper
@@ -41,7 +41,7 @@ case class Linear1dPayoff(
         "min" -> payoff.minValue.getOrElse("None"),
         "max" -> payoff.maxValue.getOrElse("None"),
         "coeff" -> payoff.coeff.getOrElse("None"),
-        "description" -> payoff.description)
+        "description" -> payoff.description).asJava
         
     Map(
         "type" -> "linear1d", 

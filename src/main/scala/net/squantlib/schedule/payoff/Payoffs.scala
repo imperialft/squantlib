@@ -7,7 +7,7 @@ import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.FixingInformation
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.Predef._
 import net.squantlib.schedule.FixingLegs
 import scala.Predef.{DummyImplicit => DI}
@@ -321,12 +321,12 @@ object Payoffs {
 	  }
 	  else {
 	    val payofflist:List[Payoff] = formula.jsonNode match {
-	      case Some(n) if n.isArray && n.size > 0 => n.getElements.toList.map(f => getPayoff(toJsonString(f)))
+	      case Some(n) if n.isArray && n.size > 0 => n.getElements.asScala.toList.map(f => getPayoff(toJsonString(f)))
 	      case _ => formula.split(";").toList.map(getPayoff)
 	    }
 	    
 	    def getFirstElement:Payoff = formula.jsonNode match {
-	      case Some(n) if n.isArray && n.size > 0 => getPayoff(toJsonString(n.getElements.toList.head))
+	      case Some(n) if n.isArray && n.size > 0 => getPayoff(toJsonString(n.getElements.asScala.toList.head))
 	      case _ => getPayoff(formula.split(";").head)
 	    }
 	  

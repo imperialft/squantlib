@@ -12,8 +12,7 @@ import scala.Option.option2Iterable
 import net.squantlib.schedule.CalculationPeriod
 import net.squantlib.schedule.FixingLeg
 import scala.reflect.ClassTag
-import scala.collection.JavaConversions._
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import org.codehaus.jackson.map.ObjectMapper
 
 trait Payoff extends FixingLeg {
@@ -50,13 +49,13 @@ trait Payoff extends FixingLeg {
 
   def jsonMap:Map[String, Any] = inputString.jsonNode match {
     case Some(node) =>
-      val fieldnames = node.getFieldNames.filter(n => !keywords.contains(n)).toSet
+      val fieldnames = node.getFieldNames.asScala.filter(n => !keywords.contains(n)).toSet
       fieldnames.map(n => (n -> node.get(n))).toMap ++ jsonMapImpl
     case _ => jsonMapImpl
   }
 
   def jsonString:String = {
-    val infoMap:JavaMap[String, Any] = jsonMap
+    val infoMap:JavaMap[String, Any] = jsonMap.asJava
     (new ObjectMapper).writeValueAsString(infoMap)
   }
 
@@ -234,7 +233,7 @@ object Payoff {
     var result = inputString
     inputString.jsonNode match {
       case Some(node) =>
-	    val fieldnames = node.getFieldNames.filter(n => n.startsWith("^")).toSet
+	    val fieldnames = node.getFieldNames.asScala.filter(n => n.startsWith("^")).toSet
         fieldnames.foreach(n => {
           val currentvalue = node.get(n).getTextValue()
           val updatedvalue = fixingInfo.update(currentvalue)

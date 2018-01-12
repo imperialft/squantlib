@@ -5,7 +5,7 @@ import scala.language.implicitConversions
 import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.node.{ObjectNode, ArrayNode}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import org.codehaus.jackson.`type`.TypeReference;
 import java.util.{List => JavaList, Map => JavaMap}
 import java.lang.{String => JavaString}
@@ -94,7 +94,7 @@ object JsonUtils {
     
     def parseList:List[JsonNode] = node match {
       case n if n == null => List.empty
-      case n if n isArray => n.toList
+      case n if n.isArray => n.asScala.toList
       case n if n.isNull => List.empty
       case n => List(n)
     }
@@ -110,7 +110,7 @@ object JsonUtils {
     def parseStringList(name:String):List[Option[String]] = if (hasName(name)) node.get(name).parseStringList else List.empty
     
     def parseValueFields:Map[String, Any] = if (node == null) Map.empty
-      else node.getFieldNames.map(f => (f, node.get(f) match {
+      else node.getFieldNames.asScala.map(f => (f, node.get(f) match {
         case n if n.isContainerNode => None
         case n if n.isInt => n.parseInt
         case n if n.isDouble => n.parseDouble
@@ -121,16 +121,16 @@ object JsonUtils {
     def parseValueFields(name:String):Map[String, Any] = if (hasName(name)) node.get(name).parseValueFields else Map.empty
     
     def parseDoubleFields:Map[String, Double] = if (node == null) Map.empty
-      else node.getFieldNames.map(f => (f, node.get(f).parseDouble)).collect{case (a, Some(b)) => (a, b)}.toMap
+      else node.getFieldNames.asScala.map(f => (f, node.get(f).parseDouble)).collect{case (a, Some(b)) => (a, b)}.toMap
       
     def parseDoubleFields(name:String):Map[String, Double] = if (hasName(name)) Map.empty
-      else node.get(name).getFieldNames.map(f => (f, node.get(f).parseDouble)).collect{case (a, Some(b)) => (a, b)}.toMap
+      else node.get(name).getFieldNames.asScala.map(f => (f, node.get(f).parseDouble)).collect{case (a, Some(b)) => (a, b)}.toMap
       
     def parseStringFields:Map[String, String] = if (node == null) Map.empty
-      else node.getFieldNames.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
+      else node.getFieldNames.asScala.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
       
     def parseStringFields(name:String):Map[String, String] = if (hasName(name)) Map.empty
-      else node.get(name).getFieldNames.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
+      else node.get(name).getFieldNames.asScala.map(f => (f, node.get(f).parseString)).collect{case (a, Some(b)) => (a, b)}.toMap
   
     def parseAllFieldMap:Map[String, List[Any]] = parseAllFieldMap(5)
     
@@ -144,10 +144,10 @@ object JsonUtils {
     private def parseAllFieldMapRec(n:JsonNode, key:Option[String], depth:Int):Map[String, List[Any]] = n match {
       case nn if nn == null || depth < 0 => Map.empty
       case nn if nn.isArray => 
-        val tempmap = nn.map(nnn => parseAllFieldMapRec(nnn, key, depth - 1))
+        val tempmap = nn.asScala.map(nnn => parseAllFieldMapRec(nnn, key, depth - 1))
         if (tempmap.isEmpty) Map.empty else tempmap.reduce(addMaps)
       case nn if nn.isObject => 
-        val tempmap = nn.getFields.map(nnn => parseAllFieldMapRec(nnn.getValue, Some(nnn.getKey), depth - 1))
+        val tempmap = nn.getFields.asScala.map(nnn => parseAllFieldMapRec(nnn.getValue, Some(nnn.getKey), depth - 1))
         if (tempmap.isEmpty) Map.empty else tempmap.reduce(addMaps)
       case nn if nn.isTextual => Map(key.getOrElse("") -> List(nn.parseDate.getOrElse(nn.asText)))
       case nn if nn.isNumber => Map(key.getOrElse("") -> List(nn.asDouble))
@@ -180,13 +180,13 @@ object JsonUtils {
       } catch { case _:Throwable => None }
       
     def jsonArray:List[JsonNode] = jsonNode match {
-      case Some(n) if n isArray => n.getElements.toList
+      case Some(n) if n.isArray => n.getElements.asScala.toList
       case Some(n) => List(n)
       case _ => List.empty
     }
       
     def jsonArray(name:String):List[JsonNode] = jsonNode(name) match { 
-      case Some(n) if n isArray => n.getElements.toList
+      case Some(n) if n isArray => n.getElements.asScala.toList
       case Some(n) => List(n)
       case _ => List.empty
     }
@@ -254,10 +254,10 @@ object JsonUtils {
   
   def scalaStringtoJavaString(s:String):JavaString = s
   
-  def scalaMapToJavaMap[T <: Any](m:Map[String, T]):JavaMap[JavaString, T] = m
-  def scalaAnyMapToJavaMap[T <: Any, U <: Any](m:Map[T, U]):JavaMap[T, U] = m
+  def scalaMapToJavaMap[T <: Any](m:Map[String, T]):JavaMap[JavaString, T] = m.asJava
+  def scalaAnyMapToJavaMap[T <: Any, U <: Any](m:Map[T, U]):JavaMap[T, U] = m.asJava
   
-  def scalaListToJavaList[T <: Any](m:Seq[T]):JavaList[T] = m
+  def scalaListToJavaList[T <: Any](m:Seq[T]):JavaList[T] = m.asJava
     
   def toJavaCollection(colset:Any):Any = colset match {
     case c:Map[_, _] => scalaAnyMapToJavaMap(c.map{case (k, v) => (k, toJavaCollection(v))})

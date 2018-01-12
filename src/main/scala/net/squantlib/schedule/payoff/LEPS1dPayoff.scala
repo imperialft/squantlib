@@ -1,6 +1,6 @@
 package net.squantlib.schedule.payoff
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 import net.squantlib.util.DisplayUtils._
@@ -50,7 +50,7 @@ case class LEPS1dPayoff(
         "maxrange" -> p.maxRange.getOrElse("None"),
         "mult" -> p.coeff.getOrElse("None"),
         "add" -> p.constant.getOrElse("None")
-        )
+        ).asJava
       leg})
       
     Map(
