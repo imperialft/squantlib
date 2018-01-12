@@ -13,7 +13,7 @@ organization := "net.squantlib"
 version := "0.1.0"
 
 //scalaVersion := "2.10.5"
-scalaVersion := "2.11.11"
+scalaVersion := "2.12.4"
 
 libraryDependencies ++= Seq(
 //"com.mchange" % "c3p0" % "0.9.2.1" % "provided",
