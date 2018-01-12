@@ -2,7 +2,8 @@ package net.squantlib.schedule.call
 
 import scala.language.postfixOps
 import scala.collection.LinearSeq
-import scala.collection.JavaConversions._
+//import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.schedule.FixingLegs
@@ -108,7 +109,7 @@ object Callabilities {
   def bermudanList(formula:String, nbLegs:Int):List[Boolean] = formula.jsonNode match {
 //    case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
     case Some(b) if b isArray => 
-      val bermList = b.map(_ match {
+      val bermList = b.asScala.map(_ match {
         case s if s.isTextual => s.parseString == Some("berm")
         case s if s.isObject => s.parseString("type") == Some("berm")
         case _ => false
@@ -126,7 +127,7 @@ object Callabilities {
   
   def targetList(formula:String, nbLegs:Int):List[Option[Double]] = formula.jsonNode match {
     case Some(bs) if bs isArray => 
-      val targetList = bs.map(_.get("target").parseDouble).toList
+      val targetList = bs.asScala.map(_.get("target").parseDouble).toList
       List.fill(nbLegs - 2 - bs.size)(None) ++ targetList ++ List(None, None)
 
     case _ => List.fill(nbLegs)(None)
@@ -134,7 +135,7 @@ object Callabilities {
 
   def callOptionList(formula:String, nbLegs:Int)(implicit fixingInfo:FixingInformation):List[CallOption] = formula.jsonNode match {
     case Some(bb) if bb isArray => 
-      val optlist = bb.map{case b => 
+      val optlist = bb.asScala.map{case b =>
         val invertedStrike:Boolean = b.parseInt("inverted_strike").getOrElse(0) == 1
         val triggerUp = b.parseString("trigger_type").getOrElse("up") == "up"
         val forwardMap = b.getOption("forward").collect{case k => k.parseStringFields}.getOrElse(Map.empty)
@@ -158,14 +159,14 @@ object Callabilities {
   
   private def triggerList(formula:String, nbLegs:Int, underlyings:List[String]):List[Map[String, String]] = formula.jsonNode match {
     case Some(bs) if bs isArray =>
-      val trigList:List[Map[String, String]] = bs.map(_ match {
+      val trigList:List[Map[String, String]] = bs.asScala.map(_ match {
         case n if (n isArray) => 
-          (underlyings, n.map(_.parseString.getOrElse("")).toList).zipped.toMap
+          (underlyings, n.asScala.map(_.parseString.getOrElse("")).toList).zipped.toMap
 
         case n if (n.isObject) => 
           n.getOption("trigger") match {
-            case Some(trigs) if trigs.isArray => 
-              (underlyings, trigs.map(_.parseString.getOrElse(""))).zipped.toMap
+            case Some(trigs) if trigs.isArray =>
+              (underlyings, trigs.asScala.map(_.parseString.getOrElse(""))).zipped.toMap
             case Some(trigs) if trigs.isObject => 
               trigs.parseStringFields
             case _ => Map.empty[String, String]

@@ -1,7 +1,8 @@
 package net.squantlib.schedule.payoff
 
 import scala.language.postfixOps
-import scala.collection.JavaConversions._
+//import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import org.codehaus.jackson.map.ObjectMapper
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
@@ -64,12 +65,12 @@ case class BinaryPayoff(
   
   override def jsonMapImpl = {
     
-    val jsonPayoff:Array[JavaMap[String, Any]] = payoff.map{
-    case (v, None) => val jmap:JavaMap[String, Any] = Map("amount" -> v); jmap
-    case (v, Some(s)) => val jmap:JavaMap[String, Any] = Map("amount" -> v, "strike" -> s.toArray); jmap
+    val jsonPayoff:Array[JavaMap[String, AnyRef]] = payoff.map{
+      case (v, None) => Map("amount" -> v.asInstanceOf[AnyRef]).asJava
+      case (v, Some(s)) => Map("amount" -> v.asInstanceOf[AnyRef], "strike" -> s.toArray.asInstanceOf[AnyRef]).asJava
     }.toArray
     
-    val varSet:java.util.List[String] = scala.collection.mutable.ListBuffer(binaryVariables: _*)
+    val varSet:java.util.List[String] = scala.collection.mutable.ListBuffer(binaryVariables: _*).asJava
     
     Map(
       "type" -> "binary",
@@ -86,13 +87,13 @@ object BinaryPayoff {
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):BinaryPayoff = {
     val formula = Payoff.updateReplacements(inputString)
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-	  
+
     val payoff:List[(Double, Option[List[Double]])] = (fixingInfo.update(formula).jsonNode("payoff") match {
       case None => List.empty
-	  case Some(subnode) if subnode isArray => subnode.map(n => {
+	  case Some(subnode) if subnode isArray => subnode.asScala.map(n => {
 	    val amount = n.parseDouble("amount").getOrElse(Double.NaN)
 	    if (n.get("strike") == null) (amount, None)
-	    else (amount, Some(n.get("strike").map(s => s.parseDouble.getOrElse(Double.NaN)).toList))
+	    else (amount, Some(n.get("strike").asScala.map(s => s.parseDouble.getOrElse(Double.NaN)).toList))
 	  }) (collection.breakOut)
 	    case _ => List.empty
     })
