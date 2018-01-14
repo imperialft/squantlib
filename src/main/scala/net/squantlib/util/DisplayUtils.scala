@@ -3,13 +3,17 @@ package net.squantlib.util
 import org.codehaus.jackson.JsonNode
 import scala.language.implicitConversions
 import scala.annotation.tailrec
+import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging._
 //import com.typesafe.scalalogging.slf4j._
 
-object DisplayUtils extends LazyLogging {
+
+object DisplayUtils { // extends StrictLogging {
    
   var defaultNaNdisplay = "[]"
-  
+
+  val logger = Logger(LoggerFactory.getLogger(getClass.getName))
+
   implicit def stringToExtendedString(s:String) = ExtendedString(s)
   
   case class ExtendedString(s:String) {
@@ -117,11 +121,11 @@ object DisplayUtils extends LazyLogging {
     x
   }
   
-  def standardOutput(s:Any*) = 
+  def standardOutput(s:Any*) =
     if (s.size == 1) logger.info(s.head.toString)
     else logger.info((s.head.toString :: " : " :: s.tail.map(_.toString).toList).mkString(" "))
 
-  def errorOutput(s:Any*) = 
+  def errorOutput(s:Any*) =
     if (s.size == 1) logger.error(s.head.toString)
     else logger.error((s.head.toString :: " : " :: s.tail.map(_.toString).toList).mkString(" "))
 
