@@ -52,7 +52,7 @@ scalacOptions ++= Seq(
   //"-Ywarn-value-discard"
 )
 
-EclipseKeys.skipParents := false
+// EclipseKeys.skipParents := false
 
 // classDirectory in Compile <<= baseDirectory apply ( _ / "target" / "classes" )
 
@@ -61,3 +61,7 @@ classDirectory in Compile := baseDirectory.value / "target" / "classes"
 initialCommands := "import net.squantlib._"
 
 retrieveManaged := false
+
+lazy val jquantlib = RootProject(file("../jquantlib"))
+
+lazy val squantlib = Project(id = "squantlib", base = file(".")).dependsOn(jquantlib)
