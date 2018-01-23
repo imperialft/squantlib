@@ -39,12 +39,12 @@ case class BinaryPayoff(
   override def priceImpl(fixings:Map[String, Double]) = 
     if (payoff.isEmpty || isInvalid) Double.NaN
     else getFixings(fixings) match {
-    case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) => 
-      payoff.map{
-      case (v, None) => v
-      case (v, Some(l)) if fixValues.corresponds(l) {_ >= _} => v
-      case _ => 0.0}.max
-    case _ => Double.NaN
+      case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) =>
+        payoff.map{
+        case (v, None) => v
+        case (v, Some(l)) if fixValues.corresponds(l) {_ >= _} => v
+        case _ => 0.0}.max
+      case _ => Double.NaN
     }
     
   override def priceImpl(fixing:Double) =
