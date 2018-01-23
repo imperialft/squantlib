@@ -46,7 +46,9 @@ case class Callability(
   
   def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && targetRedemption.isDefined && !isFutureFixing
   
-  def isPriceable:Boolean = !triggers.values.exists(v => v.isNaN || v.isInfinity) && !forward.values.exists(v => v.isNaN || v.isInfinity || v <= 0.0000000000001) && forward.keySet.subsetOf(triggers.keySet)
+  def isPriceable:Boolean = !triggers.values.exists(v => v.isNaN || v.isInfinity) &&
+    !forward.values.exists(v => v.isNaN || v.isInfinity || v <= 0.0000000000001)
+  // && forward.keySet.subsetOf(triggers.keySet)
   
   def isEmpty:Boolean = !bermudan && triggers.isEmpty && targetRedemption.isEmpty
   
@@ -93,15 +95,24 @@ case class Callability(
   
   def redemptionNominal = 1.0 + bonusAmount
 
-  def redemptionAmount(f:Map[String, Double]):Double = 
+  def redemptionAmount(f:Map[String, Double]):Double = {
     if (forward.isEmpty) redemptionNominal
-    else if (forward.keySet.subsetOf(f.keySet)) forward.map{case (ul, fk) => redemptionNominal * f(ul) / fk}.min
+    else if (forward.keySet.subsetOf(f.keySet)) forward.map {
+      case (ul, fk) => redemptionNominal * f(ul) / fk
+    }.min
     else Double.NaN
+  }
     
   def fixedRedemptionAmount:Option[Double] = if (isFixed && isProbablyCalled) Some(redemptionAmount(getFixings)) else None
   
   val fixedRedemptionAmountAtTrigger:Double = {
-    if (isForward) redemptionNominal * forward.map{case (k, v) => triggers(k) / v}.min
+    if (isForward) {
+      if (triggers.size == forward.size && forward.keySet.subsetOf(triggers.keySet)) {
+        redemptionNominal * forward.map { case (k, v) => triggers(k) / v }.min
+      } else {
+        Double.NaN
+      }
+    }
     else redemptionNominal
   }
   

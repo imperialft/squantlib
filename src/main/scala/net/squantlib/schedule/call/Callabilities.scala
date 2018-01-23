@@ -137,17 +137,21 @@ object Callabilities {
     case Some(bb) if bb isArray => 
       val optlist = bb.asScala.map{case b =>
         val invertedStrike:Boolean = b.parseInt("inverted_strike").getOrElse(0) == 1
+        val invertedTrigger:Boolean = (invertedStrike || b.parseInt("inverted_trigger").getOrElse(0) == 1)
+        val invertedForward:Boolean = (invertedStrike || b.parseInt("inverted_forward").getOrElse(0) == 1)
+
         val triggerUp = b.parseString("trigger_type").getOrElse("up") == "up"
         val forwardMap = b.getOption("forward").collect{case k => k.parseStringFields}.getOrElse(Map.empty)
         val forward = assignFixings(forwardMap)
         val bonus = b.parseDouble("bonus").getOrElse(0.0)
 
         CallOption(
-          if (invertedStrike) !triggerUp else triggerUp, 
-          if (invertedStrike && forward.keys.forall(_.size == 6)) forward.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap else forward,
+          if (invertedTrigger) !triggerUp else triggerUp,
+          if (invertedForward && forward.keys.forall(_.size == 6)) forward.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap else forward,
           forwardMap,
           bonus,
-          invertedStrike
+          invertedTrigger,
+          invertedForward
         )
 
       }.toList
@@ -184,7 +188,7 @@ object Callabilities {
 
   private def triggerToAssignedTrigger(trigs:List[Map[String, String]], invertedStrikes:List[Boolean])(implicit fixingInfo:FixingInformation):List[Map[String, Double]] =
     (trigs, invertedStrikes).zipped.map{
-      case (trig, inverted) if inverted => 
+      case (trig, inverted) if inverted =>
         val assignedTrig:Map[String, Double] = assignFixings(trig)
         if (inverted && trig.keys.forall(_.size == 6)) {
             assignedTrig.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap
@@ -212,9 +216,12 @@ object Callabilities {
   )(implicit fixingInfo:FixingInformation):Callabilities = {
     
     val bermudans = bermudan(formula, legs)
+
     val trigFormulas:List[Map[String, String]] = triggerList(formula, legs, underlyings)
+
     val callOptions:List[CallOption] = callOptionList(formula, legs)
-    val trigMap:List[Map[String, Double]] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedStrike))
+
+    val trigMap:List[Map[String, Double]] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedTrigger))
     
     val targets:List[Option[Double]] = targetList(formula, legs)
 
@@ -240,10 +247,14 @@ object Callabilities {
           inputString = inputString.updated("forward", callOption.forwardInputString)
         }
         
-        if (callOption.invertedStrike) {
-          inputString = inputString.updated("inverted_strike", 1)
+        if (callOption.invertedTrigger) {
+          inputString = inputString.updated("inverted_trigger", 1)
         }
-        
+
+        if (callOption.invertedForward) {
+          inputString = inputString.updated("inverted_forward", 1)
+        }
+
         inputString = inputString.updated("bonus", callOption.bonus)
           
         Callability(
