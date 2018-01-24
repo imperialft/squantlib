@@ -2,6 +2,7 @@ package net.squantlib.schedule.payoff
 
 import org.codehaus.jackson.map.ObjectMapper
 import net.squantlib.util.DisplayUtils._
+import net.squantlib.util.JsonUtils
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.FixingInformation
 import net.squantlib.util.Date
@@ -178,31 +179,15 @@ case class RangeForwardPayoff(
 
 object RangeForwardPayoff {
 
-  def getStringOrHash(node:JsonNode, s:String, variable:List[String])(implicit fixingInfo:FixingInformation):Map[String, Double] = {
-    node.getOption(s) match {
-      case Some(n) =>
-        n.parseStringFields match {
-          case rs if !rs.isEmpty => rs.map { case (k, v) => (k, fixingInfo.updateCompute(v)) }
-            .collect { case (k, v) => (k, v.getOrElse(Double.NaN)) }
-            .toMap
-          case _ => n.parseDouble match {
-            case Some(v) if variable.size == 1 => Map(variable.head -> v)
-            case _ => Map.empty
-          }
-        }
-      case _ => Map.empty
-    }
-  }
-
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):RangeForwardPayoff = {
     val formula = Payoff.updateReplacements(inputString)
     val fixed = fixingInfo.update(formula)
     val fixedNode = fixed.jsonNode
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-    val triggerHigh:Map[String, Double] = fixedNode.collect{case n => getStringOrHash(n, "triggerhigh", variable)}.getOrElse(Map.empty)
-    val triggerLow:Map[String, Double] = fixedNode.collect{case n => getStringOrHash(n, "triggerlow", variable)}.getOrElse(Map.empty)
-    val strikes:Map[String, Double] = fixedNode.collect{case n => getStringOrHash(n, "strike", variable)}.getOrElse(Map.empty)
+    val triggerHigh:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerhigh", variable)}.getOrElse(Map.empty)
+    val triggerLow:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerlow", variable)}.getOrElse(Map.empty)
+    val strikes:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variable)}.getOrElse(Map.empty)
 
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val forwardInRange:Boolean = formula.parseJsonString("range_type").getOrElse("in") != "out"

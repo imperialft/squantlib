@@ -1,16 +1,18 @@
 package net.squantlib.schedule.payoff
 
 import java.util.{Map => JavaMap}
+
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
-import net.squantlib.util.FormulaParser
+import net.squantlib.util.{Date, FixingInformation, FormulaParser, JsonUtils}
 import net.squantlib.database.DB
-import net.squantlib.util.FixingInformation
-import net.squantlib.util.Date
 import net.squantlib.model.market.Market
+
 import scala.Option.option2Iterable
 import net.squantlib.schedule.CalculationPeriod
 import net.squantlib.schedule.FixingLeg
+import org.codehaus.jackson.JsonNode
+
 import scala.reflect.ClassTag
 import scala.collection.JavaConverters._
 import org.codehaus.jackson.map.ObjectMapper
@@ -242,6 +244,18 @@ object Payoff {
 	    case None => {}
 	  }
     result
+  }
+
+  def nodeToComputedMap(node:JsonNode, s:String, variable:List[String])(implicit fixingInfo:FixingInformation):Map[String, Double] = {
+    node.getOption(s) match {
+      case Some(n) =>
+        JsonUtils.nodeToHashMap(n, variable)
+          .filter{case (k, v) => v != null && v != "null"}
+          .map{case (k, v) => (k, fixingInfo.updateCompute(v))}
+          .collect { case (k, v) => (k, v.getOrElse(Double.NaN)) }
+          .toMap
+      case _ => Map.empty
+    }
   }
 
 }

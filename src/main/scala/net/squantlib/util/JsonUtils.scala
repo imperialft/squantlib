@@ -37,7 +37,20 @@ object JsonUtils {
   } catch {case e:Throwable => 
     errorOutput("failed to create json node from : " + list.toString)
     newArrayNode}
-   
+
+  def nodeToHashMap(node:JsonNode, hashKeys:List[String]):Map[String, String] = {
+    node.parseStringFields match {
+      case rs if !rs.isEmpty => rs
+      case _  => node.parseStringList match {
+        case ls if ls.size == hashKeys.size => (hashKeys, ls).zipped.collect{case (k, Some(v)) => (k, v)}.toMap
+        case _ => node.parseString match {
+          case Some(v) if hashKeys.size == 1 => Map(hashKeys.head -> v)
+          case _ => Map.empty
+        }
+      }
+    }
+  }
+
   case class ExtendedJson(node:JsonNode) {
     
     def hasName(name:String):Boolean = (node != null) && (node has name)
@@ -267,8 +280,7 @@ object JsonUtils {
   }
   
   def jsonString(obj:Any):String = try {(new ObjectMapper).writeValueAsString(toJavaCollection(obj))} catch {case e:Throwable => ""}
-  
 
-} 
+}
 
 
