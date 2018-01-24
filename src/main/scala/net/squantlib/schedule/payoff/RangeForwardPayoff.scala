@@ -1,16 +1,14 @@
 package net.squantlib.schedule.payoff
 
-import scala.collection.JavaConversions._
 import org.codehaus.jackson.map.ObjectMapper
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
-import java.util.{Map => JavaMap}
 import net.squantlib.util.FixingInformation
 import net.squantlib.util.Date
 import net.squantlib.schedule.CalculationPeriod
 import scala.reflect.ClassTag
 import org.codehaus.jackson.JsonNode
-
+import scala.collection.JavaConverters._
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -49,7 +47,7 @@ case class RangeForwardPayoff(
   }
 
   trait FixingInterpreter[T] {
-    def isKnockIn(fixings:T):Boolean // Method to be implemented
+    def isKnockIn(fixings:T):Option[Boolean] // Method to be implemented
     def price(fixings:T, isKnockedIn:Boolean):Double // Method to be implemented
 
     def price(fixings:T):Double = {
@@ -57,7 +55,10 @@ case class RangeForwardPayoff(
         if (isFixed) price(fixings, knockedIn)
         else Double.NaN
       }
-      else price(fixings, isKnockIn(fixings))
+      else isKnockIn(fixings) match {
+        case Some(ki) => price(fixings, ki)
+        case _ => Double.NaN
+      }
     }
 
     def price(fixings:List[T]):Double = {
@@ -66,58 +67,19 @@ case class RangeForwardPayoff(
           if (physical) {
             val fixingSize = fixings.length
             if (isFixed) price(lastFixing, knockedIn)
-            else if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings(fixings.length - 2)))
+            else if (fixingSize >= 2) isKnockIn(fixings(fixings.length - 2)) match {
+              case Some(ki) => price(lastFixing, ki)
+              case _ => Double.NaN
+            }
             else Double.NaN
           }
-          else price(lastFixing, isKnockIn(lastFixing))
+          else isKnockIn(lastFixing) match {
+            case Some(ki) => price(lastFixing, ki)
+            case _ => Double.NaN
+          }
         case None => Double.NaN
       }
     }
-
-//    def priceSingle(fixing:Double, isKnockedIn:Boolean):Double = {
-//      if (variables.size != 1) Double.NaN
-//      else if (!isKnockedIn) 1.0
-//      else if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
-//      else strikes.head match {
-//        case Some(v) => fixing / v
-//        case _ => Double.NaN
-//      }
-//    }
-//
-//    def isKnockInSingle(fixing:Double):Boolean = {
-//      if (knockedIn || variables.size != 1) true
-//      else {
-//        val r = (triggerLow.head, triggerHigh.head) match {
-//          case (Some(l), Some(h)) => fixing >= l && fixing <= h
-//          case (None, Some(h)) => fixing <= h
-//          case (Some(l), None) => fixing >= l
-//          case (None, None) => true
-//        }
-//        if (forwardInRange) r else !r
-//      }
-//    }
-//
-//    def price(fixings:T):Double = {
-//      if (physical) {
-//        if (isFixed) price(fixings, knockedIn)
-//        else Double.NaN
-//      }
-//      else price(fixings, isKnockIn(fixings))
-//    }
-//
-//    def price(fixings:List[T]):Double = {
-//      fixings.lastOption match {
-//        case Some(lastFixing) =>
-//          if (physical) {
-//            val fixingSize = fixings.length
-//            if (isFixed) price(lastFixing, knockedIn)
-//            else if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings(fixings.length - 2)))
-//            else Double.NaN
-//          }
-//          else price(lastFixing, isKnockIn(lastFixing))
-//        case None => Double.NaN
-//      }
-//    }
   }
 
   implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
@@ -127,13 +89,15 @@ case class RangeForwardPayoff(
       vs.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) &&
       isPriceable
 
-    override def isKnockIn(fixings:Map[String, Double]):Boolean = {
-      if (knockedIn) true
+    override def isKnockIn(fixings:Map[String, Double]):Option[Boolean] = {
+      if (knockedIn) Some(true)
       else if (validFixings(fixings, triggerVariables)) {
         val r = triggerLow.forall{case (ul, v) => fixings(ul) >= v} && triggerHigh.forall{case (ul, v) => fixings(ul) <= v}
-        if (forwardInRange) r else !r
+        if (forwardInRange) Some(r) else Some(!r)
       }
-      else true
+      else {
+        None
+      }
     }
 
     def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
@@ -146,12 +110,12 @@ case class RangeForwardPayoff(
 
   implicit object DoubleInterpreter extends FixingInterpreter[Double] {
 
-    override def isKnockIn(fixing:Double):Boolean = {
-      if (variables.size > 1) true
+    override def isKnockIn(fixing:Double):Option[Boolean] = {
+      if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) None
       else {
         val r = triggerLow.values.headOption.collect{case v => fixing >= v}.getOrElse(true) &&
           triggerHigh.values.headOption.collect{case v => fixing <= v}.getOrElse(true)
-        if (forwardInRange) r else !r
+        if (forwardInRange) Some(r) else Some(!r)
       }
     }
 
@@ -187,53 +151,25 @@ case class RangeForwardPayoff(
   }
 
   def checkKnockIn:Unit = {
-    knockedIn = implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)
+    knockedIn = (implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)).getOrElse(false)
   }
-
-
-
-//  override def priceImpl(fixings:Map[String, Double]) =
-//    fixings.get(variable) match {
-//      case Some(v) if !v.isNaN && !v.isInfinity => priceImpl(v)
-//      case None => Double.NaN
-//    }
-//
-//  private def satisfyRange(fixing:Double):Boolean = {
-//    val r = (triggerLow, triggerHigh) match {
-//      case (Some(l), Some(h)) => fixing >= l && fixing <= h
-//      case (None, Some(h)) => fixing <= h
-//      case (Some(l), None) => fixing >= l
-//      case (None, None) => true
-//    }
-//    if (forwardInRange) r else !r
-//  }
-//
-//  override def priceImpl(fixing:Double):Double =
-//    if (satisfyRange(fixing)) fixing / strike
-//    else 1.0
-//
-//  override def clearFixings = {
-//    super.clearFixings
-//    knockedIn = false
-//  }
-//
 
   override def toString =
     nominal.asPercent +
       " [" + triggerLow.mkString(",") + "] " +
       " [" + triggerHigh.mkString(",") + "] " +
       nominal.asPercent +
-      " x Min([" + variables.mkString(",") + "] / [" + strikes.mkString(",") + "])"
+      " x Min([" + strikeVariables.mkString(",") + "] / [" + strikes.mkString(",") + "])"
 
 //  override def priceImpl = Double.NaN
 
   override def jsonMapImpl = {
     Map(
       "type" -> "rangeforward",
-      "variable" -> (triggerLow.keySet ++ triggerHigh.keySet ++ strikes.keySet),
-      "triggerlow" -> triggerLow,
-      "triggerhigh" -> triggerHigh,
-      "strike" -> strikes,
+      "variable" -> (triggerLow.keySet ++ triggerHigh.keySet ++ strikes.keySet).asJava,
+      "triggerlow" -> triggerLow.asJava,
+      "triggerhigh" -> triggerHigh.asJava,
+      "strike" -> strikes.asJava,
       "description" -> description
     )
   }

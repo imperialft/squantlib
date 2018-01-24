@@ -21,7 +21,8 @@ import net.squantlib.model.market.Market
 case class PutDIAmericanPayoff(
     putVariables:List[String], 
     trigger:List[Double], 
-    strike:List[Double], 
+    strike:List[Double],
+    finalTrigger:List[Double],
     refstart:Date, 
     refend:Date, 
     var knockedIn:Boolean,
@@ -39,7 +40,16 @@ case class PutDIAmericanPayoff(
   val strikeMap:Map[String, Double] = (putVariables zip strike) (collection.breakOut)
    
   val triggerMap:Map[String, Double] = (putVariables zip trigger) (collection.breakOut)
-  
+
+  val finalTriggerMap:Map[String, Double] = (putVariables zip finalTrigger) (collection.breakOut)
+
+  val strikeOrFinalTriggerMap:Map[String, Double] = (strikeMap.keySet ++ finalTriggerMap.keySet).map(v => (strikeMap.get(v), finalTriggerMap.get(v)) match {
+    case (Some(s), Some(t)) => (v, Math.min(s, t))
+    case (None, Some(t)) => (v, t)
+    case (Some(s), None) => (v, s)
+    case _ => (v, Double.NaN)
+  }).toMap
+
   override val isPriceable:Boolean = 
     !trigger.exists(v => v.isNaN || v.isInfinity) && 
     !strike.exists(v => v.isNaN || v.isInfinity) && 
@@ -119,7 +129,7 @@ case class PutDIAmericanPayoff(
 
     override def minBelowStrike(fixings:Map[String, Double]):Boolean = {
       variables.exists(p => fixings.get(p) match { 
-        case Some(v) if strikeMap.contains(p) => v <= strikeMap(p) 
+        case Some(v) if strikeOrFinalTriggerMap.contains(p) => v <= strikeOrFinalTriggerMap(p)
         case _ => false
       })
     }
@@ -137,16 +147,16 @@ case class PutDIAmericanPayoff(
 
     override def isKnockIn(fixing:Double):Boolean = knockedIn || fixing <= trigger.head
 
-    override def minBelowStrike(fixing:Double):Boolean = fixing <= strike.head
+    override def minBelowStrike(fixing:Double):Boolean = strikeOrFinalTriggerMap.values.headOption.collect{case s => fixing <= s}.getOrElse(true)
 
     override def price(fixing:Double, isKnockedIn:Boolean):Double = 
       if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
       else if (physical) {
-        if (isKnockedIn) fixing / strike.head
+        if (isKnockedIn) strikeMap.values.headOption.collect{case s => fixing / s}.getOrElse(Double.NaN)
         else 1.0
       }
       else {
-        if (isKnockedIn && (forward || minBelowStrike(fixing))) fixing / strike.head
+        if (isKnockedIn && (forward || minBelowStrike(fixing))) strikeMap.values.headOption.collect{case s => fixing / s}.getOrElse(Double.NaN)
         else 1.0
       }
     }
@@ -215,6 +225,13 @@ object PutDIAmericanPayoff {
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
     val trigger:List[Double] = fixed.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
     val strike:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+
+    val finalTrigger:List[Double] = {
+      val inputValues:List[Option[Double]] = fixed.parseJsonDoubleList("final_strike")
+      if (inputValues.size == trigger.size) (inputValues, trigger).zipped.map{case (i, t) => (i.getOrElse(t))}
+      else trigger
+    }
+
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val refstart:Date = formula.parseJsonDate("refstart").orNull
     val refend:Date = formula.parseJsonDate("refend").orNull
@@ -225,7 +242,7 @@ object PutDIAmericanPayoff {
     
     val knockedIn:Boolean = false
     
-    PutDIAmericanPayoff(variable, trigger, strike, refstart, refend, knockedIn, physical, forward, closeOnly, amount, description, inputString)
+    PutDIAmericanPayoff(variable, trigger, strike, finalTrigger, refstart, refend, knockedIn, physical, forward, closeOnly, amount, description, inputString)
   }
   
 }
