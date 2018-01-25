@@ -45,7 +45,7 @@ class PutDIPayoff(
     if (!isPriceable) List(period.endDate)
     else if (physical) List(period.eventDate, period.paymentDate)
     else List(period.eventDate)
-  } 
+  }
 
   override def priceImpl(fixings:List[Map[String, Double]]):Double = priceList(fixings.takeRight(2))
 
@@ -240,9 +240,6 @@ object PutDIPayoff {
     val fixed = fixingInfo.update(formula)
     val fixedNode = fixed.jsonNode
 
-//    val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-//    val trigger:List[Double] = fixed.parseJsonDoubleList("trigger").map(_.getOrElse(Double.NaN))
-//    val strike:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
     val triggers:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables)}.getOrElse(Map.empty)
     val strikes:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables)}.getOrElse(Map.empty)
