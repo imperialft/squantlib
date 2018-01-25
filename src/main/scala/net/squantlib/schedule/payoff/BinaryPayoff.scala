@@ -83,18 +83,20 @@ object BinaryPayoff {
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val payoff:List[(Double, Map[String, Double])] = fixingInfo.update(formula).jsonNode("payoff") match {
-      case None => List.empty
+    val payoffs:Set[(Double, Map[String, Double])] = fixingInfo.update(formula).jsonNode("payoff") match {
+      case None => Set.empty
   	  case Some(subnode) if subnode isArray => subnode.asScala.map(n => {
         val amount = n.parseDouble("amount").getOrElse(Double.NaN)
-        if (n.get("strike") == null) (amount, None)
-        else (amount, Some(n.get("strike").asScala.map(s => s.parseDouble.getOrElse(Double.NaN)).toList))
+        val strikes = Payoff.nodeToComputedMap(n, "strike", variable)
+        (amount, strikes)
+//        if (n.get("strike") == null) (amount, None)
+//        else (amount, Some(n.get("strike").asScala.map(s => s.parseDouble.getOrElse(Double.NaN)).toList))
       }) (collection.breakOut)
-	    case _ => List.empty
+	    case _ => Set.empty
     }
 	  
     val description:String = formula.parseJsonString("description").orNull
-	  BinaryPayoff(variable, payoff, description, inputString)
+	  BinaryPayoff(payoffs, description, inputString)
   }
   
 }
