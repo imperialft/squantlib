@@ -1,10 +1,7 @@
 package net.squantlib.schedule.payoff
 
-import scala.collection.JavaConversions._
-import org.codehaus.jackson.map.ObjectMapper
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
-import java.util.{Map => JavaMap}
 import net.squantlib.database.DB
 import net.squantlib.util.Date
 import net.squantlib.schedule.CalculationPeriod
@@ -25,7 +22,7 @@ case class PutDIAmericanPayoff(
     strikes:Map[String, Double],
     finalTriggers:Map[String, Double],
     refstart:Date, 
-    refend:Date, 
+    refend:Date,
     var knockedIn:Boolean,
     override val physical:Boolean,
     forward:Boolean,
@@ -46,7 +43,7 @@ case class PutDIAmericanPayoff(
   }).toMap
 
   override val isPriceable:Boolean =
-    (!triggers.isEmpty || !finalTriggers.isEmpty) &&
+    !triggers.isEmpty &&
     !triggers.values.exists(v => v.isNaN || v.isInfinity) &&
     !strikes.isEmpty &&
     !strikes.values.exists(v => v.isNaN || v.isInfinity) &&
