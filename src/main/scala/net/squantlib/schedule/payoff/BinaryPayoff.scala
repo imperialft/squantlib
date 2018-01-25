@@ -17,13 +17,14 @@ la specification for sum of linear formulas with discrete range.
  * No strike is considered as no low boundary
  */
 case class BinaryPayoff(
-  payoff:Set[(Double, Map[String, Double])],
+  payoff:Set[(Double, Map[String, Double], Map[String, Double])],
   description:String = null,
   inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
 
-  override val variables: Set[String] = payoff.map { case (k, vs) => vs.keySet }.flatten
+  override val variables: Set[String] = payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten
 
-  override val isPriceable: Boolean = !payoff.isEmpty && !payoff.exists { case (k, vs) => k.isNaN || k.isInfinity || vs.exists { case (kk, vv) => vv.isNaN || vv.isInfinity } }
+  override val isPriceable: Boolean = !payoff.isEmpty &&
+    !payoff.exists { case (k, minK, maxK) => k.isNaN || k.isInfinity || minK.exists { case (kk, vv) => vv.isNaN || vv.isInfinity } || maxK.exists { case (kk, vv) => vv.isNaN || vv.isInfinity }}
 
   //  def getFixings(fixings:Map[String, Double]):Option[List[Double]] =
   //    if (variables.toSet subsetOf fixings.keySet)
@@ -32,8 +33,8 @@ case class BinaryPayoff(
 
   override def priceImpl(fixings: Map[String, Double]) = {
     if (isPriceable && (variables subsetOf fixings.keySet) && fixings.values.forall(v => !v.isNaN && !v.isInfinity)) {
-      payoff.map { case (r, kv) =>
-        if (kv.exists { case (k, v) => fixings(k) < v }) 0.0
+      payoff.map { case (r, minK, maxK) =>
+        if (minK.exists { case (k, v) => fixings(k) < v } || maxK.exists{case (k, v) => fixings(k) > v}) 0.0
         else r
       }.max
     } else Double.NaN
@@ -54,8 +55,10 @@ case class BinaryPayoff(
   override def toString =
     if (payoff.isEmpty) description
     else payoff.map{
-      case (v, kr) if kr.isEmpty => v.asPercent
-      case (v, kr) => " [" + kr.values.map(_.asDouble).mkString(",") + "]" + v.asPercent
+      case (v, minK, maxK) if minK.isEmpty && maxK.isEmpty => v.asPercent
+      case (v, minK, maxK) if maxK.isEmpty => " [" + minK.values.map(_.asDouble).mkString(",") + "]" + v.asPercent
+      case (v, minK, maxK) if minK.isEmpty => v.asPercent + " [" + maxK.values.map(_.asDouble).mkString(",") + "]"
+      case (v, minK, maxK) => " [" + minK.values.map(_.asDouble).mkString(",") + "]" + v.asPercent + " [" + maxK.values.map(_.asDouble).mkString(",") + "]"
     }.mkString(" ")
   
   override def priceImpl = Double.NaN
@@ -63,13 +66,15 @@ case class BinaryPayoff(
   override def jsonMapImpl = {
     
     val jsonPayoff:Array[JavaMap[String, AnyRef]] = payoff.map{
-      case (v, kr) if kr.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef]).asJava
-      case (v, kr) => Map("amount" -> v.asInstanceOf[AnyRef], "strike" -> kr.toArray.asInstanceOf[AnyRef]).asJava
+      case (v, minK, maxK) if minK.isEmpty && maxK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef]).asJava
+      case (v, minK, maxK) if maxK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef], "strike" -> minK.toArray.asInstanceOf[AnyRef]).asJava
+      case (v, minK, maxK) if minK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef], "strike_high" -> maxK.toArray.asInstanceOf[AnyRef]).asJava
+      case (v, minK, maxK) => Map("amount" -> v.asInstanceOf[AnyRef], "strike" -> minK.toArray.asInstanceOf[AnyRef], "strike_high" -> maxK.toArray.asInstanceOf[AnyRef]).asJava
     }.toArray
     
     Map(
       "type" -> "binary",
-      "variable" -> payoff.map { case (k, vs) => vs.keySet }.flatten,
+      "variable" -> payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten,
       "description" -> description,
       "payoff" -> jsonPayoff)
   }
@@ -83,12 +88,13 @@ object BinaryPayoff {
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val payoffs:Set[(Double, Map[String, Double])] = fixingInfo.update(formula).jsonNode("payoff") match {
+    val payoffs:Set[(Double, Map[String, Double], Map[String, Double])] = fixingInfo.update(formula).jsonNode("payoff") match {
       case None => Set.empty
   	  case Some(subnode) if subnode isArray => subnode.asScala.map(n => {
         val amount = n.parseDouble("amount").getOrElse(Double.NaN)
         val strikes = Payoff.nodeToComputedMap(n, "strike", variable)
-        (amount, strikes)
+        val strikeHighs = Payoff.nodeToComputedMap(n, "strike_high", variable)
+        (amount, strikes, strikeHighs)
 //        if (n.get("strike") == null) (amount, None)
 //        else (amount, Some(n.get("strike").asScala.map(s => s.parseDouble.getOrElse(Double.NaN)).toList))
       }) (collection.breakOut)
