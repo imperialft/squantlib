@@ -41,7 +41,9 @@ trait UnderlyingParser {
 
   val id:String
   
-  def getUnderlying(mkt:Market):Option[Underlying] 
+  def getUnderlying(mkt:Market):Option[Underlying]
+
+  def getHistorical(priceType:String):TimeSeries
   
   def getHistorical(start:Date, end:Date, priceType:String):TimeSeries
   
