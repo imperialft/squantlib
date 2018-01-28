@@ -205,7 +205,7 @@ object Payoff {
     case f if f.parseDouble.isDefined => "fixed"
     case f if f.startsWith("leps") => "leps1d"
     case f => formula.parseJsonString("type").orNull
-    }
+  }
 
   def isAbsolute(formula:String):Boolean = formula match {
     case f if f.parseDouble.isDefined => false

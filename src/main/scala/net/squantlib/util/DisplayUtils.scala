@@ -21,8 +21,8 @@ object DisplayUtils { // extends StrictLogging {
     
     def parseDouble:Option[Double] = s.trim match {
       case n if n.isEmpty => None
-    case n if n.endsWith("%") => try {Some(n.dropRight(1).toDouble / 100)} catch { case _:Throwable => None}
-    case n => try {Some(n.toDouble)} catch { case _:Throwable => None}
+      case n if n.endsWith("%") => try {Some(n.dropRight(1).toDouble / 100)} catch { case _:Throwable => None}
+      case n => try {Some(n.toDouble)} catch { case _:Throwable => None}
     }     
      
     def textOr(t:String) = if (s == null) t else s
