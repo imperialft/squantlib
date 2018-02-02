@@ -25,7 +25,7 @@ object JsonUtils {
   implicit def jsonToExtendedJson(node:JsonNode) = ExtendedJson(node)
   
   def mapToJson[T <: Any, U <: Any](map:Map[T, U]):JsonNode = mapper.valueToTree(scalaAnyMapToJavaMap(map))
-  
+
   private def isNumber(s:Any):Boolean = try {val t = s.toString.toDouble; true} catch {case e:Throwable => false}
   
   def listToJson(list:List[Any]):JsonNode = try{
@@ -77,8 +77,8 @@ object JsonUtils {
     def parseString:Option[String] = Some(node.asText)
     
     def parseString(name:String):Option[String] = if (hasName(name)) node.get(name).parseString else None
-    
-    
+
+
     def ignoreErr[T](f: =>T):T = {
       val emptyStream = new java.io.PrintStream(new java.io.OutputStream {override def write(b:Int){}})
       System.setErr(emptyStream)
@@ -173,7 +173,11 @@ object JsonUtils {
     def parseChild[A](parent:String, f:JsonNode => A):Option[A] = getOption(parent).collect{case nn => f(nn)}
       
     def toJsonString:String = mapper.writeValueAsString(node)
-    
+
+    def parseMap:Map[String, Any] = try {
+      mapper.convertValue(node, classOf[java.util.HashMap[String, Any]]).asScala.toMap
+    } catch{case e:Throwable => Map.empty}
+
   }
   
   
@@ -208,40 +212,44 @@ object JsonUtils {
     def jsonParserOrElse[T](f:JsonNode => T, alternative:T):T = jsonNode match { case Some(n) => f(n); case _ => alternative}
     
     def parseJson[T] = (new ObjectMapper).readValue(formula, new TypeReference[T]{})
-    
+
     def parseJsonInt:Option[Int] = jsonParser(_.parseInt)
     def parseJsonInt(name:String):Option[Int] = jsonParser(_.parseInt(name))
-    
+
     def parseJsonDouble:Option[Double] = jsonParser(_.parseDouble)
     def parseJsonDouble(name:String):Option[Double] = jsonParser(_.parseDouble(name))
-      
+
     def parseJsonString:Option[String] = jsonParser(_.parseString)
     def parseJsonString(name:String):Option[String] = jsonParser(_.parseString(name))
-    
+
     def parseJsonDate:Option[Date] = jsonParser(_.parseDate)
     def parseJsonDate(name:String):Option[Date] = jsonParser(_.parseDate(name))
-    
+
     def parseJsonObject[T](constructor:Map[String, Any] => T):Option[T] = jsonParser(_.parseObject(constructor))
     def parseJsonObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = jsonParser(_.parseObject(name, constructor))
-    
+
     def parseJsonValueFields:Map[String, Any] = jsonParserOrElse(_.parseValueFields, Map.empty)
     def parseJsonValueFields(name:String):Map[String, Any] = jsonParserOrElse(_.parseValueFields(name), Map.empty)
-    
+
     def parseJsonIntList:List[Option[Int]] = jsonParserOrElse(_.parseIntList, List.empty)
     def parseJsonIntList(name:String):List[Option[Int]] = jsonParserOrElse(_.parseIntList(name), List.empty)
-    
+
     def parseJsonDoubleList:List[Option[Double]] = jsonParserOrElse(_.parseDoubleList, List.empty)
     def parseJsonDoubleList(name:String):List[Option[Double]] = jsonParserOrElse(_.parseDoubleList(name), List.empty)
-    
+
     def parseJsonStringList:List[Option[String]] = jsonParserOrElse(_.parseStringList, List.empty)
     def parseJsonStringList(name:String):List[Option[String]] = jsonParserOrElse(_.parseStringList(name), List.empty)
-    
+
     def parseJsonDoubleFields:Map[String, Double] = jsonParserOrElse(_.parseDoubleFields, Map.empty)
     def parseJsonDoubleFields(name:String):Map[String, Double] = jsonParserOrElse(_.parseDoubleFields(name), Map.empty)
-    
+
     def parseJsonStringFields:Map[String, String] = jsonParserOrElse(_.parseStringFields, Map.empty)
     def parseJsonStringFields(name:String):Map[String, String] = jsonParserOrElse(_.parseStringFields(name), Map.empty)
-    
+
+    def parseJsonToMap:Map[String, Any] = try {
+      (new ObjectMapper).readValue(formula, classOf[java.util.Map[String, Any]]).asScala.toMap
+    } catch {case e:Throwable=> Map.empty}
+
   }
   
   implicit def mapToExtendedMap(m:Map[String, Any]) = ParsingMap(m)

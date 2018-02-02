@@ -208,6 +208,19 @@ object Callabilities {
 	    .collect{case (k, Some(v)) => (k, v)}.toMap
 	   )
 	}
+
+  private def mapList(formula:String, legs:Int):List[Map[String, Any]] = formula.jsonNode match {
+    case Some(bs) if bs.isArray =>
+      val formulaList:List[Map[String, Any]] = bs.asScala.map(_ match {
+        case n if (n.isObject) => n.parseMap
+        case _ => Map.empty[String, Any]
+      }).toList
+
+      List.fill(legs - bs.size - 2)(Map.empty[String, String]) ++ formulaList ++ List.fill(2)(Map.empty[String, Any])
+
+    case _ => List.fill(legs)(Map.empty)
+  }
+
     
   def apply(
 	  formula:String, 
@@ -225,18 +238,24 @@ object Callabilities {
     
     val targets:List[Option[Double]] = targetList(formula, legs)
 
-    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions).map{
-      case (((berm, f), (trig, tgt)), callOption) => 
+    val baseFormulas:List[Map[String, Any]] = mapList(formula, legs)
 
-        var inputString:Map[String, Any] = Map(
-          "type" -> {
-            if (berm) "berm"
-            else if (tgt.isDefined) "target"
-            else if (!f.isEmpty) "trigger"
-            else "unknown"
+
+    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).map{
+      case (((berm, f), (trig, tgt)), (callOption, baseFormula)) =>
+
+        var inputString:Map[String, Any] = baseFormula
+
+        inputString = inputString.updated("type", (
+          if (berm) "berm"
+          else if (tgt.isDefined) "target"
+          else if (!f.isEmpty) "trigger"
+          else baseFormula.get("type") match {
+            case Some(v) => v
+            case _ => "unknown"
           }
-        )
-        
+        ))
+
         if (tgt.isDefined) {
           inputString = inputString.updated("target", tgt.getOrElse(Double.NaN))
         } else if (!f.isEmpty) {
