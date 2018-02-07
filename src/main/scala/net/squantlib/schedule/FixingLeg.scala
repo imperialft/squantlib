@@ -10,7 +10,7 @@ trait FixingLeg {
 	
   val variables:Set[String] // to be implemented
 	
-  def assignFixings(f:Map[String, Double]):Unit = 
+  def assignFixings(f:Map[String, Double]):Unit =
     if ((variables subsetOf f.keySet) || f.isEmpty) preFixings = f
 	
   def assignFixings(f:Double):Unit = if (variables.size == 1) assignFixings(Map(variables.head -> f))

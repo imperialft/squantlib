@@ -16,9 +16,12 @@ case class Callability(
     var accumulatedPayments:Option[Double],
     var simulatedFrontier:Map[String, Double] = Map.empty
   )(implicit val fixingInfo:FixingInformation) extends FixingLeg {
-  
 
-  override val variables = triggers.keySet
+  val triggerVariables = triggers.keySet
+
+  val forwardVariables = forward.keySet
+
+  override val variables = triggerVariables ++ forwardVariables
   
   def triggerInputString:Map[String, String] = inputString.get("trigger") match {
     case Some(trig:Map[_, _]) => trig.map{
@@ -30,7 +33,7 @@ case class Callability(
   
   def isBermuda:Boolean = bermudan 
   
-  def underlyings:List[String] = triggers.keys.toList
+  def underlyings:List[String] = triggers.keys.toList ++ forward.keys.filter(k => !triggers.keySet.contains(k))
   
   def triggerValues(underlyings:List[String]):List[Option[Double]] = underlyings.map(triggers.get)
   
@@ -53,8 +56,8 @@ case class Callability(
   def isEmpty:Boolean = !bermudan && triggers.isEmpty && targetRedemption.isEmpty
   
   def fixedTriggerByTrigger:Option[Boolean] = 
-    if (isFixed && isTrigger) 
-      Some(triggers.forall{case (k, v) => if (triggerUp) v <= getFixings(k) else v >= getFixings(k)}) 
+    if (isFixed && isTrigger)
+      Some(triggers.forall{case (k, v) => if (triggerUp) v <= getFixings(k) else v >= getFixings(k)})
     else None
   
   def fixedTriggerByTargetRedemption:Option[Boolean] = (targetRedemption, accumulatedPayments) match {
