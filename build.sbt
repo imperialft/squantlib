@@ -1,8 +1,8 @@
-import AssemblyKeys._
+//import AssemblyKeys._
 
-assemblySettings
+//assemblySettings
 
-jarName in assembly := "squantlib.jar"
+assemblyJarName in assembly := "squantlib.jar"
 
 test in assembly := {}
 
