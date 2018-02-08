@@ -47,13 +47,13 @@ class PutDIPayoff(
     else List(period.eventDate)
   }
 
-  override def priceImpl(fixings:List[Map[String, Double]]):Double = priceList(fixings.takeRight(2))
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = priceList(fixings.takeRight(2))
 
-  override def priceImpl[T:ClassTag](fixings:List[Double]):Double = priceList(fixings.takeRight(2))
+  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings.takeRight(2))
 
 
   override def toString =
-    nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Amer) " + nominal.asPercent +
+    nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Eur) " + nominal.asPercent +
       " x Min([" + variables.mkString(",") + "] / [" + strikes.values.map(_.asDouble).mkString(",") + "])"
 
   override def jsonMapImpl = Map(

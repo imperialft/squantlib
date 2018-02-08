@@ -152,17 +152,17 @@ case class PutDIAmericanPayoff(
   
   def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
 
-  override def priceImpl(fixings:List[Map[String, Double]]):Double = priceList(fixings)
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = priceList(fixings)
 
-  override def priceImpl(fixings:Map[String, Double]):Double = priceSingle(fixings)
+  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = priceSingle(fixings)
   
-  override def priceImpl[T:ClassTag](fixings:List[Double]):Double = priceList(fixings)
+  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings)
   
-  override def priceImpl(fixing:Double):Double = priceSingle(fixing)
+  override def priceImpl(fixing:Double, pastPayments:List[Double]):Double = priceSingle(fixing)
 
   override def priceImpl = Double.NaN
 
-  override def priceImpl(market:Market):Double = price(List.fill(2)(market.getFixings(variables)))
+  override def priceImpl(market:Market, pastPayments:List[Double]):Double = price(List.fill(2)(market.getFixings(variables)), pastPayments)
 
   override def toString =
     nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Amer) " + nominal.asPercent +

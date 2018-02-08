@@ -140,7 +140,6 @@ case class ScheduledPayoffs(
     if (calls.isTrigger) {
       if (calls.isPriceable){
         val trig:List[Option[Double]] = calls.calls.map(_.triggers.values.headOption)
-        
         payoffs.price(priceMapper(fixings), trig, calls.triggerUps, bonusRates, fwdstk, calls.targetRedemptions, schedule.dayCounts, None)
       }
       else List.fill(fixings.size)(Double.NaN)

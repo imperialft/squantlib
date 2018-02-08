@@ -202,10 +202,10 @@ trait Priceable extends ExtendedSchedule with Cloneable {
     else if (coupon isEmpty) Some(0.0)
     else livePayoffs.filter{case (d, p, _) => !d.isRedemption} match {
       case po if po.size == 1 && po.head._1.paymentDate == terminationDate =>
-        po.head match {case (dd, pp, _) => Some(Date.daycount(dd.startDate, mkt.valuedate, dd.daycounter) * pp.price(mkt))}
+        po.head match {case (dd, pp, _) => Some(Date.daycount(dd.startDate, mkt.valuedate, dd.daycounter) * pp.price(mkt, List.empty))}
       case po => po.filter{case (dd, pp, _) => (dd.isCurrentPeriod(mkt.valuedate))} match {
         case pos if pos.isEmpty => Some(0.0)
-        case pos => Some(pos.map{case (ddd, ppp, _) => (ddd.accrued(mkt.valuedate)) * ppp.price(mkt)}.sum)
+        case pos => Some(pos.map{case (ddd, ppp, _) => (ddd.accrued(mkt.valuedate)) * ppp.price(mkt, List.empty)}.sum)
     }})
     
   /*  
@@ -310,7 +310,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    */
   def currentRate:Option[Double] = 
     if (liveCoupons.isEmpty || market.isEmpty) None
-    else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (_, p, _) => p.price(market.get) match {
+    else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (_, p, _) => p.price(market.get, List.empty) match {
       case pr if pr.isNaN || pr.isInfinity => None
       case pr => Some(pr)
     }}
@@ -321,7 +321,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    */
   def nextPayment:Option[(Date, Double)] = 
     if (liveCoupons.isEmpty || market.isEmpty) None
-    else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => (d.dayCount * p.price(market.get)) match {
+    else liveCoupons.minBy{case (d, _, _) => d.paymentDate} match {case (d, p, _) => (d.dayCount * p.price(market.get, List.empty)) match {
       case pr if pr.isNaN || pr.isInfinity => None
       case pr => Some((d.paymentDate, pr))
    }}

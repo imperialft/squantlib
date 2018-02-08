@@ -131,13 +131,13 @@ case class RangeForwardPayoff(
 
   def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
 
-  override def priceImpl(fixings:List[Map[String, Double]]):Double = priceList(fixings)
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = priceList(fixings)
 
-  override def priceImpl(fixings:Map[String, Double]):Double = priceSingle(fixings)
+  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = priceSingle(fixings)
 
-  override def priceImpl[T:ClassTag](fixings:List[Double]):Double = priceList(fixings)
+  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings)
 
-  override def priceImpl(fixing:Double):Double = priceSingle(fixing)
+  override def priceImpl(fixing:Double, pastPayments:List[Double]):Double = priceSingle(fixing)
 
   override def priceImpl = Double.NaN
 

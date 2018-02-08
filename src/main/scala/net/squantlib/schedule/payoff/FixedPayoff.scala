@@ -22,9 +22,9 @@ case class FixedPayoff(
   
   override val isFixed = true
    
-  override def priceImpl(fixings:Map[String, Double]) = payoff
+  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]) = payoff
   
-  override def priceImpl(fixing:Double) = payoff
+  override def priceImpl(fixing:Double, pastPayments:List[Double]) = payoff
   
   override def priceImpl = payoff
   

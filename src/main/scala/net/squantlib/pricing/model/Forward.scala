@@ -1,25 +1,38 @@
 package net.squantlib.pricing.model
 
 import net.squantlib.model.market.Market
-import net.squantlib.schedule.payoff.Payoffs
-import net.squantlib.schedule.{ScheduledPayoffs, CalculationPeriod, Schedule}
+import net.squantlib.schedule.payoff.{Payoff, Payoffs}
+import net.squantlib.schedule.{CalculationPeriod, Schedule, ScheduledPayoffs}
 import net.squantlib.pricing.mcengine._
 import net.squantlib.model.index.Index
 import net.squantlib.model.asset.Underlying
 import net.squantlib.model.bond.PriceableBond
 import net.squantlib.util.JsonUtils._
 import net.squantlib.model.rates.DiscountCurve
+import net.squantlib.schedule.call.Callability
 import net.squantlib.util.Date
+
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import org.codehaus.jackson.JsonNode
+
+import scala.annotation.tailrec
 
 
 case class Forward(
     valuedate:Date, 
     scheduledPayoffs:ScheduledPayoffs,
     underlyings:List[Underlying]) extends PricingModel {
-	
-	override def calculatePrice:List[Double] = scheduledPayoffs.map{case (d, p, c) => p.price(underlyings.map(_.forward(d.eventDate)))} (collection.breakOut)
+
+	@tailrec private def calculatePriceRec(remainSchedule: List[(CalculationPeriod, Payoff, Callability)], acc: List[Double]): List[Double] = remainSchedule.headOption match {
+		case Some((d, p, c)) => calculatePriceRec(remainSchedule.tail, p.price(underlyings.map(_.forward(d.eventDate)), acc) :: acc)
+		case None => acc.reverse
+	}
+
+	override def calculatePrice:List[Double] = calculatePriceRec(scheduledPayoffs.toList, List.empty)
+
+	//	override def calculatePrice:List[Double] = scheduledPayoffs.map{case (d, p, c) =>
+//		p.price(underlyings.map(_.forward(d.eventDate)))
+//	} (collection.breakOut)
 	
 	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)
 	

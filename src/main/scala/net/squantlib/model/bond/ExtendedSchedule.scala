@@ -4,10 +4,13 @@ import net.squantlib.util.Date
 import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
 import net.squantlib.util.SimpleCache
 import net.squantlib.pricing.model.PricingModel
-import net.squantlib.schedule.call.Callabilities
-import net.squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
+import net.squantlib.schedule.call.{Callability, Callabilities}
+import net.squantlib.schedule.{CalculationPeriod, ScheduledPayoffs}
+import net.squantlib.schedule.payoff.Payoff
 import net.squantlib.model.market.Market
 import net.squantlib.database.DB
+
+import scala.annotation.tailrec
 
 /**
  * Bond class with enclosed risk analysis functions.
@@ -85,15 +88,23 @@ trait ExtendedSchedule {
   /*  
    * Returns coupons fixed with current spot market (not forward!). 
    */
+
+
+  @tailrec private def spotFixedRateRec(remainSchedule: List[(CalculationPeriod, Payoff, Callability)], acc: List[(CalculationPeriod, Double)]): List[(CalculationPeriod, Double)] = (remainSchedule.headOption, market) match {
+    case (None, _) => acc.reverse
+    case (Some((d, p, c)), Some(mkt)) => spotFixedRateRec(remainSchedule.tail, (d, p.price(mkt, acc.map{case (d, v) => v})) :: acc)
+    case (Some((d, p, c)), None) => spotFixedRateRec(remainSchedule.tail, (d, Double.NaN) :: acc)
+  }
+
   def spotFixedRates:List[(CalculationPeriod, Double)] = {
-    def retrieverfunc:List[(CalculationPeriod, Double)] = 
-      livePayoffs.map{case (d, p, _) => 
-        (d, market match { 
-          case Some(mkt) => p.price(mkt) 
-          case None => Double.NaN})}(collection.breakOut)
-          
-    if (cache == null) retrieverfunc
-    else cache.getOrUpdate("SPOTFIXEDRATES",retrieverfunc)
+    //    def retrieverfunc:List[(CalculationPeriod, Double)] =
+    //      livePayoffs.map{case (d, p, _) =>
+    //        (d, market match {
+    //          case Some(mkt) => p.price(mkt)
+    //          case None => Double.NaN})}(collection.breakOut)
+
+    if (cache == null) spotFixedRateRec(livePayoffs.toList, List.empty)
+    else cache.getOrUpdate("SPOTFIXEDRATES", spotFixedRateRec(livePayoffs.toList, List.empty))
   }
     
   def spotFixedRates(vd:Date):List[(CalculationPeriod, Double)] = spotFixedRates.filter{case (p, d) => (p.paymentDate gt vd)}
@@ -103,8 +114,10 @@ trait ExtendedSchedule {
   def spotFixedAmount(vd:Date):List[(Date, Double)] = spotFixedAmount.filter{case (d, _) => (d gt vd)}
     
   def spotFixedRatesAll:List[(CalculationPeriod, Double)] = cache.getOrUpdate("SPOTFIXEDRATESALL",
-      scheduledPayoffs.map{case (d, p, _) =>
-        (d, market.collect{case mkt => p.price(mkt)}.getOrElse(Double.NaN))} (collection.breakOut))
+      spotFixedRateRec(scheduledPayoffs.toList, List.empty)
+//      scheduledPayoffs.map{case (d, p, _) =>
+//        (d, market.collect{case mkt => p.price(mkt)}.getOrElse(Double.NaN))} (collection.breakOut)
+  )
     
   def spotFixedAmountAll:List[(Date, Double)] = spotFixedRatesAll.map{case (period, rate) => (period.paymentDate, rate * period.dayCount * period.nominal)}
   

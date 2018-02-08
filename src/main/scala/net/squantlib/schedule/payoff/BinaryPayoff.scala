@@ -19,19 +19,23 @@ la specification for sum of linear formulas with discrete range.
 case class BinaryPayoff(
   payoff:Set[(Double, Map[String, Double], Map[String, Double])],
   description:String = null,
-  inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
+  inputString:String = null,
+  memory:Boolean = false
+)(implicit val fixingInfo:FixingInformation) extends Payoff {
 
   override val variables: Set[String] = payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten
 
   override val isPriceable: Boolean = !payoff.isEmpty &&
-    !payoff.exists { case (k, minK, maxK) => k.isNaN || k.isInfinity || minK.exists { case (kk, vv) => vv.isNaN || vv.isInfinity } || maxK.exists { case (kk, vv) => vv.isNaN || vv.isInfinity }}
+    !payoff.exists{ case (k, minK, maxK) =>
+      k.isNaN || k.isInfinity || minK.exists{case (kk, vv) => vv.isNaN || vv.isInfinity} || maxK.exists {case (kk, vv) => vv.isNaN || vv.isInfinity}
+    }
 
   //  def getFixings(fixings:Map[String, Double]):Option[List[Double]] =
   //    if (variables.toSet subsetOf fixings.keySet)
   //    Some((0 to binaryVariables.size - 1).map(i => fixings(binaryVariables(i)))(collection.breakOut))
   //    else None
 
-  override def priceImpl(fixings: Map[String, Double]) = {
+  override def priceImpl(fixings: Map[String, Double], pastPayments:List[Double]) = {
     if (isPriceable && (variables subsetOf fixings.keySet) && fixings.values.forall(v => !v.isNaN && !v.isInfinity)) {
       payoff.map { case (r, minK, maxK) =>
         if (minK.exists { case (k, v) => fixings(k) < v } || maxK.exists{case (k, v) => fixings(k) > v}) 0.0
@@ -40,8 +44,8 @@ case class BinaryPayoff(
     } else Double.NaN
   }
 
-  override def priceImpl(fixing:Double) = {
-    if (variables.size == 1) priceImpl(Map(variables.head -> fixing))
+  override def priceImpl(fixing:Double, pastPayments:List[Double]) = {
+    if (variables.size == 1) priceImpl(Map(variables.head -> fixing), pastPayments)
     else Double.NaN
   }
 
@@ -100,7 +104,9 @@ object BinaryPayoff {
       }) (collection.breakOut)
 	    case _ => Set.empty
     }
-	  
+
+    val memory:Boolean = formula.parseJsonString("memory").getOrElse("0") == "1"
+
     val description:String = formula.parseJsonString("description").orNull
 	  BinaryPayoff(payoffs, description, inputString)
   }
