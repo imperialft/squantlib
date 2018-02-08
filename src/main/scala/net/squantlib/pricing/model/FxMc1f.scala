@@ -264,7 +264,7 @@ object FxQtoMc1f {
       errorOutput(bond.id, "non-quanto model not supported by FXQtoMC1 model - " + variable)
       return None}
     
-    val qtofx = market.getFX(bond.currency.code, fx.currencyDom.code).orNull
+    val qtofx = market.getFX(bond.currency.code, fx.currencyDom.code, true).orNull
 
     if (qtofx == null) {
       errorOutput(bond.id, "invalid fx underlying for quanto model - " + qtofx.id + " in market " + market.paramset)

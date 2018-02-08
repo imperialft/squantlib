@@ -23,6 +23,13 @@ object FXflatVol {
 	  case v => Some(new FXflatVol(curveDom, curveFor, v))
 	}
 
+	def constructFromHistorical(curveDom:DiscountCurve, curveFor:DiscountCurve):FX = {
+		FXzeroVol(curveDom, curveFor).historicalVolLatest(260) match {
+			case Some(v) => new FXflatVol(curveDom, curveFor, v)
+			case _ => FXzeroVol(curveDom, curveFor)
+		}
+	}
+
 }
 
 

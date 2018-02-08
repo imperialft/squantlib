@@ -182,20 +182,25 @@ class Market(
    * Returns zero volatility FX object representing the FX exchange rate between given currencies.
    * @param currency code
    */
-  def getFX(ccyFor:String, ccyDom:String) : Option[FX] = {
+  def getFX(ccyFor:String, ccyDom:String) : Option[FX] = getFX(ccyFor, ccyDom, false)
+
+  def getFX(ccyFor:String, ccyDom:String, fallbackToHistoricalVol:Boolean) : Option[FX] = {
     val curveDom = getBaseDiscountCurve(ccyDom)
     val curveFor = getBaseDiscountCurve(ccyFor)
     if ((curveDom isDefined) && (curveFor isDefined)) {
       if (fxInitializers.contains(ccyFor + ccyDom)) fxInitializers(ccyFor + ccyDom).getModel(curveDom.get, curveFor.get)
       else if (fxInitializers.contains(ccyDom + ccyFor)) fxInitializers(ccyDom + ccyFor).getNoSmileModel(curveDom.get, curveFor.get)
+      else if (fallbackToHistoricalVol) Some(FXflatVol.constructFromHistorical(curveDom.get, curveFor.get))
       else Some(FXzeroVol(curveDom.get, curveFor.get))
       }
     else None
   }
-  
-  def getFX(fxpair:String):Option[FX] = {
+
+  def getFX(fxpair:String):Option[FX] = getFX(fxpair, false)
+
+  def getFX(fxpair:String, fallbackToHistoricalVol:Boolean):Option[FX] = {
     if (fxpair == null || fxpair.size != 6) None
-    else getFX(fxpair.substring(0, 3), fxpair.substring(3, 6))
+    else getFX(fxpair.substring(0, 3), fxpair.substring(3, 6), fallbackToHistoricalVol)
   }
   
   /**

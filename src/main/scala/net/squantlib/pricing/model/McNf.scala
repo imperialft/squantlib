@@ -224,7 +224,7 @@ object McNfQto {
 	  
 	  val fxs:List[Option[FX]] = underlyings.map(ul => 
 	    if (ul.currency == bond.currency) None 
-	    else Some(market.getFX(bond.currency.code, ul.currency.code).orNull))
+	    else Some(market.getFX(bond.currency.code, ul.currency.code, true).orNull))
 
 	  if (fxs.exists(_ == Some(null))) {
 	    errorOutput(bond.id, "invalid fx underlying for quanto model - " + underlyings.map(_.currency.code).mkString(", ") + " in market " + market.paramset)
