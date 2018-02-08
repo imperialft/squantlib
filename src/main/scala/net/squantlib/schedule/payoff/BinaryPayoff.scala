@@ -108,7 +108,7 @@ object BinaryPayoff {
     val memory:Boolean = formula.parseJsonString("memory").getOrElse("0") == "1"
 
     val description:String = formula.parseJsonString("description").orNull
-	  BinaryPayoff(payoffs, description, inputString)
+	  BinaryPayoff(payoffs, description, inputString, memory)
   }
   
 }
