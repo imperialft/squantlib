@@ -20,7 +20,8 @@ case class BinaryPayoff(
   payoff:Set[(Double, Map[String, Double], Map[String, Double])],
   description:String = null,
   inputString:String = null,
-  memory:Boolean = false
+  memory:Boolean = false,
+  memoryAmount:Double = 0.0
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
 
   override val variables: Set[String] = payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten
@@ -37,10 +38,15 @@ case class BinaryPayoff(
 
   override def priceImpl(fixings: Map[String, Double], pastPayments:List[Double]) = {
     if (isPriceable && (variables subsetOf fixings.keySet) && fixings.values.forall(v => !v.isNaN && !v.isInfinity)) {
-      payoff.map { case (r, minK, maxK) =>
+      val cpnRate = payoff.map { case (r, minK, maxK) =>
         if (minK.exists { case (k, v) => fixings(k) < v } || maxK.exists{case (k, v) => fixings(k) > v}) 0.0
         else r
       }.max
+
+      if (memory) {
+        cpnRate + pastPayments.takeWhile(pp => pp < memoryAmount - 0.0000001).size.toDouble * memoryAmount
+      } else cpnRate
+
     } else Double.NaN
   }
 
@@ -75,12 +81,15 @@ case class BinaryPayoff(
       case (v, minK, maxK) if minK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef], "strike_high" -> maxK.toArray.asInstanceOf[AnyRef]).asJava
       case (v, minK, maxK) => Map("amount" -> v.asInstanceOf[AnyRef], "strike" -> minK.toArray.asInstanceOf[AnyRef], "strike_high" -> maxK.toArray.asInstanceOf[AnyRef]).asJava
     }.toArray
-    
+
     Map(
       "type" -> "binary",
       "variable" -> payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten,
       "description" -> description,
-      "payoff" -> jsonPayoff)
+      "payoff" -> jsonPayoff,
+      "memory" -> (if (memory) "1" else "0"),
+      "memory_amount" -> memoryAmount
+    )
   }
         
 }
@@ -89,6 +98,7 @@ object BinaryPayoff {
   
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):BinaryPayoff = {
     val formula = Payoff.updateReplacements(inputString)
+    val fixedNode = formula.jsonNode
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
@@ -107,8 +117,12 @@ object BinaryPayoff {
 
     val memory:Boolean = formula.parseJsonString("memory").getOrElse("0") == "1"
 
+    val memoryAmount:Double = formula.parseJsonDouble("memory_amount").getOrElse(0.0)
+
     val description:String = formula.parseJsonString("description").orNull
-	  BinaryPayoff(payoffs, description, inputString, memory)
+
+	  BinaryPayoff(payoffs, description, inputString, memory, memoryAmount)
+
   }
   
 }
