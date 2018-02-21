@@ -29,11 +29,13 @@ case class GeneralPayoff(
   
   val constant:Double = formula.getOrElse(Set.empty, 0.0)
   
-  override def priceImpl(fixing:Double, pastPayments:List[Double]) =
-    if (variables.size == 1 && !fixing.isNaN && !fixing.isInfinity) price(Map(variables.head -> fixing), pastPayments)
-    else Double.NaN
-  
-  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = {
+//  override def priceImpl(fixing:Double, pastPayments:List[Double]) =
+//    if (variables.size == 1 && !fixing.isNaN && !fixing.isInfinity) price(Map(variables.head -> fixing), pastPayments)
+//    else Double.NaN
+
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]) = fixings.lastOption.collect{case f => priceImpl(f, pastPayments)}.getOrElse(Double.NaN)
+
+  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = {
     if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN || fixings(v).isInfinity)) {return Double.NaN}
     
     var rate = formula.map{

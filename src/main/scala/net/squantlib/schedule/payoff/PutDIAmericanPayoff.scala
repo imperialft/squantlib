@@ -130,39 +130,39 @@ case class PutDIAmericanPayoff(
 
   }
   
-  implicit object DoubleInterpreter extends FixingInterpreter[Double] {
-
-    override def isKnockIn(fixing:Double):Boolean = knockedIn || triggers.values.headOption.collect{case t => fixing <= t}.getOrElse(false)
-
-    override def minBelowStrike(fixing:Double):Boolean = strikeOrFinalTriggers.values.headOption.collect{case s => fixing <= s}.getOrElse(true)
-
-    override def price(fixing:Double, isKnockedIn:Boolean):Double = 
-      if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
-      else if (physical) {
-        if (isKnockedIn) strikes.values.headOption.collect{case s => fixing / s}.getOrElse(Double.NaN)
-        else 1.0
-      }
-      else {
-        if (isKnockedIn && (forward || minBelowStrike(fixing))) strikes.values.headOption.collect{case s => fixing / s}.getOrElse(Double.NaN)
-        else 1.0
-      }
-    }
+//  implicit object DoubleInterpreter extends FixingInterpreter[Double] {
+//
+//    override def isKnockIn(fixing:Double):Boolean = knockedIn || triggers.values.headOption.collect{case t => fixing <= t}.getOrElse(false)
+//
+//    override def minBelowStrike(fixing:Double):Boolean = strikeOrFinalTriggers.values.headOption.collect{case s => fixing <= s}.getOrElse(true)
+//
+//    override def price(fixing:Double, isKnockedIn:Boolean):Double =
+//      if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
+//      else if (physical) {
+//        if (isKnockedIn) strikes.values.headOption.collect{case s => fixing / s}.getOrElse(Double.NaN)
+//        else 1.0
+//      }
+//      else {
+//        if (isKnockedIn && (forward || minBelowStrike(fixing))) strikes.values.headOption.collect{case s => fixing / s}.getOrElse(Double.NaN)
+//        else 1.0
+//      }
+//    }
   
-  def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
+//  def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
   
   def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
 
   override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = priceList(fixings)
 
-  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = priceSingle(fixings)
+//  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = priceSingle(fixings)
   
-  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings)
-  
-  override def priceImpl(fixing:Double, pastPayments:List[Double]):Double = priceSingle(fixing)
+//  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings)
+
+//  override def priceImpl(fixing:Double, pastPayments:List[Double]):Double = priceSingle(fixing)
 
   override def priceImpl = Double.NaN
 
-  override def priceImpl(market:Market, pastPayments:List[Double]):Double = price(List.fill(2)(market.getFixings(variables)), pastPayments)
+//  override def priceImpl(market:Market, pastPayments:List[Double]):Double = price(List.fill(2)(market.getFixings(variables)), pastPayments)
 
   override def toString =
     nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Amer) " + nominal.asPercent +
@@ -196,10 +196,13 @@ case class PutDIAmericanPayoff(
         
         val historicalPrices = if (closeOnly) DB.getHistorical(v, refstart, refend) else DB.getHistorical(v, refstart, refend) ++ DB.getHistoricalLow(v, refstart, refend)
         
-        historicalPrices match {
-          case hs if hs.isEmpty => false
-          case hs if hs.get(refend).isDefined => implicitly[FixingInterpreter[Double]] isKnockIn(hs.values.toList)
-          case hs => hs.exists{case (_, x) => x <= trig}
+        (historicalPrices, historicalPrices.values.lastOption) match {
+          case (hs, _) if hs.isEmpty => false
+          case (hs, Some(hsLast)) if hs.get(refend).isDefined => //implicitly[FixingInterpreter[Double]] isKnockIn(hs.values.toList)
+          //    override def isKnockIn(fixing:Double):Boolean = knockedIn || triggers.values.headOption.collect{case t => fixing <= t}.getOrElse(false)
+            hs.values.exists(hp => hp <= trig) && (forward || strikeOrFinalTriggers.get(v).collect{case s => hsLast <= s}.getOrElse(true))
+
+          case (hs, _) => hs.exists{case (_, x) => x <= trig}
         }
       }
   }

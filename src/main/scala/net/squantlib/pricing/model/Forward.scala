@@ -24,7 +24,9 @@ case class Forward(
     underlyings:List[Underlying]) extends PricingModel {
 
 	@tailrec private def calculatePriceRec(remainSchedule: List[(CalculationPeriod, Payoff, Callability)], acc: List[Double]): List[Double] = remainSchedule.headOption match {
-		case Some((d, p, c)) => calculatePriceRec(remainSchedule.tail, p.price(underlyings.map(_.forward(d.eventDate)), acc) :: acc)
+		case Some((d, p, c)) =>
+      val forwardPrices = p.eventDates(d).map(dd => underlyings.map(ul => (ul.id, ul.forward(dd))).toMap).toList
+			calculatePriceRec(remainSchedule.tail, p.price(forwardPrices, acc) :: acc)
 		case None => acc.reverse
 	}
 

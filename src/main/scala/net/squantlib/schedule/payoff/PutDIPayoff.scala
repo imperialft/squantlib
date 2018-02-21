@@ -49,7 +49,7 @@ class PutDIPayoff(
 
   override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = priceList(fixings.takeRight(2))
 
-  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings.takeRight(2))
+//  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings.takeRight(2))
 
 
   override def toString =

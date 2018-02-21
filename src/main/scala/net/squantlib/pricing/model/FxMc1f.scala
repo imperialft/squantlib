@@ -5,6 +5,7 @@ import net.squantlib.schedule.payoff.{Payoffs, Payoff}
 import net.squantlib.schedule.{ScheduledPayoffs, Schedule, CalculationPeriod}
 import net.squantlib.pricing.mcengine._
 import net.squantlib.model.fx.FX
+import net.squantlib.schedule.call.Callability
 import net.squantlib.model.bond.PriceableBond
 import net.squantlib.util.JsonUtils._
 import net.squantlib.model.rates.DiscountCurve
@@ -30,8 +31,23 @@ case class FxMc1f(valuedate:Date,
   val redemamt = scheduledPayoffs.bonusAmounts.takeRight(trigger.size)
   val triggerUps = scheduledPayoffs.triggerUps
   val forwardStrikes = scheduledPayoffs.forwardStrikes
+  val underlying:String = scheduledPayoffs.underlyings.headOption.getOrElse("")
 
-  override def modelPaths(paths:Int):List[List[Double]] = modelPaths(paths, (p:List[Double]) => scheduledPayoffs.price(p, trigger, redemamt))
+
+  //  def price(fixings:List[Double], trigger:List[Option[Double]])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
+  //    case Some(ul) => price(fixings.map(f => Map(ul -> f)), trigger.map(t => t.collect{case tr => Map(ul -> tr)}))
+  //    case _ => List.fill(payoffs.size)(Double.NaN)
+  //  }
+  ////  payoffs.price(priceMapper(fixings), trigger, triggerUps, bonusRates, forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
+  //
+  //  def price(fixings:List[Double], trigger:List[Option[Double]], trigAmount:List[Double])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
+  //    case Some(ul) => price(fixings.map(f => Map(ul -> f)), trigger.map(t => t.collect{case tr => Map(ul -> tr)}), trigAmount)
+  //    case _ => List.fill(payoffs.size)(Double.NaN)
+  //  }
+  ////  payoffs.price(priceMapper(fixings), trigger, triggerUps, amountToRate(trigAmount), forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
+  val shiftedCalls:List[Callability] = (scheduledPayoffs.calls, trigger, redemamt).zipped.map{case (c, t, r) => c.triggerShifted(t.collect{case tt => Map(underlying -> tt)}.getOrElse(Map.empty), Some(r))}.toList
+
+  override def modelPaths(paths:Int):List[List[Double]] = modelPaths(paths, (p:List[Double]) => scheduledPayoffs.price(p, shiftedCalls))
   
   def modelPaths(paths:Int, pricing:List[Double] => List[Double]):List[List[Double]] = {
     val mcYears = scheduledPayoffs.eventDateYears(valuedate)
@@ -52,7 +68,7 @@ case class FxMc1f(valuedate:Date,
   def mcPrice(paths:Int):List[Double] = {
     try {
       val mcYears = scheduledPayoffs.eventDateYears(valuedate)
-      mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p, trigger, redemamt))
+      mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p, shiftedCalls))
 
 //      if (mcdates.sameElements(mcYears)) mcpaths
 //      else {

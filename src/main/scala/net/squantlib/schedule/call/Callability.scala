@@ -21,6 +21,20 @@ case class Callability(
 
   val forwardVariables = forward.keySet
 
+  def optionalTriggers:Option[Map[String, Double]] = {
+    if (isFixed) {
+      if (isTriggered(getFixings)) Some(triggers.map{case (k, v) => (k, 0.0)})
+      else None
+    }
+    else if (isTrigger) Some(triggers)
+    else None
+  }
+
+  val optionalForwardStrikes = {
+    if (forward.isEmpty) None
+    else Some(forward)
+  }
+
   override val variables = triggerVariables ++ forwardVariables
   
   def triggerInputString:Map[String, String] = inputString.get("trigger") match {
@@ -118,6 +132,26 @@ case class Callability(
     }
     else redemptionNominal
   }
+
+  def triggerShifted(shiftedTriggers: Map[String, Double], shiftedBonusAmount:Option[Double] = None):Callability = Callability(
+    bermudan = bermudan,
+    triggers = shiftedTriggers,
+    triggerUp = triggerUp,
+    targetRedemption = targetRedemption,
+    forward = forward,
+    bonusAmount = shiftedBonusAmount.getOrElse(bonusAmount),
+    inputString = inputString,
+    accumulatedPayments = accumulatedPayments,
+    simulatedFrontier = simulatedFrontier
+  )
+
+
+  //  trigger:List[Option[Map[String, Double]]],
+//  trigUp: List[Boolean],
+//  trigAmount:List[Double],
+//  forwardStrikes: List[Option[Map[String, Double]]],
+//  targets:List[Option[Double]],
+
   
   override def toString:String = 
     List(

@@ -22,7 +22,8 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	  if (c.isTriggered) Some(c.triggers.map{case (k, v) => (k, 0.0)})
 	  else if (c.isFixed) None
 	  else if (c isTrigger) Some(c.triggers) 
-	  else None)
+	  else None
+  )
 
   def forwardStrikes:List[Option[Map[String, Double]]] = calls.map(c => 
     if (c.forward.isEmpty) None

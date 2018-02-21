@@ -68,41 +68,23 @@ trait Payoff extends FixingLeg {
   /*
    * Price assuming all variables fixed at spot market.
    */
-  final def price(market:Market, pastPayments:List[Double]):Double =
-    if (isPaymentFixed) price(getFixings, pastPayments)
-    else if (isPriceable) priceImpl(market, pastPayments)
-    else Double.NaN
 
-  // PAST PAYMENTS ARE REVERSED (recent first)
-  def priceImpl(market:Market, pastPayments:List[Double]):Double = price(market.getFixings(variables), pastPayments)
+  def price(market:Market, pastPayments:List[Double]):Double = {
+    priceFlat(market.getFixings(variables), pastPayments)
+  }
 
-  /*
-   * Price given variable fixings, where set of necessary variables are provided by variables function.
-   */
-  final def price(fixings:Map[String, Double], pastPayments:List[Double]):Double =
-    if (isPaymentFixed) priceImpl(getFixings, pastPayments)
-    else if (isPriceable) priceImpl(fixings, pastPayments)
-    else Double.NaN
+  final def price(market:Market, period:CalculationPeriod, pastPayments:List[Double]):Double = price(market, eventDates(period).size, pastPayments)
 
-  // PAST PAYMENTS ARE REVERSED (recent first)
-  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double
-
-  /*
-   * Returns price if there's only one variable. Returns NaN in case of >1 variables.
-   */
-  final def price(fixing:Double, pastPayments:List[Double]):Double =
-    if (isPaymentFixed) price(getFixings, pastPayments)
-    else if (isPriceable) priceImpl(fixing, pastPayments)
-    else Double.NaN
-
-  // PAST PAYMENTS ARE REVERSED (recent first)
-  def priceImpl(fixing:Double, pastPayments:List[Double]):Double
+  final def price(market:Market, fixingCount:Int, pastPayments:List[Double]):Double = {
+    val mktFixings = market.getFixings(variables)
+    price(List.fill(fixingCount)(mktFixings), pastPayments)
+  }
 
   /*
    * Returns price if there's no variable. Returns NaN in case of >0 variables.
    */
   final def price:Double =
-    if (isPaymentFixed) price(getFixings, List.empty)
+    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), List.empty)
     else if (isPriceable) priceImpl
     else Double.NaN
 
@@ -113,25 +95,56 @@ trait Payoff extends FixingLeg {
    * Only refers to the last variable by default but can be overridden.
    */
   final def price(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double =
-    if (isPaymentFixed) price(getFixings, pastPayments)
+    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), pastPayments)
     else if (isPriceable) priceImpl(fixings, pastPayments)
     else Double.NaN
 
   // PAST PAYMENTS ARE REVERSED (recent first)
-  def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last, pastPayments)
+  def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = if (fixings.isEmpty) price else price(fixings, pastPayments)
+
+  def priceFlat(fixings:Map[String, Double], pastPayments:List[Double]):Double = price(List.fill(2)(fixings), pastPayments)
 
 
+
+
+  // PAST PAYMENTS ARE REVERSED (recent first)
+//  def priceImpl(market:Market, fixingCount:Int, pastPayments:List[Double]):Double = {
+//    val mktFixings = market.getFixings(variables)
+//    price(List.fill(fixingCount)(mktFixings), pastPayments)
+//  }
+
+  /*
+   * Price given variable fixings, where set of necessary variables are provided by variables function.
+   */
+//  final def price(fixings:Map[String, Double], pastPayments:List[Double]):Double =
+//    if (isPaymentFixed) priceImpl(getFixings, pastPayments)
+//    else if (isPriceable) priceImpl(fixings, pastPayments)
+//    else Double.NaN
+
+  // PAST PAYMENTS ARE REVERSED (recent first)
+//  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double
+
+  /*
+   * Returns price if there's only one variable. Returns NaN in case of >1 variables.
+   */
+//  final def price(fixing:Double, pastPayments:List[Double]):Double =
+//    if (isPaymentFixed) price(getFixings, pastPayments)
+//    else if (isPriceable) priceImpl(fixing, pastPayments)
+//    else Double.NaN
+
+  // PAST PAYMENTS ARE REVERSED (recent first)
+//  def priceImpl(fixing:Double, pastPayments:List[Double]):Double
 
   /*
    * Price in case of multiple event dates with only one variable.
    * Only refers to the last variable by default but can be overridden.
    */
-  final def price[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double =
-    if (isPaymentFixed) price(getFixings, pastPayments)
-    else if (isPriceable) priceImpl[T](fixings, pastPayments)
-    else Double.NaN
-
-  def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last, pastPayments)
+//  final def price[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double =
+//    if (isPaymentFixed) price(getFixings, pastPayments)
+//    else if (isPriceable) priceImpl[T](fixings, pastPayments)
+//    else Double.NaN
+//
+//  def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = if (fixings.isEmpty) price else price(fixings.last, pastPayments)
 
   /*
    * Event dates, usually used in case of >1 fixing dates.

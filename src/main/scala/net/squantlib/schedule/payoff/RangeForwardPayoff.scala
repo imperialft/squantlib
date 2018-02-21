@@ -109,35 +109,35 @@ case class RangeForwardPayoff(
 
   }
 
-  implicit object DoubleInterpreter extends FixingInterpreter[Double] {
+//  implicit object DoubleInterpreter extends FixingInterpreter[Double] {
+//
+//    override def isKnockIn(fixing:Double):Option[Boolean] = {
+//      if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) None
+//      else {
+//        val r = triggerLow.values.headOption.collect{case v => fixing >= v}.getOrElse(true) &&
+//          triggerHigh.values.headOption.collect{case v => fixing <= v}.getOrElse(true)
+//        if (forwardInRange) Some(r) else Some(!r)
+//      }
+//    }
+//
+//    override def price(fixing:Double, isKnockedIn:Boolean):Double = {
+//      if (!isKnockedIn) 1.0
+//      else if (variables.size != 1 || strikes.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
+//      else fixing / strikes.values.head
+//    }
+//  }
 
-    override def isKnockIn(fixing:Double):Option[Boolean] = {
-      if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) None
-      else {
-        val r = triggerLow.values.headOption.collect{case v => fixing >= v}.getOrElse(true) &&
-          triggerHigh.values.headOption.collect{case v => fixing <= v}.getOrElse(true)
-        if (forwardInRange) Some(r) else Some(!r)
-      }
-    }
-
-    override def price(fixing:Double, isKnockedIn:Boolean):Double = {
-      if (!isKnockedIn) 1.0
-      else if (variables.size != 1 || strikes.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
-      else fixing / strikes.values.head
-    }
-  }
-
-  def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
+//  def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
 
   def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
 
   override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = priceList(fixings)
 
-  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = priceSingle(fixings)
+//  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = priceSingle(fixings)
 
-  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings)
+//  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings)
 
-  override def priceImpl(fixing:Double, pastPayments:List[Double]):Double = priceSingle(fixing)
+//  override def priceImpl(fixing:Double, pastPayments:List[Double]):Double = priceSingle(fixing)
 
   override def priceImpl = Double.NaN
 

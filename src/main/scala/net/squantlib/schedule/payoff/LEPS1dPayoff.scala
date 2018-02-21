@@ -28,8 +28,10 @@ case class LEPS1dPayoff(
   override val variables:Set[String] = Set(variable)
   
   override val isPriceable = !payoff.isEmpty
-  
-  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]) = {
+
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]) = fixings.lastOption.collect{case f => priceImpl(f, pastPayments)}.getOrElse(Double.NaN)
+
+  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]) = {
     fixings.get(variable) match {
 	  //case Some(f) if !f.isNaN && !f.isInfinity => price(f)
 	  case Some(f) if !f.isNaN && !f.isInfinity => payoff.map(_.price(f)).sum
@@ -37,7 +39,7 @@ case class LEPS1dPayoff(
     }
   }
   
-  override def priceImpl(fixing:Double, pastPayments:List[Double]) = if (fixing.isNaN || fixing.isInfinity) Double.NaN else payoff.map(_.price(fixing)).sum
+//  override def priceImpl(fixing:Double, pastPayments:List[Double]) = if (fixing.isNaN || fixing.isInfinity) Double.NaN else payoff.map(_.price(fixing)).sum
   
   override def toString = payoff.map(p => p.toString(variable)).mkString(" ")
   
