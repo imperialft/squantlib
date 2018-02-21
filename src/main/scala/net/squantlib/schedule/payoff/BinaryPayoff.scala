@@ -26,6 +26,8 @@ case class BinaryPayoff(
 
   override val variables: Set[String] = payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten
 
+  val unconditionalAmount:Double = payoff.filter{case (r, minK, maxK) => minK.isEmpty && maxK.isEmpty}.map{case (r, minK, maxK) => r}.reduceOption(_ min _).getOrElse(0.0)
+
   override val isPriceable: Boolean = !payoff.isEmpty &&
     !payoff.exists{ case (k, minK, maxK) =>
       k.isNaN || k.isInfinity || minK.exists{case (kk, vv) => vv.isNaN || vv.isInfinity} || maxK.exists {case (kk, vv) => vv.isNaN || vv.isInfinity}
@@ -36,6 +38,8 @@ case class BinaryPayoff(
   //    Some((0 to binaryVariables.size - 1).map(i => fixings(binaryVariables(i)))(collection.breakOut))
   //    else None
 
+  private val smallValue = 0.0000001
+
   override def priceImpl(fixings: Map[String, Double], pastPayments:List[Double]) = {
     if (isPriceable && (variables subsetOf fixings.keySet) && fixings.values.forall(v => !v.isNaN && !v.isInfinity)) {
       val cpnRate = payoff.map { case (r, minK, maxK) =>
@@ -43,8 +47,8 @@ case class BinaryPayoff(
         else r
       }.max
 
-      if (memory) {
-        cpnRate + pastPayments.takeWhile(pp => pp < memoryAmount - 0.0000001).size.toDouble * memoryAmount
+      if (memory && cpnRate > unconditionalAmount + smallValue) {
+        cpnRate + pastPayments.takeWhile(pp => pp < memoryAmount - smallValue).size.toDouble * memoryAmount
       } else cpnRate
 
     } else Double.NaN
