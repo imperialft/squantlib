@@ -151,8 +151,11 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     accruedPayment:Double,
     triggered:Boolean
   ):List[Double] = (paylist, fixlist, triglist, trigUp, trigamt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts) match {
+
     case (Nil, _, _, _, _, _, _, _, _) => acc.reverse
+
     case _ if triggered => acc.reverse ++ List.fill(paylist.tail.size)(0.0)
+
     case (ph::pt, fh::ft, tlh::tlt, tuh::tut, tah::tat, fsh::fst, tgth::tgtt, memh::memt, dh::dt) =>
       val eventDateFixing = ph.getEventDateFixing(fh).getOrElse(Map.empty[String, Double])
       val couponRate = ph.price(fh, acc)
@@ -168,7 +171,11 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
             ((couponRate + ph.terminationAmount(eventDateFixing, trigAmount, fsh))::acc).reverse ++ List.fill(pt.size)(0.0)
           case _ =>
             val remainTrigger = if (memh) {
-              tlt
+              tlh.collect { case trig =>
+                val triggeredUls = ph.triggeredUnderlyings(eventDateFixing, trig, tuh)
+                if (triggeredUls.isEmpty) tlt
+                else tlt.map(tt => tt.collect { case fut => fut.filter{ case (kk, vv) => !triggeredUls.contains(kk)}})
+              }.getOrElse(tlt)
             } else tlt
 
             priceTrig(pt, ft, couponRate :: acc, remainTrigger, tut, tat, fst, tgtt, memt, dt, paidAmount, false)
