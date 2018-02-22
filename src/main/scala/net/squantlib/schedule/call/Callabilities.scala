@@ -145,6 +145,7 @@ object Callabilities {
         val forwardMap = b.getOption("forward").collect{case k => k.parseStringFields}.getOrElse(Map.empty)
         val forward = assignFixings(forwardMap)
         val bonus = b.parseDouble("bonus").getOrElse(0.0)
+        val removeSatisfiedTriggers = b.parseInt("memory").getOrElse(0) == 1
 
         CallOption(
           if (invertedTrigger) !triggerUp else triggerUp,
@@ -152,7 +153,8 @@ object Callabilities {
           forwardMap,
           bonus,
           invertedTrigger,
-          invertedForward
+          invertedForward,
+          removeSatisfiedTriggers
         )
 
       }.toList

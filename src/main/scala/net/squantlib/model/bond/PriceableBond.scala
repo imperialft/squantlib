@@ -151,12 +151,13 @@ trait PriceableBond extends BondModel with Priceable {
 //  val newSchedule = ScheduledPayoffs(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
     val newCalls:List[Callability] = (calls, newtrig).zipped.map{case (c, t) => Callability(
       underlyings = underlyings,
-      bermudan = c.bermudan, 
+      bermudan = c.bermudan,
       triggers = t,
       triggerUp = c.triggerUp,
       targetRedemption = c.targetRedemption,
       forward = c.forward,
       bonusAmount = c.bonusAmount,
+      removeSatisfiedTriggers = c.removeSatisfiedTriggers,
       inputString = Map.empty,
       accumulatedPayments = c.accumulatedPayments,
       simulatedFrontier = Map.empty

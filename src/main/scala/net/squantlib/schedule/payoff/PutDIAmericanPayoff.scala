@@ -60,11 +60,11 @@ case class PutDIAmericanPayoff(
     val basemod = refend.serialNumber % mcPeriod6m
     val start = refstart.serialNumber
     val end = refend.serialNumber
-    val dates:List[Date] = (for (i <- (start to end) 
+    val dates:List[Date] = (for (i <- (start to end)
         if (i >= end - 180 && i % mcPeriod6m == basemod)
         || (i >= end - 360 && i % mcPeriod1y == basemod)
         || (i % mcPeriodbefore == basemod)) yield Date(i)) (collection.breakOut)
-          
+
     if (physical) {
       if (dates.head == refstart) dates :+ period.paymentDate else (refstart :: dates) :+ period.paymentDate
     } else {

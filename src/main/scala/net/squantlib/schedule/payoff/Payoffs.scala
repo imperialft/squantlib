@@ -34,42 +34,60 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 
 	def isPaymentFixed:Boolean = payoffs.forall(_.isPaymentFixed)
 	
-	abstract class FixingInterpreter[T, U] {
-	  def price(fixing:T, payoff:Payoff, pastPayments:List[Double]):Double
-	  def triggered(fixing:T, trigger:Option[U], triggerUp:Boolean):Boolean
-	  def terminationAmount(fixing:T, trigNominal:Double, forwardStrikes:Option[U]):Double
-	  def assignFixings(fixing:T, payoff:Payoff, pastPayments:List[Double]):Unit
-		def assignSettlementFixings(fixing:T, payoff:Payoff):Unit
-	}
-
-  implicit object ListMapList extends FixingInterpreter[List[Map[String, Double]], Map[String, Double]] {
-    def price(fixing:List[Map[String, Double]], p:Payoff, pastPayments:List[Double]) = if (fixing.isEmpty) p.price else p.price(fixing, pastPayments)
-
-    def triggered(fixing:List[Map[String, Double]], trigger:Option[Map[String, Double]], triggerUp:Boolean) = trigger match {
-      case None => false
-      case Some(t) if t.isEmpty => false
-      case Some(t) if fixing.lastOption.collect{case f => f.isEmpty}.getOrElse(true) => false
-      case Some(t) => t.forall{case (v, d) =>
-        if(triggerUp) fixing.last.get(v).collect{case vv => vv >= d}.getOrElse(false)
-        else fixing.last.get(v).collect{case vv => vv <= d}.getOrElse(false)
-      }
-    }
-
-    def terminationAmount(fixing:List[Map[String, Double]], trigNominal:Double, forwardStrikes:Option[Map[String, Double]]) = forwardStrikes match {
-      case Some(k) => trigNominal * k.map{case (k, v) => fixing.last(k) / v}.min
-      case _ => trigNominal
-    }
-
-    def assignFixings(fixing:List[Map[String, Double]], payoff:Payoff, pastPayments:List[Double]) = {
-      if (payoff.physical && fixing.size > 1) {
-        payoff.assignFixings(fixing(fixing.length - 2))
-      } else {
-        payoff.assignFixings(fixing.last)
-      }
-    }
-
-    def assignSettlementFixings(fixing:List[Map[String, Double]], payoff:Payoff) = payoff.assignSettlementFixings(fixing.last)
-  }
+//	abstract class FixingInterpreter[T, U] {
+//	  def price(fixing:T, payoff:Payoff, pastPayments:List[Double]):Double
+//
+//	  def triggered(fixing:U, trigger:Option[U], triggerUp:Boolean):Boolean = trigger.collect{case t => triggered(fixing, t, triggerUp)}.getOrElse(false)
+//
+//    def triggered(fixing:U, trigger:U, triggerUp:Boolean):Boolean
+//
+//    def triggeredUnderlyings(fixing:U, trigger:U, triggerUp:Boolean):Set[String]
+//
+//	  def terminationAmount(fixing:T, trigNominal:Double, forwardStrikes:Option[U]):Double
+//
+//	  def assignFixings(fixing:T, payoff:Payoff, pastPayments:List[Double]):Unit
+//
+//		def assignSettlementFixings(fixing:T, payoff:Payoff):Unit
+//	}
+//
+//  implicit object ListMapList extends FixingInterpreter[List[Map[String, Double]], Map[String, Double]] {
+//    def price(fixing:List[Map[String, Double]], p:Payoff, pastPayments:List[Double]) = if (fixing.isEmpty) p.price else p.price(fixing, pastPayments)
+//
+//    def triggeredUnderlyings(fixing:Map[String, Double], trigger:Map[String, Double], triggerUp:Boolean) = {
+//      trigger.filter{case (ul, v) =>
+//        if (triggerUp) fixing.get(ul).collect{case fv => fv >= v}.getOrElse(false)
+//        else fixing.get(ul).collect{case fv => fv <= v}.getOrElse(false)
+//      }.keySet
+//    }
+//
+//    def triggered(fixing:Map[String, Double], trigger:Map[String, Double], triggerUp:Boolean) =
+//      !trigger.isEmpty && triggeredUnderlyings(fixing, trigger, triggerUp).size == trigger.size
+//
+//    //    def triggered(fixing:List[Map[String, Double]], trigger:Option[Map[String, Double]], triggerUp:Boolean) = trigger match {
+////      case None => false
+////      case Some(t) if t.isEmpty => false
+////      case Some(t) if fixing.lastOption.collect{case f => f.isEmpty}.getOrElse(true) => false
+////      case Some(t) => t.forall{case (v, d) =>
+////        if(triggerUp) fixing.last.get(v).collect{case vv => vv >= d}.getOrElse(false)
+////        else fixing.last.get(v).collect{case vv => vv <= d}.getOrElse(false)
+////      }
+////    }
+//
+//    def terminationAmount(fixing:List[Map[String, Double]], trigNominal:Double, forwardStrikes:Option[Map[String, Double]]) = forwardStrikes match {
+//      case Some(k) => trigNominal * k.map{case (k, v) => fixing.last(k) / v}.min
+//      case _ => trigNominal
+//    }
+//
+//    def assignFixings(fixing:List[Map[String, Double]], payoff:Payoff, pastPayments:List[Double]) = {
+//      if (payoff.physical && fixing.size > 1) {
+//        payoff.assignFixings(fixing(fixing.length - 2))
+//      } else {
+//        payoff.assignFixings(fixing.last)
+//      }
+//    }
+//
+//    def assignSettlementFixings(fixing:List[Map[String, Double]], payoff:Payoff) = payoff.assignSettlementFixings(fixing.last)
+//  }
 
   /*
    * Returns price array, when there's no variable.
@@ -80,10 +98,6 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
  * Returns price array, to be used when there's more than one fixing dates per payoff
  * @param fixings market parameters as Map(variable name -> value) in order of event dates, in order of payoff.
  */
-//  def price(fixings:List[List[Map[String, Double]]])(implicit d:DI, d2:DI, d3:DI):List[Double] = {
-//    assert(fixings.size == payoffs.size, s"Number of fixings(${fixings.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings}")
-//    priceRec(payoffs, fixings, List.empty)
-//  }
 
   def price(
     fixings:List[List[Map[String, Double]]],
@@ -98,8 +112,9 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     val trigAmt:List[Double] = calls.map(_.bonusAmount)
     val forwardStrikes: List[Option[Map[String, Double]]] = calls.map(_.optionalForwardStrikes)
     val targets:List[Option[Double]] = calls.map(_.targetRedemption)
+    val removeSatisfiedTriggers: List[Boolean] = calls.map(_.removeSatisfiedTriggers)
 
-    priceTrig(payoffs, fixings, List.empty, trigList, trigUp, trigAmt, forwardStrikes, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
+    priceTrig(payoffs, fixings, List.empty, trigList, trigUp, trigAmt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts, accruedPayment.getOrElse(0.0), false)
   }
 
   /*
@@ -113,19 +128,13 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     trigAmount:List[Double],
     forwardStrikes: List[Option[Map[String, Double]]],
     targets:List[Option[Double]],
+    removeSatisfiedTriggers:List[Boolean],
     dayCounts:List[Double],
     accruedPayment:Option[Double]
   )(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
     assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-    priceTrig(payoffs, fixings, List.empty, trigger, trigUp, trigAmount, forwardStrikes, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
+    priceTrig(payoffs, fixings, List.empty, trigger, trigUp, trigAmount, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts, accruedPayment.getOrElse(0.0), false)
   }
-
-
-//  @tailrec
-//  private def priceRec[T](paylist:List[Payoff], fixlist:List[T], acc:List[Double])(implicit fi:FixingInterpreter[T, _]):List[Double] = {
-//    if (paylist.isEmpty) acc.reverse
-//    else priceRec(paylist.tail, fixlist.tail, fi.price(fixlist.head, paylist.head, acc) :: acc)
-//  }
 
   @tailrec
   private def priceTrig(
@@ -137,216 +146,37 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     trigamt:List[Double],
     forwardStrikes: List[Option[Map[String, Double]]],
     targets:List[Option[Double]],
+    removeSatisfiedTriggers:List[Boolean],
     dayCounts:List[Double],
     accruedPayment:Double,
     triggered:Boolean
-  )(implicit fi:FixingInterpreter[List[Map[String, Double]], Map[String, Double]]):List[Double] = (paylist, fixlist, triglist, trigUp, trigamt, forwardStrikes, targets, dayCounts) match {
-    case (Nil, _, _, _, _, _, _, _) => acc.reverse
+  ):List[Double] = (paylist, fixlist, triglist, trigUp, trigamt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts) match {
+    case (Nil, _, _, _, _, _, _, _, _) => acc.reverse
     case _ if triggered => acc.reverse ++ List.fill(paylist.tail.size)(0.0)
-    case (ph::pt, fh::ft, tlh::tlt, tuh::tut, tah::tat, fsh::fst, tgth::tgtt, dh::dt) =>
-      val couponRate = fi.price(fh, ph, acc)
-      if (fi.triggered(fh, tlh, tuh)) { //((couponRate + trigamt.head) :: acc).reverse ++ List.fill(paylist.tail.size)(0.0)
+    case (ph::pt, fh::ft, tlh::tlt, tuh::tut, tah::tat, fsh::fst, tgth::tgtt, memh::memt, dh::dt) =>
+      val eventDateFixing = ph.getEventDateFixing(fh).getOrElse(Map.empty[String, Double])
+      val couponRate = ph.price(fh, acc)
+      if (tlh.collect{case trig => ph.isTriggered(eventDateFixing, trig, tuh)}.getOrElse(false)) { //((couponRate + trigamt.head) :: acc).reverse ++ List.fill(paylist.tail.size)(0.0)
         val trigAmount = (tah + 1.0) / dh
-        ((couponRate + fi.terminationAmount(fh, trigAmount, fsh)) :: acc).reverse ++ List.fill(pt.size)(0.0)
+        ((couponRate + ph.terminationAmount(eventDateFixing, trigAmount, fsh)) :: acc).reverse ++ List.fill(pt.size)(0.0)
       }
       else {
         val paidAmount = accruedPayment + couponRate * dh
         tgth match {
           case Some(tgt) if paidAmount >= tgt => //((couponRate + trigamt.head)::acc).reverse ++ List.fill(paylist.tail.size)(0.0)
             val trigAmount = (tah + 1.0) / dh
-            ((couponRate + fi.terminationAmount(fh, trigAmount, fsh))::acc).reverse ++ List.fill(pt.size)(0.0)
-          case _ => priceTrig(pt, ft, couponRate :: acc, tlt, tut, tat, fst, tgtt, dt, paidAmount, false)
+            ((couponRate + ph.terminationAmount(eventDateFixing, trigAmount, fsh))::acc).reverse ++ List.fill(pt.size)(0.0)
+          case _ =>
+            val remainTrigger = if (memh) {
+              tlt
+            } else tlt
+
+            priceTrig(pt, ft, couponRate :: acc, remainTrigger, tut, tat, fst, tgtt, memt, dt, paidAmount, false)
         }
       }
     case _ => acc.reverse ++ List.fill(paylist.tail.size)(Double.NaN)
   }
 
-
-  //  @tailrec
-//  private def priceTrig[T, U](
-//    paylist:List[Payoff],
-//    fixlist:List[T],
-//    acc:List[Double],
-//    triglist:List[Option[U]],
-//    trigUp:List[Boolean],
-//    trigamt:List[Double],
-//    forwardStrikes: List[Option[U]],
-//    targets:List[Option[Double]],
-//    dayCounts:List[Double],
-//    accruedPayment:Double,
-//    triggered:Boolean
-//  )(implicit fi:FixingInterpreter[T, U]):List[Double] = {
-//
-//    if (paylist.isEmpty) acc.reverse
-//    else if (triggered) acc.reverse ++ List.fill(paylist.tail.size)(0.0)
-//    else {
-//      val couponRate = fi.price(fixlist.head, paylist.head, acc)
-//      if (fi.triggered(fixlist.head, triglist.head, trigUp.head)) { //((couponRate + trigamt.head) :: acc).reverse ++ List.fill(paylist.tail.size)(0.0)
-//        ((couponRate + fi.terminationAmount(fixlist.head, trigamt.head, forwardStrikes.head)) :: acc).reverse ++ List.fill(paylist.tail.size)(0.0)
-//      }
-//      else {
-//        val paidAmount = accruedPayment + couponRate * dayCounts.head
-//        targets.head match {
-//          case Some(tgt) if paidAmount >= tgt => //((couponRate + trigamt.head)::acc).reverse ++ List.fill(paylist.tail.size)(0.0)
-//            ((couponRate + fi.terminationAmount(fixlist.head, trigamt.head, forwardStrikes.head))::acc).reverse ++ List.fill(paylist.tail.size)(0.0)
-//          case _ => priceTrig(paylist.tail, fixlist.tail, couponRate :: acc, triglist.tail, trigUp.tail, trigamt.tail, forwardStrikes.tail, targets.tail, dayCounts.tail, paidAmount, false)
-//        }
-//      }
-//    }
-//  }
-
-
-
-  //	implicit object DoubleList extends FixingInterpreter[Double, Double] {
-//	  def price(fixing:Double, payoff:Payoff, pastPayments:List[Double]) = if (fixing.isNaN || fixing.isInfinity) payoff.price else payoff.price(fixing, pastPayments)
-//
-//	  def triggered(fixing:Double, trigger:Option[Double], triggerUp:Boolean) = trigger.isDefined && (if (triggerUp) fixing >= trigger.get else fixing <= trigger.get)
-//
-//	  def terminationAmount(fixing:Double, trigNominal:Double, forwardStrikes:Option[Double]) = forwardStrikes match {
-//	    case Some(k) => trigNominal * fixing / k
-//	    case _ => trigNominal
-//	  }
-//
-//	  def assignFixings(fixing:Double, payoff:Payoff, pastPayments:List[Double]) = payoff.assignFixings(fixing, pastPayments)
-//
-//		def assignSettlementFixings(fixing:Double, payoff:Payoff) = payoff.assignSettlementFixings(fixing)
-//	}
-	
-//	implicit object MapList extends FixingInterpreter[Map[String, Double], Map[String, Double]] {
-//	  def price(fixing:Map[String, Double], payoff:Payoff, pastPayments:List[Double]) = if (fixing.isEmpty) payoff.price else payoff.price(fixing, pastPayments)
-//
-//	  def triggered(fixing:Map[String, Double], trigger:Option[Map[String, Double]], triggerUp:Boolean) = trigger match {
-//	    case None => false
-//	    case Some(t) if t isEmpty => false
-//	    case Some(t) => t.forall{case (v, d) => if(triggerUp) d <= fixing(v) else d >= fixing(v)}
-//		}
-//
-//		def terminationAmount(fixing:Map[String, Double], trigNominal:Double, forwardStrikes:Option[Map[String, Double]]) = forwardStrikes match {
-//			case Some(k) => trigNominal * k.map{case (k, v) => fixing(k) / v}.min
-//			case _ => trigNominal
-//		}
-//
-//	  def assignFixings(fixing:Map[String, Double], payoff:Payoff, pastPayments:List[Double]) = payoff.assignFixings(fixing, pastPayments)
-//
-//		def assignSettlementFixings(fixing:Map[String, Double], payoff:Payoff) = payoff.assignSettlementFixings(fixing)
-//	}
-	
-//	implicit object ListDoubleList extends FixingInterpreter[List[Double], Double] {
-//	  def price(fixing:List[Double], payoff:Payoff, pastPayments:List[Double]) = if (fixing.isEmpty) payoff.price else payoff.price(fixing, pastPayments)
-//	  def triggered(fixing:List[Double], trigger:Option[Double], triggerUp:Boolean) = trigger.isDefined && (if (triggerUp) fixing.last >= trigger.get else fixing.last <= trigger.get)
-//
-//    def terminationAmount(fixing:List[Double], trigNominal:Double, forwardStrikes:Option[Double]) = forwardStrikes match {
-//      case Some(k) => trigNominal * fixing.last / k
-//      case _ => trigNominal
-//    }
-//
-//	  def assignFixings(fixing:List[Double], payoff:Payoff, pastPayments:List[Double]) = {
-//	    if (payoff.physical && fixing.size > 1) {
-//	      payoff.assignFixings(fixing(fixing.length - 2), pastPayments)
-//	    } else {
-//				payoff.assignFixings(fixing.last, pastPayments)
-//	    }
-//	  }
-//
-//		def assignSettlementFixings(fixing:List[Double], payoff:Payoff) = payoff.assignSettlementFixings(fixing.last)
-//	}
-
-
-	/*
-	 * Select appropriate pricing functions depending on your needs.
-	 * Fixing information are provided as either;
-	 * 	format				>1 variables	>1 refdates
-	 *  List[Double]		no				no			 => DEPRECATED
-	 *  List[Map]			yes				no          => DEPRECATED
- 	 *  List[List[Double]]	no				yes   => DEPRECATED
- 	 *  List[List[Map]]		yes				yes
- 	 * 
-	 */
-	
-
-	/*
-	 * Returns price array, to be used when there's only one fixing dates per payoff, no trigger and only one variable.
-	 * @param fixings market parameter fixing value
-	 */
-//	def price(fixings:List[Double]):List[Double] = {
-//	  assert(fixings.size == payoffs.size && factors <= 1)
-//	  priceRec(payoffs, fixings, List.empty)
-//	}
-	
-	/*
-	 * Returns price array, to be used when there's only one fixing dates per payoff
-	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
-	 */
-//	def price(fixings:List[Map[String, Double]])(implicit d:DI):List[Double] = {
-//	  assert(fixings.size == payoffs.size)
-//	  priceRec(payoffs, fixings, List.empty)
-//	}
-	
-	/*
-	 * Returns price array, to be used when there's only one fixing dates per payoff, no trigger and one or more variables.
-	 * @param fixings market parameter fixing value
-	 */
-//	def price(fixings:List[List[Double]])(implicit d:DI, d2:DI):List[Double] = {
-//	  assert(fixings.size == payoffs.size && factors <= 1)
-//	  priceRec(payoffs, fixings, List.empty)
-//	}
-	
-
-	/*
-	 * Returns price array, to be used when there's only one fixing dates per payoff, with trigger and only one variable.
-	 * @param fixings market parameter fixing value
-	 */
-//	def price(
-//	    fixings:List[Double],
-//	    trigger:List[Option[Double]],
-//	    trigUp:List[Boolean],
-//	    trigAmount:List[Double],
-//	    forwardStrikes: List[Option[Double]],
-//	    targets:List[Option[Double]],
-//	    dayCounts:List[Double],
-//	    accruedPayment:Option[Double]
-//    ):List[Double] = {
-//			assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-//			priceTrig(payoffs, fixings, List.empty, trigger, trigUp, trigAmount, forwardStrikes, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
-//	}
-	
-	/*
-	 * Returns price array, to be used when there's only one fixing dates per payoff and with trigger.
-	 * @param fixings market parameters as Map(variable name -> value) in order of payoff.
-	 */
-//	def price(
-//	    fixings:List[Map[String, Double]],
-//	    trigger:List[Option[Map[String, Double]]],
-//	    trigUp: List[Boolean],
-//	    trigAmount:List[Double],
-//	    forwardStrikes: List[Option[Map[String, Double]]],
-//	    targets:List[Option[Double]],
-//	    dayCounts:List[Double],
-//	    accruedPayment:Option[Double]
-//    )(implicit d1:DI):List[Double] = {
-//			assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-//			priceTrig(payoffs, fixings, List.empty, trigger, trigUp, trigAmount, forwardStrikes, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
-//	}
-	
-	/*
-	 * Returns price array, to be used when there's more than one fixing dates per payoff, with trigger and only one variable.
-	 * @param fixings market parameter fixing value
-	 */
-//	def price(
-//	    fixings:List[List[Double]],
-//	    trigger:List[Option[Double]],
-//	    trigUp:List[Boolean],
-//	    trigAmount:List[Double],
-//      forwardStrikes:List[Option[Double]],
-//      targets:List[Option[Double]],
-//      dayCounts:List[Double],
-//      accruedPayment:Option[Double]
-//	  )(implicit d1:DI, d2:DI):List[Double] = {
-//			assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-//			priceTrig(payoffs, fixings, List.empty, trigger, trigUp, trigAmount, forwardStrikes, targets, dayCounts, accruedPayment.getOrElse(0.0), false)
-//	}
-	
-	
 	def ++(another:Payoffs) = new Payoffs(payoffs ++ another.payoffs)
 	
 	def :+(payoff:Payoff) = new Payoffs(payoffs :+ payoff)
@@ -410,18 +240,6 @@ object Payoffs {
 	  case f => formula.parseJsonString("type").orNull
 	  }
 	
-//	def getPayoff(f:String)(implicit fixingInfo:FixingInformation):Payoff = payoffType(f) match {
-//	  case "fixed" => FixedPayoff(f)
-//	  case "leps1d" => LEPS1dPayoff(f)
-//	  case "linear1d" => Linear1dPayoff(f)
-//	  case "putdi" => PutDIPayoff(f)
-//	  case "forward" => ForwardPayoff(f)
-//	  case "null" => NullPayoff(f)
-//	  case "binary" => BinaryPayoff(f)
-//	  case "general" => GeneralPayoff(f)
-//	  case _ => GeneralPayoff(f)
-//	}
-
 	def getPayoff(f:String)(implicit fixingInfo:FixingInformation):Payoff = Payoff(f).getOrElse(GeneralPayoff(f))
 	  
 }

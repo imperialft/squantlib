@@ -11,7 +11,8 @@ case class CallOption(
   forwardInputString: Map[String, String],
   bonus: Double,
   invertedTrigger:Boolean,
-  invertedForward:Boolean
+  invertedForward:Boolean,
+  removeSatisfiedTriggers:Boolean
 ) {
   
 //  def toMap:Map[String, Any] = if (invertedStrike) Map("inverted_strike" -> 1) else Map.empty
@@ -19,5 +20,5 @@ case class CallOption(
 }
 
 object CallOption {
-  def empty = CallOption(true, Map.empty, Map.empty, 0.0, false, false)
+  def empty = CallOption(true, Map.empty, Map.empty, 0.0, false, false, false)
 }

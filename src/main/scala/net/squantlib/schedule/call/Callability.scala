@@ -6,16 +6,17 @@ import net.squantlib.schedule.FixingLeg
 import net.squantlib.util.FixingInformation
 
 case class Callability(
-    bermudan:Boolean,
-    triggers:Map[String, Double],
-    triggerUp:Boolean,
-    targetRedemption:Option[Double],
+    bermudan: Boolean,
+    triggers: Map[String, Double],
+    triggerUp: Boolean,
+    targetRedemption: Option[Double],
     forward: Map[String, Double],
-    bonusAmount:Double,
-    inputString:Map[String, Any],
-    var accumulatedPayments:Option[Double],
-    var simulatedFrontier:Map[String, Double] = Map.empty
-  )(implicit val fixingInfo:FixingInformation) extends FixingLeg {
+    bonusAmount: Double,
+    removeSatisfiedTriggers: Boolean,
+    inputString: Map[String, Any],
+    var accumulatedPayments: Option[Double],
+    var simulatedFrontier: Map[String, Double] = Map.empty
+  )(implicit val fixingInfo: FixingInformation) extends FixingLeg {
 
   val triggerVariables = triggers.keySet
 
@@ -134,12 +135,13 @@ case class Callability(
   }
 
   def triggerShifted(shiftedTriggers: Map[String, Double], shiftedBonusAmount:Option[Double] = None):Callability = Callability(
-    bermudan = bermudan,
+    bermudan = false, //bermudan,
     triggers = shiftedTriggers,
     triggerUp = triggerUp,
     targetRedemption = targetRedemption,
     forward = forward,
     bonusAmount = shiftedBonusAmount.getOrElse(bonusAmount),
+    removeSatisfiedTriggers = removeSatisfiedTriggers,
     inputString = inputString,
     accumulatedPayments = accumulatedPayments,
     simulatedFrontier = simulatedFrontier
@@ -161,7 +163,8 @@ case class Callability(
 	    targetRedemption.collect{case t => "target : " + t.asPercent}.getOrElse(""),
 	    if (bonusAmount != 0.0) "bonus " + bonusAmount.asPercent(3) else "",
 	    if (forward.isEmpty) "" else "forward " + forward.map{case (k, v) => k + ":" + v.asDouble}.mkString(" "),
-	    if (isEmpty) "no call" else ""
+	    if (isEmpty) "no call" else "",
+      if (removeSatisfiedTriggers) "memory" else ""
 	    ).mkString(" ") 
 
 
@@ -195,6 +198,7 @@ object Callability {
       targetRedemption = targetRedemption,
       forward = callOption.forward,
       bonusAmount = callOption.bonus,
+      removeSatisfiedTriggers = callOption.removeSatisfiedTriggers,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier
@@ -208,6 +212,7 @@ object Callability {
     targetRedemption:Option[Double],
     forward: Map[String, Double],
     bonusAmount:Double,
+    removeSatisfiedTriggers: Boolean,
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:Map[String, Double]
@@ -219,6 +224,7 @@ object Callability {
       targetRedemption = targetRedemption,
       forward = forward,
       bonusAmount = bonusAmount,
+      removeSatisfiedTriggers = removeSatisfiedTriggers,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier
