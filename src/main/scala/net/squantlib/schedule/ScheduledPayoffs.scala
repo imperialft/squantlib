@@ -69,8 +69,10 @@ case class ScheduledPayoffs(
   
   lazy val bonusCoeff = schedule.map(_.dayCount)
   
-  lazy val bonusAmounts:List[Double] = calls.map(_.bonusAmount + 1.0).toList
-  
+  lazy val terminationAmounts:List[Double] = calls.map(_.bonusAmount + 1.0).toList
+
+  lazy val bonusAmounts:List[Double] = calls.map(_.bonusAmount).toList
+
   lazy val triggerUps:List[Boolean] = calls.map(_.triggerUp).toList
 
   lazy val forwardStrikes:List[Option[Map[String, Double]]] = calls.map(c => if (c.forward.isEmpty) None else Some(c.forward)).toList
@@ -93,7 +95,7 @@ case class ScheduledPayoffs(
     }
   }
   
-  lazy val bonusRates = amountToRate(bonusAmounts)
+//  lazy val terminationRates = amountToRate(terminationAmounts)
   
   val eventDateLegs:List[List[Date]] = {
     val dates:List[List[Date]] = scheduledPayoffs.map{
@@ -170,10 +172,10 @@ case class ScheduledPayoffs(
     ScheduledPayoffs((scheduledPayoffs, newCalls).zipped.map{case ((s, p, c), nc) => (s, p, nc)}, valuedate)
   }
 
-    def price(fixings:List[Double], shiftedCalls:List[Callability])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
-      case Some(ul) => price(fixings.map(f => Map(ul -> f)), shiftedCalls)
-      case _ => List.fill(payoffs.size)(Double.NaN)
-    }
+//    def price(fixings:List[Double], shiftedCalls:List[Callability])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
+//      case Some(ul) => price(fixings.map(f => Map(ul -> f)), shiftedCalls)
+//      case _ => List.fill(payoffs.size)(Double.NaN)
+//    }
 
   //  def price(fixings:List[Double], trigger:List[Option[Double]])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
   //    case Some(ul) => price(fixings.map(f => Map(ul -> f)), trigger.map(t => t.collect{case tr => Map(ul -> tr)}))
@@ -204,11 +206,11 @@ case class ScheduledPayoffs(
   //  def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]]):List[Double] =
   //    payoffs.price(priceMapper(fixings), (calls, trigger).zipped.map{case (c, t) => c.triggerShifted(t.getOrElse(Map.empty))}.toList, schedule.dayCounts, None)
   //
-    def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double]):List[Double] =
-      payoffs.price(priceMapper(fixings), (calls, trigger, trigAmount).zipped.map{case (c, t, amt) => c.triggerShifted(t.getOrElse(Map.empty), Some(amt))}.toList, schedule.dayCounts, None)
+//    def price(fixings:List[Map[String, Double]], trigger:List[Option[Map[String, Double]]], trigAmount:List[Double]):List[Double] =
+//      payoffs.price(priceMapper(fixings), (calls, trigger, trigAmount).zipped.map{case (c, t, amt) => c.triggerShifted(t.getOrElse(Map.empty), Some(amt))}.toList, schedule.dayCounts, None)
   //    //payoffs.price(priceMapper(fixings), trigger, triggerUps, amountToRate(trigAmount), forwardStrikes, calls.targetRedemptions, schedule.dayCounts, None)
 
-    def price(fixings:List[Map[String, Double]], shiftedCalls:List[Callability]):List[Double] = payoffs.price(priceMapper(fixings), shiftedCalls, schedule.dayCounts, None)
+//    def price(fixings:List[Map[String, Double]], shiftedCalls:List[Callability]):List[Double] = payoffs.price(priceMapper(fixings), shiftedCalls, schedule.dayCounts, None)
   //  def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = {
   //    val fwdstk:List[Option[Double]] = calls.calls.map(_.forward.values.headOption)
   //

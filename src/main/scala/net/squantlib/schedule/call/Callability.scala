@@ -134,18 +134,20 @@ case class Callability(
     else redemptionNominal
   }
 
-  def triggerShifted(shiftedTriggers: Map[String, Double], shiftedBonusAmount:Option[Double] = None):Callability = Callability(
-    bermudan = false, //bermudan,
-    triggers = shiftedTriggers,
-    triggerUp = triggerUp,
-    targetRedemption = targetRedemption,
-    forward = forward,
-    bonusAmount = shiftedBonusAmount.getOrElse(bonusAmount),
-    removeSatisfiedTriggers = removeSatisfiedTriggers,
-    inputString = inputString,
-    accumulatedPayments = accumulatedPayments,
-    simulatedFrontier = simulatedFrontier
-  )
+  def triggerShifted(shiftedTriggers: Map[String, Double]):Callability = {
+    Callability(
+      bermudan = bermudan,
+      triggers = shiftedTriggers,
+      triggerUp = triggerUp,
+      targetRedemption = targetRedemption,
+      forward = forward,
+      bonusAmount = bonusAmount,
+      removeSatisfiedTriggers = removeSatisfiedTriggers,
+      inputString = inputString,
+      accumulatedPayments = accumulatedPayments,
+      simulatedFrontier = simulatedFrontier
+    )
+  }
 
 
   //  trigger:List[Option[Map[String, Double]]],

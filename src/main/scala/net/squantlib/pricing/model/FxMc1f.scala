@@ -15,23 +15,29 @@ import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._
 
-case class FxMc1f(valuedate:Date,
-                  mcengine:Montecarlo1f,
-                  scheduledPayoffs:ScheduledPayoffs,
-                  fx:FX,
-                  defaultPaths:Int,
-                  trigger:List[Option[Double]],
-                  frontierFunction:() => List[Option[Double]],
-                  parameterRepository:Any => Unit,
-                  bondid:String) extends PricingModel {
+case class FxMc1f(
+  valuedate:Date,
+  mcengine:Montecarlo1f,
+  scheduledPayoffs:ScheduledPayoffs,
+  fx:FX,
+  defaultPaths:Int,
+  trigger:List[Option[Double]],
+  frontierFunction:() => List[Option[Double]],
+  parameterRepository:Any => Unit,
+  bondid:String
+) extends PricingModel {
 
   assert(trigger.size == scheduledPayoffs.calls.size, s"Number of calls(${scheduledPayoffs.calls.size}), trigger(${trigger.size})")
 
+//  println("Initialize FXMC1f")
+
   mcPaths = defaultPaths
-  val redemamt = scheduledPayoffs.bonusAmounts.takeRight(trigger.size)
+//  val bonusAmounts = scheduledPayoffs.bonusAmounts
   val triggerUps = scheduledPayoffs.triggerUps
   val forwardStrikes = scheduledPayoffs.forwardStrikes
   val underlying:String = scheduledPayoffs.underlyings.headOption.getOrElse("")
+
+//  println(redemamt.toString)
 
 
   //  def price(fixings:List[Double], trigger:List[Option[Double]])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
@@ -45,7 +51,9 @@ case class FxMc1f(valuedate:Date,
   //    case _ => List.fill(payoffs.size)(Double.NaN)
   //  }
   ////  payoffs.price(priceMapper(fixings), trigger, triggerUps, amountToRate(trigAmount), forwardStrikeSingleUnderlying, calls.targetRedemptions, schedule.dayCounts, None)
-  val shiftedCalls:List[Callability] = (scheduledPayoffs.calls, trigger, redemamt).zipped.map{case (c, t, r) => c.triggerShifted(t.collect{case tt => Map(underlying -> tt)}.getOrElse(Map.empty), Some(r))}.toList
+  lazy val shiftedCalls:List[Callability] = (scheduledPayoffs.calls, trigger).zipped.map{case (c, t) =>
+    c.triggerShifted(t.collect{case tt => Map(underlying -> tt)}.getOrElse(Map.empty))
+  }.toList
 
   val callShiftedScheduledPayoffs = scheduledPayoffs.callShifted(shiftedCalls)
 
@@ -181,12 +189,13 @@ object FxMc1f {
   }
 
   def apply(
-             market:Market,
-             bond:PriceableBond,
-             mcengine:FX => Option[Montecarlo1f],
-             paths:Int,
-             frontierPths:Int,
-             triggers:List[Option[Double]]):Option[FxMc1f] = {
+    market:Market,
+    bond:PriceableBond,
+    mcengine:FX => Option[Montecarlo1f],
+    paths:Int,
+    frontierPths:Int,
+    triggers:List[Option[Double]]
+  ):Option[FxMc1f] = {
 
     val valuedate = market.valuedate
 

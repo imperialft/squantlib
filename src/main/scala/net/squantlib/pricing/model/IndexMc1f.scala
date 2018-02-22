@@ -15,12 +15,14 @@ import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._
 
-case class IndexMc1f(valuedate:Date, 
-            mcengine:Montecarlo1f, 
-            scheduledPayoffs:ScheduledPayoffs, 
-            index:Index,
-            defaultPaths:Int,
-            bondid:String) extends PricingModel {
+case class IndexMc1f(
+  valuedate:Date,
+  mcengine:Montecarlo1f,
+  scheduledPayoffs:ScheduledPayoffs,
+  index:Index,
+  defaultPaths:Int,
+  bondid:String
+) extends PricingModel {
   
   mcPaths = defaultPaths
 
