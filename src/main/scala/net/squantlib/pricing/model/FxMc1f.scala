@@ -157,7 +157,7 @@ object FxMc1f {
 
   def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
 
-  def cachedFrontier(bond:PriceableBond):List[Option[Double]] = bond.getCalibrationCache("FXMontecarlo1f") match {
+  def cachedFrontier(bond:PriceableBond):List[Option[Double]] = bond.getCalibrationCache("FXFrontier") match {
     case Some(t:List[Any]) =>
       t.map{
         case Some(v:Double) => Some(v)
@@ -229,7 +229,7 @@ object FxMc1f {
   def frontierFunction(bond:PriceableBond, frontierPths:Int) = () => bond.fxFrontiers(1.00, 0.003, 20, frontierPths).map(t => if (t.isEmpty) None else t.head)
 
   def paramRepository(bond:PriceableBond):Any => Unit = (obj:Any) => {
-    bond.calibrationCache.update("FXMontecarlo1f", obj)
+    bond.calibrationCache.update("FXFrontier", obj)
     obj match {
       case fs:List[d] =>
         (bond.livePayoffs, fs).zipped.map{
@@ -253,7 +253,7 @@ object FxQtoMc1f {
   def apply(market:Market, bond:PriceableBond, mcengine:(FX, FX) => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
 
   def apply(market:Market, bond:PriceableBond, mcengine:(FX, FX) => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
-    val trig = bond.getCalibrationCache("FXMontecarlo1f") match {
+    val trig = bond.getCalibrationCache("FXFrontier") match {
       case Some(t:List[Any]) => t.map{
         case Some(v:Double) => Some(v)
         case _ => None

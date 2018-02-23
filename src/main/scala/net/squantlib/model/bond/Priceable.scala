@@ -39,11 +39,11 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   
   def switchModel:Boolean = switchModel(null)
   
-  def switchModel(modelName:String):Boolean = {
+  def switchModel(modelName:String, reCalibrate:Boolean = true):Boolean = {
     val prevModel = currentModelName
-    initializeModel(true, modelName)
+    initializeModel(reCalibrate, modelName)
     if (model.isEmpty) {
-      initializeModel(true, prevModel)
+      initializeModel(reCalibrate, prevModel)
       false
     } else {
       !model.isEmpty
