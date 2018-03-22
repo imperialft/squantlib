@@ -96,28 +96,44 @@ case class ScheduledPayoffs(
   }
   
 //  lazy val terminationRates = amountToRate(terminationAmounts)
-  
-  val eventDateLegs:List[List[Date]] = {
-    val dates:List[List[Date]] = scheduledPayoffs.map{
+
+
+  var defaultDaycounter = new Actual365Fixed
+
+  def computeEventDateLegs:List[List[Date]] = {
+    val dates: List[List[Date]] = scheduledPayoffs.map {
+      case (d, p, t) if p.isFutureFixing => p.eventDates(d)
       case (d, p, t) if p.isPaymentFixed && t.isFixed => List.empty
       case (d, p, t) if p.isPaymentFixed => List(p.eventDates(d).last)
       case (d, p, t) => p.eventDates(d)
-      }(collection.breakOut)
-    
+    }(collection.breakOut)
+
     valuedate match {
       case Some(d) => dates.map(ds => ds.filter(_ gt d))
       case None => dates
     }
   }
-  
-  val eventDates:List[Date] = eventDateLegs.flatten.toSet.toList.sorted
-  
-  var defaultDaycounter = new Actual365Fixed
-  
+
+  def computeEventDates:List[Date] = eventDateLegs.flatten.toSet.toList.sorted
+
+  def computeDateMapper:List[List[Int]] = eventDateLegs.map(_.map(eventDates.indexOf(_)))
+
+  var eventDateLegs:List[List[Date]] = computeEventDateLegs
+
+  var eventDates:List[Date] = computeEventDates
+
+  var dateMapper:List[List[Int]] = computeDateMapper
+
   def eventDateYears(basedate:Date):List[Double] = eventDates.map(d => Date.daycount(basedate, d, defaultDaycounter))
-  
-  val dateMapper:List[List[Int]] = eventDateLegs.map(_.map(eventDates.indexOf(_)))
-  
+
+  def clearFixings:Unit = {
+    payoffs.foreach(_.clearFixings)
+    calls.foreach(_.clearFixings)
+    eventDateLegs = computeEventDateLegs
+    eventDates = computeEventDates
+    dateMapper = computeDateMapper
+  }
+
   abstract class withDefault[T] { def defaultValue:T }
     
   implicit object mapValue extends withDefault[Map[String, Double]] { def defaultValue = Map.empty[String, Double]}

@@ -120,10 +120,13 @@ trait PriceableBond extends BondModel with Priceable {
   }
     
   def clearFixings:Unit = {
-    scheduledPayoffs.foreach{case (s, p, c) =>
-      p.clearFixings
-      c.clearFixings
-    }
+    scheduledPayoffs.clearFixings
+
+//    scheduledPayoffs.foreach{case (s, p, c) =>
+//      p.clearFixings
+//      c.clearFixings
+//    }
+
 //    payoffs.foreach{
 //      case p:PutDIAmericanPayoff => p.knockedIn = false
 //      case p:PutDIPayoff => p.knockedIn = false
