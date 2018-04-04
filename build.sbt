@@ -50,3 +50,7 @@ retrieveManaged := false
 lazy val jquantlib = RootProject(file("../jquantlib"))
 
 lazy val squantlib = Project(id = "squantlib", base = file(".")).dependsOn(jquantlib)
+
+sources in (Compile,doc) := Seq.empty
+
+publishArtifact in (Compile, packageDoc) := false
