@@ -45,38 +45,42 @@ case class CalculationPeriod(
 object CalculationPeriod {
   
   def apply(
-      startDate:Date, 
-      endDate:Date, 
-      notice:Int, 
-      inarrears:Boolean, 
-      daycount:DayCounter, 
-      fixingCalendar:Calendar, 
-      paymentCalendar:Calendar, 
-      paymentConvention:BusinessDayConvention,
-      isRedemption: Boolean,
-      nominal:Double = 1.0,
-      fixedDayOfMonth:Option[Int] = None):CalculationPeriod = {
-    
-    
-    val calculationDate = if (inarrears) endDate else startDate
+    startDate:Date,
+    endDate:Date,
+    notice:Int,
+    inarrears:Boolean,
+    daycount:DayCounter,
+    fixingCalendar:Calendar,
+    paymentCalendar:Calendar,
+    paymentConvention:BusinessDayConvention,
+    isRedemption: Boolean,
+    nominal:Double = 1.0,
+    fixedDayOfMonth:Option[Int] = None,
+    fixingOnCalculationEndDate:Boolean = false
+  ):CalculationPeriod = {
+
+    val paymentDate = endDate.adjust(paymentCalendar, paymentConvention)
+
+    val calculationDate = if (inarrears) {
+      if (fixingOnCalculationEndDate) endDate else paymentDate
+    } else startDate
     
     val baseDate = fixedDayOfMonth match {
-	  case Some(d) => 
-	    if (d <= calculationDate.dayOfMonth) { // same month
-	      Date(calculationDate.year, calculationDate.month, d)
-	    }
-	    
+      case Some(d) =>
+        if (d <= calculationDate.dayOfMonth) { // same month
+          Date(calculationDate.year, calculationDate.month, d)
+        }
+
         else { // previous month
           val prevmonth = calculationDate.addMonths(-1)
-	      Date(prevmonth.year, prevmonth.month, d, true)
+        Date(prevmonth.year, prevmonth.month, d, true)
         }
-	   
-	  case None => calculationDate
+
+      case None => calculationDate
 	}
     
     val eventDate = baseDate.advance(fixingCalendar, -notice, TimeUnit.Days)
-    val paymentDate = endDate.adjust(paymentCalendar, paymentConvention)
-    
+
     new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount, isRedemption, nominal)
   }
   
