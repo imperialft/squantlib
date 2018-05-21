@@ -2,16 +2,7 @@ package net.squantlib.model.index
 
 import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import org.jquantlib.time.Calendar
 import net.squantlib.util.Date
-import org.jquantlib.currencies.Currency
-import net.squantlib.util.EmptyCalendar
-import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
-import org.jquantlib.termstructures.{BlackVolatilityTermStructure, BlackVolTermStructure}
-import org.jquantlib.termstructures.yieldcurves.FlatForward
-import org.jquantlib.daycounters.Actual365Fixed
-import org.jquantlib.termstructures.volatilities.LocalVolSurface
-import net.squantlib.util.DisplayUtils._
 
 /**
  * Orthodox index with continuous dividend yield.

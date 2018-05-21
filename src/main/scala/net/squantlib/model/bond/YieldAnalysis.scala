@@ -1,16 +1,9 @@
 package net.squantlib.model.bond
 
-import net.squantlib.util.Date
 import org.jquantlib.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
 import org.jquantlib.termstructures.Compounding
 import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
-import net.squantlib.util.initializer.Currencies
-import net.squantlib.util.{SimpleCache, FormulaParser}
 import net.squantlib.math.financial.{BondYield, Duration}
-import net.squantlib.model.market.Market
-import net.squantlib.util.{UnderlyingParser, UnderlyingParsers}
-import net.squantlib.schedule.CalculationPeriod
-import scala.collection.breakOut
 import scala.language.postfixOps
 
 trait YieldAnalysis {

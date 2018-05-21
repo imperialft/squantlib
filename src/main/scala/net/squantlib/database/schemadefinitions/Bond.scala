@@ -2,7 +2,6 @@ package net.squantlib.database.schemadefinitions
 
 import java.sql.Timestamp
 import java.util.{Date => JavaDate}
-import scala.collection.JavaConversions._
 import scala.language.postfixOps
 import net.squantlib.util.JsonUtils
 import net.squantlib.util.JsonUtils._
@@ -10,7 +9,7 @@ import net.squantlib.schedule.Schedule
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
 import net.squantlib.util.{FixingInformation, Date, DbCalendar}
-import org.jquantlib.time.{Period => qlPeriod, DateGeneration, Calendar, BusinessDayConvention, TimeUnit}
+import org.jquantlib.time.{Period => qlPeriod, DateGeneration, BusinessDayConvention, TimeUnit}
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
 import org.codehaus.jackson.JsonNode

@@ -4,13 +4,7 @@ import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.model.yieldparameter._
 import net.squantlib.math.volatility.FxBlackOption
 import net.squantlib.util.Date
-import net.squantlib.model.market.Market
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import org.jquantlib.termstructures.{BlackVolatilityTermStructure, BlackVolTermStructure}
-import org.jquantlib.termstructures.yieldcurves.FlatForward
-import org.jquantlib.daycounters.Actual365Fixed
-import org.jquantlib.termstructures.volatilities.LocalVolSurface
-import net.squantlib.util.DisplayUtils._
 import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
 import net.squantlib.math.volatility.DupireLocalVolatility
 

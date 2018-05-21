@@ -1,12 +1,8 @@
 package net.squantlib.model.rates
 
 import net.squantlib.model.yieldparameter.YieldParameter
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.currencies.Currency
-import org.jquantlib.currencies.America.USDCurrency
 import org.jquantlib.indexes.IborIndex
-import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.time.{TimeUnit, Period => qlPeriod}
+import org.jquantlib.time.{Period => qlPeriod}
 import net.squantlib.model.yieldparameter._
 import net.squantlib.util.Date
 import net.squantlib.model.rates.convention.RateConvention

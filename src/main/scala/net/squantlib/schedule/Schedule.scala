@@ -179,7 +179,7 @@ object Schedule{
           var periods = 1
           var startDate:Date = initialDate
           var endDate:Date = terminationDate
-  
+
           do {
             endDate = startDate
             startDate = initialDate.advance(nullCalendar, tenor.mul(periods).negative, calendarConvention)

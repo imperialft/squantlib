@@ -134,7 +134,7 @@ object Date {
   
 //  def apply(t:Timestamp):Date = apply(t.getTime)
   
-  def getDate(d:String, stringFormat:String = "yyyy-mm-dd"):Option[Date] = {
+  def getDate(d:String, stringFormat:String = "yyyy-MM-dd"):Option[Date] = {
     if (d == null || d == "" )
       None
     val dateFormat = new SimpleDateFormat(stringFormat)

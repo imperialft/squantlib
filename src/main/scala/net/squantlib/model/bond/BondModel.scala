@@ -1,8 +1,8 @@
 package net.squantlib.model.bond
 
 import org.jquantlib.currencies.Currency
-import net.squantlib.util.{FixingInformation, Date, DbCalendar}
-import org.jquantlib.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
+import net.squantlib.util.{Date, DbCalendar}
+import org.jquantlib.time.{Period => qlPeriod, TimeUnit}
 import net.squantlib.database.schemadefinitions.{Bond => dbBond}
 import net.squantlib.util.FixingInformation
 import net.squantlib.util.initializer.Currencies

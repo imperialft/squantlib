@@ -2,7 +2,6 @@ package net.squantlib.model.rates.convention
 
 import org.jquantlib.time.Period
 import org.jquantlib.daycounters.Actual365Fixed
-import org.jquantlib.currencies.Asia.CNYCurrency
 
 class CnyRateConvention extends RateConvention{
   import org.jquantlib.currencies.Asia.CNYCurrency
