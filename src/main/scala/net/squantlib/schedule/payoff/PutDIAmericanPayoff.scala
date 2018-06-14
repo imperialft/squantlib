@@ -106,7 +106,7 @@ case class PutDIAmericanPayoff(
   }
   
   implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
-    
+
     override def isKnockIn(fixings:Map[String, Double]):Boolean = {
       knockedIn || variables.exists(p => fixings.get(p) match { 
         case Some(v) if triggers.contains(p) => v <= triggers(p)
@@ -188,7 +188,7 @@ case class PutDIAmericanPayoff(
     super.assignFixings(f)
     checkKnockIn
   }
-    
+
   def checkKnockIn:Unit = {
     knockedIn = 
       if (refstart == null || refend == null) false

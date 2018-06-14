@@ -238,9 +238,26 @@ class Bond(	  @Column("ID")					override var id: String,
     }
   }
 
+  @Transient
+  lazy val calculationStartDate:Date = {
+    val bondSettings = settingMap
+    val defaultStartDate = if (settlementDate == null) issueDate else settlementDate
+
+    bondSettings.get("calculation_start") match {
+      case Some(d) if d.startsWith("issue") => issueDate
+      case Some(d) => Date.getDate(d) match {
+        case Some(dd) => dd
+        case _ => defaultStartDate
+      }
+      case _ => defaultStartDate
+    }
+  }
+
+  def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
+
   def schedule:Option[Schedule] = try {
     val schedule = Schedule(
-        effectiveDate = (if (settlementDate == null) issueDate else settlementDate),
+        effectiveDate = calculationStartDate, // (if (settlementDate == null) issueDate else settlementDate),
         terminationDate = maturityDate,
         tenor = period,
         fixingCalendar = fixingCalendar,
@@ -292,7 +309,14 @@ class Bond(	  @Column("ID")					override var id: String,
   lazy val fixingInformationObj = {
     val currentSetting = settingMap
     def getDblSetting(key:String):Option[Double] = currentSetting.get(key).flatMap{case v => try {Some(v.toDouble)} catch {case e:Throwable => None}}
-    FixingInformation(getDblSetting("tbd"), getDblSetting("tbd_min"), getDblSetting("tbd_max"), getInitialFixings)
+
+    FixingInformation(
+      tbd = getDblSetting("tbd"),
+      minRange = getDblSetting("tbd_min"),
+      maxRange = getDblSetting("tbd_max"),
+      initialFixing = getInitialFixings,
+      fixingPageInformation = fixingPageInformation
+    )
   }
   
   implicit def fixingInformation = fixingInformationObj

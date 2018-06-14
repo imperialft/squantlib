@@ -4,7 +4,7 @@ import net.squantlib.util.FixingInformation
 
 object PayoffExamples {
   
-  implicit val fixingInfo = FixingInformation(None, None, None, Map.empty)
+  implicit val fixingInfo = FixingInformation.empty
   
 	val fixed = Payoff("0.5%")
 	

@@ -7,7 +7,8 @@ case class FixingInformation(
     var tbd:Option[Double], 
     var minRange:Option[Double], 
     var maxRange:Option[Double], 
-    var initialFixing:Map[String, Double]) {
+    var initialFixing:Map[String, Double],
+    fixingPageInformation: List[Map[String, String]]) {
   
   def initialFixingFull:Map[String, Double] = {
     val inv:Map[String, Double] = initialFixing.withFilter{case (k, v) => k.size == 6}.map{case (k, v) => (((k takeRight 3) + (k take 3)), (if (v == 0.0) 0.0 else 1.0 / v))}.toMap
@@ -57,11 +58,20 @@ case class FixingInformation(
     case (min, max) if min.isDefined || max.isDefined => s"[${min.collect{case v => v.asDouble(decimal)}.getOrElse("")}～${max.collect{case v => v.asDouble(decimal)}.getOrElse("")}]"
     case _ => ""
   }
+
+  val underlyingAssetIds:Map[String, String] = fixingPageInformation.map(pageInfo => {
+    val bidOffer = pageInfo.get("bidoffer") match {
+      case b if b == "bid" || b == "offer" => Some(b)
+      case _ => None
+    }
+
+    (pageInfo.getOrElse("underlying", "unknown"), List(Some(pageInfo.getOrElse("underlying", "unknown")), pageInfo.get("page"), pageInfo.get("time"), pageInfo.get("country"), bidOffer).flatMap(s => s).mkString("/"))
+  }).toMap
     
 }
   
 object FixingInformation {
   
-  def empty = FixingInformation(None, None, None, Map.empty)
+  def empty = FixingInformation(None, None, None, Map.empty, List.empty)
   
 }
