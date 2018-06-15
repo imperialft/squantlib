@@ -2,8 +2,11 @@ package net.squantlib.util
 
 import scala.annotation.tailrec
 import DisplayUtils._
+import net.squantlib.util.initializer._
 
 case class FixingInformation(
+    currencyId:String,
+    paymentCurrencyId: String,
     var tbd:Option[Double], 
     var minRange:Option[Double], 
     var maxRange:Option[Double], 
@@ -59,19 +62,93 @@ case class FixingInformation(
     case _ => ""
   }
 
-  val underlyingAssetIds:Map[String, String] = fixingPageInformation.map(pageInfo => {
-    val bidOffer = pageInfo.get("bidoffer") match {
-      case b if b == "bid" || b == "offer" => Some(b)
+  val underlyingAssetIds:Map[String, FixingPage] = fixingPageInformation.map(pageInfo => {
+    val bidOffer:Option[String] = pageInfo.get("bidoffer") match {
+      case Some(b) if b == "bid" || b == "offer" => Some(b)
       case _ => None
     }
 
-    (pageInfo.getOrElse("underlying", "unknown"), List(Some(pageInfo.getOrElse("underlying", "unknown")), pageInfo.get("page"), pageInfo.get("time"), pageInfo.get("country"), bidOffer).flatMap(s => s).mkString("/"))
+    (
+      pageInfo.getOrElse("underlying", "missingUnderlying"),
+      FixingPage(
+        pageInfo.getOrElse("underlying", "missingUnderlying"),
+        pageInfo.getOrElse("page", "missingPage"),
+        bidOffer,
+        pageInfo.get("time"),
+        pageInfo.get("country")
+      )
+    )
   }).toMap
-    
+
+  def getUnderlyingFixing(ul: String):UnderlyingFixingInfo = {
+    underlyingAssetIds.get(ul) match {
+      case Some(v) => UnderlyingFixingInfo(Set(v), (vs) => vs.get(v))
+      case _  if Currencies.isForex(ul) =>
+        val ccy1 = ul.take(3)
+        val ccy2 = ul.takeRight(3)
+        (underlyingAssetIds.find{case (k, v) => k.contains(ccy1)}, underlyingAssetIds.find{case (k, v) => k.contains(ccy2)}) match {
+
+          case (Some((fxul1, p1)), Some((fxul2, p2))) if fxul1 == fxul2 =>
+            UnderlyingFixingInfo(Set(p1), ulFixings => (ulFixings.get(p1).collect{case v => 1.0 / v}))
+
+          case (Some((fxul1, p1)), Some((fxul2, p2))) if fxul1.replace(ccy1, "") == fxul2.replace(ccy2, "") =>
+            UnderlyingFixingInfo(Set(p1, p2), ulFixings => (ulFixings.get(p1), ulFixings.get(p2)) match {
+              case (Some(fx1), Some(fx2)) =>
+                val v1 = if (fxul1.take(3) == ccy1) fx1 else 1.0 / fx1
+                val v2 = if (fxul2.take(3) == ccy2) fx2 else 1.0 / fx2
+                Some(v1 / v2)
+              case _ => None
+            })
+
+          case _ => UnderlyingFixingInfo(Set.empty, (vs) => None)
+        }
+      case _ => UnderlyingFixingInfo(Set.empty, (vs) => None)
+    }
+  }
+
+
 }
   
 object FixingInformation {
   
-  def empty = FixingInformation(None, None, None, Map.empty, List.empty)
+  def empty(currencyId:String, paymentCurrencyId:String) = FixingInformation(currencyId, paymentCurrencyId, None, None, None, Map.empty, List.empty)
   
+}
+
+
+case class UnderlyingFixingInfo(
+  fixingPages:Set[FixingPage],
+  priceCalculator:Map[FixingPage, Double] => Option[Double]
+ ) {
+
+  def getPrice(underlyingPrices:Map[FixingPage, Double]):Option[Double] = {
+    if (fixingPages.forall(s => underlyingPrices.get(s).collect { case v => !v.isNaN }.getOrElse(false))) {
+      priceCalculator(underlyingPrices)
+    }
+    else {
+      None
+    }
+  }
+
+}
+
+case class FixingPage(
+  underlying:String,
+  page:String,
+  bidOffer:Option[String],
+  time:Option[String],
+  country:Option[String]
+) {
+
+  val fallback:String = underlying + ":" + page
+
+  val defaultPage:String = {
+    if (Set(bidOffer, time, country).exists(_.isDefined)) underlying + ":" + page + ":" + List(bidOffer, time, country).flatMap(s => s).mkString(":")
+    else fallback
+  }
+
+  val pageList:List[String] = if (defaultPage == fallback) List(defaultPage) else List(defaultPage, fallback)
+
+  override def toString = pageList.mkString(", ")
+
 }

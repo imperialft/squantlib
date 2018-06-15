@@ -172,6 +172,8 @@ class Bond(	  @Column("ID")					override var id: String,
   def isPhysicalRedemption:Boolean = physicalredemption == 1
   
   def isJpyPayment:Boolean = jpypayment == 1
+
+  def paymentCurrencyId:String = if (isJpyPayment) settingMap.getOrElse("payment_currency", "JPY") else currencyid
   
   def underlyingList:List[String] = stringList(underlying)
   
@@ -311,6 +313,8 @@ class Bond(	  @Column("ID")					override var id: String,
     def getDblSetting(key:String):Option[Double] = currentSetting.get(key).flatMap{case v => try {Some(v.toDouble)} catch {case e:Throwable => None}}
 
     FixingInformation(
+      currencyId = currencyid,
+      paymentCurrencyId = paymentCurrencyId,
       tbd = getDblSetting("tbd"),
       minRange = getDblSetting("tbd_min"),
       maxRange = getDblSetting("tbd_max"),

@@ -182,7 +182,7 @@ object Callability {
     inputString = Map.empty,
     accumulatedPayments = None,
     simulatedFrontier= Map.empty
-  )(FixingInformation.empty)
+  )(FixingInformation.empty("JPY", "JPY"))
 
   def apply(
     bermudan:Boolean,

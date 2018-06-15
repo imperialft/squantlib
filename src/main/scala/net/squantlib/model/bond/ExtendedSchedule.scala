@@ -49,7 +49,7 @@ trait ExtendedSchedule {
   def livePayoffs(vd:Date):ScheduledPayoffs = {
     val p = (earlyTerminationDate,earlyTerminationAmount) match {
       case (Some(d), _) if vd ge d => ScheduledPayoffs.empty
-      case (Some(d), Some(a)) => scheduledPayoffs.after(vd).called(d, a, db.paymentCalendar, db.paymentAdjust).withValueDate(vd)
+      case (Some(d), Some(a)) => scheduledPayoffs.after(vd).called(d, db.currencyid, db.paymentCurrencyId, a, db.paymentCalendar, db.paymentAdjust).withValueDate(vd)
       case _ => scheduledPayoffs.after(vd).withValueDate(vd)
     }
     p

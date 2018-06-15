@@ -1,5 +1,7 @@
 package net.squantlib.schedule
 
+import net.squantlib.util.FixingInformation
+
 import scala.collection.LinearSeq
 
 trait FixingLeg {
@@ -7,7 +9,9 @@ trait FixingLeg {
   protected var preFixings:Map[String, Double] = Map.empty
 
   protected var futureFixing:Boolean = false
-	
+
+  val fixingInfo:FixingInformation
+
   val variables:Set[String] // to be implemented
 	
   def assignFixings(f:Map[String, Double]):Unit =

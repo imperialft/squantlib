@@ -27,8 +27,6 @@ trait Payoff extends FixingLeg {
 
   val isPriceable:Boolean // checks priceablility of the payoff
 
-  val fixingInfo:FixingInformation
-
   var isAbsolute:Boolean = false
 
   val physical:Boolean = false
@@ -36,6 +34,10 @@ trait Payoff extends FixingLeg {
   override def isSettlementFixed:Boolean = variables.isEmpty || !physical || !settlementFixings.isEmpty
 
   var nominal:Double = 1.0
+
+  val currencyId:String = fixingInfo.currencyId
+
+  def paymentCurrencyId:String = fixingInfo.paymentCurrencyId
 
   val keywords:Set[String] = jsonMapImpl.keySet
 
@@ -117,16 +119,6 @@ trait Payoff extends FixingLeg {
 
   def isTriggered(fixing:Map[String, Double], trigger:Map[String, Double], triggerUp:Boolean):Boolean =
     !trigger.isEmpty && triggeredUnderlyings(fixing, trigger, triggerUp).size == trigger.size
-
-  //    def triggered(fixing:List[Map[String, Double]], trigger:Option[Map[String, Double]], triggerUp:Boolean) = trigger match {
-  //      case None => false
-  //      case Some(t) if t.isEmpty => false
-  //      case Some(t) if fixing.lastOption.collect{case f => f.isEmpty}.getOrElse(true) => false
-  //      case Some(t) => t.forall{case (v, d) =>
-  //        if(triggerUp) fixing.last.get(v).collect{case vv => vv >= d}.getOrElse(false)
-  //        else fixing.last.get(v).collect{case vv => vv <= d}.getOrElse(false)
-  //      }
-  //    }
 
   def terminationAmount(fixing:Map[String, Double], trigNominal:Double, forwardStrikes:Option[Map[String, Double]]):Double = forwardStrikes match {
     case Some(k) => trigNominal * k.map{case (k, v) => fixing(k) / v}.min
@@ -218,7 +210,7 @@ object Payoff {
     case f => formula.parseJsonDouble("nominal")
     }
 
-  def simpleCashFlow(amount:Double) = FixedPayoff(amount)(FixingInformation.empty)
+  def simpleCashFlow(currencyId:String, paymentCurrencyId:String, amount:Double) = FixedPayoff(amount)(FixingInformation.empty(currencyId, paymentCurrencyId))
 
   def updateReplacements(inputString:String)(implicit fixingInfo:FixingInformation):String = {
     if (!inputString.trim.startsWith("{")) {return inputString}

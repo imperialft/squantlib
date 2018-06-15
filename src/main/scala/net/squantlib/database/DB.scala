@@ -1,11 +1,10 @@
 package net.squantlib.database
 
+import net.squantlib.util.{Date, FixingInformation, UnderlyingParser}
 import net.squantlib.util.Date
-import java.util.{Date => JavaDate}
-import net.squantlib.util.Date
-import net.squantlib.util.UnderlyingParser
 import net.squantlib.database.schemadefinitions.{Equity, Index}
 import net.squantlib.math.timeseries.TimeSeries
+import java.util.{Date => JavaDate}
 
 trait DbRepository {
   
@@ -69,9 +68,16 @@ object DB {
     dates.map(d => allhistory.get(d))
   }
   
-  def pastFixings(ids:Set[String], dates:List[Date], paramType:String = null, fillBlank:Boolean = false):List[Map[String, Option[Double]]] = {
+  def pastFixings(
+    ids:Set[String],
+    dates:List[Date],
+    paramType:String = null,
+    fillBlank:Boolean = false):List[Map[String, Option[Double]]] = {
+
     if (dates.isEmpty) {return List.empty}
+
     val allhistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min.sub(30), dates.max, paramType).toMap)) (collection.breakOut)
+
     if (fillBlank){
       dates.map(d => ids.map(p => (p, 
         if (d gt latestParamDate.getOrElse(Date.currentDate)) None

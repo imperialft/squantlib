@@ -25,6 +25,10 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 
 	  variablesRec(payoffs, Set.empty)
 	}
+
+	val paymentFXUnderlyings:Set[String] = {
+		payoffs.filter(p => p.currencyId != p.paymentCurrencyId).map(p => p.currencyId + p.paymentCurrencyId).toSet
+	}
 	
 	val factors:Int = underlyings.size
 	
@@ -33,61 +37,6 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	override val fixinglegs = payoffs
 
 	def isPaymentFixed:Boolean = payoffs.forall(_.isPaymentFixed)
-	
-//	abstract class FixingInterpreter[T, U] {
-//	  def price(fixing:T, payoff:Payoff, pastPayments:List[Double]):Double
-//
-//	  def triggered(fixing:U, trigger:Option[U], triggerUp:Boolean):Boolean = trigger.collect{case t => triggered(fixing, t, triggerUp)}.getOrElse(false)
-//
-//    def triggered(fixing:U, trigger:U, triggerUp:Boolean):Boolean
-//
-//    def triggeredUnderlyings(fixing:U, trigger:U, triggerUp:Boolean):Set[String]
-//
-//	  def terminationAmount(fixing:T, trigNominal:Double, forwardStrikes:Option[U]):Double
-//
-//	  def assignFixings(fixing:T, payoff:Payoff, pastPayments:List[Double]):Unit
-//
-//		def assignSettlementFixings(fixing:T, payoff:Payoff):Unit
-//	}
-//
-//  implicit object ListMapList extends FixingInterpreter[List[Map[String, Double]], Map[String, Double]] {
-//    def price(fixing:List[Map[String, Double]], p:Payoff, pastPayments:List[Double]) = if (fixing.isEmpty) p.price else p.price(fixing, pastPayments)
-//
-//    def triggeredUnderlyings(fixing:Map[String, Double], trigger:Map[String, Double], triggerUp:Boolean) = {
-//      trigger.filter{case (ul, v) =>
-//        if (triggerUp) fixing.get(ul).collect{case fv => fv >= v}.getOrElse(false)
-//        else fixing.get(ul).collect{case fv => fv <= v}.getOrElse(false)
-//      }.keySet
-//    }
-//
-//    def triggered(fixing:Map[String, Double], trigger:Map[String, Double], triggerUp:Boolean) =
-//      !trigger.isEmpty && triggeredUnderlyings(fixing, trigger, triggerUp).size == trigger.size
-//
-//    //    def triggered(fixing:List[Map[String, Double]], trigger:Option[Map[String, Double]], triggerUp:Boolean) = trigger match {
-////      case None => false
-////      case Some(t) if t.isEmpty => false
-////      case Some(t) if fixing.lastOption.collect{case f => f.isEmpty}.getOrElse(true) => false
-////      case Some(t) => t.forall{case (v, d) =>
-////        if(triggerUp) fixing.last.get(v).collect{case vv => vv >= d}.getOrElse(false)
-////        else fixing.last.get(v).collect{case vv => vv <= d}.getOrElse(false)
-////      }
-////    }
-//
-//    def terminationAmount(fixing:List[Map[String, Double]], trigNominal:Double, forwardStrikes:Option[Map[String, Double]]) = forwardStrikes match {
-//      case Some(k) => trigNominal * k.map{case (k, v) => fixing.last(k) / v}.min
-//      case _ => trigNominal
-//    }
-//
-//    def assignFixings(fixing:List[Map[String, Double]], payoff:Payoff, pastPayments:List[Double]) = {
-//      if (payoff.physical && fixing.size > 1) {
-//        payoff.assignFixings(fixing(fixing.length - 2))
-//      } else {
-//        payoff.assignFixings(fixing.last)
-//      }
-//    }
-//
-//    def assignSettlementFixings(fixing:List[Map[String, Double]], payoff:Payoff) = payoff.assignSettlementFixings(fixing.last)
-//  }
 
   /*
    * Returns price array, when there's no variable.

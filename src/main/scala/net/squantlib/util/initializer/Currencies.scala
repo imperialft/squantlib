@@ -77,7 +77,13 @@ object Currencies extends Initializer[Currency]{
 			("TWD" -> new TWDCurrency),
 			("USD" -> new USDCurrency),
 			("VEB" -> new VEBCurrency),
-			("ZAR" -> new ZARCurrency))
+			("ZAR" -> new ZARCurrency)
+	)
+
+	def isForex(s:String):Boolean = {
+		if (s.size == 6) contains(s.take(3)) && contains(s.takeRight(3))
+		else false
+	}
 
 }
 
