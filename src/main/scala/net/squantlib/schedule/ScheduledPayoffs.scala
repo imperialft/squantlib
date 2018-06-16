@@ -310,16 +310,17 @@ object ScheduledPayoffs {
       case Some(fixInfo) => underlyings.map(ul => (ul, fixInfo.getUnderlyingFixing(ul))).filter{case (ul, infos) => !infos.fixingPages.isEmpty}.toMap
     }
 
-    val allUnderlyings:Set[String] = underlyings ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
+    val allFixingPages:Set[String] = underlyings ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
 
-    println("GET ALL UNDERLYINGS")
-    printf(allUnderlyings.toString)
+    val pastFixings:List[Map[String, Option[Double]]] = DB.pastFixings(allFixingPages, dates)
 
-    val pastFixings = DB.pastFixings(allUnderlyings, dates)
-    println("-----------------------------------")
-    pastFixings.foreach(println)
+    val baseFixings:List[Map[String, Double]] = pastFixings.map(_.collect{case (k, Some(v)) => (k, v)})
 
-    pastFixings.map(_.collect { case (k, Some(v)) => (k, v) })
+    val customFixings:List[Map[String, Double]] = baseFixings.map(fixingMap => {
+      underlyingFixingInfos.map {case (ul, infos) => (ul, infos.getPriceFromFixings(fixingMap))}.collect{case (ul, Some(v)) => (ul, v)}.toMap
+    })
+
+    baseFixings.zip(customFixings).map{case (b, c) => b ++ c}
   }
     
   def getExterpolatedFixings(underlyings:Set[String], dates:List[Date], fixingInfo:Option[FixingInformation], valuedate:Date):List[Map[String, Double]] = {
