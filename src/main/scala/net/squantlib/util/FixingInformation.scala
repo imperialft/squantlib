@@ -130,6 +130,16 @@ case class UnderlyingFixingInfo(
     }
   }
 
+  def getPriceFromFixings(pagePrices:Map[String, Double]):Option[Double] = {
+    val underlyingPrices:Map[FixingPage, Double] = pagePrices.map{case (ul, v) =>
+      fixingPages.find(p => p.pageList.contains(ul)) match {
+        case Some(fixingPage) => Some((fixingPage, v))
+        case _ => None
+      }
+    }.flatMap{case s => s}.toMap
+    getPrice(underlyingPrices)
+  }
+
 }
 
 case class FixingPage(
