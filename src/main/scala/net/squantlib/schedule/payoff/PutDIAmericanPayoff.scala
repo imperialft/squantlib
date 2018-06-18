@@ -32,6 +32,10 @@ case class PutDIAmericanPayoff(
     inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables = triggers.keySet ++ strikes.keySet ++ finalTriggers.keySet
+
+  val strikeVariables = strikes.keySet
+  val triggerVariables = triggers.keySet
+  val strikeOrFinalTriggerVariables = finalTriggers.keySet
   
   nominal = amount
   
@@ -108,22 +112,22 @@ case class PutDIAmericanPayoff(
   implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
 
     override def isKnockIn(fixings:Map[String, Double]):Boolean = {
-      knockedIn || variables.exists(p => fixings.get(p) match { 
+      knockedIn || triggerVariables.exists(p => fixings.get(p) match {
         case Some(v) if triggers.contains(p) => v <= triggers(p)
         case _ => false
       })
     }
 
     override def minBelowStrike(fixings:Map[String, Double]):Boolean = {
-      variables.exists(p => fixings.get(p) match { 
+      strikeOrFinalTriggerVariables.exists(p => fixings.get(p) match {
         case Some(v) if strikeOrFinalTriggers.contains(p) => v <= strikeOrFinalTriggers(p)
         case _ => false
       })
     }
 
     override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
-      if ((variables subsetOf fixings.keySet) && variables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
-        if (isKnockedIn) variables.map(v => fixings(v) / strikes(v)).min
+      if ((strikeVariables subsetOf fixings.keySet) && strikeVariables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
+        if (isKnockedIn) strikeVariables.map(v => fixings(v) / strikes(v)).min
         else 1.0
       } else Double.NaN
     }
