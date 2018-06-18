@@ -179,7 +179,14 @@ object Schedule{
               d
             case None => terminationDate
           }
-          
+
+          val firstEndDateAfter = firstDate.getOrElse(effectiveDate)
+          val firstStartDateAfter = effectiveDate.add(
+            if (firstDate.isDefined) 0
+            else if (effectiveDate.add(tenor).sub(effectiveDate) > 32) 32
+            else 14
+          )
+
           var periods = 1
           var startDate:Date = initialDate
           var endDate:Date = terminationDate
@@ -187,11 +194,16 @@ object Schedule{
           do {
             endDate = startDate
             startDate = initialDate.advance(nullCalendar, tenor.mul(periods).negative, calendarConvention)
-            if (Math.abs(effectiveDate.sub(startDate)) < 14) {startDate = effectiveDate}
+
+            if (endDate.sub(firstEndDateAfter) <= 0 || startDate.sub(firstStartDateAfter) <= 0) { // if (Math.abs(effectiveDate.sub(startDate)) < 14) {
+              startDate = effectiveDate
+            }
+
             tempdates += calcperiod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate, false)
+
             periods = periods + 1
           } while (startDate gt effectiveDate)
-           
+
           tempdates.sortBy(_.eventDate).toList
   
         case Forward =>

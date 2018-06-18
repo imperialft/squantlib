@@ -312,12 +312,12 @@ object ScheduledPayoffs {
 
     val allUnderlyings:Set[String] = underlyings ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
 
-    println("GET ALL UNDERLYINGS")
-    printf(allUnderlyings.toString)
+//    println("GET ALL UNDERLYINGS")
+//    printf(allUnderlyings.toString)
 
     val pastFixings = DB.pastFixings(allUnderlyings, dates)
-    println("-----------------------------------")
-    pastFixings.foreach(println)
+//    println("-----------------------------------")
+//    pastFixings.foreach(println)
 
     pastFixings.map(_.collect { case (k, Some(v)) => (k, v) })
   }

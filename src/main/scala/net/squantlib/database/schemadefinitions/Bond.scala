@@ -255,6 +255,15 @@ class Bond(	  @Column("ID")					override var id: String,
     }
   }
 
+  @Transient
+  lazy val firstPaymentDateAfter:Option[Date] = {
+    val bondSettings = settingMap
+    bondSettings.get("first_payment_after") match {
+      case Some(d) => Date.getDate(d)
+      case _ => None
+    }
+  }
+
   def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
 
   def schedule:Option[Schedule] = try {
@@ -271,7 +280,7 @@ class Bond(	  @Column("ID")					override var id: String,
         fixingInArrears = isFixingInArrears,
         noticeDay = couponNotice,
         daycount = daycounter, 
-        firstDate = None,
+        firstDate = firstPaymentDateAfter,
         nextToLastDate = lastRollDate,
         addRedemption = true,
         maturityNotice = redemptionNotice,
