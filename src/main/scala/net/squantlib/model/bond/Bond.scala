@@ -77,24 +77,24 @@ object Bond {
     if (schedule == null) {return None}
     
     implicit val fixingInfo:FixingInformation = if (customFixings == null) db.fixingInformation else customFixings
-    
+
     val coupon:Payoffs = Payoffs(db.coupon, schedule.size - 1).orNull
     if (coupon == null || coupon.size + 1 != schedule.size) {errorOutput(db.id, "cannot initialize coupon"); return None}
-      
+
     val redemption = Payoff(db.redemprice).orNull
     if (redemption == null) {errorOutput(db.id, "cannot initialize redemption"); return None}
-      
+
     val underlyings:List[String] = db.underlyingList
       
     val calls = Callabilities(db.call, underlyings, schedule.size)
     if (calls == null) {errorOutput(db.id, "cannot initialize calls"); return None}
-      
+
     val scheduledPayoffs = valuedate match {
       case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d, true)
       case None if assignPastFixings => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size), true)
       case None => ScheduledPayoffs.noFixing(schedule, coupon :+ redemption, calls.fill(schedule.size))
     }
-    
+
     if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {
       errorOutput(db.id, "cannot initialize scheduled payoffs")
       None
