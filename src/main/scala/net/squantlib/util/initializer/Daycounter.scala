@@ -17,6 +17,14 @@ object Daycounters extends Initializer[DayCounter] {
 			("ACT/365" -> new Actual365Fixed),
 			("Actual/365 (fixed)" -> new Actual365Fixed),
 
+			("ACT/365A12M" -> new Actual365Fixed(Actual365Fixed.Convention.Adjusted, new Period(12, TimeUnit.Months))),
+			("Actual/365 (adj 12M)" -> new Actual365Fixed(Actual365Fixed.Convention.Adjusted, new Period(12, TimeUnit.Months))),
+			("ACT/365A6M" -> new Actual365Fixed(Actual365Fixed.Convention.Adjusted, new Period(6, TimeUnit.Months))),
+			("Actual/365 (adj 6M)" -> new Actual365Fixed(Actual365Fixed.Convention.Adjusted, new Period(6, TimeUnit.Months))),
+			("ACT/365A3M" -> new Actual365Fixed(Actual365Fixed.Convention.Adjusted, new Period(3, TimeUnit.Months))),
+			("Actual/365 (adj 3M)" -> new Actual365Fixed(Actual365Fixed.Convention.Adjusted, new Period(3, TimeUnit.Months))),
+			("ACT/365A1M" -> new Actual365Fixed(Actual365Fixed.Convention.Adjusted, new Period(1, TimeUnit.Months))),
+			("Actual/365 (adj 1M)" -> new Actual365Fixed(Actual365Fixed.Convention.Adjusted, new Period(1, TimeUnit.Months))),
 
 			("ACT/ACT" -> new ActualActual),
 			("Actual/Actual (ISDA)" -> new ActualActual),
