@@ -264,6 +264,12 @@ class Bond(	  @Column("ID")					override var id: String,
     }
   }
 
+  def isRollMonthEnd:Boolean = settingMap.get("month_end_roll").collect{case d => d.toInt == 1}.getOrElse(false)
+
+  def customFixingDayOfMonth:Option[Int] = settingMap.get("fixingdate").collect{case d => d.toInt}
+
+  def isFixingOnCalculationEndDate:Boolean = settingMap.get("fixing_on_enddate").collect{case d => d.toInt == 1}.getOrElse(false)
+
   def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
 
   def schedule:Option[Schedule] = try {
@@ -284,14 +290,15 @@ class Bond(	  @Column("ID")					override var id: String,
         nextToLastDate = lastRollDate,
         addRedemption = true,
         maturityNotice = redemptionNotice,
-        fixedDayOfMonth = settingMap.get("fixingdate").collect{case d => d.toInt},
-        fixingOnCalculationEndDate = settingMap.get("fixing_on_enddate").collect{case d => d.toInt == 1}.getOrElse(false)
+        fixedDayOfMonth = customFixingDayOfMonth,
+        fixingOnCalculationEndDate = isFixingOnCalculationEndDate,
+        rollMonthEnd = isRollMonthEnd
     )
     if (schedule == null) None else Some(schedule)
   }
   catch { case _:Throwable => None}
-  
-  private def optionalDouble(n:JsonNode):Option[Double] = 
+
+  private def optionalDouble(n:JsonNode):Option[Double] =
     if (n == null || n.isNull) None
     else Some(n.parseDouble.getOrElse(Double.NaN))
     

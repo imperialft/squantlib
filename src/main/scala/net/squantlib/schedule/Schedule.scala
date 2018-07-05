@@ -121,7 +121,8 @@ object Schedule{
     addRedemption:Boolean,
     maturityNotice:Int,
     fixedDayOfMonth:Option[Int],
-    fixingOnCalculationEndDate:Boolean
+    fixingOnCalculationEndDate:Boolean,
+    rollMonthEnd: Boolean
   ):Schedule = {
     
     assert(firstDate.isEmpty || firstDate.get.gt(effectiveDate))
@@ -195,6 +196,10 @@ object Schedule{
             endDate = startDate
             startDate = initialDate.advance(nullCalendar, tenor.mul(periods).negative, calendarConvention)
 
+            if (rollMonthEnd && (startDate.endOfMonth gt effectiveDate.endOfMonth)) {
+              startDate = startDate.endOfMonth
+            }
+
             if (endDate.sub(firstEndDateAfter) <= 0 || startDate.sub(firstStartDateAfter) <= 0) { // if (Math.abs(effectiveDate.sub(startDate)) < 14) {
               startDate = effectiveDate
             }
@@ -254,7 +259,8 @@ object Schedule{
     addRedemption:Boolean,
     maturityNotice:Int,
     fixedDayOfMonth:Option[Int],
-    fixingOnCalculationEndDate:Boolean
+    fixingOnCalculationEndDate:Boolean,
+    rollMonthEnd: Boolean
   ):Schedule
     = apply(
       Date(effectiveDate), 
@@ -274,7 +280,9 @@ object Schedule{
       addRedemption, 
       maturityNotice,
       fixedDayOfMonth,
-      fixingOnCalculationEndDate)
+      fixingOnCalculationEndDate,
+      rollMonthEnd
+  )
 
         
   def periodicalDates(

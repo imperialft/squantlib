@@ -17,7 +17,9 @@ object JsonUtils {
   val mapper = new ObjectMapper
   
   def jsonDateFormat = new java.text.SimpleDateFormat("y/M/d")
-  
+
+  def jsonDateFormat2 = new java.text.SimpleDateFormat("y-M-d")
+
   def newObjectNode = mapper.createObjectNode
   
   def newArrayNode = mapper.createArrayNode
@@ -87,19 +89,33 @@ object JsonUtils {
       r
     }
 
-    def parseDate:Option[Date] = try{
-      Some(Date(jsonDateFormat.parse(node.parseString.orNull)))
-    } catch {case _:Throwable => None}
-    
+    def parseDate:Option[Date] = node.parseString match {
+      case Some(s) if s.size >= 8 && (s.contains("/") || s.contains("-")) =>
+        try{
+          if (s.contains("/")) {
+            Some(Date(jsonDateFormat.parse(s)))
+          } else {
+            Some(Date(jsonDateFormat2.parse(s)))
+          }
+        } catch {
+          case _:Throwable => None
+        }
+      case _ => None
+    }
+
+
     def parseDate(name:String):Option[Date] = 
       if (name == null) None
       else node.parseString(name) match {
-        case None => None
-        case Some(s) if s.size < 8 || !s.contains("/") => None
-        case Some(s) => ignoreErr {
+        case Some(s) if s.size >= 8 && s.contains("/") => ignoreErr {
            try{ Some(Date(jsonDateFormat.parse(s)))} 
           catch { case e:Throwable => errorOutput(s + " could not be parsed"); e.printStackTrace; None}
         }
+        case Some(s) if s.size >= 8 && s.contains("-") => ignoreErr {
+          try{ Some(Date(jsonDateFormat2.parse(s)))}
+          catch { case e:Throwable => errorOutput(s + " could not be parsed"); e.printStackTrace; None}
+        }
+        case _ => None
       }
     
     def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))
