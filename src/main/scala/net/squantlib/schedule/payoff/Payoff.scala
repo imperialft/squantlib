@@ -171,7 +171,7 @@ object Payoff {
       val po = payoffType(inputString) match {
         case "fixed" => FixedPayoff(inputString)
         case "leps1d" => LEPS1dPayoff(inputString)
-        case "linear1d" => Linear1dPayoff(inputString)
+//        case "linear1d" => Linear1dPayoff(inputString)
         case "putdi" => PutDIPayoff(inputString)
         case "putdiamerican" => PutDIAmericanPayoff(inputString)
         case "callui" => CallUIPayoff(inputString)
