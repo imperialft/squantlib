@@ -1,7 +1,6 @@
 package net.squantlib.database
 
-import net.squantlib.util.{Date, FixingInformation, UnderlyingParser}
-import net.squantlib.util.Date
+import net.squantlib.util.{Date, FixingInformation, UnderlyingFixingInfo, UnderlyingParser}
 import net.squantlib.database.schemadefinitions.{Equity, Index}
 import net.squantlib.math.timeseries.TimeSeries
 import java.util.{Date => JavaDate}
@@ -67,12 +66,16 @@ object DB {
     val allhistory = getHistorical(id, dates.min, dates.max, paramType)
     dates.map(d => allhistory.get(d))
   }
-  
+
+  def pastFixings(ids:Set[String], dates:List[Date]):List[Map[String, Option[Double]]] = pastFixings(ids, dates, null)
+
+  def pastFixings(ids:Set[String], dates:List[Date], paramType:String):List[Map[String, Option[Double]]] = pastFixings(ids, dates, paramType, false)
+
   def pastFixings(
     ids:Set[String],
     dates:List[Date],
-    paramType:String = null,
-    fillBlank:Boolean = false):List[Map[String, Option[Double]]] = {
+    paramType:String,
+    fillBlank:Boolean):List[Map[String, Option[Double]]] = {
 
     if (dates.isEmpty) {return List.empty}
 
@@ -90,7 +93,39 @@ object DB {
       dates.map(d => ids.map(p => (p, allhistory(p).get(d))).toMap)
     }
   }
-	
+
+  def getFixings(
+    ids: Set[String],
+    dates: List[Date],
+    fixingInfo: FixingInformation
+  ):List[Map[String, Double]] = {
+
+    val underlyingFixingInfos:Map[String, UnderlyingFixingInfo] = ids.map(ul => (ul, fixingInfo.getUnderlyingFixing(ul))).filter{case (ul, infos) => !infos.fixingPages.isEmpty}.toMap
+
+    val allFixingPages:Set[String] = ids ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
+
+    val allPastFixings:List[Map[String, Option[Double]]] = pastFixings(allFixingPages, dates)
+
+    val baseFixings:List[Map[String, Double]] = allPastFixings.map(_.collect{case (k, Some(v)) => (k, v)})
+
+    val customFixings:List[Map[String, Double]] = baseFixings.map(fixingMap => {
+      underlyingFixingInfos.map{case (ul, infos) => (ul, infos.getPriceFromFixings(fixingMap))}.collect{case (ul, Some(v)) => (ul, v)}
+    })
+
+    baseFixings.zip(customFixings).map{case (b, c) => b ++ c}
+
+//    allPastFixings.zip(customFixings).map{case (bMap, cMap) =>
+//      bMap.map{case (ul, v) =>
+//        cMap.get(ul) match {
+//          case Some(vv) => (ul -> vv)
+//          case None if !ul.contains(":") => (ul -> v)
+//          case _ => (ul -> null)
+//        }
+//      }.filter{case (ul, v) => v != null}
+//    }
+  }
+
+
   def getHistorical(id:String):TimeSeries = getHistorical(id, null)
 	  
   def getHistorical(id:String, paramType:String):TimeSeries = getHistorical(id, null, null, paramType)
@@ -130,11 +165,4 @@ object DB {
 
   def getCurrencyIds:Set[String] = repository.collect{case repo => repo.getCurrencyIds}.getOrElse(Set.empty)
 
-//  def getCountryHolidayMapping: Map[String, String] = repository.collect{case repo => repo.getCountryHolidayMapping}.getOrElse(Map.empty)
-//
-//  def getCurrencyHolidayMapping: Map[String, String] = repository.collect{case repo => repo.getCurrencyHolidayMapping}.getOrElse(Map.empty)
-
-  
-//  def lastHoliday:Date = repository.collect{case repo => repo.lastHoliday}.getOrElse(Date.currentDate)
-  
 }

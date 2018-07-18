@@ -267,9 +267,9 @@ object ScheduledPayoffs {
 
   def allFixingUnderlyings(payoffs:Payoffs, calls:Callabilities) = payoffs.underlyings ++ calls.underlyings ++ payoffs.paymentFXUnderlyings
 
-  def getFixingInformation(payoffs:Payoffs, calls:Callabilities):Option[FixingInformation] = payoffs.headOption match {
-    case Some(p) => Some(p.fixingInfo)
-    case _ => calls.headOption.collect { case c => c.fixingInfo }
+  def getFixingInformation(payoffs:Payoffs, calls:Callabilities):FixingInformation = payoffs.headOption match {
+    case Some(p) => p.fixingInfo
+    case _ => calls.headOption.collect{case c => c.fixingInfo}.getOrElse(FixingInformation.empty("JPY", "JPY"))
   }
 
   def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
@@ -303,27 +303,28 @@ object ScheduledPayoffs {
     ScheduledPayoffs(schedule.sortWith(payoffs, calls, keepFinalLeg), None)
   }
   
-  def getFixings(underlyings:Set[String], dates:List[Date], fixingInfo:Option[FixingInformation]):List[Map[String, Double]] = {
+  def getFixings(underlyings:Set[String], dates:List[Date], fixingInfo:FixingInformation):List[Map[String, Double]] = {
+    DB.getFixings(underlyings, dates, fixingInfo) //.map(vs => vs.collect{case (ul, Some(v)) => (ul, v)})
 
-    val underlyingFixingInfos:Map[String, UnderlyingFixingInfo] = fixingInfo match {
-      case None => Map.empty
-      case Some(fixInfo) => underlyings.map(ul => (ul, fixInfo.getUnderlyingFixing(ul))).filter{case (ul, infos) => !infos.fixingPages.isEmpty}.toMap
-    }
-
-    val allFixingPages:Set[String] = underlyings ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
-
-    val pastFixings:List[Map[String, Option[Double]]] = DB.pastFixings(allFixingPages, dates)
-
-    val baseFixings:List[Map[String, Double]] = pastFixings.map(_.collect{case (k, Some(v)) => (k, v)})
-
-    val customFixings:List[Map[String, Double]] = baseFixings.map(fixingMap => {
-      underlyingFixingInfos.map {case (ul, infos) => (ul, infos.getPriceFromFixings(fixingMap))}.collect{case (ul, Some(v)) => (ul, v)}.toMap
-    })
-
-    baseFixings.zip(customFixings).map{case (b, c) => b ++ c}
+//    val underlyingFixingInfos:Map[String, UnderlyingFixingInfo] = fixingInfo match {
+//      case None => Map.empty
+//      case Some(fixInfo) => underlyings.map(ul => (ul, fixInfo.getUnderlyingFixing(ul))).filter{case (ul, infos) => !infos.fixingPages.isEmpty}.toMap
+//    }
+//
+//    val allFixingPages:Set[String] = underlyings ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
+//
+//    val pastFixings:List[Map[String, Option[Double]]] = DB.pastFixings(allFixingPages, dates)
+//
+//    val baseFixings:List[Map[String, Double]] = pastFixings.map(_.collect{case (k, Some(v)) => (k, v)})
+//
+//    val customFixings:List[Map[String, Double]] = baseFixings.map(fixingMap => {
+//      underlyingFixingInfos.map {case (ul, infos) => (ul, infos.getPriceFromFixings(fixingMap))}.collect{case (ul, Some(v)) => (ul, v)}.toMap
+//    })
+//
+//    baseFixings.zip(customFixings).map{case (b, c) => b ++ c}
   }
     
-  def getExterpolatedFixings(underlyings:Set[String], dates:List[Date], fixingInfo:Option[FixingInformation], valuedate:Date):List[Map[String, Double]] = {
+  def getExterpolatedFixings(underlyings:Set[String], dates:List[Date], fixingInfo:FixingInformation, valuedate:Date):List[Map[String, Double]] = {
     if (dates.isEmpty) {return List.empty}
     val valuedate = DB.latestParamDate.getOrElse(dates.max)
     val (datesbefore, datesafter) = dates.span(_ le valuedate)

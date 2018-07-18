@@ -314,6 +314,9 @@ class Bond(	  @Column("ID")					override var id: String,
     case _ => false
   }
 
+  def getFixingPrices(dates:List[Date]):List[Map[String, Double]] = getFixingPrices(underlyingList.toSet, dates)
+
+  def getFixingPrices(ids:Set[String], dates:List[Date]):List[Map[String, Double]] = DB.getFixings(ids, dates, fixingInformation)
 
   def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
   
