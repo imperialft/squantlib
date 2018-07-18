@@ -150,14 +150,18 @@ case class FixingPage(
   country:Option[String]
 ) {
 
-  val fallback:String = underlying + ":" + page
+  val fallback:Option[String] = Some(underlying + ":" + page)
 
-  val defaultPage:String = {
-    if (Set(bidOffer, time, country).exists(_.isDefined)) underlying + ":" + page + ":" + List(bidOffer, time, country).flatMap(s => s).mkString(":")
-    else fallback
+  val defaultPage:Option[String] = {
+    if (Set(time, country).exists(_.isDefined)) Some(underlying + ":" + page + ":" + List(bidOffer, time, country).flatMap(s => s).mkString(":"))
+    else None
   }
 
-  val pageList:List[String] = if (defaultPage == fallback) List(defaultPage) else List(defaultPage, fallback)
+  val defaultPage2:Option[String] = bidOffer.collect{case bo => underlying + ":" + page + ":" + bo}
+
+  //  val pageList:List[String] = if (defaultPage == fallback) List(defaultPage) else List(defaultPage, fallback)
+
+  val pageList:List[String] = List(defaultPage, defaultPage2, fallback).flatMap(s => s)
 
   override def toString = pageList.mkString(", ")
 
