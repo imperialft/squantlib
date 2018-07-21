@@ -100,7 +100,11 @@ object DB {
     fixingInfo: FixingInformation
   ):List[Map[String, Double]] = {
 
-    val underlyingFixingInfos:Map[String, UnderlyingFixingInfo] = ids.map(ul => (ul, fixingInfo.getUnderlyingFixing(ul))).filter{case (ul, infos) => !infos.fixingPages.isEmpty}.toMap
+    val underlyingFixingInfos:Map[String, UnderlyingFixingInfo] = ids.map(ul =>
+      (ul, fixingInfo.getUnderlyingFixing(ul))
+    ).filter{case (ul, infos) =>
+      !infos.fixingPages.isEmpty
+    }.toMap
 
     val allFixingPages:Set[String] = ids ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
 

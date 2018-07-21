@@ -131,12 +131,20 @@ case class UnderlyingFixingInfo(
   }
 
   def getPriceFromFixings(pagePrices:Map[String, Double]):Option[Double] = {
-    val underlyingPrices:Map[FixingPage, Double] = pagePrices.map{case (ul, v) =>
-      fixingPages.find(p => p.pageList.contains(ul)) match {
-        case Some(fixingPage) => Some((fixingPage, v))
+
+//    val underlyingPrices:Map[FixingPage, Double] = pagePrices.map{case (ul, v) =>
+//      fixingPages.find(p => p.pageList.contains(ul)) match {
+//        case Some(fixingPage) => Some((fixingPage, v))
+//        case _ => None
+//      }
+//    }.flatMap{case s => s}.toMap
+
+    val underlyingPrices:Map[FixingPage, Double] =
+      fixingPages.map(fixingPage => {fixingPage.getPrice(pagePrices) match {
+        case Some(v) => Some((fixingPage, v))
         case _ => None
-      }
-    }.flatMap{case s => s}.toMap
+      }}).flatMap{case s => s}.toMap
+
     getPrice(underlyingPrices)
   }
 
@@ -160,16 +168,20 @@ case class FixingPage(
 
   val pageOnly:Option[String] = Some(underlying + ":" + page)
 
-//  val timeOnly:Option[String] = (time, country) match {
-//    case (Some(t), Some(c)) => Some(underlying + "::" + t + ":" + c)
-//    case _ => None
-//  }
+  val timeOnly:Option[String] = (time, country) match {
+    case (Some(t), Some(c)) => Some(underlying + "::" + t + ":" + c)
+    case _ => None
+  }
 
 
-  val pageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly).flatMap(s => s)
-  //val pageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly, timeOnly).flatMap(s => s)
+//  val pageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly).flatMap(s => s)
+  val pageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly, timeOnly).flatMap(s => s)
 
   override def toString = pageList.mkString(", ")
+
+  def getPrice(pagePrices:Map[String, Double]):Option[Double] = {
+    pageList.map(pageName => pagePrices.get(pageName)).flatMap(s => s).headOption
+  }
 
   //  val pageList:List[String] = if (defaultPage == fallback) List(defaultPage) else List(defaultPage, fallback)
 
