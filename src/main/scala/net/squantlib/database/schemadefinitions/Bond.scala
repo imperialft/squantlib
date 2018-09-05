@@ -187,7 +187,17 @@ class Bond(
   def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
   
   def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
-  
+
+  def getUniqueIds:Map[String, String] = {
+    settings.jsonNode match {
+      case Some(s) => s.getOption("uniq_ids") match {
+        case Some(ss) => ss.parseStringFields
+        case _ => Map.empty
+      }
+      case _ => Map.empty
+    }
+  }
+
   def daycounter = Daycounters(daycount).getOrElse(new Actual365Fixed)
   
   def calendarAdjust = DayAdjustments.getOrElse(daycount_adj, BusinessDayConvention.ModifiedFollowing)
