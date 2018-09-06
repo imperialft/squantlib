@@ -149,6 +149,8 @@ object Date {
   def currentDate:Date = apply(currentTime)
   
   def currentTime:JavaDate = JavaCalendar.getInstance.getTime
+
+  def currentTimeString(datetimeFormat:String = "%tY/%<tm/%<td %<tH:%<tM:%<tS") = datetimeFormat.format(currentTime)
   
   def currentTimestamp:Timestamp = new Timestamp(currentTime.getTime)
   
