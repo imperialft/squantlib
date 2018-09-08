@@ -188,6 +188,10 @@ class Bond(
   
   def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
 
+  def isAutoId:Boolean = {
+    settingMap.get("auto_id").collect{case d => d.toInt == 1}.getOrElse(false)
+  }
+
   def getUniqueIds:Map[String, String] = {
     settings.jsonNode match {
       case Some(s) => s.getOption("uniq_ids") match {
