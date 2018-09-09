@@ -202,6 +202,11 @@ class Bond(
     }
   }
 
+  def updateRefNumber(refId:Int) = {
+    id = s"${issuerid}-${refId}"
+    ref_number = refId
+  }
+
   def daycounter = Daycounters(daycount).getOrElse(new Actual365Fixed)
   
   def calendarAdjust = DayAdjustments.getOrElse(daycount_adj, BusinessDayConvention.ModifiedFollowing)
