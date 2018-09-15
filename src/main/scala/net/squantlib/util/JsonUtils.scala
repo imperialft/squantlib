@@ -25,7 +25,9 @@ object JsonUtils {
   def newArrayNode = mapper.createArrayNode
   
   implicit def jsonToExtendedJson(node:JsonNode) = ExtendedJson(node)
-  
+
+  implicit def jsonToExtendedObjectNode(node:ObjectNode) = ExtendedObjectNode(node)
+
   def mapToJson[T <: Any, U <: Any](map:Map[T, U]):JsonNode = mapper.valueToTree(scalaAnyMapToJavaMap(map))
 
   private def isNumber(s:Any):Boolean = try {val t = s.toString.toDouble; true} catch {case e:Throwable => false}
@@ -58,7 +60,15 @@ object JsonUtils {
     def hasName(name:String):Boolean = (node != null) && (node has name)
     
     def getOption(name:String):Option[JsonNode] = if(node == null || !node.has(name)) None else Some(node.get(name))
-    
+
+    def getObjectNodeOption(name:String):Option[ObjectNode] = {
+      if(node == null || !node.has(name)) None
+      else {
+        try { Some(node.get(name).asInstanceOf[ObjectNode]) }
+        catch { case _:Throwable => None }
+      }
+    }
+
     def parseInt:Option[Int]= node match {
       case null => None
       case n if n.isInt => Some(n.getIntValue)
@@ -195,8 +205,22 @@ object JsonUtils {
     } catch{case e:Throwable => Map.empty}
 
   }
-  
-  
+
+  case class ExtendedObjectNode(node:ObjectNode) {
+    def keys:Set[String] = node.getFieldNames.asScala.toSet
+
+    def merge(key:String, n:ObjectNode):Unit = {
+      node.getOption(key) match {
+        case Some(knode:ObjectNode) =>
+          val adjustedNode = knode.putAll(n)
+          node.put(key, adjustedNode)
+        case _ =>
+          node.put(key, n)
+      }
+    }
+
+  }
+
   implicit def formulaToExtendedJson(formula:String) = JsonString(formula)
   
   case class JsonString(formula:String) {

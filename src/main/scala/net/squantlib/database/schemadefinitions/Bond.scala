@@ -338,8 +338,8 @@ class Bond(
 
   def getFixingPrices(ids:Set[String], dates:List[Date]):List[Map[String, Double]] = DB.getFixings(ids, dates, fixingInformation)
 
-  def settingsJson:JsonNode = settings.jsonNode.getOrElse((new ObjectMapper).createObjectNode)
-  
+  def settingsJson:ObjectNode = settings.objectNode.getOrElse((new ObjectMapper).createObjectNode)
+
   def modelOutputJson:Option[JsonNode] = try {Some(model_output.jsonNode.get)} catch {case e:Throwable => None}
 
   def modelOutputMap:Map[String, List[Any]] = modelOutputJson.collect{case j => j.parseAllFieldMap}.getOrElse(Map.empty)
