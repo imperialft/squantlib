@@ -202,6 +202,10 @@ class Bond(
     }
   }
 
+  def settingsDistributorIds:List[String] = {
+    settings.jsonArray("distributor_ids").map(_.parseString).flatMap{case s => s}
+  }
+
   def updateRefNumber(refId:Int) = {
     id = s"${issuerid}-${refId}"
     ref_number = refId
