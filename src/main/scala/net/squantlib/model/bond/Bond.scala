@@ -89,10 +89,18 @@ object Bond {
     val calls = Callabilities(db.call, underlyings, schedule.size)
     if (calls == null) {errorOutput(db.id, "cannot initialize calls"); return None}
 
-    val scheduledPayoffs = valuedate match {
+    var scheduledPayoffs = valuedate match {
       case Some(d) => ScheduledPayoffs.extrapolate(schedule, coupon :+ redemption, calls.fill(schedule.size), d, true)
       case None if assignPastFixings => ScheduledPayoffs.sorted(schedule, coupon :+ redemption, calls.fill(schedule.size), true)
       case None => ScheduledPayoffs.noFixing(schedule, coupon :+ redemption, calls.fill(schedule.size))
+    }
+
+    scheduledPayoffs.scheduledPayoffs.dropRight(1).foreach{case (s, p, c) =>
+      p.getRedemption match {
+        case Some(r) =>
+          scheduledPayoffs = scheduledPayoffs.insert(s.getRedemptionLeg(p.nominal), r, c)
+        case _ => {}
+      }
     }
 
     if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {

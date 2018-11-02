@@ -154,6 +154,13 @@ trait Payoff extends FixingLeg {
     }
   }
 
+  def getRedemption:Option[Payoff] = {
+    inputString.jsonNode("redemption") match {
+      case Some(s) => Payoff(s.toJsonString)(fixingInfo)
+      case _ => None
+    }
+  }
+
   def missingInputs:Map[String, Double => Payoff] = Map.empty
 
   def description:String
@@ -203,12 +210,12 @@ object Payoff {
   def isAbsolute(formula:String):Boolean = formula match {
     case f if f.parseDouble.isDefined => false
     case f => formula.parseJsonString("absolute") == Some("1")
-    }
+  }
 
   def customNominal(formula:String):Option[Double] = formula match {
     case f if f.parseDouble.isDefined => None
     case f => formula.parseJsonDouble("nominal")
-    }
+  }
 
   def simpleCashFlow(currencyId:String, paymentCurrencyId:String, amount:Double) = FixedPayoff(amount)(FixingInformation.empty(currencyId, paymentCurrencyId))
 

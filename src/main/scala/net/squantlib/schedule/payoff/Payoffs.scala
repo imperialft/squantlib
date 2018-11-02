@@ -187,7 +187,7 @@ object Payoffs {
 	  	val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(getFirstElement) ++ payofflist else payofflist
 	  	Some(Payoffs(fullpayoff))
 	}}
-	
+
 	def toJsonString(n:JsonNode):String = (new ObjectMapper).writeValueAsString(n)
 	
 	def payoffType(formula:String):String = formula.trim match {

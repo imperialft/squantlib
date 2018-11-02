@@ -8,14 +8,14 @@ import org.jquantlib.time.{Calendar, BusinessDayConvention, TimeUnit}
 import org.jquantlib.time.calendars.NullCalendar
 
 case class CalculationPeriod(
-    eventDate:Date, 
-    startDate:Date, 
-    endDate:Date, 
-    paymentDate:Date, 
-    var daycounter:DayCounter, 
-    isRedemption: Boolean,
-    var nominal:Double
-    ) {
+  eventDate:Date,
+  startDate:Date,
+  endDate:Date,
+  paymentDate:Date,
+  var daycounter:DayCounter,
+  isRedemption: Boolean,
+  var nominal:Double
+) {
   
   def dayCount:Double = Date.daycount(startDate, endDate, daycounter)
 	
@@ -33,13 +33,15 @@ case class CalculationPeriod(
   def coefficient(curve:DiscountCurve):Double = dayCount * zeroCoupon(curve) * nominal
   
   def isAbsolute:Boolean = daycounter match {
-      case d:Absolute => true
-      case _ => false
-    }
+    case d:Absolute => true
+    case _ => false
+  }
 	
   def shifted(shift:Int):CalculationPeriod = CalculationPeriod(eventDate.add(shift), startDate.add(shift), endDate.add(shift), paymentDate.add(shift), daycounter, isRedemption, nominal)
   
   override def toString = eventDate.toString + " " + startDate.toString + " " + endDate.toString + " " + paymentDate.toString + " " + daycounter.toString
+
+  def getRedemptionLeg(nom:Double):CalculationPeriod = CalculationPeriod(eventDate, startDate, endDate, paymentDate, new Absolute, true, nom)
 }
 
 object CalculationPeriod {
