@@ -41,7 +41,16 @@ case class CalculationPeriod(
   
   override def toString = eventDate.toString + " " + startDate.toString + " " + endDate.toString + " " + paymentDate.toString + " " + daycounter.toString
 
-  def getRedemptionLeg(nom:Double):CalculationPeriod = CalculationPeriod(eventDate, startDate, endDate, paymentDate, new Absolute, true, nom)
+  def getRedemptionLeg(nom:Double):CalculationPeriod = CalculationPeriod(
+    eventDate,
+    endDate,
+    endDate,
+    paymentDate,
+    new Absolute,
+    true,
+    nom
+  )
+
 }
 
 object CalculationPeriod {
@@ -75,7 +84,7 @@ object CalculationPeriod {
 
         else { // previous month
           val prevmonth = calculationDate.addMonths(-1)
-        Date(prevmonth.year, prevmonth.month, d, true)
+          Date(prevmonth.year, prevmonth.month, d, true)
         }
 
       case None => calculationDate
@@ -87,11 +96,13 @@ object CalculationPeriod {
   }
   
   def simpleCashflow(
-      paymentDate:Date, 
-      paymentCalendar:Calendar,
-      paymentConvention:BusinessDayConvention,
-      isRedemption: Boolean):CalculationPeriod = 
-        
+    paymentDate:Date,
+    paymentCalendar:Calendar,
+    paymentConvention:BusinessDayConvention,
+    isRedemption: Boolean
+  ):CalculationPeriod = {
+
     apply(paymentDate, paymentDate, 0, false, new Absolute, paymentCalendar, paymentCalendar, paymentConvention, isRedemption)
+  }
   
 }
