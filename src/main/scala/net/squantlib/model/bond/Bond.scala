@@ -15,6 +15,8 @@ import net.squantlib.pricing.model.NoModel
 import org.jquantlib.currencies.Currency
 import net.squantlib.util.FixingInformation
 import net.squantlib.util.DisplayUtils._
+import scala.collection.LinearSeq
+
 
 trait AnalyzableBond 
 	extends PriceableBond 
@@ -83,6 +85,7 @@ object Bond {
 
     val redemption = Payoff(db.redemprice).orNull
     if (redemption == null) {errorOutput(db.id, "cannot initialize redemption"); return None}
+    redemption.setAbsolute
 
     val underlyings:List[String] = db.underlyingList
       
@@ -95,12 +98,18 @@ object Bond {
       case None => ScheduledPayoffs.noFixing(schedule, coupon :+ redemption, calls.fill(schedule.size))
     }
 
-    scheduledPayoffs.scheduledPayoffs.dropRight(1).foreach{case (s, p, c) =>
+    val newLegs:LinearSeq[Payoff] = scheduledPayoffs.scheduledPayoffs.dropRight(1).map{case (s, p, c) =>
       p.getRedemption match {
         case Some(r) =>
           scheduledPayoffs = scheduledPayoffs.insert(s.getRedemptionLeg(p.nominal), r, c)
-        case _ => {}
+          r.setAbsolute
+          Some(r)
+        case _ => None
       }
+    }.flatMap(s => s)
+
+    if (!newLegs.isEmpty) {
+      scheduledPayoffs.assignFixings
     }
 
     if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {

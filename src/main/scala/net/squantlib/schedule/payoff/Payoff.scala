@@ -29,6 +29,10 @@ trait Payoff extends FixingLeg {
 
   var isAbsolute:Boolean = false
 
+  def setAbsolute = {
+    isAbsolute = true
+  }
+
   val physical:Boolean = false
 
   override def isSettlementFixed:Boolean = variables.isEmpty || !physical || !settlementFixings.isEmpty

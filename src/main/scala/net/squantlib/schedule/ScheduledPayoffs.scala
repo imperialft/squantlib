@@ -20,19 +20,21 @@ case class ScheduledPayoffs(
   valuedate:Option[Date] = None
 ) extends LinearSeq[(CalculationPeriod, Payoff, Callability)]{
   
-  scheduledPayoffs.foreach{case (s, p, c) => 
-    if (p.isAbsolute) s.daycounter = new Absolute
-    s.nominal = p.nominal
-  }
-  
   lazy val (schedule, payoffs, calls) = scheduledPayoffs.unzip3  match {
     case (s, p, c) => (Schedule(s), Payoffs(p), Callabilities(c))
   }
-  
+
   lazy val coupon = Payoffs(payoffs.dropRight(1))
-  
+
   lazy val redemption = payoffs.last
-  
+
+  scheduledPayoffs.foreach{case (s, p, c) =>
+    if (p.isAbsolute) s.daycounter = new Absolute
+    s.nominal = p.nominal
+  }
+
+
+
   def isPriceable = payoffs.isPriceable && calls.isPriceable
 
   def trigCheckPayoff:ScheduledPayoffs = {
@@ -258,6 +260,19 @@ case class ScheduledPayoffs(
     }
   }
 
+  def assignFixings = {
+    val fixingMap = ScheduledPayoffs.getFixings(ScheduledPayoffs.allFixingUnderlyings(payoffs, calls), schedule.eventDates, ScheduledPayoffs.getFixingInformation(payoffs, calls))
+    payoffs.assignFixings(fixingMap)
+    calls.assignFixings(fixingMap)
+    calls.assignAccumulatedPayments(schedule, payoffs)
+
+    if (payoffs.exists(p => p.physical)) {
+      val settlementFixingMap = ScheduledPayoffs.getFixings(ScheduledPayoffs.allFixingUnderlyings(payoffs, calls), schedule.paymentDates, ScheduledPayoffs.getFixingInformation(payoffs, calls))
+      payoffs.assignSettlementFixings(settlementFixingMap)
+    }
+  }
+
+
 }
 
 
@@ -278,7 +293,7 @@ object ScheduledPayoffs {
     payoffs.assignFixings(fixingMap)
     calls.assignFixings(fixingMap)
     calls.assignAccumulatedPayments(schedule, payoffs)
-    
+
     if (payoffs.exists(p => p.physical)) {
       val settlementFixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.paymentDates, getFixingInformation(payoffs, calls))
       payoffs.assignSettlementFixings(settlementFixingMap)
@@ -299,7 +314,7 @@ object ScheduledPayoffs {
       val settlementFixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.paymentDates, getFixingInformation(payoffs, calls))
       payoffs.assignSettlementFixings(settlementFixingMap)
     }
-    
+
     ScheduledPayoffs(schedule.sortWith(payoffs, calls, keepFinalLeg), None)
   }
   
