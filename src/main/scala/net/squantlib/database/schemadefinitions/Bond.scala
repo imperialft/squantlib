@@ -228,7 +228,20 @@ class Bond(
   def maturityDate = Date(maturity)
   
   def fixingDate = fixingdate.collect{case d => Date(d)}
-  
+
+  def manualTerminationDate:Option[Date] = settingMap.get("terminated_on") match {
+    case Some(d) => Date.getDate(d)
+    case _ => None
+  }
+
+//  def getTerminationDate:Option[Date] = (manualTerminationDate, terminationdate.collect{case d => Date(d)}) match {
+//    case (Some(d1), Some(d2)) if d1 le d2 => Some(d1)
+//    case (Some(d1), Some(d2)) if d1 ge d2 => Some(d2)
+//    case (Some(d1), _) => Some(d1)
+//    case (_, Some(d2)) => Some(d2)
+//    case _ => None
+//  }
+
   def endDate:Date = terminationdate match {
     case Some(d) if maturity after d => Date(d)
     case _ => maturityDate

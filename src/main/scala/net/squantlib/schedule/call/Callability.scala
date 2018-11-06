@@ -4,6 +4,7 @@ import scala.collection.immutable.ListMap
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.FixingLeg
 import net.squantlib.util.FixingInformation
+import net.squantlib.schedule.payoff._
 
 case class Callability(
     bermudan: Boolean,
@@ -21,6 +22,12 @@ case class Callability(
   val triggerVariables = triggers.keySet
 
   val forwardVariables = forward.keySet
+
+  var issuerCalled:Option[Boolean] = None
+
+  def setIssuerCalled(setTrue:Boolean = true) = {
+    issuerCalled = Some(setTrue)
+  }
 
   def optionalTriggers:Option[Map[String, Double]] = {
     if (isFixed) {
@@ -79,18 +86,28 @@ case class Callability(
     case (Some(tgt), Some(acc)) => Some(acc >= tgt - 0.0000000001)
     case _ => None
   }
-  
-  def fixedTrigger:Option[Boolean] = fixedTriggerByTrigger match {
-    case Some(t) => Some(t)
-    case None => fixedTriggerByTargetRedemption
+
+  def fixedTrigger:Option[Boolean] = {
+    if (issuerCalled == Some(true)) Some(true)
+    else fixedTriggerByTrigger match {
+      case Some(t) => Some(t)
+      case None => fixedTriggerByTargetRedemption
+    }
   }
 
-  def judgeTrigger(f:Map[String, Double]):Boolean = 
-    isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) && triggers.forall{case (k, v) => if (triggerUp) v <= f(k) else v >= f(k)}
+  def judgeTrigger(f:Map[String, Double]):Boolean = (
+    isTrigger &&
+    !triggers.isEmpty &&
+    (triggers.keySet subsetOf f.keySet) &&
+    triggers.forall{case (k, v) => if (triggerUp) v <= f(k) else v >= f(k)}
+  )
   
   def isTriggered(f:Map[String, Double]):Boolean = judgeTrigger(if (isFixed) getFixings else f)
   
-  def isTriggered:Boolean = if (isFixed) isTriggered(getFixings) else false
+  def isTriggered:Boolean = {
+    if (isFixed) isTriggered(getFixings)
+    else false
+  }
 
 //  def isTargetRedeemed:Boolean = (accumulatedPayments, targetRedemption) match {
 //    case (Some(acc), Some(tgt)) => acc >= tgt
@@ -119,6 +136,18 @@ case class Callability(
       case (ul, fk) => redemptionNominal * f(ul) / fk
     }.min
     else Double.NaN
+  }
+
+  def redemptionPayoff:Payoff = {
+    if (forward.isEmpty) FixedPayoff(redemptionNominal)
+    else {
+      val fwdVarList = forward.keys.toList
+      new ForwardPayoff(
+        fwdVarList,
+        fwdVarList.map(ul => forward.get(ul).getOrElse(Double.NaN)),
+        true
+      )
+    }
   }
     
   def fixedRedemptionAmount:Option[Double] = if (isFixed && isProbablyCalled) Some(redemptionAmount(getFixings)) else None

@@ -12,9 +12,10 @@ import net.squantlib.util.FixingInformation
  * Natual format: 0.035 or "3.5%"
  */
 case class FixedPayoff(
-    payoff:Double, 
-    description:String = null,
-    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
+  payoff:Double,
+  description:String = null,
+  inputString:String = null
+)(implicit val fixingInfo:FixingInformation) extends Payoff {
 	
   override val variables:Set[String] = Set.empty
   

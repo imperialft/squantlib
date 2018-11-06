@@ -362,7 +362,8 @@ object ScheduledPayoffs {
       allFixingUnderlyings(payoffs, calls),
       datesbefore,
       getFixingInformation(payoffs, calls),
-      valuedate) ++ List.fill(datesafter.size)(Map.empty[String, Double])
+      valuedate
+    ) ++ List.fill(datesafter.size)(Map.empty[String, Double])
 
     payoffs.assignFixings(fixingMap)
     calls.assignFixings(fixingMap)

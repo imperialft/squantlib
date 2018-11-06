@@ -112,6 +112,12 @@ object Bond {
       scheduledPayoffs.assignFixings
     }
 
+    db.manualTerminationDate.collect{case d =>
+      scheduledPayoffs.foreach{ case (s, p, c) =>
+        if (s.paymentDate == d) c.setIssuerCalled(true)
+      }
+    }
+
     if (scheduledPayoffs == null || scheduledPayoffs.isEmpty) {
       errorOutput(db.id, "cannot initialize scheduled payoffs")
       None
