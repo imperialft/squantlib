@@ -19,11 +19,15 @@ import scala.annotation.tailrec
 
 
 case class Forward(
-    valuedate:Date, 
-    scheduledPayoffs:ScheduledPayoffs,
-    underlyings:List[Underlying]) extends PricingModel {
+	valuedate:Date,
+	scheduledPayoffs:ScheduledPayoffs,
+	underlyings:List[Underlying]
+) extends PricingModel {
 
-	@tailrec private def calculatePriceRec(remainSchedule: List[(CalculationPeriod, Payoff, Callability)], acc: List[Double]): List[Double] = remainSchedule.headOption match {
+	@tailrec private def calculatePriceRec(
+		remainSchedule: List[(CalculationPeriod, Payoff, Callability)],
+		acc: List[Double]
+	): List[Double] = remainSchedule.headOption match {
 		case Some((d, p, c)) =>
       val forwardPrices = p.eventDates(d).map(dd => underlyings.map(ul => (ul.id, ul.forward(dd))).toMap).toList
 			calculatePriceRec(remainSchedule.tail, p.price(forwardPrices, acc) :: acc)
@@ -41,6 +45,7 @@ case class Forward(
 	override val priceType = "MODEL"
 	  
 	override val mcEngine = None
+
 }
 
 

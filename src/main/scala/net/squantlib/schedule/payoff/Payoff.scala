@@ -43,6 +43,16 @@ trait Payoff extends FixingLeg {
 
   def paymentCurrencyId:String = fixingInfo.paymentCurrencyId
 
+  def paymentAssetId:String = fixingInfo.paymentCurrencyId
+
+  def adjustmentInfo:Option[JsonNode] = None
+
+  def paymentAmount(denomination:BigDecimal, dayCount:Double):Option[BigDecimal] = {
+    if (isFixed && !price.isNaN && !price.isInfinity) {
+      Some(price * dayCount * denomination)
+    } else None
+  }
+
   val keywords:Set[String] = jsonMapImpl.keySet
 
   def jsonMap:Map[String, Any] = inputString.jsonNode match {
@@ -79,26 +89,50 @@ trait Payoff extends FixingLeg {
   /*
    * Returns price if there's no variable. Returns NaN in case of >0 variables.
    */
-  final def price:Double =
-    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), List.empty)
-    else if (isPriceable) priceImpl
-    else Double.NaN
 
-  def priceImpl:Double
+  final def price:Double = price(null)
+
+  final def price(priceResult:PriceResult):Double = {
+    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), List.empty, priceResult)
+    else if (isPriceable) priceImpl(priceResult)
+    else Double.NaN
+  }
 
   /*
    * Price in case of multiple event dates and multiple variables.
    * Only refers to the last variable by default but can be overridden.
    */
-  final def price(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double =
-    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), pastPayments)
-    else if (isPriceable) priceImpl(fixings, pastPayments)
+  final def price(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = price(fixings, pastPayments, null)
+
+  final def price(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
+    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), pastPayments, priceResult)
+    else if (isPriceable) priceImpl(fixings, pastPayments, priceResult)
     else Double.NaN
+  }
+
+  def priceImpl(priceResult:PriceResult):Double
 
   // PAST PAYMENTS ARE REVERSED (recent first)
-  def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = if (fixings.isEmpty) price else price(fixings, pastPayments)
+  def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
+    if (fixings.isEmpty) price
+    else price(fixings, pastPayments)
+  }
 
   def priceFlat(fixings:Map[String, Double], pastPayments:List[Double]):Double = price(List.fill(2)(fixings), pastPayments)
+
+  final def priceWithInfo:PriceResult = {
+    val priceResult = new PriceResult
+    val p = price(priceResult)
+    priceResult.setPrice(p)
+    priceResult
+  }
+
+  final def priceWithInfo(fixings:List[Map[String, Double]], pastPayments:List[Double]):PriceResult = {
+    val priceResult = new PriceResult
+    val p = price(fixings, pastPayments, priceResult)
+    priceResult.setPrice(p)
+    priceResult
+  }
 
   /*
    * Event dates, usually used in case of >1 fixing dates.

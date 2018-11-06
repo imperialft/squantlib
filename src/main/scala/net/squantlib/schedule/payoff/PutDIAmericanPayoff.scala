@@ -79,31 +79,31 @@ case class PutDIAmericanPayoff(
   trait FixingInterpreter[T] {
     def isKnockIn(fixings:T):Boolean // Method to be implemented
     def minBelowStrike(fixings:T):Boolean // Method to be implemented
-    def price(fixings:T, isKnockedIn:Boolean):Double // Method to be implemented
+    def price(fixings:T, isKnockedIn:Boolean, priceResult:PriceResult):Double // Method to be implemented
     
     def isKnockIn(fixings:List[T]):Boolean = {
       if (fixings.isEmpty) knockedIn
       else (knockedIn || fixings.exists(isKnockIn(_))) && (forward || minBelowStrike(fixings.last))
     }
 
-    def price(fixings:T):Double = {
+    def price(fixings:T, priceResult:PriceResult):Double = {
       if (physical) {
-        if (isFixed) price(fixings, knockedIn)
+        if (isFixed) price(fixings, knockedIn, priceResult)
         else Double.NaN
       }
-      else price(fixings, isKnockIn(fixings))
+      else price(fixings, isKnockIn(fixings), priceResult)
     }
 
-    def price(fixings:List[T]):Double = {
+    def price(fixings:List[T], priceResult:PriceResult):Double = {
       fixings.lastOption match {
         case Some(lastFixing) => 
           if (physical) {
             val fixingSize = fixings.length
-            if (isFixed) price(lastFixing, knockedIn)
-            else if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings.dropRight(1)))
+            if (isFixed) price(lastFixing, knockedIn, priceResult)
+            else if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings.dropRight(1)), priceResult)
             else Double.NaN
           }
-          else price(lastFixing, isKnockIn(fixings))
+          else price(lastFixing, isKnockIn(fixings), priceResult)
         case None => Double.NaN
       }
     }
@@ -125,48 +125,28 @@ case class PutDIAmericanPayoff(
       })
     }
 
-    override def price(fixings:Map[String, Double], isKnockedIn:Boolean):Double = {
+    override def price(fixings:Map[String, Double], isKnockedIn:Boolean, priceResult:PriceResult):Double = {
       if ((strikeVariables subsetOf fixings.keySet) && strikeVariables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
-        if (isKnockedIn) strikeVariables.map(v => fixings(v) / strikes(v)).min
+        if (isKnockedIn) {
+          if (physical && priceResult != null) {
+            strikeVariables.map(ul => (ul, fixings(ul) / strikes(ul), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+              case (ul, pf, k) =>
+                priceResult.setAssetInfo(ul, 1.0 / k)
+                pf
+            }
+          } else strikeVariables.map(v => fixings(v) / strikes(v)).min
+        }
         else 1.0
       } else Double.NaN
     }
 
   }
   
-//  implicit object DoubleInterpreter extends FixingInterpreter[Double] {
-//
-//    override def isKnockIn(fixing:Double):Boolean = knockedIn || triggers.values.headOption.collect{case t => fixing <= t}.getOrElse(false)
-//
-//    override def minBelowStrike(fixing:Double):Boolean = strikeOrFinalTriggers.values.headOption.collect{case s => fixing <= s}.getOrElse(true)
-//
-//    override def price(fixing:Double, isKnockedIn:Boolean):Double =
-//      if (fixing.isNaN || fixing.isInfinity || variables.size != 1 || !isPriceable) Double.NaN
-//      else if (physical) {
-//        if (isKnockedIn) strikes.values.headOption.collect{case s => fixing / s}.getOrElse(Double.NaN)
-//        else 1.0
-//      }
-//      else {
-//        if (isKnockedIn && (forward || minBelowStrike(fixing))) strikes.values.headOption.collect{case s => fixing / s}.getOrElse(Double.NaN)
-//        else 1.0
-//      }
-//    }
-  
-//  def priceSingle[A:FixingInterpreter](fixings:A):Double = implicitly[FixingInterpreter[A]] price fixings
-  
-  def priceList[A:FixingInterpreter](fixings:List[A]):Double = implicitly[FixingInterpreter[A]] price fixings
+  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = priceList(fixings)
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
 
-//  override def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = priceSingle(fixings)
-  
-//  override def priceImpl[T:ClassTag](fixings:List[Double], pastPayments:List[Double]):Double = priceList(fixings)
-
-//  override def priceImpl(fixing:Double, pastPayments:List[Double]):Double = priceSingle(fixing)
-
-  override def priceImpl = Double.NaN
-
-//  override def priceImpl(market:Market, pastPayments:List[Double]):Double = price(List.fill(2)(market.getFixings(variables)), pastPayments)
+  override def priceImpl(priceResult:PriceResult) = Double.NaN
 
   override def toString =
     nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Amer) " + nominal.asPercent +
@@ -202,8 +182,7 @@ case class PutDIAmericanPayoff(
         
         (historicalPrices, historicalPrices.values.lastOption) match {
           case (hs, _) if hs.isEmpty => false
-          case (hs, Some(hsLast)) if hs.get(refend).isDefined => //implicitly[FixingInterpreter[Double]] isKnockIn(hs.values.toList)
-          //    override def isKnockIn(fixing:Double):Boolean = knockedIn || triggers.values.headOption.collect{case t => fixing <= t}.getOrElse(false)
+          case (hs, Some(hsLast)) if hs.get(refend).isDefined =>
             hs.values.exists(hp => hp <= trig) && (forward || strikeOrFinalTriggers.get(v).collect{case s => hsLast <= s}.getOrElse(true))
 
           case (hs, _) => hs.exists{case (_, x) => x <= trig}

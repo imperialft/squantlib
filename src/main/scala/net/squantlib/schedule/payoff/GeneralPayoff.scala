@@ -33,9 +33,10 @@ case class GeneralPayoff(
 //    if (variables.size == 1 && !fixing.isNaN && !fixing.isInfinity) price(Map(variables.head -> fixing), pastPayments)
 //    else Double.NaN
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]) = fixings.lastOption.collect{case f => priceImpl(f, pastPayments)}.getOrElse(Double.NaN)
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) =
+    fixings.lastOption.collect{case f => priceImpl(f, pastPayments, priceResult:PriceResult)}.getOrElse(Double.NaN)
 
-  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double]):Double = {
+  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double], priceResult:PriceResult):Double = {
     if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN || fixings(v).isInfinity)) {return Double.NaN}
     
     var rate = formula.map{
@@ -48,7 +49,7 @@ case class GeneralPayoff(
       rate
   }
    
-  override def priceImpl = 
+  override def priceImpl(priceResult:PriceResult) =
     if (variables.isEmpty) constant
     else Double.NaN
   

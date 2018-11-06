@@ -40,9 +40,10 @@ case class BinaryPayoff(
 
   private val smallValue = 0.0000001
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]) = fixings.lastOption.collect{case f => priceImpl(f, pastPayments)}.getOrElse(Double.NaN)
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) =
+    fixings.lastOption.collect{case f => priceImpl(f, pastPayments, priceResult)}.getOrElse(Double.NaN)
 
-  def priceImpl(fixings: Map[String, Double], pastPayments:List[Double]) = {
+  def priceImpl(fixings: Map[String, Double], pastPayments:List[Double], priceResult:PriceResult) = {
     if (isPriceable && (variables subsetOf fixings.keySet) && fixings.values.forall(v => !v.isNaN && !v.isInfinity)) {
       val cpnRate = payoff.map { case (r, minK, maxK) =>
         if (minK.exists { case (k, v) => fixings(k) < v } || maxK.exists{case (k, v) => fixings(k) > v}) 0.0
@@ -77,7 +78,7 @@ case class BinaryPayoff(
       case (v, minK, maxK) => " [" + minK.values.map(_.asDouble).mkString(",") + "]" + v.asPercent + " [" + maxK.values.map(_.asDouble).mkString(",") + "]"
     }.mkString(" ")
   
-  override def priceImpl = Double.NaN
+  override def priceImpl(priceResult:PriceResult) = Double.NaN
   
   override def jsonMapImpl = {
     

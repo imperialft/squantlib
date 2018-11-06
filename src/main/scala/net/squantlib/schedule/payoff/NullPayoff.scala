@@ -20,11 +20,11 @@ case class NullPayoff(
   
   override val isFixed = false
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double]) = Double.NaN
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) = Double.NaN
   
 //  override def priceImpl(fixing:Double, pastPayments:List[Double]) = Double.NaN
   
-  override def priceImpl = Double.NaN
+  override def priceImpl(priceResult:PriceResult) = Double.NaN
   
   override def toString = description
   
