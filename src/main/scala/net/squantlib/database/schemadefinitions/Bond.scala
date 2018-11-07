@@ -12,9 +12,9 @@ import net.squantlib.util.{FixingInformation, Date, DbCalendar}
 import org.jquantlib.time.{Period => qlPeriod, DateGeneration, BusinessDayConvention, TimeUnit}
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
-import org.codehaus.jackson.JsonNode
-import org.codehaus.jackson.node.ObjectNode
-import org.codehaus.jackson.map.ObjectMapper
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.squeryl.annotations.Transient
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity

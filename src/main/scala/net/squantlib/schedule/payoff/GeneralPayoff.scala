@@ -70,7 +70,7 @@ object GeneralPayoff {
       var payoffString = fixedString.parseJsonString("payoff") match { case None => ""; case Some(n) => n}
       fixedString.jsonNode match {
         case Some(node) => 
-          val fieldnames = node.getFieldNames.asScala.filter(n => !List("type", "description", "payoff", "variable").contains(n))
+          val fieldnames = node.fieldNames.asScala.filter(n => !List("type", "description", "payoff", "variable").contains(n))
           fieldnames.foreach(n => payoffString = payoffString.replace(n, node.get(n).parseDouble.getOrElse(Double.NaN).toString))
         case None => {}
       }

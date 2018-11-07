@@ -10,7 +10,7 @@ import net.squantlib.schedule.FixingLegs
 import net.squantlib.util.FixingInformation
 import net.squantlib.schedule.Schedule
 import net.squantlib.schedule.payoff.Payoffs
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 
 case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] with FixingLegs[Callability]{
   

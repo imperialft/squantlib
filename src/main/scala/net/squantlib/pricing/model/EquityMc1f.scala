@@ -8,7 +8,7 @@ import net.squantlib.model.equity.Equity
 import net.squantlib.model.bond.PriceableBond
 import net.squantlib.model.fx.FX
 import net.squantlib.util.JsonUtils._
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.util.Date
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}

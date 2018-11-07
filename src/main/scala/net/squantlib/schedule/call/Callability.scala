@@ -5,6 +5,7 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.FixingLeg
 import net.squantlib.util.FixingInformation
 import net.squantlib.schedule.payoff._
+import net.squantlib.util.JsonUtils
 
 case class Callability(
     bermudan: Boolean,
@@ -47,9 +48,9 @@ case class Callability(
   
   def triggerInputString:Map[String, String] = inputString.get("trigger") match {
     case Some(trig:Map[_, _]) => trig.map{
-        case (k:String, v:String) => (k, v)
-        case (k, v) => (k.toString, v.toString)
-      }.toMap
+      case (k:String, v:String) => (k, v)
+      case (k, v) => (k.toString, v.toString)
+    }
     case _ => Map.empty
   }
   
@@ -138,14 +139,21 @@ case class Callability(
     else Double.NaN
   }
 
-  def redemptionPayoff:Payoff = {
+  lazy val redemptionPayoff:Payoff = {
     if (forward.isEmpty) FixedPayoff(redemptionNominal)
     else {
       val fwdVarList = forward.keys.toList
+      val jsonString = JsonUtils.jsonString(Map(
+        "type" -> "forward",
+        "variable" -> forward.keySet,
+        "strike" -> inputString.getOrElse("forward", forward)
+      ))
       new ForwardPayoff(
         fwdVarList,
         fwdVarList.map(ul => forward.get(ul).getOrElse(Double.NaN)),
-        true
+        true,
+        "",
+        jsonString
       )
     }
   }

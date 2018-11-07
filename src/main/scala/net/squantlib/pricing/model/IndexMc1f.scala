@@ -10,7 +10,7 @@ import net.squantlib.model.fx.FX
 import net.squantlib.util.Date
 import net.squantlib.util.JsonUtils._
 import net.squantlib.model.rates.DiscountCurve
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._

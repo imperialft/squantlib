@@ -3,7 +3,7 @@
 //import scala.collection.JavaConverters._
 //import net.squantlib.util.DisplayUtils._
 //import net.squantlib.util.JsonUtils._
-//import org.codehaus.jackson.map.ObjectMapper
+//import com.fasterxml.jackson.databind.ObjectMapper
 //import net.squantlib.util.FixingInformation
 //
 ///**

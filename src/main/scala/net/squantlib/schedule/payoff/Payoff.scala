@@ -11,11 +11,11 @@ import net.squantlib.model.market.Market
 import scala.Option.option2Iterable
 import net.squantlib.schedule.CalculationPeriod
 import net.squantlib.schedule.FixingLeg
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 
 import scala.reflect.ClassTag
 import scala.collection.JavaConverters._
-import org.codehaus.jackson.map.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 
 trait Payoff extends FixingLeg {
 
@@ -57,14 +57,15 @@ trait Payoff extends FixingLeg {
 
   def jsonMap:Map[String, Any] = inputString.jsonNode match {
     case Some(node) =>
-      val fieldnames = node.getFieldNames.asScala.filter(n => !keywords.contains(n)).toSet
+      val fieldnames = node.fieldNames.asScala.filter(n => !keywords.contains(n)).toSet
       fieldnames.map(n => (n -> node.get(n))).toMap ++ jsonMapImpl
     case _ => jsonMapImpl
   }
 
   def jsonString:String = {
     val infoMap:JavaMap[String, Any] = jsonMap.asJava
-    (new ObjectMapper).writeValueAsString(infoMap)
+    JsonUtils.jsonString(infoMap)
+    //(new ObjectMapper).writeValueAsString(infoMap)
   }
 
   def isPaymentFixed:Boolean = isFixed && (!physical || isSettlementFixed)
@@ -263,9 +264,9 @@ object Payoff {
     var result = inputString
     inputString.jsonNode match {
       case Some(node) =>
-	    val fieldnames = node.getFieldNames.asScala.filter(n => n.startsWith("^")).toSet
+	    val fieldnames = node.fieldNames.asScala.filter(n => n.startsWith("^")).toSet
         fieldnames.foreach(n => {
-          val currentvalue = node.get(n).getTextValue()
+          val currentvalue = node.get(n).textValue()
           val updatedvalue = fixingInfo.update(currentvalue)
           result = result.replace(n, FormulaParser.calculate(updatedvalue).getOrElse(Double.NaN).toString)
         })

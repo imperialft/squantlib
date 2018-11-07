@@ -10,7 +10,7 @@ import net.squantlib.model.bond.PriceableBond
 import net.squantlib.util.JsonUtils._
 import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.util.Date
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._

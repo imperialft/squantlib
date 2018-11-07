@@ -1,10 +1,11 @@
 package net.squantlib.schedule.payoff
 
-import org.codehaus.jackson.JsonNode
-import org.codehaus.jackson.map.ObjectMapper
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import scala.collection.LinearSeq
 import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._
+import net.squantlib.util.JsonUtils
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.FixingInformation
 import scala.collection.JavaConverters._
@@ -175,12 +176,12 @@ object Payoffs {
 	  }
 	  else {
 	    val payofflist:List[Payoff] = formula.jsonNode match {
-	      case Some(n) if n.isArray && n.size > 0 => n.getElements.asScala.toList.map(f => getPayoff(toJsonString(f)))
+	      case Some(n) if n.isArray && n.size > 0 => n.elements.asScala.toList.map(f => getPayoff(toJsonString(f)))
 	      case _ => formula.split(";").toList.map(getPayoff)
 	    }
 	    
 	    def getFirstElement:Payoff = formula.jsonNode match {
-	      case Some(n) if n.isArray && n.size > 0 => getPayoff(toJsonString(n.getElements.asScala.toList.head))
+	      case Some(n) if n.isArray && n.size > 0 => getPayoff(toJsonString(n.elements.asScala.toList.head))
 	      case _ => getPayoff(formula.split(";").head)
 	    }
 	  
@@ -188,7 +189,7 @@ object Payoffs {
 	  	Some(Payoffs(fullpayoff))
 	}}
 
-	def toJsonString(n:JsonNode):String = (new ObjectMapper).writeValueAsString(n)
+	def toJsonString(n:JsonNode):String = JsonUtils.jsonString(n) //(new ObjectMapper).writeValueAsString(n)
 	
 	def payoffType(formula:String):String = formula.trim match {
 	  case f if f.parseDouble.isDefined => "fixed"

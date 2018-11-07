@@ -4,7 +4,7 @@ import net.squantlib.util.JsonUtils._
 import net.squantlib.util.DisplayUtils._
 import scala.collection.JavaConversions._
 import net.squantlib.util.JsonUtils._
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 
 package object schemadefinitions {
   

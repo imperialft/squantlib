@@ -1,6 +1,6 @@
 package net.squantlib.schedule.payoff
 
-import org.codehaus.jackson.map.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils
 import net.squantlib.util.JsonUtils._
@@ -8,7 +8,7 @@ import net.squantlib.util.FixingInformation
 import net.squantlib.util.Date
 import net.squantlib.schedule.CalculationPeriod
 import scala.reflect.ClassTag
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 import scala.collection.JavaConverters._
 
 /**

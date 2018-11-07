@@ -10,7 +10,7 @@ import net.squantlib.schedule.call.Callabilities
 import net.squantlib.schedule.payoff.{Payoff, Payoffs}
 import net.squantlib.schedule.{ScheduledPayoffs, Schedule, CalculationPeriod}
 import net.squantlib.util.UnderlyingParsers
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 
 
 trait BondModel {

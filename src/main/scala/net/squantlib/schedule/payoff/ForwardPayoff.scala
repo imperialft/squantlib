@@ -1,7 +1,7 @@
 package net.squantlib.schedule.payoff
 
 import scala.collection.JavaConversions._
-import org.codehaus.jackson.map.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.FixingInformation
@@ -71,7 +71,7 @@ case class ForwardPayoff(
   override def jsonMapImpl = Map(
     "type" -> "forward", 
     "variable" -> fwdVariables.toArray, 
-    "strike" -> strike.toArray, 
+    "strike" -> (fwdVariables, strike).zipped.toMap,
     "description" -> description)
 
 	

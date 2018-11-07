@@ -1,6 +1,6 @@
 //package net.squantlib.util
 
-//import org.codehaus.jackson.JsonNode
+//import com.fasterxml.jackson.databind.JsonNode
 //import scala.language.implicitConversions
 //import scala.annotation.tailrec
 //import com.typesafe.scalalogging.slf4j._

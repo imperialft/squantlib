@@ -13,7 +13,7 @@ import net.squantlib.schedule.call.Callability
 import net.squantlib.util.Date
 
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
-import org.codehaus.jackson.JsonNode
+import com.fasterxml.jackson.databind.JsonNode
 
 import scala.annotation.tailrec
 
