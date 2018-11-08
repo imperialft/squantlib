@@ -13,23 +13,31 @@ class PutDIPayoff(
   override val strikes:Map[String, Double],
   initKnockedIn:Boolean,
   override val physical:Boolean,
+  override val reverse: Boolean,
+  override val minPayoff:Double,
+  override val maxPayoff: Option[Double],
   override val amount:Double = 1.0,
   override val description:String = null,
-  override val inputString:String = null)(implicit override val fixingInfo:FixingInformation) extends PutDIAmericanPayoff(
-    triggers,
-    strikes,
-    triggers,
-    null,
-    null,
-    initKnockedIn,
-    physical,
-    false,
-    true,
-    amount,
-    description,
-    inputString
+  override val inputString:String = null
+)(implicit override val fixingInfo:FixingInformation) extends PutDIAmericanPayoff(
+  triggers = triggers,
+  strikes = strikes,
+  finalTriggers = triggers,
+  refstart = null,
+  refend = null,
+  knockedIn = initKnockedIn,
+  physical = physical,
+  forward = false,
+  closeOnly = true,
+  reverse = reverse,
+  minPayoff = minPayoff,
+  maxPayoff = maxPayoff,
+  amount = amount,
+  description = description,
+  inputString = inputString
   )
 {
+
 
   override val variables = triggers.keySet ++ strikes.keySet
 
@@ -91,9 +99,23 @@ object PutDIPayoff {
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val description:String = formula.parseJsonString("description").orNull
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
+    val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
+    val minPayoff:Double = fixed.parseJsonDouble("min").getOrElse(0.0)
+    val maxPayoff:Option[Double] = fixed.parseJsonDouble("max")
     val knockedIn:Boolean = false
 
-    new PutDIPayoff(triggers, strikes, knockedIn, physical, amount, description, inputString)
+    new PutDIPayoff(
+      triggers = triggers,
+      strikes = strikes,
+      initKnockedIn = knockedIn,
+      physical = physical,
+      reverse = reverse,
+      minPayoff = minPayoff,
+      maxPayoff = maxPayoff,
+      amount = amount,
+      description = description,
+      inputString = inputString
+    )
   }
   
 }

@@ -41,6 +41,10 @@ trait Payoff extends FixingLeg {
 
   val currencyId:String = fixingInfo.currencyId
 
+  val minPayoff:Double = 0.0
+
+  val maxPayoff:Option[Double] = None
+
   def paymentCurrencyId:String = fixingInfo.paymentCurrencyId
 
   def paymentAssetId:String = fixingInfo.paymentCurrencyId
@@ -201,6 +205,13 @@ trait Payoff extends FixingLeg {
   }
 
   def missingInputs:Map[String, Double => Payoff] = Map.empty
+
+  def withMinMax(r:Double) = {
+    maxPayoff match {
+      case Some(v) => Math.min(Math.max(r, minPayoff), v)
+      case None => Math.max(r, minPayoff)
+    }
+  }
 
   def description:String
 

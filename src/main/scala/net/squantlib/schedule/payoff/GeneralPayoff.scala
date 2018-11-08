@@ -12,11 +12,12 @@ import scala.collection.JavaConverters._
  * Brackets are not supported.
  */
 case class GeneralPayoff(
-    formula:Map[Set[String], Double], 
-    floor:Option[Double], 
-    cap:Option[Double], 
-    description:String = null,
-    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
+  formula:Map[Set[String], Double],
+  override val minPayoff:Double,
+  override val maxPayoff:Option[Double],
+  description:String = null,
+  inputString:String = null
+)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables:Set[String] = formula.keySet.flatten
   
@@ -40,13 +41,15 @@ case class GeneralPayoff(
     if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN || fixings(v).isInfinity)) {return Double.NaN}
     
     var rate = formula.map{
-        case (vs, c) if vs.isEmpty => c
-        case (vs, c) => vs.toList.map(fixings).product * c}.sum
-    
-      if (floor.isDefined) rate = rate.max(floor.get)
-      if (cap.isDefined) rate = rate.min(cap.get)
-  
-      rate
+      case (vs, c) if vs.isEmpty => c
+      case (vs, c) => vs.toList.map(fixings).product * c
+    }.sum
+
+    withMinMax(rate)
+//      if (floor.isDefined) rate = rate.max(floor.get)
+//      if (cap.isDefined) rate = rate.min(cap.get)
+//
+//      rate
   }
    
   override def priceImpl(priceResult:PriceResult) =
@@ -85,13 +88,26 @@ object GeneralPayoff {
     val constant = parsedformula.getOrElse(Set.empty, 0.0)
     
     variables.size match {
-      case 0 if parsedformula contains Set.empty => FixedPayoff(constant, description, inputString)
+      case 0 if parsedformula contains Set.empty =>
+        FixedPayoff(
+          payoff = constant,
+          description = description,
+          inputString = inputString
+        )
+
       case 0 => NullPayoff(description, inputString)
 //      case 1 => {
 //        val variable = variables.head
 //        Linear1dPayoff(variable, Some(parsedformula.getOrElse(Set(variable), 0.0)), Some(constant), floor, cap, description, inputString)
 //      }
-      case _ => GeneralPayoff(parsedformula, floor, cap, description, inputString)
+      case _ =>
+        GeneralPayoff(
+          formula = parsedformula,
+          minPayoff = floor.getOrElse(0.0),
+          maxPayoff = cap,
+          description = description,
+          inputString = inputString
+        )
     }
     
   }

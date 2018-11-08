@@ -149,11 +149,13 @@ case class Callability(
         "strike" -> inputString.getOrElse("forward", forward)
       ))
       new ForwardPayoff(
-        fwdVarList,
-        fwdVarList.map(ul => forward.get(ul).getOrElse(Double.NaN)),
-        true,
-        "",
-        jsonString
+        strikes = forward,
+        physical = true,
+        reverse = false,
+        minPayoff = 0.0,
+        maxPayoff = None,
+        description = "",
+        inputString = jsonString
       )
     }
   }

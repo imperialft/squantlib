@@ -22,8 +22,8 @@ case class CallUIPayoff(
     strike:List[Double], 
     mult: Double,
     added: Double,
-    maxPayoff : Option[Double],
-    minPayoff : Option[Double],
+    override val minPayoff : Double,
+    override val maxPayoff : Option[Double],
     basket: String,
     var fixedPrice: Option[Double],
     override val physical: Boolean,
@@ -60,12 +60,13 @@ case class CallUIPayoff(
         case Some(v) if !v.isNaN && !v.isInfinity  => 
           if (v <= trigger) Some(baseAmount)
           else {
-            val perf = getPerformance(v)
-            (maxPayoff, minPayoff) match {
-              case (Some(max), _) if perf >= max => Some(max)
-              case (_, Some(min)) if perf <= min => Some(min)
-              case _ => None
-            }
+            Some(withMinMax(getPerformance(v)))
+//            val perf = getPerformance(v)
+//            (maxPayoff, minPayoff) match {
+//              case (Some(max), _) if perf >= max => Some(max)
+//              case (_, Some(min)) if perf <= min => Some(min)
+//              case _ => None
+//            }
           }
         case _ => None
       }
@@ -185,8 +186,8 @@ object CallUIPayoff {
       strike = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN)), 
       mult = fixed.parseJsonDouble("mult").getOrElse(1.0),
       added = fixed.parseJsonDouble("add").getOrElse(0.0),
+      minPayoff = fixed.parseJsonDouble("min").getOrElse(0.0),
       maxPayoff = fixed.parseJsonDouble("max"),
-      minPayoff = fixed.parseJsonDouble("min"),
       basket = formula.parseJsonString("basket").getOrElse("worst"),
       fixedPrice = None,
       physical = formula.parseJsonString("physical").getOrElse("0") == "1",

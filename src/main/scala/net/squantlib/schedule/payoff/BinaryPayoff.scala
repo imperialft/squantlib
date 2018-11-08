@@ -18,17 +18,18 @@ la specification for sum of linear formulas with discrete range.
  */
 case class BinaryPayoff(
   payoff:Set[(Double, Map[String, Double], Map[String, Double])],
+  memory:Boolean,
+  memoryAmount:Double,
   description:String = null,
   inputString:String = null,
-  memory:Boolean = false,
-  memoryAmount:Double = 0.0
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
 
   override val variables: Set[String] = payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten
 
   val unconditionalAmount:Double = payoff.filter{case (r, minK, maxK) => minK.isEmpty && maxK.isEmpty}.map{case (r, minK, maxK) => r}.reduceOption(_ min _).getOrElse(0.0)
 
-  override val isPriceable: Boolean = !payoff.isEmpty &&
+  override val isPriceable: Boolean =
+    !payoff.isEmpty &&
     !payoff.exists{ case (k, minK, maxK) =>
       k.isNaN || k.isInfinity || minK.exists{case (kk, vv) => vv.isNaN || vv.isInfinity} || maxK.exists {case (kk, vv) => vv.isNaN || vv.isInfinity}
     }
@@ -57,18 +58,6 @@ case class BinaryPayoff(
     } else Double.NaN
   }
 
-//  override def priceImpl(fixing:Double, pastPayments:List[Double]) = {
-//    if (variables.size == 1) priceImpl(Map(variables.head -> fixing), pastPayments)
-//    else Double.NaN
-//  }
-
-//
-//    if (!isPriceable|| variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
-//    else payoff.map{
-//    case (v, None) => v
-//    case (v, Some(l)) if fixing > l.head => v
-//    case _ => 0.0}.max
-  
   override def toString =
     if (payoff.isEmpty) description
     else payoff.map{
@@ -109,16 +98,17 @@ object BinaryPayoff {
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
+    val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
+
     val payoffs:Set[(Double, Map[String, Double], Map[String, Double])] = fixingInfo.update(formula).jsonNode("payoff") match {
       case None => Set.empty
-  	  case Some(subnode) if subnode isArray => subnode.asScala.map(n => {
-        val amount = n.parseDouble("amount").getOrElse(Double.NaN)
-        val strikes = Payoff.nodeToComputedMap(n, "strike", variable)
-        val strikeHighs = Payoff.nodeToComputedMap(n, "strike_high", variable)
-        (amount, strikes, strikeHighs)
-//        if (n.get("strike") == null) (amount, None)
-//        else (amount, Some(n.get("strike").asScala.map(s => s.parseDouble.getOrElse(Double.NaN)).toList))
-      }) (collection.breakOut)
+  	  case Some(subnode) if subnode.isArray =>
+        subnode.asScala.map(n => {
+          val amount = n.parseDouble("amount").getOrElse(Double.NaN)
+          val strikes = Payoff.nodeToComputedMap(n, (if (reverse) "strike_low" else "strike"), variable)
+          val strikeHighs = Payoff.nodeToComputedMap(n, (if (reverse) "strike" else "strike_high"), variable)
+          (amount, strikes, strikeHighs)
+        }) (collection.breakOut)
 	    case _ => Set.empty
     }
 
@@ -126,9 +116,16 @@ object BinaryPayoff {
 
     val memoryAmount:Double = formula.parseJsonDouble("memory_amount").getOrElse(0.0)
 
+
     val description:String = formula.parseJsonString("description").orNull
 
-	  BinaryPayoff(payoffs, description, inputString, memory, memoryAmount)
+	  BinaryPayoff(
+      payoff = payoffs,
+      memory = memory,
+      memoryAmount = memoryAmount,
+      description = description,
+      inputString = inputString
+    )
 
   }
   

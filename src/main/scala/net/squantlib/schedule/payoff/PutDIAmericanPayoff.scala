@@ -18,18 +18,22 @@ import scala.collection.JavaConverters._
  * No strike is considered as no low boundary
  */
 case class PutDIAmericanPayoff(
-    triggers:Map[String, Double],
-    strikes:Map[String, Double],
-    finalTriggers:Map[String, Double],
-    refstart:Date, 
-    refend:Date,
-    var knockedIn:Boolean,
-    override val physical:Boolean,
-    forward:Boolean,
-    closeOnly:Boolean,
-    amount:Double = 1.0, 
-    description:String = null,
-    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
+  triggers:Map[String, Double],
+  strikes:Map[String, Double],
+  finalTriggers:Map[String, Double],
+  refstart:Date,
+  refend:Date,
+  var knockedIn:Boolean,
+  override val physical:Boolean,
+  forward:Boolean,
+  closeOnly:Boolean,
+  reverse: Boolean,
+  override val minPayoff: Double,
+  override val maxPayoff: Option[Double],
+  amount:Double = 1.0,
+  description:String = null,
+  inputString:String = null
+)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables = triggers.keySet ++ strikes.keySet ++ finalTriggers.keySet
 
@@ -75,15 +79,25 @@ case class PutDIAmericanPayoff(
       if (dates.head == refstart) dates else refstart :: dates
     }
   }
-  
+
+  def isKnockedInPrice(p:Double, trig:Double):Boolean = {
+    if (reverse) p >= trig
+    else p <= trig
+  }
+
+  def getPerformance(p:Double, stk:Double):Double = {
+    if (reverse) withMinMax(2.0 - p / stk)
+    else withMinMax(p / stk)
+  }
+
   trait FixingInterpreter[T] {
     def isKnockIn(fixings:T):Boolean // Method to be implemented
-    def minBelowStrike(fixings:T):Boolean // Method to be implemented
+    def knockInAtRedemption(fixings:T):Boolean // Method to be implemented
     def price(fixings:T, isKnockedIn:Boolean, priceResult:PriceResult):Double // Method to be implemented
-    
+
     def isKnockIn(fixings:List[T]):Boolean = {
       if (fixings.isEmpty) knockedIn
-      else (knockedIn || fixings.exists(isKnockIn(_))) && (forward || minBelowStrike(fixings.last))
+      else (knockedIn || fixings.exists(isKnockIn(_))) && (forward || knockInAtRedemption(fixings.last))
     }
 
     def price(fixings:T, priceResult:PriceResult):Double = {
@@ -113,14 +127,14 @@ case class PutDIAmericanPayoff(
 
     override def isKnockIn(fixings:Map[String, Double]):Boolean = {
       knockedIn || triggerVariables.exists(p => fixings.get(p) match {
-        case Some(v) if triggers.contains(p) => v <= triggers(p)
+        case Some(v) if triggers.contains(p) => isKnockedInPrice(v, triggers(p))
         case _ => false
       })
     }
 
-    override def minBelowStrike(fixings:Map[String, Double]):Boolean = {
+    override def knockInAtRedemption(fixings:Map[String, Double]):Boolean = {
       strikeOrFinalTriggerVariables.exists(p => fixings.get(p) match {
-        case Some(v) if strikeOrFinalTriggers.contains(p) => v <= strikeOrFinalTriggers(p)
+        case Some(v) if strikeOrFinalTriggers.contains(p) => isKnockedInPrice(v, strikeOrFinalTriggers(p))
         case _ => false
       })
     }
@@ -129,12 +143,14 @@ case class PutDIAmericanPayoff(
       if ((strikeVariables subsetOf fixings.keySet) && strikeVariables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
         if (isKnockedIn) {
           if (physical && priceResult != null) {
-            strikeVariables.map(ul => (ul, fixings(ul) / strikes(ul), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+            strikeVariables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul)), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
               case (ul, pf, k) =>
                 priceResult.setAssetInfo(ul, 1.0 / k)
-                pf
+                withMinMax(pf)
             }
-          } else strikeVariables.map(v => fixings(v) / strikes(v)).min
+          } else {
+            withMinMax(strikeVariables.map(v => getPerformance(fixings(v), strikes(v))).min)
+          }
         }
         else 1.0
       } else Double.NaN
@@ -160,7 +176,8 @@ case class PutDIAmericanPayoff(
     "final_trigger" -> finalTriggers.asJava,
     "refstart" -> (if (refstart == null) null else refstart.toString),
     "refend" -> (if (refend == null) null else refend.toString),
-    "description" -> description)
+    "description" -> description
+  )
     
 
   override def clearFixings = {
@@ -174,20 +191,30 @@ case class PutDIAmericanPayoff(
   }
 
   def checkKnockIn:Unit = {
-    knockedIn = 
+    knockedIn = {
       if (refstart == null || refend == null) false
-      else triggers.exists{case (v, trig) =>
-        
-        val historicalPrices = if (closeOnly) DB.getHistorical(v, refstart, refend) else DB.getHistorical(v, refstart, refend) ++ DB.getHistoricalLow(v, refstart, refend)
-        
+      else triggers.exists { case (v, trig) =>
+
+        val historicalPrices = {
+          if (closeOnly) DB.getHistorical(v, refstart, refend)
+          else if (reverse) DB.getHistorical(v, refstart, refend) ++ DB.getHistoricalHigh(v, refstart, refend)
+          else DB.getHistorical(v, refstart, refend) ++ DB.getHistoricalLow(v, refstart, refend)
+        }
+
         (historicalPrices, historicalPrices.values.lastOption) match {
           case (hs, _) if hs.isEmpty => false
-          case (hs, Some(hsLast)) if hs.get(refend).isDefined =>
-            hs.values.exists(hp => hp <= trig) && (forward || strikeOrFinalTriggers.get(v).collect{case s => hsLast <= s}.getOrElse(true))
 
-          case (hs, _) => hs.exists{case (_, x) => x <= trig}
+          case (hs, Some(hsLast)) if hs.get(refend).isDefined =>
+            hs.values.exists(hp => isKnockedInPrice(hp, trig)) && //hp <= trig) &&
+            (
+              forward ||
+              strikeOrFinalTriggers.get(v).collect { case s => isKnockedInPrice(hsLast, s)}.getOrElse(true) //hsLast <= s }.getOrElse(true)
+            )
+
+          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(x, trig)} //x <= trig }
         }
       }
+    }
   }
   
 }
@@ -216,12 +243,31 @@ object PutDIAmericanPayoff {
     val refend:Date = formula.parseJsonDate("refend").orNull
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val forward:Boolean = formula.parseJsonString("forward").getOrElse("0") == "1"
+    val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
+    val minPayoff:Double = fixed.parseJsonDouble("min").getOrElse(0.0)
+    val maxPayoff:Option[Double] = fixed.parseJsonDouble("max")
     val description:String = formula.parseJsonString("description").orNull
     val closeOnly:Boolean = formula.parseJsonString("reftype").getOrElse("closing") != "continuous"
     
     val knockedIn:Boolean = false
     
-    PutDIAmericanPayoff(triggers, strikes, finalTriggers, refstart, refend, knockedIn, physical, forward, closeOnly, amount, description, inputString)
+    PutDIAmericanPayoff(
+      triggers = triggers,
+      strikes = strikes,
+      finalTriggers = finalTriggers,
+      refstart = refstart,
+      refend = refend,
+      knockedIn = knockedIn,
+      physical = physical,
+      forward = forward,
+      closeOnly = closeOnly,
+      reverse = reverse,
+      minPayoff = minPayoff,
+      maxPayoff = maxPayoff,
+      amount = amount,
+      description = description,
+      inputString = inputString
+    )
   }
   
 }
