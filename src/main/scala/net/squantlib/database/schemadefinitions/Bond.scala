@@ -351,9 +351,9 @@ class Bond(
     case _ => false
   }
 
-  def getFixingPrices(dates:List[Date]):List[Map[String, Double]] = getFixingPrices(underlyingList.toSet, dates)
+  def getFixingPrices(dates:List[Date], isInitialFixing:Boolean):List[Map[String, Double]] = getFixingPrices(underlyingList.toSet, dates, isInitialFixing)
 
-  def getFixingPrices(ids:Set[String], dates:List[Date]):List[Map[String, Double]] = DB.getFixings(ids, dates, fixingInformation)
+  def getFixingPrices(ids:Set[String], dates:List[Date], isInitialFixing:Boolean):List[Map[String, Double]] = DB.getFixings(ids, dates, fixingInformation, isInitialFixing)
 
   def settingsJson:ObjectNode = settings.objectNode.getOrElse((new ObjectMapper).createObjectNode)
 

@@ -75,7 +75,8 @@ object DB {
     ids:Set[String],
     dates:List[Date],
     paramType:String,
-    fillBlank:Boolean):List[Map[String, Option[Double]]] = {
+    fillBlank:Boolean
+  ):List[Map[String, Option[Double]]] = {
 
     if (dates.isEmpty) {return List.empty}
 
@@ -97,7 +98,8 @@ object DB {
   def getFixings(
     ids: Set[String],
     dates: List[Date],
-    fixingInfo: FixingInformation
+    fixingInfo: FixingInformation,
+    isInitialFixing:Boolean
   ):List[Map[String, Double]] = {
 
     val underlyingFixingInfos:Map[String, UnderlyingFixingInfo] = ids.map(ul =>
@@ -106,15 +108,25 @@ object DB {
       !infos.fixingPages.isEmpty
     }.toMap
 
-    val allFixingPages:Set[String] = ids ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
+    val allFixingPages:Set[String] =
+      ids ++
+      underlyingFixingInfos.map{case (ul, infos) =>
+        infos.fixingPages.map(p => p.pageList(isInitialFixing)).flatten
+      }.flatten
+
 
     val allPastFixings:List[Map[String, Option[Double]]] = pastFixings(allFixingPages, dates)
 
     val baseFixings:List[Map[String, Double]] = allPastFixings.map(_.collect{case (k, Some(v)) => (k, v)})
 
     val customFixings:List[Map[String, Double]] = baseFixings.map(fixingMap => {
-      underlyingFixingInfos.map{case (ul, infos) => (ul, infos.getPriceFromFixings(fixingMap))}.collect{case (ul, Some(v)) => (ul, v)}
+      underlyingFixingInfos.map{case (ul, infos) => (ul, infos.getPriceFromFixings(fixingMap, isInitialFixing))}.collect{case (ul, Some(v)) => (ul, v)}
     })
+
+//    println(s"isInitialFixing ${isInitialFixing}")
+//    println(s"All Fixing Pages ${allFixingPages}")
+//    println(s"baseFixings ${baseFixings}")
+//    println(s"customFixings ${customFixings}")
 
     baseFixings.zip(customFixings).map{case (b, c) => b ++ c}
 

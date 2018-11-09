@@ -261,13 +261,25 @@ case class ScheduledPayoffs(
   }
 
   def assignFixings = {
-    val fixingMap = ScheduledPayoffs.getFixings(ScheduledPayoffs.allFixingUnderlyings(payoffs, calls), schedule.eventDates, ScheduledPayoffs.getFixingInformation(payoffs, calls))
+    val fixingMap = ScheduledPayoffs.getFixings(
+      ScheduledPayoffs.allFixingUnderlyings(payoffs, calls),
+      schedule.eventDates,
+      ScheduledPayoffs.getFixingInformation(payoffs, calls),
+      false
+    )
+
     payoffs.assignFixings(fixingMap)
     calls.assignFixings(fixingMap)
     calls.assignAccumulatedPayments(schedule, payoffs)
 
     if (payoffs.exists(p => p.physical)) {
-      val settlementFixingMap = ScheduledPayoffs.getFixings(ScheduledPayoffs.allFixingUnderlyings(payoffs, calls), schedule.paymentDates, ScheduledPayoffs.getFixingInformation(payoffs, calls))
+      val settlementFixingMap = ScheduledPayoffs.getFixings(
+        ScheduledPayoffs.allFixingUnderlyings(payoffs, calls),
+        schedule.paymentDates,
+        ScheduledPayoffs.getFixingInformation(payoffs, calls),
+        false
+      )
+
       payoffs.assignSettlementFixings(settlementFixingMap)
     }
   }
@@ -289,13 +301,13 @@ object ScheduledPayoffs {
 
   def apply(schedule:Schedule, payoffs:Payoffs, calls:Callabilities):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
-    val fixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.eventDates, getFixingInformation(payoffs, calls))
+    val fixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.eventDates, getFixingInformation(payoffs, calls), false)
     payoffs.assignFixings(fixingMap)
     calls.assignFixings(fixingMap)
     calls.assignAccumulatedPayments(schedule, payoffs)
 
     if (payoffs.exists(p => p.physical)) {
-      val settlementFixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.paymentDates, getFixingInformation(payoffs, calls))
+      val settlementFixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.paymentDates, getFixingInformation(payoffs, calls), false)
       payoffs.assignSettlementFixings(settlementFixingMap)
     }
       
@@ -305,21 +317,21 @@ object ScheduledPayoffs {
   def sorted(schedule:Schedule, payoffs:Payoffs, calls:Callabilities, keepFinalLeg:Boolean = false):ScheduledPayoffs = {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     //val allUnderlyings = payoffs.underlyings ++ calls.underlyings
-    val fixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.eventDates, getFixingInformation(payoffs, calls))
+    val fixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.eventDates, getFixingInformation(payoffs, calls), false)
     payoffs.assignFixings(fixingMap)
     calls.assignFixings(fixingMap)
     calls.assignAccumulatedPayments(schedule, payoffs)
 
     if (payoffs.exists(p => p.physical)) {
-      val settlementFixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.paymentDates, getFixingInformation(payoffs, calls))
+      val settlementFixingMap = getFixings(allFixingUnderlyings(payoffs, calls), schedule.paymentDates, getFixingInformation(payoffs, calls), false)
       payoffs.assignSettlementFixings(settlementFixingMap)
     }
 
     ScheduledPayoffs(schedule.sortWith(payoffs, calls, keepFinalLeg), None)
   }
   
-  def getFixings(underlyings:Set[String], dates:List[Date], fixingInfo:FixingInformation):List[Map[String, Double]] = {
-    DB.getFixings(underlyings, dates, fixingInfo) //.map(vs => vs.collect{case (ul, Some(v)) => (ul, v)})
+  def getFixings(underlyings:Set[String], dates:List[Date], fixingInfo:FixingInformation, isInitialFixing:Boolean):List[Map[String, Double]] = {
+    DB.getFixings(underlyings, dates, fixingInfo, isInitialFixing) //.map(vs => vs.collect{case (ul, Some(v)) => (ul, v)})
 
 //    val underlyingFixingInfos:Map[String, UnderlyingFixingInfo] = fixingInfo match {
 //      case None => Map.empty
@@ -342,13 +354,15 @@ object ScheduledPayoffs {
   def getExterpolatedFixings(underlyings:Set[String], dates:List[Date], fixingInfo:FixingInformation, valuedate:Date):List[Map[String, Double]] = {
     if (dates.isEmpty) {return List.empty}
     val valuedate = DB.latestParamDate.getOrElse(dates.max)
-    val (datesbefore, datesafter) = dates.span(_ le valuedate)
-    val fixings = getFixings(underlyings, datesbefore, fixingInfo)
+    val (datesBefore, datesAfter) = dates.span(_ le valuedate)
+    val fixings = getFixings(underlyings, datesBefore, fixingInfo, false)
     val currentFixings:List[Map[String, Double]] = DB.pastFixings(underlyings, List(valuedate)).map(_.collect{case (k, Some(v)) => (k, v)})
-    val exterps:List[Map[String, Double]] = datesafter.map{case _ => 
+
+    val exterps:List[Map[String, Double]] = datesAfter.map{case _ =>
       if (!currentFixings.isEmpty) currentFixings.last.map{case (k, v) => (k, v)}
       else if (!fixings.isEmpty) fixings.last.map{case (k, v) => (k, v)}
-      else Map.empty[String, Double]}
+      else Map.empty[String, Double]
+    }
     
     fixings ++ exterps
   }

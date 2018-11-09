@@ -5,13 +5,14 @@ import DisplayUtils._
 import net.squantlib.util.initializer._
 
 case class FixingInformation(
-    currencyId:String,
-    paymentCurrencyId: String,
-    var tbd:Option[Double], 
-    var minRange:Option[Double], 
-    var maxRange:Option[Double], 
-    var initialFixing:Map[String, Double],
-    fixingPageInformation: List[Map[String, String]]) {
+  currencyId:String,
+  paymentCurrencyId: String,
+  var tbd:Option[Double],
+  var minRange:Option[Double],
+  var maxRange:Option[Double],
+  var initialFixing:Map[String, Double],
+  fixingPageInformation: List[Map[String, String]]
+) {
   
   def initialFixingFull:Map[String, Double] = {
     val inv:Map[String, Double] = initialFixing.withFilter{case (k, v) => k.size == 6}.map{case (k, v) => (((k takeRight 3) + (k take 3)), (if (v == 0.0) 0.0 else 1.0 / v))}.toMap
@@ -71,11 +72,13 @@ case class FixingInformation(
     (
       pageInfo.getOrElse("underlying", "missingUnderlying"),
       FixingPage(
-        pageInfo.getOrElse("underlying", "missingUnderlying"),
-        pageInfo.getOrElse("page", "missingPage"),
-        bidOffer,
-        pageInfo.get("time"),
-        pageInfo.get("country")
+        underlying = pageInfo.getOrElse("underlying", "missingUnderlying"),
+        page = pageInfo.get("page"), //getOrElse("page", "missingPage"),
+        bidOffer = bidOffer,
+        time = pageInfo.get("time"),
+        country = pageInfo.get("country"),
+        priceType = pageInfo.get("price_type").getOrElse("close"),
+        initialPriceType = pageInfo.get("initial_price_type").getOrElse("close")
       )
     )
   }).toMap
@@ -130,7 +133,7 @@ case class UnderlyingFixingInfo(
     }
   }
 
-  def getPriceFromFixings(pagePrices:Map[String, Double]):Option[Double] = {
+  def getPriceFromFixings(pagePrices:Map[String, Double], isInitialFixing:Boolean):Option[Double] = {
 
 //    val underlyingPrices:Map[FixingPage, Double] = pagePrices.map{case (ul, v) =>
 //      fixingPages.find(p => p.pageList.contains(ul)) match {
@@ -140,7 +143,7 @@ case class UnderlyingFixingInfo(
 //    }.flatMap{case s => s}.toMap
 
     val underlyingPrices:Map[FixingPage, Double] =
-      fixingPages.map(fixingPage => {fixingPage.getPrice(pagePrices) match {
+      fixingPages.map(fixingPage => {fixingPage.getPrice(pagePrices, isInitialFixing) match {
         case Some(v) => Some((fixingPage, v))
         case _ => None
       }}).flatMap{case s => s}.toMap
@@ -152,12 +155,13 @@ case class UnderlyingFixingInfo(
 
 case class FixingPage(
   underlying:String,
-  page:String,
+  page:Option[String],
   bidOffer:Option[String],
   time:Option[String],
-  country:Option[String]
+  country:Option[String],
+  priceType:String,
+  initialPriceType:String
 ) {
-
 
   val pageFull:Option[String] = {
     if (Set(time, country).exists(_.isDefined)) Some(underlying + ":" + page + ":" + List(bidOffer, time, country).flatMap(s => s).mkString(":"))
@@ -166,21 +170,35 @@ case class FixingPage(
 
   val pageWithBidoffer:Option[String] = bidOffer.collect{case bo => underlying + ":" + page + ":" + bo}
 
-  val pageOnly:Option[String] = Some(underlying + ":" + page)
+  val pageOnly:Option[String] = page.collect{case p => underlying + ":" + p}
 
   val timeOnly:Option[String] = (time, country) match {
     case (Some(t), Some(c)) => Some(underlying + "::" + t + ":" + c)
     case _ => None
   }
 
+  def pageWithPriceType(isInitialFixing:Boolean):Option[String] = {
+    val refPriceType = (if (isInitialFixing) initialPriceType else priceType)
+
+    if (refPriceType == "close") None
+    else Some(underlying + ":" + refPriceType.toUpperCase)
+  }
 
 //  val pageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly).flatMap(s => s)
-  val pageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly, timeOnly).flatMap(s => s)
 
-  override def toString = pageList.mkString(", ")
+  val basePageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly, timeOnly).flatMap(s => s)
 
-  def getPrice(pagePrices:Map[String, Double]):Option[Double] = {
-    pageList.map(pageName => pagePrices.get(pageName)).flatMap(s => s).headOption
+  def pageList(isInitialFixing:Boolean):List[String] = pageWithPriceType(isInitialFixing) match {
+    case Some(p) => p :: basePageList
+    case None => basePageList
+  }
+
+  val allPageSet:Set[String] = (pageList(true) ++ pageList(false)).toSet
+
+  override def toString = pageList(false).mkString(", ")
+
+  def getPrice(pagePrices:Map[String, Double], isInitialFixing:Boolean):Option[Double] = {
+    pageList(isInitialFixing).map(pageName => pagePrices.get(pageName)).flatMap(s => s).headOption
   }
 
   //  val pageList:List[String] = if (defaultPage == fallback) List(defaultPage) else List(defaultPage, fallback)
