@@ -229,18 +229,34 @@ object JsonUtils {
   implicit def formulaToExtendedJson(formula:String) = JsonString(formula)
   
   case class JsonString(formula:String) {
-    
-    def jsonNode:Option[JsonNode] = try { Some(mapper.readTree(formula)) } catch { case _:Throwable => None }
-    
-    def objectNode:Option[ObjectNode] = try { Some(mapper.readTree(formula).asInstanceOf[ObjectNode]) } catch { case _:Throwable => None }
-    
-    def arrayNode:Option[ArrayNode] = try { Some(mapper.readTree(formula).asInstanceOf[ArrayNode]) } catch { case _:Throwable => None }
-    
+
+    private def getNodeOption[T]:Option[T] = try {
+      mapper.readTree(formula) match {
+        case null => None
+        case n:T => Some(n)
+        case _ => None
+      }
+    } catch { case _:Throwable => None }
+
+    def jsonNode:Option[JsonNode] = getNodeOption[JsonNode] // try { Some(mapper.readTree(formula)) } catch { case _:Throwable => None }
+
+    def objectNode:Option[ObjectNode] = getNodeOption[ObjectNode]
+    //    try {
+    //      mapper.readTree(formula) match {
+    //        case null => None
+    //        case objNode:ObjectNode => Some(objNode)
+    //        case _ => None
+    //      }
+    //    } catch { case _:Throwable => None }
+
+    def arrayNode:Option[ArrayNode] = getNodeOption[ArrayNode] //try { Some(mapper.readTree(formula).asInstanceOf[ArrayNode]) } catch { case _:Throwable => None }
+
     def jsonNode(name:String):Option[JsonNode] = try { 
       val node = mapper.readTree(formula).get(name)
       if (node == null) None else Some(node)
-      } catch { case _:Throwable => None }
-      
+    } catch { case _:Throwable => None }
+
+
     def jsonArray:List[JsonNode] = jsonNode match {
       case Some(n) if n == null => List.empty
       case Some(n) if n.isArray => n.elements.asScala.toList
