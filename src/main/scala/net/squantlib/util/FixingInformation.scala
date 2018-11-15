@@ -163,12 +163,15 @@ case class FixingPage(
   initialPriceType:String
 ) {
 
-  val pageFull:Option[String] = {
-    if (Set(time, country).exists(_.isDefined)) Some(underlying + ":" + page + ":" + List(bidOffer, time, country).flatMap(s => s).mkString(":"))
-    else None
+  val pageFull:Option[String] = page match {
+    case Some(p) if Set(time, country).exists(_.isDefined) => Some(underlying + ":" + p + ":" + List(bidOffer, time, country).flatMap(s => s).mkString(":"))
+    case _ => None
   }
 
-  val pageWithBidoffer:Option[String] = bidOffer.collect{case bo => underlying + ":" + page + ":" + bo}
+  val pageWithBidoffer:Option[String] = page match {
+    case Some(p) => bidOffer.collect{case bo => underlying + ":" + p + ":" + bo}
+    case _ => None
+  }
 
   val pageOnly:Option[String] = page.collect{case p => underlying + ":" + p}
 
