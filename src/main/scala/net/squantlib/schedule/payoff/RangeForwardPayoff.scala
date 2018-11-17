@@ -48,50 +48,73 @@ case class RangeForwardPayoff(
     else List(period.eventDate)
   }
 
-  trait FixingInterpreter[T] {
-    def isKnockIn(fixings:T):Option[Boolean] // Method to be implemented
-    def price(fixings:T, isKnockedIn:Boolean, priceResult:PriceResult):Double // Method to be implemented
+//    def isKnockIn(fixings:T):Option[Boolean] // Method to be implemented
+//    def price(fixings:T, isKnockedIn:Boolean, priceResult:PriceResult):Double // Method to be implemented
+//    def assignPhysicalInfo(priceResult:PriceResult):Unit // Method to be implemented
+//    def assignPhysicalInfo(fixings:T, priceResult:PriceResult):Unit // Method to be implemented
 
-    def price(fixings:T, priceResult:PriceResult):Double = {
+    def priceEmpty(priceResult:PriceResult):Double = {
+      if (isFixed) {
+        if (physical && knockedIn) {
+          assignPhysicalInfo(priceResult)
+          Double.NaN
+        } else if (!knockedIn) {
+          1.0
+        } else Double.NaN
+      }
+      else Double.NaN
+    }
+
+    def priceList(fixings:Map[String, Double], priceResult:PriceResult):Double = {
       if (physical) {
-        if (isFixed) price(fixings, knockedIn, priceResult)
+        if (isFixed) {
+          if (knockedIn) assignPhysicalInfo(priceResult)
+          priceList(fixings, knockedIn, priceResult)
+        }
         else Double.NaN
       }
       else isKnockIn(fixings) match {
-        case Some(ki) => price(fixings, ki, priceResult)
+        case Some(ki) => {
+          priceList(fixings, ki, priceResult)
+        }
         case _ => Double.NaN
       }
     }
 
-    def price(fixings:List[T], priceResult:PriceResult):Double = {
+    def priceList(fixings:List[Map[String, Double]], priceResult:PriceResult):Double = {
       fixings.lastOption match {
         case Some(lastFixing) =>
           if (physical) {
             val fixingSize = fixings.length
-            if (isFixed) price(lastFixing, knockedIn, priceResult)
+            if (isFixed) {
+              if (knockedIn) assignPhysicalInfo(priceResult)
+              priceList(lastFixing, knockedIn, priceResult)
+            }
             else if (fixingSize >= 2) isKnockIn(fixings(fixings.length - 2)) match {
-              case Some(ki) => price(lastFixing, ki, priceResult)
+              case Some(ki) =>
+                if (ki && priceResult != null) assignPhysicalInfo(fixings(fixings.length - 2), priceResult)
+                priceList(lastFixing, ki, priceResult)
               case _ => Double.NaN
             }
             else Double.NaN
           }
           else isKnockIn(lastFixing) match {
-            case Some(ki) => price(lastFixing, ki, priceResult)
+            case Some(ki) => priceList(lastFixing, ki, priceResult)
             case _ => Double.NaN
           }
         case None => Double.NaN
       }
     }
-  }
-
-  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
+//  }
+//
+//  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
 
     private def validFixings(fixings:Map[String, Double], vs:Set[String]):Boolean =
       vs.subsetOf(fixings.keySet) &&
       vs.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) &&
       isPriceable
 
-    override def isKnockIn(fixings:Map[String, Double]):Option[Boolean] = {
+    def isKnockIn(fixings:Map[String, Double]):Option[Boolean] = {
       if (knockedIn) Some(true)
       else if (validFixings(fixings, triggerVariables)) {
         val r = triggerLow.forall{case (ul, v) => fixings(ul) >= v} && triggerHigh.forall{case (ul, v) => fixings(ul) <= v}
@@ -102,13 +125,13 @@ case class RangeForwardPayoff(
       }
     }
 
-    def price(fixings:Map[String, Double], isKnockedIn:Boolean, priceResult:PriceResult):Double = {
+    def priceList(fixings:Map[String, Double], isKnockedIn:Boolean, priceResult:PriceResult):Double = {
       if (!isKnockedIn) 1.0
       else if (validFixings(fixings, strikeVariables)) {
         if (physical && priceResult != null) {
           strikeVariables.map(ul => (ul, fixings(ul) / strikes(ul), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
             case (ul, pf, k) =>
-              priceResult.setAssetInfo(ul, 1.0 / k)
+              //priceResult.setAssetInfo(ul, 1.0 / k)
               pf
           }
         } else strikeVariables.map(v => fixings(v) / strikes(v)).min
@@ -117,13 +140,25 @@ case class RangeForwardPayoff(
       else Double.NaN
     }
 
-  }
+    def assignPhysicalInfo(priceResult:PriceResult):Unit = {
+      if (isFixed) assignPhysicalInfo(getFixings, priceResult)
+    }
 
-  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
+    def assignPhysicalInfo(fixings:Map[String, Double], priceResult:PriceResult):Unit = {
+      if (priceResult != null && strikeVariables.subsetOf(fixings.keySet)) {
+        strikeVariables.map(ul => (ul, fixings(ul) / strikes(ul), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+          case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
+        }
+      }
+    }
 
+//  }
+
+//  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
+//
   override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
-
-  override def priceImpl(priceResult:PriceResult) = Double.NaN
+//
+  override def priceImpl(priceResult:PriceResult) = priceEmpty(priceResult)
 
   override def clearFixings = {
     super.clearFixings
@@ -136,7 +171,7 @@ case class RangeForwardPayoff(
   }
 
   def checkKnockIn:Unit = {
-    knockedIn = (implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)).getOrElse(false)
+    knockedIn = isKnockIn(getFixings).getOrElse(false) //(implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)).getOrElse(false)
   }
 
   override def toString =

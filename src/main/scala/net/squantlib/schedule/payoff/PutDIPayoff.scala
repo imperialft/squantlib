@@ -80,7 +80,7 @@ class PutDIPayoff(
   }
 
   override def checkKnockIn:Unit = {
-    knockedIn = implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)
+    knockedIn = isKnockIn(getFixings) //implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)
   }
 
 }

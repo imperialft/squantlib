@@ -51,11 +51,11 @@ case class CallUIPayoff(
     else Double.NaN
   }
 
-  trait FixingInterpreter[T] {
-    def basketPerformance(fixings:T, priceResult:PriceResult):Option[Double] // Method to be implemented
-    def price(fixings:T, currentFixedPrice:Option[Double], priceResult:PriceResult):Double // Method to be implemented
+//  trait FixingInterpreter[T] {
+//    def basketPerformance(fixings:T, priceResult:PriceResult):Option[Double] // Method to be implemented
+//    def price(fixings:T, currentFixedPrice:Option[Double], priceResult:PriceResult):Double // Method to be implemented
 
-    def getFixedPrice(fixings:T, priceResult:PriceResult):Option[Double] = {
+    def getFixedPrice(fixings:Map[String, Double], priceResult:PriceResult):Option[Double] = {
       basketPerformance(fixings, priceResult) match {
         case Some(v) if !v.isNaN && !v.isInfinity  => 
           if (v <= trigger) Some(baseAmount)
@@ -71,33 +71,33 @@ case class CallUIPayoff(
         case _ => None
       }
     }
-    
-    def price(fixings:T, priceResult:PriceResult):Double = {
+
+    def priceList(fixings:Map[String, Double], priceResult:PriceResult):Double = {
       if (physical) {
-        if (isFixed) price(fixings, fixedPrice, priceResult)
+        if (isFixed) priceList(fixings, fixedPrice, priceResult)
         else Double.NaN
       }
-      else price(fixings, getFixedPrice(fixings, priceResult), priceResult)
+      else priceList(fixings, getFixedPrice(fixings, priceResult), priceResult)
     }
     
-    def price(fixings:List[T], priceResult:PriceResult):Double = {
+    def priceList(fixings:List[Map[String, Double]], priceResult:PriceResult):Double = {
       fixings.lastOption match {
         case Some(lastFixing) => 
           if (physical) {
             val fixingSize = fixings.length
-            if (isFixed) price(lastFixing, fixedPrice, priceResult)
-            else if (fixingSize >= 2) price(lastFixing, getFixedPrice(fixings(fixings.length - 2), priceResult), priceResult)
+            if (isFixed) priceList(lastFixing, fixedPrice, priceResult)
+            else if (fixingSize >= 2) priceList(lastFixing, getFixedPrice(fixings(fixings.length - 2), priceResult), priceResult)
             else Double.NaN
           }
-          else price(lastFixing, getFixedPrice(lastFixing, priceResult), priceResult)
+          else priceList(lastFixing, getFixedPrice(lastFixing, priceResult), priceResult)
         case None => Double.NaN
       }
     }
-  }
+//  }
+//
+//  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
 
-  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
-
-    override def basketPerformance(fixings:Map[String, Double], priceResult:PriceResult):Option[Double] = {
+    def basketPerformance(fixings:Map[String, Double], priceResult:PriceResult):Option[Double] = {
       if (variables.toSet subsetOf fixings.keySet) {
         val fixValues = (0 to callVariables.size - 1).toList.map(i => fixings(callVariables(i)))
         if (fixValues.forall(v => !v.isNaN && !v.isInfinity)) {
@@ -127,19 +127,21 @@ case class CallUIPayoff(
       } else None
     }
 
-    override def price(fixings:Map[String, Double], currentFixedPrice:Option[Double], priceResult:PriceResult):Double = {
+    def priceList(fixings:Map[String, Double], currentFixedPrice:Option[Double], priceResult:PriceResult):Double = {
       currentFixedPrice match {
         case Some(f) => f
         case None => basketPerformance(fixings, priceResult).collect{case v => getPerformance(v)}.getOrElse(Double.NaN)
       }
     }
-  }
-  
-  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
+//  }
+
+  //def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
   
   override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
 
-  override def priceImpl(priceResult:PriceResult) = Double.NaN
+  override def priceImpl(priceResult:PriceResult) = {
+    Double.NaN
+  }
 
   override def assignFixings(f:Map[String, Double]):Unit = {
     super.assignFixings(f)
@@ -152,7 +154,7 @@ case class CallUIPayoff(
   }
   
   def checkKnockIn:Unit = {
-    fixedPrice = implicitly[FixingInterpreter[Map[String, Double]]] getFixedPrice(getFixings, null)
+    fixedPrice = getFixedPrice(getFixings, null) //implicitly[FixingInterpreter[Map[String, Double]]] getFixedPrice(getFixings, null)
   }
     
   override def toString =

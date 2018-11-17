@@ -90,62 +90,87 @@ case class PutDIAmericanPayoff(
     else withMinMax(p / stk)
   }
 
-  trait FixingInterpreter[T] {
-    def isKnockIn(fixings:T):Boolean // Method to be implemented
-    def knockInAtRedemption(fixings:T):Boolean // Method to be implemented
-    def price(fixings:T, isKnockedIn:Boolean, priceResult:PriceResult):Double // Method to be implemented
+//  trait FixingInterpreter[T] {
+//    def isKnockIn(fixings:T):Boolean // Method to be implemented
+//    def knockInAtRedemption(fixings:T):Boolean // Method to be implemented
+//    def price(fixings:T, isKnockedIn:Boolean, priceResult:PriceResult):Double // Method to be implemented
+//    def assignPhysicalInfo(priceResult:PriceResult):Unit // Method to be implemented
+//    def assignPhysicalInfo(fixings:T, priceResult:PriceResult):Unit // Method to be implemented
 
-    def isKnockIn(fixings:List[T]):Boolean = {
+    def isKnockIn(fixings:List[Map[String, Double]]):Boolean = {
       if (fixings.isEmpty) knockedIn
       else (knockedIn || fixings.exists(isKnockIn(_))) && (forward || knockInAtRedemption(fixings.last))
     }
 
-    def price(fixings:T, priceResult:PriceResult):Double = {
-      if (physical) {
-        if (isFixed) price(fixings, knockedIn, priceResult)
-        else Double.NaN
+    def priceSingle(priceResult:PriceResult):Double = {
+      if (isFixed) {
+        if (physical && knockedIn) {
+          assignPhysicalInfo(priceResult)
+          Double.NaN
+        } else if (!knockedIn) {
+          1.0
+        } else Double.NaN
       }
-      else price(fixings, isKnockIn(fixings), priceResult)
+      else Double.NaN
     }
 
-    def price(fixings:List[T], priceResult:PriceResult):Double = {
+    def priceList(fixings:Map[String, Double], priceResult:PriceResult):Double = {
+      if (physical) {
+        if (isFixed) {
+          if (knockedIn) assignPhysicalInfo(priceResult)
+          priceList(fixings, knockedIn, priceResult)
+        }
+        else Double.NaN
+      }
+      else priceList(fixings, isKnockIn(fixings), priceResult)
+    }
+
+    def priceList(fixings:List[Map[String, Double]], priceResult:PriceResult):Double = {
       fixings.lastOption match {
         case Some(lastFixing) => 
           if (physical) {
             val fixingSize = fixings.length
-            if (isFixed) price(lastFixing, knockedIn, priceResult)
-            else if (fixingSize >= 2) price(lastFixing, isKnockIn(fixings.dropRight(1)), priceResult)
+            if (isFixed) {
+              if (knockedIn) assignPhysicalInfo(priceResult)
+              priceList(lastFixing, knockedIn, priceResult)
+            }
+            else if (fixingSize >= 2) {
+              val ki = isKnockIn(fixings.dropRight(1))
+              if (priceResult != null && ki) assignPhysicalInfo(fixings.last, priceResult)
+              priceList(lastFixing, ki, priceResult)
+            }
             else Double.NaN
           }
-          else price(lastFixing, isKnockIn(fixings), priceResult)
+          else priceList(lastFixing, isKnockIn(fixings), priceResult)
         case None => Double.NaN
       }
     }
-  }
-  
-  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
 
-    override def isKnockIn(fixings:Map[String, Double]):Boolean = {
+//  }
+//
+//  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
+
+    def isKnockIn(fixings:Map[String, Double]):Boolean = {
       knockedIn || triggerVariables.exists(p => fixings.get(p) match {
         case Some(v) if triggers.contains(p) => isKnockedInPrice(v, triggers(p))
         case _ => false
       })
     }
 
-    override def knockInAtRedemption(fixings:Map[String, Double]):Boolean = {
+    def knockInAtRedemption(fixings:Map[String, Double]):Boolean = {
       strikeOrFinalTriggerVariables.exists(p => fixings.get(p) match {
         case Some(v) if strikeOrFinalTriggers.contains(p) => isKnockedInPrice(v, strikeOrFinalTriggers(p))
         case _ => false
       })
     }
 
-    override def price(fixings:Map[String, Double], isKnockedIn:Boolean, priceResult:PriceResult):Double = {
+    def priceList(fixings:Map[String, Double], isKnockedIn:Boolean, priceResult:PriceResult):Double = {
       if ((strikeVariables subsetOf fixings.keySet) && strikeVariables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
         if (isKnockedIn) {
           if (physical && priceResult != null) {
             strikeVariables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul)), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
               case (ul, pf, k) =>
-                priceResult.setAssetInfo(ul, 1.0 / k)
+                //priceResult.setAssetInfo(ul, 1.0 / k)
                 withMinMax(pf)
             }
           } else {
@@ -156,13 +181,25 @@ case class PutDIAmericanPayoff(
       } else Double.NaN
     }
 
-  }
-  
-  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
+    def assignPhysicalInfo(priceResult:PriceResult):Unit = {
+      if (isFixed) assignPhysicalInfo(getFixings, priceResult)
+    }
+
+    def assignPhysicalInfo(fixings:Map[String, Double], priceResult:PriceResult):Unit = {
+      if (priceResult != null && strikeVariables.subsetOf(fixings.keySet)) {
+        strikeVariables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul)), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+          case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
+        }
+      }
+    }
+
+//  }
+
+//  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
 
   override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
 
-  override def priceImpl(priceResult:PriceResult) = Double.NaN
+  override def priceImpl(priceResult:PriceResult) = priceSingle(priceResult) //implicitly[FixingInterpreter[Map[String, Double]]] priceSingle(priceResult)
 
   override def toString =
     nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Amer) " + nominal.asPercent +

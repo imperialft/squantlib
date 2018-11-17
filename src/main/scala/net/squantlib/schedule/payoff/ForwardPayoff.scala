@@ -36,26 +36,43 @@ case class ForwardPayoff(
     else List(period.eventDate)
   }
   
-//  def parseFixings(fixings:Map[String, Double]):Option[List[Double]] = {
-//    if (variables subsetOf fixings.keySet)
-//      Some((0 to fwdVariables.size - 1).toList.map(i => fixings(fwdVariables(i))))
-//    else None
-//  }
-
   def getPerformance(p:Double, stk:Double):Double = {
     if (reverse) withMinMax(2.0 - p / stk)
     else withMinMax(p / stk)
   }
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) =
-    fixings.lastOption.collect{case f => priceImpl(f, pastPayments, priceResult)}.getOrElse(Double.NaN)
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) = {
+    fixings.lastOption match {
+      case Some(lastFixing) =>
+        if (physical) {
+          val fixingSize = fixings.length
+          if (isFixed) {
+            if (priceResult != null) assignPhysicalInfo(priceResult)
+            priceImpl(lastFixing, pastPayments, priceResult)
+          }
+          else if (fixingSize >= 2) {
+            if (priceResult != null) assignPhysicalInfo(fixings.dropRight(1).last, priceResult)
+            priceImpl(lastFixing, pastPayments, priceResult)
+          }
+          else Double.NaN
+        }
+        else priceImpl(lastFixing, pastPayments, priceResult)
+
+      case None => Double.NaN
+    }
+
+
+//    fixings.lastOption.collect {
+//      case f => priceImpl(f, pastPayments, priceResult)
+//    }.getOrElse(Double.NaN)
+  }
 
   def priceImpl(fixings:Map[String, Double], pastPayments:List[Double], priceResult:PriceResult) = {
     if ((variables subsetOf fixings.keySet) && variables.forall(ul => !fixings(ul).isNaN && !fixings(ul).isInfinity) && isPriceable) {
-      if (physical && priceResult != null) {
+      if (physical) {
+        if (isFixed) assignPhysicalInfo(priceResult)
         variables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul)), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
           case (ul, pf, k) =>
-            priceResult.setAssetInfo(ul, 1.0 / k)
             withMinMax(pf)
         }
       } else {
@@ -63,29 +80,31 @@ case class ForwardPayoff(
       }
     } else Double.NaN
 
-
-    //    parseFixings(fixings) match {
-//      case Some(fixValues) if fixValues.forall(v => !v.isNaN && !v.isInfinity) =>
-//        val perfs = (fixValues, strike).zipped.map((v, k) => v / k)
-//        if (physical && priceResult != null) {
-//          (perfs, strike, fwdVariables).zipped.minBy{case (pf, k, ul) => pf} match {
-//            case (pf, k, ul) => priceResult.setAssetInfo(ul, 1.0 / k)
-//          }
-//        }
-//        perfs.min
-//      case _ => Double.NaN
-//    }
   }
 
-//  override def priceImpl(fixing:Double, pastPayments:List[Double]) =
-//    if (variables.size != 1 || fixing.isNaN || fixing.isInfinity) Double.NaN
-//    else fixing / strike.head
-  
+  def assignPhysicalInfo(priceResult:PriceResult):Unit = {
+    if (isFixed) assignPhysicalInfo(getFixings, priceResult)
+  }
+
+  def assignPhysicalInfo(fixings:Map[String, Double], priceResult:PriceResult):Unit = {
+    if (priceResult != null && variables.subsetOf(fixings.keySet)) {
+      variables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul)), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+        case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
+      }
+    }
+  }
+
   override def toString =
     "Min{[" + strikes.map{case (k, v) => s"${k}: ${v.asDouble}"}.mkString(",") + "]}"
   
   override def priceImpl(priceResult:PriceResult) = {
-    Double.NaN
+    if (isFixed) {
+      if (physical) {
+        assignPhysicalInfo(priceResult)
+        Double.NaN
+      } else Double.NaN
+    }
+    else Double.NaN
   }
   
   override def jsonMapImpl = Map(
