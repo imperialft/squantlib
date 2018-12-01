@@ -32,7 +32,7 @@ case class ForwardPayoff(
   override val isPriceable = !strikes.exists{case (k, v) => v.isNaN || v.isInfinity} && !strikes.isEmpty
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
-    if (physical) List(period.paymentDate)
+    if (physical) List(period.eventDate, period.paymentDate)
     else List(period.eventDate)
   }
   
