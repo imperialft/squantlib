@@ -46,7 +46,8 @@ case class CallUIPayoff(
   
   def getPerformance(v:Double):Double = {
     if (!v.isNaN && !v.isInfinity) {
-      1.0 + (v - 1.0) * mult + added
+      //1.0 + (v - 1.0) * mult + added
+      (v - 1.0) * mult + added
     }
     else Double.NaN
   }
@@ -165,7 +166,7 @@ case class CallUIPayoff(
     "variable" -> callVariables.toArray, 
     "strike" -> strike.toArray, 
     "trigger" -> trigger, 
-    "added" -> added,
+    "add" -> added,
     "amount" -> amount,
     "mult" -> mult,
     "max" -> maxPayoff,
