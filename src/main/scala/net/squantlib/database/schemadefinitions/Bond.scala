@@ -18,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.squeryl.annotations.Transient
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
+import scala.collection.JavaConverters._
 
 class Bond(
   @Column("ID")					override var id: String,
@@ -177,6 +178,8 @@ class Bond(
   def paymentCurrencyId:String = if (isJpyPayment) settingMap.getOrElse("payment_currency", "JPY") else currencyid
   
   def underlyingList:List[String] = stringList(underlying)
+
+  def underlyingSet:Set[String] = underlyingList.toSet
   
   def fixingMap:Map[String, Double] = fixings.parseJsonDoubleFields
   
@@ -351,9 +354,35 @@ class Bond(
     case _ => false
   }
 
-  def getFixingPrices(dates:List[Date], isInitialFixing:Boolean):List[Map[String, Double]] = getFixingPrices(underlyingList.toSet, dates, isInitialFixing)
+  def getInitialFixingPrices:Map[String, Double] = getInitialFixingPrices(underlyingList.toSet)
 
-  def getFixingPrices(ids:Set[String], dates:List[Date], isInitialFixing:Boolean):List[Map[String, Double]] = DB.getFixings(ids, dates, fixingInformation, isInitialFixing)
+  def getInitialFixingPrices(ids:Set[String]):Map[String, Double] = fixingDate match {
+    case Some(d) =>
+      val customFixings: Map[String, Double] = try {
+        settingsJson.get("initial_fixing") match {
+          case null => Map.empty
+          case ns =>
+            val fixings = ns.fieldNames.asScala.map(n => (n, ns.get(n).asDouble)).toMap
+            fixings ++ fixings.map { case (k, v) => if (k.size == 6 && v > 0.0000001) Some((k.takeRight(3) + k.take(3), 1.0 / v)) else None }.flatMap(s => s).toMap
+        }
+      } catch {case _: Exception => Map.empty}
+
+      val missingFixings:Map[String, Double] = {
+        if ((ids -- customFixings.keySet).size > 0) getFixingPriceFromDb(ids, List(d), true).headOption.getOrElse(Map.empty)
+        else Map.empty
+      }
+      missingFixings ++ customFixings.filter{case (k, v) => ids.contains(k)}
+
+    case _ => Map.empty
+  }
+
+  def getFixingPrices(dates:List[Date]):List[Map[String, Double]] = getFixingPrices(underlyingList.toSet, dates)
+
+  def getFixingPrices(ids:Set[String], dates:List[Date]):List[Map[String, Double]] = {
+    DB.getFixings(ids, dates, fixingInformation, false)
+  }
+
+  def getFixingPriceFromDb(ids:Set[String], dates:List[Date], isInitialFixing:Boolean) = DB.getFixings(ids, dates, fixingInformation, isInitialFixing)
 
   def settingsJson:ObjectNode = settings.objectNode.getOrElse((new ObjectMapper).createObjectNode)
 
