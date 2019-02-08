@@ -65,7 +65,7 @@ case class FixingInformation(
 
   val underlyingAssetIds:Map[String, FixingPage] = fixingPageInformation.map(pageInfo => {
     val bidOffer:Option[String] = pageInfo.get("bidoffer") match {
-      case Some(b) if b == "bid" || b == "offer" => Some(b)
+      case Some(b) if b == "bid" || b == "offer" || b == "mid" => Some(b)
       case _ => None
     }
 
@@ -163,21 +163,30 @@ case class FixingPage(
   initialPriceType:String
 ) {
 
-  val pageFull:Option[String] = page match {
-    case Some(p) if Set(time, country).exists(_.isDefined) => Some(underlying + ":" + p + ":" + List(bidOffer, time, country).flatMap(s => s).mkString(":"))
-    case _ => None
+  val pageFull:List[String] = (page, Set(time, country).exists(_.isDefined), bidOffer) match {
+    case (Some(p), true, Some("mid")) =>
+      List(
+        underlying + ":" + p + ":mid:" + List(time, country).flatMap(s => s).mkString(":"),
+        underlying + ":" + p + ":" + List(time, country).flatMap(s => s).mkString(":")
+      )
+    case (Some(p), true, _) =>
+      List(underlying + ":" + p + ":" + List(bidOffer, time, country).flatMap(s => s).mkString(":"))
+    case _ => List.empty
   }
 
-  val pageWithBidoffer:Option[String] = page match {
-    case Some(p) => bidOffer.collect{case bo => underlying + ":" + p + ":" + bo}
-    case _ => None
+  val pageWithBidoffer:List[String] = (page, bidOffer) match {
+    case (Some(p), Some(bo)) => List(underlying + ":" + p + ":" + bo)
+    case _ => List.empty
   }
 
-  val pageOnly:Option[String] = page.collect{case p => underlying + ":" + p}
+  val pageOnly:List[String] = page match {
+    case Some(p) => List(underlying + ":" + p)
+    case _ => List.empty
+  }
 
-  val timeOnly:Option[String] = (time, country) match {
-    case (Some(t), Some(c)) => Some(underlying + "::" + t + ":" + c)
-    case _ => None
+  val timeOnly:List[String] = (time, country) match {
+    case (Some(t), Some(c)) => List(underlying + "::" + t + ":" + c)
+    case _ => List.empty
   }
 
   def pageWithPriceType(isInitialFixing:Boolean):Option[String] = {
@@ -189,7 +198,7 @@ case class FixingPage(
 
 //  val pageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly).flatMap(s => s)
 
-  val basePageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly, timeOnly).flatMap(s => s)
+  val basePageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly, timeOnly).flatten
 
   def pageList(isInitialFixing:Boolean):List[String] = pageWithPriceType(isInitialFixing) match {
     case Some(p) => p :: basePageList
