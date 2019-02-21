@@ -191,9 +191,9 @@ class Bond(
   
   def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
 
-  def isAutoId:Boolean = {
+  def isAutoId:Boolean = try {
     settingMap.get("auto_id").collect{case d => d.toInt == 1}.getOrElse(false)
-  }
+  } catch { case _:Throwable => false}
 
   def getUniqueIds:Map[String, String] = {
     settings.jsonNode match {
@@ -304,41 +304,53 @@ class Bond(
     }
   }
 
-  def isRollMonthEnd:Boolean = settingMap.get("month_end_roll").collect{case d => d.toInt == 1}.getOrElse(false)
+  def isRollMonthEnd:Boolean = try{
+    settingMap.get("month_end_roll").collect{case d => d.toInt == 1}.getOrElse(false)
+  } catch { case _:Throwable => false}
 
-  def customFixingDayOfMonth:Option[Int] = settingMap.get("fixingdate").collect{case d => d.toInt}
-
-  def isFixingOnCalculationEndDate:Boolean = settingMap.get("fixing_on_enddate").collect{case d => d.toInt == 1}.getOrElse(false)
-
-  def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
-
-  def schedule:Option[Schedule] = try {
-    val schedule = Schedule(
-      effectiveDate = calculationStartDate, // (if (settlementDate == null) issueDate else settlementDate),
-      terminationDate = maturityDate,
-      tenor = period,
-      fixingCalendar = fixingCalendar,
-      paymentCalendar = paymentCalendar,
-      calendarConvention = calendarAdjust,
-      paymentConvention = paymentAdjust,
-      terminationDateConvention = maturityAdjust,
-      rule = DateGeneration.Rule.Backward,
-      fixingInArrears = isFixingInArrears,
-      noticeDay = couponNotice,
-      daycount = daycounter,
-      firstDate = firstPaymentDateAfter,
-      nextToLastDate = lastRollDate,
-      addRedemption = true,
-      maturityNotice = redemptionNotice,
-      fixedDayOfMonth = customFixingDayOfMonth,
-      fixingOnCalculationEndDate = isFixingOnCalculationEndDate,
-      rollMonthEnd = isRollMonthEnd
-    )
-    if (schedule == null) None else Some(schedule)
+  def customFixingDayOfMonth:Option[Int] = {
+    try {
+      settingMap.get("fixingdate").collect{case d => d.toInt} match {
+        case Some(d) if d > 0 && d <= 31 => d
+        case _ => None
+      }
+    } catch { case _:Throwable => None}
   }
-  catch { case _:Throwable => None}
 
-  private def optionalDouble(n:JsonNode):Option[Double] =
+  def isFixingOnCalculationEndDate:Boolean = try {
+    settingMap.get("fixing_on_enddate").collect { case d => d.toInt == 1 }.getOrElse(false)
+  } catch { case _:Throwable => false}
+
+    def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
+
+    def schedule:Option[Schedule] = try {
+      val schedule = Schedule(
+        effectiveDate = calculationStartDate, // (if (settlementDate == null) issueDate else settlementDate),
+        terminationDate = maturityDate,
+        tenor = period,
+        fixingCalendar = fixingCalendar,
+        paymentCalendar = paymentCalendar,
+        calendarConvention = calendarAdjust,
+        paymentConvention = paymentAdjust,
+        terminationDateConvention = maturityAdjust,
+        rule = DateGeneration.Rule.Backward,
+        fixingInArrears = isFixingInArrears,
+        noticeDay = couponNotice,
+        daycount = daycounter,
+        firstDate = firstPaymentDateAfter,
+        nextToLastDate = lastRollDate,
+        addRedemption = true,
+        maturityNotice = redemptionNotice,
+        fixedDayOfMonth = customFixingDayOfMonth,
+        fixingOnCalculationEndDate = isFixingOnCalculationEndDate,
+        rollMonthEnd = isRollMonthEnd
+      )
+      if (schedule == null) None else Some(schedule)
+    }
+    catch { case _:Throwable => None}
+
+    private def optionalDouble(n:JsonNode):Option[Double]
+  } =
     if (n == null || n.isNull) None
     else Some(n.parseDouble.getOrElse(Double.NaN))
     
