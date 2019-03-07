@@ -200,7 +200,7 @@ object Schedule{
               startDate = startDate.endOfMonth
             }
 
-            if (endDate.sub(firstEndDateAfter) <= 0 || startDate.sub(firstStartDateAfter) <= 0) { // if (Math.abs(effectiveDate.sub(startDate)) < 14) {
+            if (startDate.sub(firstEndDateAfter) <= 0 || startDate.sub(firstStartDateAfter) <= 0) { // if (Math.abs(effectiveDate.sub(startDate)) < 14) {
               startDate = effectiveDate
             }
 
