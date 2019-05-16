@@ -185,7 +185,11 @@ object Payoffs {
 	      case _ => getPayoff(formula.split(";").head)
 	    }
 	  
-	  	val fullpayoff = if (payofflist.size < legs) List.fill(legs - payofflist.size)(getFirstElement) ++ payofflist else payofflist
+	  	val fullpayoff = {
+				if (payofflist.size < legs) List.fill(legs - payofflist.size)(getFirstElement) ++ payofflist
+				else if (payofflist.size > legs) payofflist.take(legs)
+				else payofflist
+			}
 	  	Some(Payoffs(fullpayoff))
 	}}
 

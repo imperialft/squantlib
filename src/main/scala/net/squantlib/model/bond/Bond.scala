@@ -81,7 +81,10 @@ object Bond {
     implicit val fixingInfo:FixingInformation = if (customFixings == null) db.fixingInformation else customFixings
 
     val coupon:Payoffs = Payoffs(db.coupon, schedule.size - 1).orNull
-    if (coupon == null || coupon.size + 1 != schedule.size) {errorOutput(db.id, "cannot initialize coupon"); return None}
+    if (coupon == null || coupon.size + 1 != schedule.size) {
+      errorOutput(db.id, "cannot initialize coupon")
+      return None
+    }
 
     val redemption = Payoff(db.redemprice).orNull
     if (redemption == null) {errorOutput(db.id, "cannot initialize redemption"); return None}
