@@ -12,6 +12,7 @@ class Equity(@Column("ID")					override var id:String,
               @Column("DIV_FREQ")			var divfreq:Int,
               @Column("VOLATILITY")			var volatility:Double,
               @Column("PARAMDATE")			var paramdate:Date,
+              @Column("Settings")      var settings:String,
               @Column("Created")			override var created: Timestamp,
               @Column("LastModified")		override var lastmodified : Timestamp
               ) extends StringEntity {
@@ -23,6 +24,7 @@ class Equity(@Column("ID")					override var id:String,
       divfreq = -99999,
       volatility = -999999,
       paramdate = null,
+      settings = null,
       created = null,
       lastmodified = null
       )

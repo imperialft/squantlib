@@ -10,6 +10,7 @@ class Index(@Column("ID")					override var id:String,
               @Column("CurrencyID")			var currencyid:String,
               @Column("VOLATILITY")			var volatility:Double,
               @Column("PARAMDATE")			var paramdate:Date,
+              @Column("Settings")      var settings:String,
               @Column("created_at")			override var created: Timestamp,
               @Column("updated_at")		override var lastmodified : Timestamp
               ) extends StringEntity {
@@ -19,6 +20,7 @@ class Index(@Column("ID")					override var id:String,
       currencyid = null, 
       volatility = -999999,
       paramdate = null,
+      settings = null,
       created = null,
       lastmodified = null)
 
