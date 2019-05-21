@@ -27,6 +27,7 @@ class Bond(
   @Column("SELLSTART")			var sellstart: JavaDate,
   @Column("SELLEND")			var sellend: JavaDate,
   @Column("ISSUEDATE")			var issuedate: JavaDate,
+  @Column("COUPONSTART")			var coupon_start: JavaDate,
   @Column("Settlement")			var settlement: JavaDate,
   @Column("MATURITY")			var maturity: JavaDate,
   @Column("TERMINATIONDATE")	var terminationdate: Option[JavaDate],
@@ -48,6 +49,7 @@ class Bond(
   @Column("REDEMPRICE")			var redemprice: String,
   @Column("REDEMNOTICE")		var redemnotice: Option[Int],
   @Column("CALL")				var call: String,
+  @Column("CALLNOTICE")				var callnotice: Int,
   @Column("TYPE")				var bondtype: String,
   @Column("INITIALFX")			var initialfx: Double,
   @Column("FIXINGDATE")			var fixingdate: Option[JavaDate],
@@ -61,6 +63,7 @@ class Bond(
   @Column("DESCRIPTION_JPN")	var description_jpn: String,
   @Column("DESCRIPTION_ENG")	var description_eng: String,
   @Column("CurrencyID")			var currencyid: String,
+  @Column("PaymentCurrencyID")			var paymentCurrencyId: String,
   @Column("ProductID")			var productid: String,
   @Column("IssuerID")			var issuerid: String,
   @Column("RISKTAGS") 			var risktags: String,
@@ -93,6 +96,8 @@ class Bond(
   @Column("BondStatus")      var bond_status: String,
   @Column("Collateral")      var collateral: String,
   @Column("Memo")      var memo: String,
+  @Column("BONDNOTE")      var bondnote: String,
+  @Column("RegistrationDate")      var registration_date: JavaDate,
   @Column("Created")			override var created: Timestamp,
   @Column("LastModified")		override var lastmodified : Timestamp
 ) extends StringEntity {
@@ -175,7 +180,7 @@ class Bond(
   
   def isJpyPayment:Boolean = jpypayment == 1
 
-  def paymentCurrencyId:String = if (isJpyPayment) settingMap.getOrElse("payment_currency", "JPY") else currencyid
+//  def paymentCurrencyId:String = if (isJpyPayment) settingMap.getOrElse("payment_currency", "JPY") else currencyid
   
   def underlyingList:List[String] = stringList(underlying)
 
@@ -500,6 +505,7 @@ class Bond(
     sellend = null,
     settlement = null,
     issuedate = null,
+    coupon_start = null,
     maturity = null,
     terminationdate = None,
     ismatured = 0,
@@ -520,6 +526,7 @@ class Bond(
     redemprice = null,
     redemnotice = Some(0),
     call = null,
+    callnotice = 0,
     bondtype = null,
     initialfx = 0.0,
     fixingdate = None,
@@ -533,6 +540,7 @@ class Bond(
     description_jpn = null,
     description_eng = null,
     currencyid = null,
+    paymentCurrencyId = null,
     productid = null,
     issuerid = null,
     risktags = null,
@@ -565,6 +573,8 @@ class Bond(
     bond_status = null,
     collateral = null,
     memo = null,
+    bondnote = null,
+    registration_date = null,
     created = null,
     lastmodified = null
   )
