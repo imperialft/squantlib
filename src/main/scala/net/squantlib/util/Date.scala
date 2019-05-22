@@ -134,10 +134,16 @@ object Date {
   
 //  def apply(t:Timestamp):Date = apply(t.getTime)
   
-  def getDate(d:String, stringFormat:String = "yyyy-MM-dd"):Option[Date] = {
+  def getDate(d:String, stringFormat:String = null):Option[Date] = {
     if (d == null || d == "" )
       None
-    val dateFormat = new SimpleDateFormat(stringFormat)
+
+    val sFormat:String = {
+      if (stringFormat != null) stringFormat
+      else if (d.contains("/")) "yyyy/MM/dd"
+      else "yyyy-MM-dd"
+    }
+    val dateFormat = new SimpleDateFormat(sFormat)
     dateFormat.setLenient(false)
     try {
       Some(Date(dateFormat.parse(d)))
