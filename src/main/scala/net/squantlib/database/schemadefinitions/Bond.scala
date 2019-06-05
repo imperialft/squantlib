@@ -286,19 +286,21 @@ class Bond(
   }
 
   @Transient
-  lazy val calculationStartDate:Date = {
-    val bondSettings = settingMap
-    val defaultStartDate = if (settlementDate == null) issueDate else settlementDate
+  lazy val calculationStartDate:Date = Date(coupon_start)
 
-    bondSettings.get("calculation_start") match {
-      case Some(d) if d.startsWith("issue") => issueDate
-      case Some(d) => Date.getDate(d) match {
-        case Some(dd) => dd
-        case _ => defaultStartDate
-      }
-      case _ => defaultStartDate
-    }
-  }
+//  {
+//    val bondSettings = settingMap
+//    val defaultStartDate = if (settlementDate == null) issueDate else settlementDate
+//
+//    bondSettings.get("calculation_start") match {
+//      case Some(d) if d.startsWith("issue") => issueDate
+//      case Some(d) => Date.getDate(d) match {
+//        case Some(dd) => dd
+//        case _ => defaultStartDate
+//      }
+//      case _ => defaultStartDate
+//    }
+//  }
 
   @Transient
   lazy val firstPaymentDateAfter:Option[Date] = {
