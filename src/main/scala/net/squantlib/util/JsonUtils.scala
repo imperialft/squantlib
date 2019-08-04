@@ -324,7 +324,14 @@ object JsonUtils {
       case Some(v:String) => FormulaParser.calculate(v)
       case _ => None
     }
-    
+
+    def getDecimal(key:String):Option[BigDecimal] = map.get(key) match {
+      case Some(v:Double) => Some(BigDecimal.valueOf(v))
+      case Some(v:Int) => Some(BigDecimal(v))
+      case Some(v:String) => FormulaParser.calculate(v).collect{case v => BigDecimal.valueOf(v)}
+      case _ => None
+    }
+
     def getInt(key:String):Option[Int] = map.get(key) match {
       case Some(v:Int) => Some(v)
       case Some(v:Double) => Some(v.round.toInt)
