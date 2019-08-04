@@ -360,7 +360,7 @@ object ScheduledPayoffs {
     val (datesBefore, datesAfter) = dates.span(_ le valuedate)
 
     val fixings:List[Map[String, BigDecimal]] = getFixings(underlyings, datesBefore, fixingInfo, false)
-    val currentFixings:List[Map[String, BigDecimal]] = DB.pastFixings(underlyings, List(valuedate)).map(_.collect{case (k, Some(v)) => (k, v.getDecimal(k)(fixingInfo))})
+    val currentFixings:List[Map[String, BigDecimal]] = DB.pastFixings(underlyings, List(valuedate)).map(vs => vs.collect{case (k, Some(v)) => (k, v.getDecimal(k)(fixingInfo))}.collect{case (k, Some(v)) => (k, v)})
 
     val exterps:List[Map[String, BigDecimal]] = datesAfter.map{case _ =>
       if (!currentFixings.isEmpty) currentFixings.last.map{case (k, v) => (k, v)}

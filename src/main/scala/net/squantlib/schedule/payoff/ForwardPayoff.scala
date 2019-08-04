@@ -126,9 +126,7 @@ object ForwardPayoff {
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n =>
-      Payoff.nodeToComputedMap(n, "strike", variables).map{case (ul, v) => (ul, v.getDecimal(ul))}
-    }.getOrElse(Map.empty)
+    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getDecimal}.getOrElse(Map.empty)
 
 //    val variable:List[String] = fixingInfo.update(formula).parseJsonStringList("variable").map(_.orNull)
 //    val strike:List[Double] = fixingInfo.update(formula).parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))

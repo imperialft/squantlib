@@ -105,8 +105,8 @@ object BinaryPayoff {
   	  case Some(subnode) if subnode.isArray =>
         subnode.asScala.map(n => {
           val amount = BigDecimal.valueOf(n.parseDouble("amount").getOrElse(0.0))
-          val strikes = Payoff.nodeToComputedMap(n, (if (reverse) "strike_low" else "strike"), variable).map{case (ul, v) => (ul, v.getDecimal(ul))}
-          val strikeHighs = Payoff.nodeToComputedMap(n, (if (reverse) "strike" else "strike_high"), variable).map{case (ul, v) => (ul, v.getDecimal(ul))}
+          val strikes = Payoff.nodeToComputedMap(n, (if (reverse) "strike_low" else "strike"), variable).getDecimal
+          val strikeHighs = Payoff.nodeToComputedMap(n, (if (reverse) "strike" else "strike_high"), variable).getDecimal
           (amount, strikes, strikeHighs)
         }) (collection.breakOut)
 	    case _ => Set.empty

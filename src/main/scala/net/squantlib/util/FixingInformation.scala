@@ -11,10 +11,15 @@ case class FixingInformation(
   var tbd:Option[BigDecimal],
   var minRange:Option[BigDecimal],
   var maxRange:Option[BigDecimal],
-  var initialFixing:Map[String, BigDecimal],
   fixingPageInformation: List[Map[String, String]]
 ) {
-  
+
+  var initialFixing:Map[String, BigDecimal] = Map.empty
+
+  def setInitialFixingDouble(vs:Map[String, Double]) = {
+    initialFixing = vs.getDecimal()(this)
+  }
+
   def initialFixingFull:Map[String, BigDecimal] = {
     val inv:Map[String, BigDecimal] = initialFixing.withFilter{case (k, v) => k.size == 6}.map{case (k, v) => (((k takeRight 3) + (k take 3)), (if (v == 0.0) BigDecimal(0.0) else 1.0 / v))}.toMap
     if (inv.isEmpty) initialFixing else initialFixing ++ inv
@@ -25,7 +30,9 @@ case class FixingInformation(
     case None => initialFixingFull
   }
     
-  def update(p:String):String = multipleReplace(p, all.map{case (k, v) => ("@" + k, v)})
+  def update(p:String):String = {
+    multipleReplace(p, all.map{case (k, v) => ("@" + k, v)})
+  }
   
   def updateInitial(p:String):String = multipleReplace(p, initialFixing.map{case (k, v) => ("@" + k, v)})
   
@@ -36,7 +43,9 @@ case class FixingInformation(
       case Some((k, v)) => multipleReplace(s.replace(k, v.toString), replacements - k)
     }
   
-  def updateCompute(p:String):Option[Double] = FormulaParser.calculate(update(p))
+  def updateCompute(p:String):Option[Double] = {
+    FormulaParser.calculate(update(p))
+  }
   
   /*
    * Fixing Information Accessor
@@ -128,7 +137,7 @@ case class FixingInformation(
   
 object FixingInformation {
   
-  def empty(currencyId:String, paymentCurrencyId:String) = FixingInformation(currencyId, paymentCurrencyId, None, None, None, Map.empty, List.empty)
+  def empty(currencyId:String, paymentCurrencyId:String) = FixingInformation(currencyId, paymentCurrencyId, None, None, None, List.empty)
   
 }
 

@@ -153,7 +153,7 @@ object Callabilities {
 
         CallOption(
           if (invertedTrigger) !triggerUp else triggerUp,
-          forwardStrikes.map{case (ul, v) => (ul, v.getDecimal(ul))},
+          forwardStrikes.getDecimal,
           forwardMap,
           bonus,
           invertedTrigger,
@@ -193,7 +193,10 @@ object Callabilities {
   }
 
 
-  private def triggerToAssignedTrigger(trigs:List[Map[String, String]], invertedStrikes:List[Boolean])(implicit fixingInfo:FixingInformation):List[Map[String, Double]] =
+  private def triggerToAssignedTrigger(
+    trigs:List[Map[String, String]],
+    invertedStrikes:List[Boolean]
+  )(implicit fixingInfo:FixingInformation):List[Map[String, Double]] =
     (trigs, invertedStrikes).zipped.map{
       case (trig, inverted) if inverted =>
         val assignedTrig:Map[String, Double] = assignFixings(trig)
@@ -255,10 +258,14 @@ object Callabilities {
 
     val trigFormulas:List[Map[String, String]] = triggerList(formula, legs, underlyings)
 
+
     val callOptions:List[CallOption] = callOptionList(formula, legs)
 
-    val trigMap:List[Map[String, BigDecimal]] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedTrigger)).map(vs => vs.map{case (ul, v) => (ul, v.getDecimal(ul))})
-    
+    val trigMap:List[Map[String, BigDecimal]] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedTrigger)).map(_.getDecimal)
+
+    println(s"trigFormulas ${trigFormulas.toString}")
+    println(s"trigMap ${trigMap.toString}")
+
     val targets:List[Option[BigDecimal]] = targetList(formula, legs).map(vs => vs.collect{case v => BigDecimal.valueOf(v)})
 
     val baseFormulas:List[Map[String, Any]] = mapList(formula, legs)
@@ -324,7 +331,7 @@ object Callabilities {
       bermudans.zip(triggerMap(underlyings, triggers)).zip(callOptions.zip(targets)).map{case ((berm, trig), (callOption, tgt)) => 
         Callability(
           bermudan = berm,
-          triggers = trig.map{case (ul, v) => (ul, v.getDecimal(ul))},
+          triggers = trig.getDecimal,
           targetRedemption = tgt.collect{case v => BigDecimal.valueOf(v)},
           callOption = callOption,
           inputString = Map.empty[String, Any],

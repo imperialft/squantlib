@@ -16,6 +16,7 @@ class PutDIPayoff(
   override val reverse: Boolean,
   override val minPayoff:Double,
   override val maxPayoff: Option[Double],
+  knockInOnEqual: Boolean,
   override val amount:Double = 1.0,
   override val description:String = null,
   override val inputString:String = null
@@ -32,6 +33,7 @@ class PutDIPayoff(
   reverse = reverse,
   minPayoff = minPayoff,
   maxPayoff = maxPayoff,
+  knockInOnEqual = knockInOnEqual,
   amount = amount,
   description = description,
   inputString = inputString
@@ -53,16 +55,18 @@ class PutDIPayoff(
 
   override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings.takeRight(2), priceResult)
 
-  override def toString =
+  override def toString = {
     nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Eur) " + nominal.asPercent +
       " x Min([" + variables.mkString(",") + "] / [" + strikes.values.map(_.asDouble).mkString(",") + "])"
+  }
 
   override def jsonMapImpl = Map(
     "type" -> "putdiamerican",
     "variable" -> (triggers.keySet ++ strikes.keySet).toArray,
     "trigger" -> triggers.asJava,
     "strike" -> strikes.asJava,
-    "description" -> description)
+    "description" -> description
+  )
 
 
   override def clearFixings = {
@@ -98,6 +102,7 @@ object PutDIPayoff {
     val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
     val minPayoff:Double = fixed.parseJsonDouble("min").getOrElse(0.0)
     val maxPayoff:Option[Double] = fixed.parseJsonDouble("max")
+    val knockInOnEqual:Boolean = formula.parseJsonString("ki_on_equal").getOrElse("1") == "1"
     val knockedIn:Boolean = false
 
     new PutDIPayoff(
@@ -108,6 +113,7 @@ object PutDIPayoff {
       reverse = reverse,
       minPayoff = minPayoff,
       maxPayoff = maxPayoff,
+      knockInOnEqual = knockInOnEqual,
       amount = amount,
       description = description,
       inputString = inputString

@@ -69,42 +69,61 @@ object DisplayUtils { // extends StrictLogging {
     def asDouble:String = if (d.isNaN || d.isInfinity) defaultNaNdisplay else "%,.4f".format(d).trimZeros
     def asDouble(decimals:Int):String = if (d.isNaN || d.isInfinity) defaultNaNdisplay else ("%,." + decimals + "f").format(d).trimZeros
 
-    def getDecimal(precision:Int, roundType:String):BigDecimal = ExtendedDouble.getDecimal(d, precision, roundType)
-    def getDecimal(underlyingId:String)(implicit fixingInfo:FixingInformation):BigDecimal = ExtendedDouble.getDecimal(d, underlyingId)
+    def getDecimal(precision:Int, roundType:String):Option[BigDecimal] = ExtendedDouble.getDecimal(d, precision, roundType)
+    def getDecimal(underlyingId:String)(implicit fixingInfo:FixingInformation):Option[BigDecimal] = ExtendedDouble.getDecimal(d, underlyingId)
 
-    def getRoundedDouble(precision:Int, roundType:String):Double = getDecimal(precision, roundType).toDouble
-    def getRoundedDouble(underlyingId:String)(implicit fixingInfo:FixingInformation):Double = getDecimal(underlyingId).toDouble
+    def getRoundedDouble(precision:Int, roundType:String):Double = getDecimal(precision, roundType).collect{case v => v.toDouble}.getOrElse(Double.NaN)
+    def getRoundedDouble(underlyingId:String)(implicit fixingInfo:FixingInformation):Double = {
+      getDecimal(underlyingId).collect{case v => v.toDouble}.getOrElse(Double.NaN)
+    }
 
-    def ~<(other: Double, precision:Int, roundType:String):Boolean = getDecimal(precision, roundType) < ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~<(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) < ExtendedDouble.getDecimal(other, underlyingId)
-    def ~<(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) < ExtendedDecimal.scaled(other, underlyingId)
+    def compareWithNaN(a:Option[BigDecimal], b:Option[BigDecimal], op:(BigDecimal, BigDecimal) => Boolean):Boolean = {
+      (a, b) match {
+        case (Some(av), Some(bv)) => op(av, bv)
+        case _ => false
+      }
+    }
 
-    def ~<=(other: Double, precision:Int, roundType:String):Boolean = getDecimal(precision, roundType) <= ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~<=(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) <= ExtendedDouble.getDecimal(other, underlyingId)
-    def ~<=(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) <= ExtendedDecimal.scaled(other, underlyingId)
+    def compareWithNaN(a:Option[BigDecimal], b:BigDecimal, op:(BigDecimal, BigDecimal) => Boolean):Boolean = {
+      a match {
+        case Some(av) => op(av, b)
+        case _ => false
+      }
+    }
 
-    def ~==(other: Double, precision:Int, roundType:String):Boolean = getDecimal(precision, roundType) == ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~==(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) == ExtendedDouble.getDecimal(other, underlyingId)
-    def ~==(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) == ExtendedDecimal.scaled(other, underlyingId)
+    def ~<(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(getDecimal(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a < b)
+    def ~<(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a < b)
+    def ~<(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDecimal.scaled(other, underlyingId), (a, b) => a < b)
 
-    def ~>(other: Double, precision:Int, roundType:String):Boolean = getDecimal(precision, roundType) > ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~>(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) > ExtendedDouble.getDecimal(other, underlyingId)
-    def ~>(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) > ExtendedDecimal.scaled(other, underlyingId)
+    def ~<=(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(getDecimal(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a <= b)
+    def ~<=(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a <= b)
+    def ~<=(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDecimal.scaled(other, underlyingId), (a, b) => a <= b)
 
-    def ~>=(other: Double, precision:Int, roundType:String):Boolean = getDecimal(precision, roundType) >= ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~>=(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) >= ExtendedDouble.getDecimal(other, underlyingId)
-    def ~>=(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = ExtendedDouble.getDecimal(d, underlyingId) >= ExtendedDecimal.scaled(other, underlyingId)
+    def ~==(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(getDecimal(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a == b)
+    def ~==(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a == b)
+    def ~==(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDecimal.scaled(other, underlyingId), (a, b) => a == b)
+
+    def ~>(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(getDecimal(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a > b)
+    def ~>(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a > b)
+    def ~>(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDecimal.scaled(other, underlyingId), (a, b) => a > b)
+
+    def ~>=(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(getDecimal(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a >= b)
+    def ~>=(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a >= b)
+    def ~>=(other: BigDecimal, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(ExtendedDouble.getDecimal(d, underlyingId), ExtendedDecimal.scaled(other, underlyingId), (a, b) => a >= b)
 
   }
 
   object ExtendedDouble {
-    def getDecimal(v:Double, precision:Int, roundType:String):BigDecimal = roundType match {
-      case "roundup" => BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.CEILING)
-      case "rounddown" => BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.FLOOR)
-      case _ => BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.HALF_UP)
+    def getDecimal(v:Double, precision:Int, roundType:String):Option[BigDecimal] = {
+      if (v.isInfinite || v.isNaN) None
+      else roundType match {
+        case "roundup" => Some(BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.CEILING))
+        case "rounddown" => Some(BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.FLOOR))
+        case _ => Some(BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.HALF_UP))
+      }
     }
 
-    def getDecimal(v:Double, underlyingId:String)(implicit fixingInfo:FixingInformation):BigDecimal = getDecimal(v, fixingInfo.getUnderlyingPrecision(underlyingId), fixingInfo.getUnderlyingRoundType(underlyingId))
+    def getDecimal(v:Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Option[BigDecimal] = getDecimal(v, fixingInfo.getUnderlyingPrecision(underlyingId), fixingInfo.getUnderlyingRoundType(underlyingId))
 
   }
 
@@ -121,20 +140,27 @@ object DisplayUtils { // extends StrictLogging {
     def scaled(precision:Int, roundType:String):BigDecimal = ExtendedDecimal.scaled(d, precision, roundType)
     def scaled(underlyingId:String)(implicit fixingInfo:FixingInformation):BigDecimal = scaled(fixingInfo.getUnderlyingPrecision(underlyingId), fixingInfo.getUnderlyingRoundType(underlyingId))
 
-    def ~<(other: Double, precision:Int, roundType:String):Boolean = scaled(precision, roundType) < ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~<(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = scaled(underlyingId) < ExtendedDouble.getDecimal(other, underlyingId)
+    def compareWithNaN(a:BigDecimal, b:Option[BigDecimal], op:(BigDecimal, BigDecimal) => Boolean):Boolean = {
+      b match {
+        case Some(bv) => op(a, bv)
+        case _ => false
+      }
+    }
 
-    def ~<=(other: Double, precision:Int, roundType:String):Boolean = scaled(precision, roundType) <= ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~<=(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = scaled(underlyingId) <= ExtendedDouble.getDecimal(other, underlyingId)
+    def ~<(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(scaled(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a < b)
+    def ~<(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(scaled(underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a < b)
 
-    def ~==(other: Double, precision:Int, roundType:String):Boolean = scaled(precision, roundType) == ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~==(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = scaled(underlyingId) == ExtendedDouble.getDecimal(other, underlyingId)
+    def ~<=(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(scaled(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a <= b)
+    def ~<=(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(scaled(underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a <= b)
 
-    def ~>(other: Double, precision:Int, roundType:String):Boolean = scaled(precision, roundType) > ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~>(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = scaled(underlyingId) > ExtendedDouble.getDecimal(other, underlyingId)
+    def ~==(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(scaled(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a == b)
+    def ~==(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(scaled(underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a == b)
 
-    def ~>=(other: Double, precision:Int, roundType:String):Boolean = scaled(precision, roundType) >= ExtendedDouble.getDecimal(other, precision, roundType)
-    def ~>=(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = scaled(underlyingId) >= ExtendedDouble.getDecimal(other, underlyingId)
+    def ~>(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(scaled(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a > b)
+    def ~>(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(scaled(underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a > b)
+
+    def ~>=(other: Double, precision:Int, roundType:String):Boolean = compareWithNaN(scaled(precision, roundType), ExtendedDouble.getDecimal(other, precision, roundType), (a, b) => a >= b)
+    def ~>=(other: Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Boolean = compareWithNaN(scaled(underlyingId), ExtendedDouble.getDecimal(other, underlyingId), (a, b) => a >= b)
 
   }
 
@@ -152,7 +178,7 @@ object DisplayUtils { // extends StrictLogging {
   implicit def extendUnderlyingPrices(ulv: Map[String, Double]) = ExtendedUnderlyingPrices(ulv)
 
   case class ExtendedUnderlyingPrices(ulv:Map[String, Double]) {
-    def getDecimal()(implicit fixingInfo: FixingInformation) = ulv.map { case (ul, v) => (ul, v.getDecimal(ul)) }
+    def getDecimal()(implicit fixingInfo: FixingInformation):Map[String, BigDecimal] = ulv.map { case (ul, v) => (ul, v.getDecimal(ul))}.collect{case (ul, Some(v)) => (ul, v)}
   }
 
   implicit def extendUnderlyingPricesDecimal(ulv: Map[String, BigDecimal]) = ExtendedUnderlyingPricesDecimal(ulv)

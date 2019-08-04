@@ -186,8 +186,10 @@ class Bond(
   def underlyingList:List[String] = stringList(underlying)
 
   def underlyingSet:Set[String] = underlyingList.toSet
-  
-  def fixingMap:Map[String, BigDecimal] = fixings.parseJsonDoubleFields.map{case (ul, v) => (ul, v.getDecimal(ul))}
+
+  def fixingMap:Map[String, BigDecimal] = fixingMapDouble.getDecimal()(fixingInformation)
+
+  def fixingMapDouble:Map[String, Double] = fixings.parseJsonDoubleFields
   
   def settingMap:Map[String, String] = settings.parseJsonStringFields
   
@@ -316,19 +318,20 @@ class Bond(
     settingMap.get("month_end_roll").collect { case d => d.toInt == 1 }.getOrElse(false)
   } catch { case _:Throwable => false}
 
-    def customFixingDayOfMonth:Option[Int] = {
-      try {
-        settingMap.get("fixingdate").collect{case d => d.toInt}
-      } catch { case _:Throwable => None}
-    }
+  def customFixingDayOfMonth:Option[Int] = {
+    try {
+      settingMap.get("fixingdate").collect{case d => d.toInt}
+    } catch { case _:Throwable => None}
+  }
 
-    def isFixingOnCalculationEndDate:Boolean = try {
-      settingMap.get("fixing_on_enddate").collect { case d => d.toInt == 1 }.getOrElse(false)
-    } catch { case _:Throwable => false}
+  def isFixingOnCalculationEndDate:Boolean = try {
+    settingMap.get("fixing_on_enddate").collect { case d => d.toInt == 1 }.getOrElse(false)
+  } catch { case _:Throwable => false}
 
-    def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
+  def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
 
-    def schedule:Option[Schedule] = try {
+  def schedule:Option[Schedule] = {
+    try {
       val schedule = Schedule(
         effectiveDate = calculationStartDate, // (if (settlementDate == null) issueDate else settlementDate),
         terminationDate = maturityDate,
@@ -353,6 +356,7 @@ class Bond(
       if (schedule == null) None else Some(schedule)
     }
     catch { case _:Throwable => None}
+  }
 
   private def optionalDouble(n:JsonNode):Option[Double] = {
     if (n == null || n.isNull) None
@@ -361,10 +365,15 @@ class Bond(
     
   def isMatured(vd:Date):Boolean = (vd ge endDate)
 
-  def getInitialFixings:Map[String, BigDecimal] =
-    if (!fixingMap.isEmpty) fixingMap
-    else if (isBeforeFixing) DB.getLatestPrices(underlyingList.toSet).getDecimal
+  def getInitialFixings:Map[String, BigDecimal] = getInitialFixingsDouble.getDecimal()(fixingInformation)
+
+  def getInitialFixingsDouble:Map[String, Double] = {
+    val fMap = fixingMapDouble
+
+    if (!fMap.isEmpty) fMap
+    else if (isBeforeFixing) DB.getLatestPrices(underlyingList.toSet)
     else Map.empty
+  }
   
   def isBeforeFixing = (fixingdate, DB.latestParamDate) match {
     case (Some(f), Some(p)) => Date(f) gt p
@@ -411,19 +420,33 @@ class Bond(
 
   @Transient
   lazy val fixingInformationObj = {
-    val currentSetting = settingMap
-    def getDblSetting(key:String):Option[Double] = currentSetting.get(key).flatMap{case v => try {Some(v.toDouble)} catch {case e:Throwable => None}}
-    def getDecimalSetting(key:String):Option[BigDecimal] = currentSetting.get(key).flatMap{case v => try {Some(BigDecimal(v))} catch {case e:Throwable => None}}
 
-    FixingInformation(
+    val currentSetting = settingMap
+
+    def getDblSetting(key:String):Option[Double] = currentSetting.get(key)
+      .flatMap{case v =>
+        try {Some(v.toDouble)}
+        catch {case e:Throwable => None}
+      }
+
+    def getDecimalSetting(key:String):Option[BigDecimal] = currentSetting.get(key)
+      .flatMap{case v =>
+        try {Some(BigDecimal(v))}
+        catch {case e:Throwable => None}
+      }
+
+    val info = FixingInformation(
       currencyId = currencyid,
       paymentCurrencyId = paymentCurrencyId,
       tbd = getDecimalSetting("tbd"),
       minRange = getDecimalSetting("tbd_min"),
       maxRange = getDecimalSetting("tbd_max"),
-      initialFixing = getInitialFixings,
       fixingPageInformation = fixingPageInformation
     )
+
+    info.setInitialFixingDouble(getInitialFixingsDouble)
+
+    info
   }
   
   implicit def fixingInformation = fixingInformationObj

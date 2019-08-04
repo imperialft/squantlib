@@ -172,8 +172,8 @@ object CallUIPayoff {
     val formula = Payoff.updateReplacements(inputString)
     val fixed = fixingInfo.update(formula)
     val callVariables = formula.parseJsonStringList("variable").map(_.orNull)
-    val strikeList = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
-    val strikes = (callVariables, strikeList).zipped.map{case (ul, v) => (ul, v.getDecimal(ul))}.toMap
+    val strikeList:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+    val strikes = (callVariables, strikeList).zipped.toMap.getDecimal
 
     CallUIPayoff(
       strike = strikes,

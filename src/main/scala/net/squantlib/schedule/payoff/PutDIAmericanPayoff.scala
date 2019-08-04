@@ -30,7 +30,8 @@ case class PutDIAmericanPayoff(
   reverse: Boolean,
   override val minPayoff: Double,
   override val maxPayoff: Option[Double],
-  amount:Double = 1.0,
+  knockInOnEqual: Boolean,
+  amount: Double = 1.0,
   description:String = null,
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
@@ -85,13 +86,24 @@ case class PutDIAmericanPayoff(
   }
 
   def isKnockedInPrice(ul:String, p:Double, trig:BigDecimal):Boolean = {
-    if (reverse) p ~>= (trig, ul)
-    else p ~<= (trig, ul)
+    (knockInOnEqual, reverse) match {
+      case (true, true) => p ~>= (trig, ul)
+      case (false, true) => p ~> (trig, ul)
+      case (true, false) => p ~<= (trig, ul)
+      case (false, false) => p ~< (trig, ul)
+    }
   }
 
   def isKnockedInPrice(ul:String, p:BigDecimal, trig:BigDecimal):Boolean = {
-    if (reverse) p >= trig
-    else p <= trig
+    (knockInOnEqual, reverse) match {
+      case (true, true) => p >= trig
+      case (false, true) => p > trig
+      case (true, false) => p <= trig
+      case (false, false) => p < trig
+    }
+
+//    if (reverse) p >= trig
+//    else p <= trig
   }
 
   def getPerformance(p:Double, stk:Double):Double = {
@@ -298,6 +310,7 @@ object PutDIAmericanPayoff {
     val maxPayoff:Option[Double] = fixed.parseJsonDouble("max")
     val description:String = formula.parseJsonString("description").orNull
     val closeOnly:Boolean = formula.parseJsonString("reftype").getOrElse("closing") != "continuous"
+    val knockInOnEqual:Boolean = formula.parseJsonString("ki_on_equal").getOrElse("1") == "1"
     
     val knockedIn:Boolean = false
     
@@ -315,6 +328,7 @@ object PutDIAmericanPayoff {
       minPayoff = minPayoff,
       maxPayoff = maxPayoff,
       amount = amount,
+      knockInOnEqual = knockInOnEqual,
       description = description,
       inputString = inputString
     )

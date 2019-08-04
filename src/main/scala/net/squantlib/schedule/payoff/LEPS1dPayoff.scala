@@ -88,8 +88,8 @@ object LEPS1dPayoff {
           underlyingId,
           coeff,
           const,
-          minrange.collect{case v => v.getDecimal(underlyingId)},
-          maxrange.collect{case v => v.getDecimal(underlyingId)}
+          minrange.flatMap{case v => v.getDecimal(underlyingId)},
+          maxrange.flatMap{case v => v.getDecimal(underlyingId)}
         )
       }}
 
@@ -181,8 +181,8 @@ object LEPS1dComponent {
       underlyingId,
       coeff,
       constant,
-      minRange.collect{case v => v.getDecimal(underlyingId)},
-      maxRange.collect{case v => v.getDecimal(underlyingId)}
+      minRange.flatMap{case v => v.getDecimal(underlyingId)},
+      maxRange.flatMap{case v => v.getDecimal(underlyingId)}
     )
   }
 }

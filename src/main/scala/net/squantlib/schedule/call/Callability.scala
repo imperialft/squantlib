@@ -188,7 +188,7 @@ case class Callability(
   def triggerShifted(shiftedTriggers: Map[String, Double]):Callability = {
     Callability(
       bermudan = bermudan,
-      triggers = shiftedTriggers.map{case (ul, v) => (ul, v.getDecimal(ul))},
+      triggers = shiftedTriggers.getDecimal,
       triggerUp = triggerUp,
       targetRedemption = targetRedemption,
       forward = forward,
@@ -201,14 +201,7 @@ case class Callability(
   }
 
 
-  //  trigger:List[Option[Map[String, Double]]],
-//  trigUp: List[Boolean],
-//  trigAmount:List[Double],
-//  forwardStrikes: List[Option[Map[String, Double]]],
-//  targets:List[Option[Double]],
-
-  
-  override def toString:String = 
+  override def toString:String =
     List(
 	    if (bermudan) "call " else "",
 	    if (isTrigger) (triggers.map{case (k, v) => k + ":" + v.asDouble}.mkString(" ")) else "",
@@ -234,51 +227,6 @@ object Callability {
     accumulatedPayments = None,
     simulatedFrontier= Map.empty[String, Double]
   )(FixingInformation.empty("JPY", "JPY"))
-
-//  def apply(
-//    bermudan: Boolean,
-//    triggers: Map[String, Double],
-//    triggerUp: Boolean,
-//    targetRedemption: Option[Double],
-//    forward: Map[String, Double],
-//    bonusAmount: Double,
-//    removeSatisfiedTriggers: Boolean,
-//    inputString: Map[String, Any],
-//    accumulatedPayments: Option[Double],
-//    simulatedFrontier: Map[String, Double] = Map.empty
-//  )(implicit fixingInfo: FixingInformation):Callability = {
-//    Callability(
-//      bermudan = bermudan,
-//      triggers = triggers.map { case (ul, v) => (ul, v.getDecimal(ul)) },
-//      triggerUp = triggerUp,
-//      targetRedemption = targetRedemption.collect{case v => BigDecimal.valueOf(v)},
-//      forward = forward.map { case (ul, v) => (ul, v.getDecimal(ul)) },
-//      bonusAmount = bonusAmount,
-//      removeSatisfiedTriggers = removeSatisfiedTriggers,
-//      inputString = inputString,
-//      accumulatedPayments = accumulatedPayments,
-//      simulatedFrontier = simulatedFrontier
-//    )
-//  }
-
-//  def apply(
-//    bermudan:Boolean,
-//    triggers:Map[String, Double],
-//    targetRedemption:Option[Double],
-//    callOption: CallOption,
-//    inputString:Map[String, Any],
-//    accumulatedPayments:Option[Double],
-//    simulatedFrontier:Map[String, Double]
-//  )(implicit fixingInfo:FixingInformation):Callability =
-//    Callability(
-//      bermudan = bermudan,
-//      triggers = triggers.map { case (ul, v) => (ul, v.getDecimal(ul)) },
-//      targetRedemption = targetRedemption.collect{case v => BigDecimal.valueOf(v)},
-//      callOption = callOption,
-//      inputString = inputString,
-//      accumulatedPayments = accumulatedPayments,
-//      simulatedFrontier = simulatedFrontier
-//    )
 
   def apply(
     bermudan:Boolean,
@@ -317,7 +265,7 @@ object Callability {
     )(implicit fixingInfo:FixingInformation):Callability = 
     Callability(
       bermudan = bermudan,
-      triggers = underlyings.zip(triggers).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.toMap,
+      triggers = underlyings.zip(triggers).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.collect{case (k, Some(v)) => (k, v)}.toMap,
       triggerUp = triggerUp,
       targetRedemption = targetRedemption.collect{case v => BigDecimal.valueOf(v)},
       forward = forward,

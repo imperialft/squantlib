@@ -22,7 +22,10 @@ trait FixingLeg {
   def assignFixings(f:Map[String, Double])(implicit fixingInfo:FixingInformation):Unit = assignFixings(f.getDecimal)
 
   def assignFixings(f:Double)(implicit fixingInfo:FixingInformation):Unit = {
-    if (variables.size == 1) assignFixings(Map(variables.head -> f.getDecimal(variables.head)))
+    if (variables.size == 1) f.getDecimal(variables.head) match {
+      case Some(ff) => assignFixings(Map(variables.head -> ff))
+      case _ => {}
+    }
   }
 	
   def clearFixings = preFixings = Map.empty
@@ -50,7 +53,10 @@ trait FixingLeg {
   def assignSettlementFixings(f:Map[String, Double])(implicit fixingInfo:FixingInformation):Unit = assignSettlementFixings(f.getDecimal)
 
   def assignSettlementFixings(f:Double)(implicit fixingInfo:FixingInformation):Unit = {
-    if (variables.size == 1) assignSettlementFixings(Map(variables.head -> f.getDecimal(variables.head)))
+    if (variables.size == 1) f.getDecimal(variables.head) match {
+      case Some(ff) => assignSettlementFixings(Map(variables.head -> ff))
+      case _ => {}
+    }
   }
 
   def clearSettlementFixings = settlementFixings = Map.empty
