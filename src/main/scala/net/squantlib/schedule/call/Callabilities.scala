@@ -18,25 +18,25 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	
 	def bermudans:List[Boolean] = calls.map(_.bermudan)
 	
-	def triggers:List[Option[Map[String, Double]]] = calls.map(c => 
-	  if (c.isTriggered) Some(c.triggers.map{case (k, v) => (k, 0.0)})
+	def triggers:List[Option[Map[String, BigDecimal]]] = calls.map(c =>
+	  if (c.isTriggered) Some(c.triggers.map{case (k, v) => (k, BigDecimal(0.0))})
 	  else if (c.isFixed) None
-	  else if (c isTrigger) Some(c.triggers) 
+	  else if (c isTrigger) Some(c.triggers.map{case (ul, v) => (ul, v)})
 	  else None
   )
 
-  def forwardStrikes:List[Option[Map[String, Double]]] = calls.map(c => 
+  def forwardStrikes:List[Option[Map[String, BigDecimal]]] = calls.map(c =>
     if (c.forward.isEmpty) None
-    else Some(c.forward)
+    else Some(c.forward.map{case (ul, v) => (ul, v)})
   )
   
   def triggerUps:List[Boolean] = calls.map(c => c.triggerUp).toList
 	  
-	def triggerValues(variables:List[String]):List[List[Option[Double]]] = calls.map(_.triggerValues(variables))
+	def triggerValues(variables:List[String]):List[List[Option[BigDecimal]]] = calls.map(_.triggerValues(variables))
 	
 	def isTargetRedemption = calls.exists(c => c.targetRedemption.isDefined)
 
-	def targetRedemptions:List[Option[Double]] = calls.map(_.targetRedemption)
+	def targetRedemptions:List[Option[BigDecimal]] = calls.map(_.targetRedemption)
 	
 	def isTriggeredByTrigger:Boolean = calls.exists(c => c.isFixed && c.fixedTriggerByTrigger == Some(true))
 
@@ -46,7 +46,7 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
   
 	val isPriceable:Boolean = calls.forall(_.isPriceable)
 	
-	val bonusAmount:List[Double] = calls.map(_.bonusAmount)
+	val bonusAmount:List[BigDecimal] = calls.map(_.bonusAmount)
 	
 	def fill(legs:Int) = size match {
 	  case l if l > legs => Callabilities(this.takeRight(legs))
@@ -66,7 +66,7 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
     
   val isTrigger = calls.exists(_.isTrigger) && !isTriggeredByTrigger
     
-	def triggerCheck(fixings:List[Map[String, Double]]):List[Boolean] = (fixings, calls).zipped.map{case (f, c) => c.isTriggered(f)}
+	def triggerCheck(fixings:List[Map[String, BigDecimal]]):List[Boolean] = (fixings, calls).zipped.map{case (f, c) => c.isTriggered(f)}
 	
 	override def isEmpty:Boolean = calls.isEmpty || calls.forall(_.isEmpty)
 	
@@ -146,10 +146,14 @@ object Callabilities {
         val forward = assignFixings(forwardMap)
         val bonus = b.parseDouble("bonus").getOrElse(0.0)
         val removeSatisfiedTriggers = b.parseInt("memory").getOrElse(0) == 1
+        val forwardStrikes = {
+          if (invertedForward && forward.keys.forall(_.size == 6)) forward.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap
+          else forward
+        }
 
         CallOption(
           if (invertedTrigger) !triggerUp else triggerUp,
-          if (invertedForward && forward.keys.forall(_.size == 6)) forward.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap else forward,
+          forwardStrikes.map{case (ul, v) => (ul, v.getDecimal(ul))},
           forwardMap,
           bonus,
           invertedTrigger,
@@ -194,23 +198,40 @@ object Callabilities {
       case (trig, inverted) if inverted =>
         val assignedTrig:Map[String, Double] = assignFixings(trig)
         if (inverted && trig.keys.forall(_.size == 6)) {
-            assignedTrig.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap
-          } else assignedTrig
+          assignedTrig.map{
+            case (k, v) =>
+              val ul = (k takeRight 3) + (k take 3)
+              val p = if(v != 0.0) 1.0 / v else 0.0
+              (ul, p.getRoundedDouble(ul))
+          }
+        } else assignedTrig
       case (trig, inverted) => assignFixings(trig)
-    }.toList
+    }
   
   private def assignFixings(stks:Map[String, String])(implicit fixingInfo:FixingInformation):Map[String, Double] = {
-    //stks.map{case (k, v) => (k, fixingInfo.updateCompute(v))}.collect{case (k, Some(v)) => (k, v)}.toMap
-    stks.map{case (k, v) => (k, fixingInfo.updateCompute(v))}.collect{case (k, v) => (k, v.getOrElse(Double.NaN))}.toMap
+    stks.map{case (k, v) =>
+      (k, fixingInfo.updateCompute(v))
+    }.collect{case (k, v) =>
+      (k, v.collect{case vv => vv.getRoundedDouble(k)}.getOrElse(Double.NaN))
+    }
   }
   
     
 	private def triggerMap(formula:List[List[String]], underlyings:List[String])(implicit fixingInfo:FixingInformation):List[Map[String, Double]] = {
 	  formula.map(trig => 
-	    (underlyings, trig).zipped.map{case (k, v) => (k, fixingInfo.updateCompute(v))}
-	    .collect{case (k, Some(v)) => (k, v)}.toMap
+	    (underlyings, trig).zipped
+        .map{case (k, v) => (k, fixingInfo.updateCompute(v))}
+	      .collect{case (k, Some(v)) => (k, v.getRoundedDouble(k))}
+        .toMap
 	   )
 	}
+
+  def triggerMap(underlyings:List[String], triggers:List[List[Option[Double]]])(implicit fixingInfo:FixingInformation, d:DummyImplicit):List[Map[String, Double]] = {
+    triggers.map(trigs => {
+      val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v.getRoundedDouble(k))}(collection.breakOut)
+      t
+    })
+  }
 
   private def mapList(formula:String, legs:Int):List[Map[String, Any]] = formula.jsonNode match {
     case Some(bs) if bs.isArray =>
@@ -224,7 +245,6 @@ object Callabilities {
     case _ => List.fill(legs)(Map.empty)
   }
 
-    
   def apply(
 	  formula:String, 
     underlyings:List[String], 
@@ -237,12 +257,11 @@ object Callabilities {
 
     val callOptions:List[CallOption] = callOptionList(formula, legs)
 
-    val trigMap:List[Map[String, Double]] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedTrigger))
+    val trigMap:List[Map[String, BigDecimal]] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedTrigger)).map(vs => vs.map{case (ul, v) => (ul, v.getDecimal(ul))})
     
-    val targets:List[Option[Double]] = targetList(formula, legs)
+    val targets:List[Option[BigDecimal]] = targetList(formula, legs).map(vs => vs.collect{case v => BigDecimal.valueOf(v)})
 
     val baseFormulas:List[Map[String, Any]] = mapList(formula, legs)
-
 
     val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).map{
       case (((berm, f), (trig, tgt)), (callOption, baseFormula)) =>
@@ -279,24 +298,24 @@ object Callabilities {
 
         inputString = inputString.updated("bonus", callOption.bonus)
           
-        Callability(
+        Callability.apply(
           bermudan = berm,
           triggers = trig,
           targetRedemption = tgt,
           callOption = callOption,
           inputString = inputString,
           accumulatedPayments = None,
-          simulatedFrontier= Map.empty
+          simulatedFrontier= Map.empty[String, Double]
         )
     }
     
     Callabilities(calls)
   }
-	  
-	
+
+
 	def apply(
     bermudans:List[Boolean], 
-    triggers:List[List[Option[Double]]], 
+    triggers:List[List[Option[Double]]],
     targets:List[Option[Double]],
     underlyings:List[String], 
     callOptions:List[CallOption])(implicit fixingInfo:FixingInformation):Callabilities = {
@@ -305,46 +324,17 @@ object Callabilities {
       bermudans.zip(triggerMap(underlyings, triggers)).zip(callOptions.zip(targets)).map{case ((berm, trig), (callOption, tgt)) => 
         Callability(
           bermudan = berm,
-          triggers = trig,
-          targetRedemption = tgt,
+          triggers = trig.map{case (ul, v) => (ul, v.getDecimal(ul))},
+          targetRedemption = tgt.collect{case v => BigDecimal.valueOf(v)},
           callOption = callOption,
-          inputString = Map.empty,
+          inputString = Map.empty[String, Any],
           accumulatedPayments = None,
-          simulatedFrontier= Map.empty
+          simulatedFrontier= Map.empty[String, Double]
         )
       }
     )
 	}
 	  
-//	def apply(
-//    bermudans:List[Boolean], 
-//    triggers:List[List[Option[Double]]], 
-//    targets:List[Option[Double]],
-//    underlyings:List[String])(implicit fixingInfo:FixingInformation):Callabilities = {
-//	  
-//    Callabilities(
-//      (bermudans, triggerMap(underlyings, triggers), targets).zipped.map{case (berm, trig, tgt) => 
-//        Callability(
-//          bermudan = berm,
-//          triggers = trig,
-//          triggerUp = true,
-//          targetRedemption = tgt,
-//          forward = Map.empty,
-//          bonus = 0.0,
-//          inputString = Map.empty,
-//          accumulatedPayments = None,
-//          simulatedFrontier= Map.empty
-//        )
-//      }
-//    )
-//  }
-	
-	def triggerMap(underlyings:List[String], triggers:List[List[Option[Double]]]):List[Map[String, Double]] = {
-	  triggers.map(trigs => {
-      val t:Map[String, Double] = (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}(collection.breakOut)
-      t
-    })
-	}
 
 }
 

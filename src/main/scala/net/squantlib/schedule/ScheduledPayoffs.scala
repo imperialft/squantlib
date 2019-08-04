@@ -73,13 +73,13 @@ case class ScheduledPayoffs(
   
   lazy val bonusCoeff = schedule.map(_.dayCount)
   
-  lazy val terminationAmounts:List[Double] = calls.map(_.bonusAmount + 1.0).toList
+  lazy val terminationAmounts:List[BigDecimal] = calls.map(_.bonusAmount + 1.0).toList
 
-  lazy val bonusAmounts:List[Double] = calls.map(_.bonusAmount).toList
+  lazy val bonusAmounts:List[BigDecimal] = calls.map(_.bonusAmount).toList
 
   lazy val triggerUps:List[Boolean] = calls.map(_.triggerUp).toList
 
-  lazy val forwardStrikes:List[Option[Map[String, Double]]] = calls.map(c => if (c.forward.isEmpty) None else Some(c.forward)).toList
+  lazy val forwardStrikes:List[Option[Map[String, BigDecimal]]] = calls.map(c => if (c.forward.isEmpty) None else Some(c.forward)).toList
   
   def amountToRate(amount:List[Double]) = (amount, bonusCoeff).zipped.map(_ / _)
   
@@ -269,7 +269,8 @@ case class ScheduledPayoffs(
   }
 
   def assignFixings = {
-    val fixingMap = ScheduledPayoffs.getFixings(
+
+    val fixingMap:List[Map[String, BigDecimal]] = ScheduledPayoffs.getFixings(
       ScheduledPayoffs.allFixingUnderlyings(payoffs, calls),
       schedule.eventDates,
       ScheduledPayoffs.getFixingInformation(payoffs, calls),
@@ -338,68 +339,69 @@ object ScheduledPayoffs {
     ScheduledPayoffs(schedule.sortWith(payoffs, calls, keepFinalLeg), None)
   }
   
-  def getFixings(underlyings:Set[String], dates:List[Date], fixingInfo:FixingInformation, isInitialFixing:Boolean):List[Map[String, Double]] = {
-    DB.getFixings(underlyings, dates, fixingInfo, isInitialFixing) //.map(vs => vs.collect{case (ul, Some(v)) => (ul, v)})
-
-//    val underlyingFixingInfos:Map[String, UnderlyingFixingInfo] = fixingInfo match {
-//      case None => Map.empty
-//      case Some(fixInfo) => underlyings.map(ul => (ul, fixInfo.getUnderlyingFixing(ul))).filter{case (ul, infos) => !infos.fixingPages.isEmpty}.toMap
-//    }
-//
-//    val allFixingPages:Set[String] = underlyings ++ underlyingFixingInfos.map{case (ul, infos) => infos.fixingPages.map(p => p.pageList).flatten}.flatten.toSet
-//
-//    val pastFixings:List[Map[String, Option[Double]]] = DB.pastFixings(allFixingPages, dates)
-//
-//    val baseFixings:List[Map[String, Double]] = pastFixings.map(_.collect{case (k, Some(v)) => (k, v)})
-//
-//    val customFixings:List[Map[String, Double]] = baseFixings.map(fixingMap => {
-//      underlyingFixingInfos.map {case (ul, infos) => (ul, infos.getPriceFromFixings(fixingMap))}.collect{case (ul, Some(v)) => (ul, v)}.toMap
-//    })
-//
-//    baseFixings.zip(customFixings).map{case (b, c) => b ++ c}
+  def getFixings(
+    underlyings:Set[String],
+    dates:List[Date],
+    fixingInfo:FixingInformation,
+    isInitialFixing:Boolean
+  ):List[Map[String, BigDecimal]] = {
+    DB.getFixings(underlyings, dates, fixingInfo, isInitialFixing).map(vs => vs.getDecimal()(fixingInfo))
   }
     
-  def getExterpolatedFixings(underlyings:Set[String], dates:List[Date], fixingInfo:FixingInformation, valuedate:Date):List[Map[String, Double]] = {
+  def getExterpolatedFixings(
+    underlyings:Set[String],
+    dates:List[Date],
+    fixingInfo:FixingInformation,
+    valuedate:Date
+  ):List[Map[String, BigDecimal]] = {
+
     if (dates.isEmpty) {return List.empty}
     val valuedate = DB.latestParamDate.getOrElse(dates.max)
     val (datesBefore, datesAfter) = dates.span(_ le valuedate)
-    val fixings = getFixings(underlyings, datesBefore, fixingInfo, false)
-    val currentFixings:List[Map[String, Double]] = DB.pastFixings(underlyings, List(valuedate)).map(_.collect{case (k, Some(v)) => (k, v)})
 
-    val exterps:List[Map[String, Double]] = datesAfter.map{case _ =>
+    val fixings:List[Map[String, BigDecimal]] = getFixings(underlyings, datesBefore, fixingInfo, false)
+    val currentFixings:List[Map[String, BigDecimal]] = DB.pastFixings(underlyings, List(valuedate)).map(_.collect{case (k, Some(v)) => (k, v.getDecimal(k)(fixingInfo))})
+
+    val exterps:List[Map[String, BigDecimal]] = datesAfter.map{case _ =>
       if (!currentFixings.isEmpty) currentFixings.last.map{case (k, v) => (k, v)}
       else if (!fixings.isEmpty) fixings.last.map{case (k, v) => (k, v)}
-      else Map.empty[String, Double]
+      else Map.empty[String, BigDecimal]
     }
     
     fixings ++ exterps
   }
   
-  def extrapolate(schedule:Schedule, payoffs:Payoffs, calls:Callabilities, valuedate:Date, keepFinalLeg:Boolean = false):ScheduledPayoffs = {
+  def extrapolate(
+    schedule:Schedule,
+    payoffs:Payoffs,
+    calls:Callabilities,
+    valuedate:Date,
+    keepFinalLeg:Boolean = false
+  ):ScheduledPayoffs = {
+
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     val (datesbefore, datesafter) = schedule.eventDates.span(_ le valuedate)
-    //val allUnderlyings = payoffs.underlyings ++ calls.underlyings
 
-    val fixingMap:List[Map[String, Double]] = getExterpolatedFixings(
+    val fixingMap:List[Map[String, BigDecimal]] = getExterpolatedFixings(
       allFixingUnderlyings(payoffs, calls),
       datesbefore,
       getFixingInformation(payoffs, calls),
       valuedate
-    ) ++ List.fill(datesafter.size)(Map.empty[String, Double])
+    ) ++ List.fill(datesafter.size)(Map.empty[String, BigDecimal])
 
     payoffs.assignFixings(fixingMap)
     calls.assignFixings(fixingMap)
-//    if (calls.isTargetRedemption) {calls.assignAccumulatedPayments(schedule, payoffs)}
     calls.assignAccumulatedPayments(schedule, payoffs)
     
     if (payoffs.exists(p => p.physical)) {
       val (paymentDatesBefore, paymentDatesAfter) = schedule.paymentDates.span(_ le valuedate)
 
-      val settlementFixingMap:List[Map[String, Double]] = getExterpolatedFixings(
+      val settlementFixingMap:List[Map[String, BigDecimal]] = getExterpolatedFixings(
         allFixingUnderlyings(payoffs, calls),
         paymentDatesBefore,
         getFixingInformation(payoffs, calls),
-        valuedate) ++ List.fill(paymentDatesAfter.size)(Map.empty[String, Double])
+        valuedate) ++ List.fill(paymentDatesAfter.size)(Map.empty[String, BigDecimal]
+      )
 
       payoffs.assignSettlementFixings(settlementFixingMap)
     }

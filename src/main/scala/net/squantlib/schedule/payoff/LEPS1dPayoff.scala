@@ -20,28 +20,27 @@ import net.squantlib.util.FixingInformation
  *     otherwise zero
  */
 case class LEPS1dPayoff(
-    variable:String, 
-    payoff:List[LEPS1dComponent], 
-    description:String = null,
-    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
+  variable:String,
+  payoff:List[LEPS1dComponent],
+  description:String = null,
+  inputString:String = null
+)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
   override val variables:Set[String] = Set(variable)
   
   override val isPriceable = !payoff.isEmpty
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult)
-    = fixings.lastOption.collect{case f => priceImpl(f, pastPayments, priceResult:PriceResult)}.getOrElse(Double.NaN)
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
+    fixings.lastOption.collect { case f => priceImpl(f, pastPayments, priceResult: PriceResult) }.getOrElse(Double.NaN)
+  }
 
-  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double], priceResult:PriceResult) = {
+  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double], priceResult:PriceResult):Double = {
     fixings.get(variable) match {
-	  //case Some(f) if !f.isNaN && !f.isInfinity => price(f)
-	  case Some(f) if !f.isNaN && !f.isInfinity => payoff.map(_.price(f)).sum
+  	  case Some(f) if !f.isNaN && !f.isInfinity => payoff.map(_.price(f)).sum
       case _ => Double.NaN
     }
   }
-  
-//  override def priceImpl(fixing:Double, pastPayments:List[Double]) = if (fixing.isNaN || fixing.isInfinity) Double.NaN else payoff.map(_.price(fixing)).sum
-  
+
   override def toString = payoff.map(p => p.toString(variable)).mkString(" ")
   
   override def priceImpl(priceResult:PriceResult) = Double.NaN
@@ -54,13 +53,15 @@ case class LEPS1dPayoff(
         "mult" -> p.coeff.getOrElse("None"),
         "add" -> p.constant.getOrElse("None")
         ).asJava
-      leg})
+      leg
+    })
       
     Map(
-        "type" -> "leps1d", 
-        "variable" -> variable, 
-        "description" -> description,
-        "payoff" -> jsonPayoff)
+      "type" -> "leps1d",
+      "variable" -> variable,
+      "description" -> description,
+      "payoff" -> jsonPayoff
+    )
     
   }  
   
@@ -77,12 +78,22 @@ object LEPS1dPayoff {
       assert(variables.size <= 1)
       
       val variable = Set(variables.head)
+      val underlyingId = variables.head
+
       val components = formulalist.map{case (formula, minrange, maxrange) => {
         val coeff = formula.get(variable)
         val const = formula.get(Set.empty)
-        LEPS1dComponent(coeff, const, minrange, maxrange)
+
+        LEPS1dComponent(
+          underlyingId,
+          coeff,
+          const,
+          minrange.collect{case v => v.getDecimal(underlyingId)},
+          maxrange.collect{case v => v.getDecimal(underlyingId)}
+        )
       }}
-      LEPS1dPayoff(variables.head, components, inputString)
+
+      LEPS1dPayoff(underlyingId, components, inputString)
     }
     
     else {
@@ -91,55 +102,87 @@ object LEPS1dPayoff {
       val description:String = inputString.parseJsonString("description").orNull
     
       val payoff:List[LEPS1dComponent] = fixingInfo.update(formula).jsonNode match {
-        case Some(node) => getLEPScomponents(node.get("payoff"))
+        case Some(node) => getLEPScomponents(variable, node.get("payoff"))
         case None => List.empty
       }
       
-      LEPS1dPayoff(variable, payoff, description, inputString)
+      LEPS1dPayoff(
+        variable,
+        payoff,
+        description,
+        inputString
+      )
     }
   }
 
-  def apply(variable:String, payoff:JsonNode, description:String)(implicit fixingInfo:FixingInformation):LEPS1dPayoff = 
-    LEPS1dPayoff(variable, getLEPScomponents(payoff), description, payoff.toJsonString)
+  def apply(
+    variable:String,
+    payoff:JsonNode,
+    description:String
+  )(implicit fixingInfo:FixingInformation):LEPS1dPayoff = {
+    LEPS1dPayoff(
+      variable,
+      getLEPScomponents(variable, payoff),
+      description,
+      payoff.toJsonString
+    )
+  }
   
-  def getLEPScomponents(node:JsonNode):List[LEPS1dComponent] = node.parseList.map(LEPS1dComponent(_))
+  def getLEPScomponents(
+    underlyingId:String,
+    node:JsonNode
+  )(implicit fixingInfo:FixingInformation):List[LEPS1dComponent] = node.parseList.map(vs => LEPS1dComponent(underlyingId, vs))
     
 }
 
 
-case class LEPS1dComponent (coeff:Option[Double], constant:Option[Double], minRange:Option[Double], maxRange:Option[Double]) {
+case class LEPS1dComponent (
+  underlyingId:String,
+  coeff:Option[Double],
+  constant:Option[Double],
+  minRange:Option[BigDecimal],
+  maxRange:Option[BigDecimal]
+)(implicit val fixingInfo:FixingInformation) {
    
   def price(fixing:Double):Double = {
     minRange match {
-      case Some(f) if fixing < f => return 0.0
+      case Some(f) if fixing ~< (f, underlyingId) => return 0.0
       case _ =>
     }
     
     maxRange match {
-      case Some(c) if fixing >= c => return 0.0
+      case Some(c) if fixing ~>= (c, underlyingId) => return 0.0
       case _ =>
     }
      
     (coeff, constant) match {
       case (None, None) => 0.0
-    case (None, Some(c)) => c
-    case (Some(x), None) => x * fixing
-    case (Some(x), Some(c)) => x * fixing + c
+      case (None, Some(c)) => c
+      case (Some(x), None) => x * fixing
+      case (Some(x), Some(c)) => x * fixing + c
     }
   }
   
-  def toString(variable:String) =     
-    "[" + minRange.asDoubleOr("") + ", " + maxRange.asDoubleOr("") + "] " + linearFormula(coeff, variable, constant)
+  def toString(variable:String) = {
+    "[" + minRange.collect { case v => v.asDouble }.getOrElse("") + ", " + maxRange.collect{case v => v.asDouble}.getOrElse("") + "] " + linearFormula(coeff, variable, constant)
+  }
   
 }
 
 object LEPS1dComponent {
   
-  def apply(subnode:JsonNode):LEPS1dComponent = {
+  def apply(underlyingId:String, subnode:JsonNode)(implicit fixingInfo:FixingInformation):LEPS1dComponent = {
     val coeff:Option[Double] = Some(subnode.parseDouble("mult").getOrElse(0.0))
     val constant:Option[Double] = subnode.parseDouble("add")
     val minRange:Option[Double] = subnode.parseDouble("minrange")
     val maxRange:Option[Double] = subnode.parseDouble("maxrange")
-    LEPS1dComponent(coeff, constant, minRange, maxRange)
+
+    LEPS1dComponent(
+      underlyingId,
+      coeff,
+      constant,
+      minRange.collect{case v => v.getDecimal(underlyingId)},
+      maxRange.collect{case v => v.getDecimal(underlyingId)}
+    )
   }
 }

@@ -25,6 +25,8 @@ trait Payoff extends FixingLeg {
    */
   override val variables:Set[String]
 
+  implicit val fixingInfo: FixingInformation // to be implemented
+
   val isPriceable:Boolean // checks priceablility of the payoff
 
   var isAbsolute:Boolean = false
@@ -98,7 +100,7 @@ trait Payoff extends FixingLeg {
   final def price:Double = price(null)
 
   final def price(priceResult:PriceResult):Double = {
-    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), List.empty, priceResult)
+    if (isPaymentFixed) priceImpl(List.fill(2)(getDoubleFixings), List.empty, priceResult)
     else if (isPriceable) priceImpl(priceResult)
     else Double.NaN
   }
@@ -110,7 +112,7 @@ trait Payoff extends FixingLeg {
   final def price(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = price(fixings, pastPayments, null)
 
   final def price(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
-    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), pastPayments, priceResult)
+    if (isPaymentFixed) priceImpl(List.fill(2)(getDoubleFixings), pastPayments, priceResult)
     else if (isPriceable) priceImpl(fixings, pastPayments, priceResult)
     else Double.NaN
   }
@@ -191,7 +193,7 @@ trait Payoff extends FixingLeg {
    */
   def assignFixings(market:Market, pastPayments:List[Double]):Unit = assignFixings(market.getFixings(variables))
 
-  override def assignSettlementFixings(f:Map[String, Double]):Unit = {
+  override def assignSettlementFixings(f:Map[String, BigDecimal]):Unit = {
     if (physical && (variables subsetOf f.keySet) || f.isEmpty) {
       settlementFixings = f
     }
@@ -210,6 +212,13 @@ trait Payoff extends FixingLeg {
     maxPayoff match {
       case Some(v) => Math.min(Math.max(r, minPayoff), v)
       case None => Math.max(r, minPayoff)
+    }
+  }
+
+  def withMinMax(r:BigDecimal):BigDecimal= {
+    maxPayoff match {
+      case Some(v) => r.max(minPayoff).min(v)
+      case None => r.max(minPayoff)
     }
   }
 

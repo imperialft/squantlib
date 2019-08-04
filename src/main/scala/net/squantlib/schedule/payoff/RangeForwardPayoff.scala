@@ -18,9 +18,9 @@ import scala.collection.JavaConverters._
  * No strike is considered as no low boundary
  */
 case class RangeForwardPayoff(
-  triggerLow:Map[String, Double],
-  triggerHigh:Map[String, Double],
-  strikes:Map[String, Double],
+  triggerLow:Map[String, BigDecimal],
+  triggerHigh:Map[String, BigDecimal],
+  strikes:Map[String, BigDecimal],
   var knockedIn:Boolean,
   override val physical:Boolean,
   forwardInRange:Boolean = true,
@@ -35,12 +35,9 @@ case class RangeForwardPayoff(
 
   val strikeVariables:Set[String] = strikes.keySet
   val triggerVariables:Set[String] = triggerLow.keySet ++ triggerHigh.keySet
+  val doubleStrikes = strikes.map{case (ul, v) => (ul, v.toDouble)}
 
-  override val isPriceable:Boolean =
-    triggerHigh.forall{case (k, v) => !v.isNaN && !v.isInfinity} &&
-    triggerLow.forall{case (k, v) => !v.isNaN && !v.isInfinity} &&
-    strikes.forall{case (k, v) => !v.isNaN && !v.isInfinity} &&
-    !strikes.isEmpty
+  override val isPriceable:Boolean = !strikes.isEmpty
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)
@@ -117,7 +114,7 @@ case class RangeForwardPayoff(
     def isKnockIn(fixings:Map[String, Double]):Option[Boolean] = {
       if (knockedIn) Some(true)
       else if (validFixings(fixings, triggerVariables)) {
-        val r = triggerLow.forall{case (ul, v) => fixings(ul) >= v} && triggerHigh.forall{case (ul, v) => fixings(ul) <= v}
+        val r = triggerLow.forall{case (ul, v) => v ~<= (fixings(ul), ul)} && triggerHigh.forall{case (ul, v) => v ~>= (fixings(ul), ul)}
         if (forwardInRange) Some(r) else Some(!r)
       }
       else {
@@ -129,24 +126,24 @@ case class RangeForwardPayoff(
       if (!isKnockedIn) 1.0
       else if (validFixings(fixings, strikeVariables)) {
         if (physical && priceResult != null) {
-          strikeVariables.map(ul => (ul, fixings(ul) / strikes(ul), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+          strikeVariables.map(ul => (ul, fixings(ul) / doubleStrikes(ul), doubleStrikes(ul))).minBy{case (ul, perf, k) => perf} match {
             case (ul, pf, k) =>
               //priceResult.setAssetInfo(ul, 1.0 / k)
               pf
           }
-        } else strikeVariables.map(v => fixings(v) / strikes(v)).min
+        } else strikeVariables.map(v => fixings(v) / doubleStrikes(v)).min
         //strikeVariables.map(v => fixings(v) / strikes(v)).min
       }
       else Double.NaN
     }
 
     def assignPhysicalInfo(priceResult:PriceResult):Unit = {
-      if (isFixed) assignPhysicalInfo(getFixings, priceResult)
+      if (isFixed) assignPhysicalInfo(getDoubleFixings, priceResult)
     }
 
     def assignPhysicalInfo(fixings:Map[String, Double], priceResult:PriceResult):Unit = {
       if (priceResult != null && strikeVariables.subsetOf(fixings.keySet)) {
-        strikeVariables.map(ul => (ul, fixings(ul) / strikes(ul), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+        strikeVariables.map(ul => (ul, fixings(ul) / doubleStrikes(ul), doubleStrikes(ul))).minBy{case (ul, perf, k) => perf} match {
           case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
         }
       }
@@ -165,13 +162,13 @@ case class RangeForwardPayoff(
     knockedIn = false
   }
 
-  override def assignFixings(f:Map[String, Double]):Unit = {
+  override def assignFixings(f:Map[String, BigDecimal]):Unit = {
     super.assignFixings(f)
     checkKnockIn
   }
 
   def checkKnockIn:Unit = {
-    knockedIn = isKnockIn(getFixings).getOrElse(false) //(implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)).getOrElse(false)
+    knockedIn = isKnockIn(getDoubleFixings).getOrElse(false) //(implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)).getOrElse(false)
   }
 
   override def toString =
@@ -204,9 +201,9 @@ object RangeForwardPayoff {
     val fixedNode = fixed.jsonNode
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-    val triggerHigh:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerhigh", variable)}.getOrElse(Map.empty)
-    val triggerLow:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerlow", variable)}.getOrElse(Map.empty)
-    val strikes:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variable)}.getOrElse(Map.empty)
+    val triggerHigh:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerhigh", variable).getDecimal}.getOrElse(Map.empty)
+    val triggerLow:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerlow", variable).getDecimal}.getOrElse(Map.empty)
+    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variable).getDecimal}.getOrElse(Map.empty)
 
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val forwardInRange:Boolean = formula.parseJsonString("range_type").getOrElse("in") != "out"

@@ -166,7 +166,13 @@ object FxMc1f {
     case _ => List.empty
   }
 
-  def apply(market:Market, bond:PriceableBond, mcengine:FX => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
+  def apply(
+    market:Market,
+    bond:PriceableBond,
+    mcengine:FX => Option[Montecarlo1f],
+    paths:Int,
+    frontierPths:Int
+  ):Option[FxMc1f] = {
     //    val frontierTrig = bond.getCalibrationCache("FXMontecarlo1f") match {
     //      case Some(t:List[Any]) =>
     //        t.map{
@@ -179,7 +185,10 @@ object FxMc1f {
     //    }
 
     val cachedTrig = cachedFrontier(bond)
-    val frontierTrig = if (cachedTrig.isEmpty) bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head) else cachedTrig.takeRight(bond.livePayoffCount(market.valuedate))
+    val frontierTrig:List[Option[Double]] = {
+      if (cachedTrig.isEmpty) bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head.collect{case v => v.toDouble})
+      else cachedTrig.takeRight(bond.livePayoffCount(market.valuedate))
+    }
 
     //    println("frontierTrig")
     //    println(frontierTrig.size)
@@ -248,28 +257,48 @@ object FxQtoMc1f {
   var defaultPaths = 300000
   var frontierPaths = 15000
 
-  def apply(market:Market, bond:PriceableBond, mcengine:(FX, FX) => Option[Montecarlo1f]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths)
+  def apply(
+    market:Market,
+    bond:PriceableBond,
+    mcengine:(FX, FX) => Option[Montecarlo1f]
+  ):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths)
 
-  def apply(market:Market, bond:PriceableBond, mcengine:(FX, FX) => Option[Montecarlo1f], triggers:List[Option[Double]]):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
+  def apply(
+    market:Market,
+    bond:PriceableBond,
+    mcengine:(FX, FX) => Option[Montecarlo1f],
+    triggers:List[Option[Double]]
+  ):Option[FxMc1f] = apply(market, bond, mcengine, defaultPaths, frontierPaths, triggers)
 
-  def apply(market:Market, bond:PriceableBond, mcengine:(FX, FX) => Option[Montecarlo1f], paths:Int, frontierPths:Int):Option[FxMc1f] = {
-    val trig = bond.getCalibrationCache("FXFrontier") match {
+  def apply(
+    market:Market,
+    bond:PriceableBond,
+    mcengine:(FX, FX) => Option[Montecarlo1f],
+    paths:Int,
+    frontierPths:Int
+  ):Option[FxMc1f] = {
+
+    val trig:List[Option[Double]] = bond.getCalibrationCache("FXFrontier") match {
       case Some(t:List[Any]) => t.map{
         case Some(v:Double) => Some(v)
+        case Some(v:BigDecimal) => Some(v.toDouble)
         case _ => None
       }.toList
-      case _ => bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head)
+
+      case _ => bond.liveTriggers(market.valuedate).map(t => if (t.isEmpty) None else t.head.collect{case v => v.toDouble})
     }
+
     apply(market, bond, mcengine, paths, frontierPths, trig)
   }
 
   def apply(
-             market:Market,
-             bond:PriceableBond,
-             mcengine:(FX, FX) => Option[Montecarlo1f],
-             paths:Int,
-             frontierPths:Int,
-             triggers:List[Option[Double]]):Option[FxMc1f] = {
+    market:Market,
+    bond:PriceableBond,
+    mcengine:(FX, FX) => Option[Montecarlo1f],
+    paths:Int,
+    frontierPths:Int,
+    triggers:List[Option[Double]]
+  ):Option[FxMc1f] = {
 
     val valuedate = market.valuedate
 
@@ -277,7 +306,8 @@ object FxQtoMc1f {
 
     if (scheduledPayoffs.underlyings.size != 1) {
       errorOutput(bond.id, "unsupported variable size for FXMC1 model " + scheduledPayoffs.underlyings.size)
-      return None}
+      return None
+    }
 
     val variable = scheduledPayoffs.underlyings.head
 
@@ -285,23 +315,27 @@ object FxQtoMc1f {
 
     if (fx == null) {
       errorOutput(bond.id, "invalid fx underlying for FXMC1 model - " + variable + " in market " + market.paramset)
-      return None}
+      return None
+    }
 
     if (fx.currencyDom == bond.currency) {
       errorOutput(bond.id, "non-quanto model not supported by FXQtoMC1 model - " + variable)
-      return None}
+      return None
+    }
 
     val qtofx = market.getFX(bond.currency.code, fx.currencyDom.code, true).orNull
 
     if (qtofx == null) {
       errorOutput(bond.id, "invalid fx underlying for quanto model - " + qtofx.id + " in market " + market.paramset)
-      return None}
+      return None
+    }
 
     val mcmodel = mcengine(fx, qtofx).orNull
 
     if (mcmodel == null) {
       errorOutput(bond.id, "model name not found or model calibration error - FxQtoMc1f")
-      return None}
+      return None
+    }
 
     Some(FxMc1f(valuedate, mcmodel, scheduledPayoffs, fx, paths, triggers, FxMc1f.frontierFunction(bond, frontierPths), FxMc1f.paramRepository(bond), bond.id))
   }

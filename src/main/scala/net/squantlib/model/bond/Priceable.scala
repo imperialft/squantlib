@@ -286,8 +286,10 @@ trait Priceable extends ExtendedSchedule with Cloneable {
         .map{case (c, index) => (c._1.paymentDate, index)}
         .sortBy{case (date, _) => date}
         .reverse
-      
-      val tempTrigger = ArrayBuffer(liveTriggers:_*)
+
+      val liveTriggersDouble:List[List[Option[Double]]] = liveTriggers.map(vs => vs.map(vv => vv.collect{case v => v.toDouble}))
+
+      val tempTrigger = ArrayBuffer(liveTriggersDouble:_*)
       
       valuedates.foreach{case (vd, index) => 
         val tempBond = triggerShifted(tempTrigger.toList)

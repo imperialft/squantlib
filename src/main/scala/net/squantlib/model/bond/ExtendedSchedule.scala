@@ -73,9 +73,9 @@ trait ExtendedSchedule {
   
   def liveCallabilities:Callabilities = livePayoffs.calls
   
-  def liveTriggers:List[List[Option[Double]]] = livePayoffs.calls.triggerValues(underlyings)
+  def liveTriggers:List[List[Option[BigDecimal]]] = livePayoffs.calls.triggerValues(underlyings)
   
-  def liveTriggers(vd:Date):List[List[Option[Double]]] = livePayoffs(vd).calls.triggerValues(underlyings)
+  def liveTriggers(vd:Date):List[List[Option[BigDecimal]]] = livePayoffs(vd).calls.triggerValues(underlyings)
   
   /*  
    * Returns "live" bermudan call options
@@ -129,9 +129,9 @@ trait ExtendedSchedule {
   
   def spotCashflowDayfracAllJpy(dc:DayCounter):List[(Double, Double)] = {
     val current:Double = DB.getLatestPrice(currency.code + "JPY").collect{case v => v._2}.getOrElse(Double.NaN)
-    val initfx:Double = if (!initialFX.isNaN && !initialFX.isInfinity && initialFX > 0.0) initialFX else current
+    val initfx:BigDecimal = if (initialFX > 0.0) initialFX else current
     val fxs:List[Double] = fixedFx.map(_.getOrElse(current))
-    (spotCashflowDayfracAll(dc), fxs).zipped.map{case ((d, p), fx) => (d, p * fx / initfx)}
+    (spotCashflowDayfracAll(dc), fxs).zipped.map{case ((d, p), fx) => (d, p * fx / initfx.toDouble)}
   }
   
   val fixedFx:List[Option[Double]] = currency match {

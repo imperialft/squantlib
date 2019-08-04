@@ -1,12 +1,11 @@
 package net.squantlib.model.bond
 
-import net.squantlib.util.Date
+import net.squantlib.util.{Date, FixingInformation, FormulaParser, SimpleCache}
 import net.squantlib.database.schemadefinitions.{Bond => dbBond}
-import net.squantlib.util.{SimpleCache, FormulaParser}
 import net.squantlib.pricing.model.PricingModel
-import net.squantlib.schedule.call.{Callability, Callabilities}
+import net.squantlib.schedule.call.{Callabilities, Callability}
 import net.squantlib.schedule.payoff._
-import net.squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
+import net.squantlib.schedule.{CalculationPeriod, ScheduledPayoffs}
 import net.squantlib.model.market.Market
 import net.squantlib.pricing.model.NoModel
 import org.jquantlib.currencies.Currency
@@ -153,9 +152,8 @@ trait PriceableBond extends BondModel with Priceable {
     }
 //  val newSchedule = ScheduledPayoffs(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
     val newCalls:List[Callability] = (calls, newtrig).zipped.map{case (c, t) => Callability(
-      underlyings = underlyings,
       bermudan = c.bermudan,
-      triggers = t,
+      triggers = underlyings.zip(t).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.toMap,
       triggerUp = c.triggerUp,
       targetRedemption = c.targetRedemption,
       forward = c.forward,

@@ -41,15 +41,15 @@ trait BondModel {
   
   def bermudan:List[Boolean] = calls.bermudans
   
-  def trigger:List[List[Option[Double]]] = calls.triggerValues(underlyings)
+  def trigger:List[List[Option[BigDecimal]]] = calls.triggerValues(underlyings)
 
-  def targetRedemptions:List[Option[Double]] = calls.targetRedemptions
+  def targetRedemptions:List[Option[BigDecimal]] = calls.targetRedemptions
 
-  def nominal:Option[Double] = db.nominal
+  def nominal:Option[BigDecimal] = db.nominal
   
   def currency:Currency = db.currency
   
-  def denomination:Option[Double] = db.denomination
+  def denomination:Option[BigDecimal] = db.denomination
   
   def period:qlPeriod = (db.coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
@@ -57,11 +57,11 @@ trait BondModel {
 
   val paymentCalendar:DbCalendar = db.paymentCalendar
   
-  def issuePrice:Option[Double] = db.issueprice
+  def issuePrice:Option[BigDecimal] = db.issueprice
   
   def call:String = db.call
   
-  def initialFX:Double = db.initialfx
+  def initialFX:BigDecimal = db.initialfx
   
   def issuer:String = db.issuerid
   

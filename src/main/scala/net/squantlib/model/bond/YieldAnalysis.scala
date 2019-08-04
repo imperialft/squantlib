@@ -74,20 +74,21 @@ trait YieldAnalysis {
     else doubleOption(getLifetimeYield(spotCashflowDayfracAllJpy(dc), comp, freq, accuracy, maxIteration))
   
   def getLifetimeYield(
-      cashflows:List[(Double, Double)], 
-      comp:Compounding, 
-      freq:Frequency, 
-      accuracy:Double, 
-      maxIteration:Int):Option[Double] = {
+    cashflows:List[(Double, Double)],
+    comp:Compounding,
+    freq:Frequency,
+    accuracy:Double,
+    maxIteration:Int
+  ):Option[Double] = {
     
     val result:Option[Double] = 
       if (cashflows isEmpty) None
       else if (useCouponAsYield) accruedAmount.collect{case acc => BondYield.asAverageCoupon(cashflows, acc)}
       else issuePrice.flatMap{case price => comp match {
-        case Compounding.Simple => BondYield.solveNoCompounding(price / 100.0, cashflows, accuracy, maxIteration)
-        case Compounding.Compounded | Compounding.SimpleThenCompounded => BondYield.solveCompounded(price/ 100.0, cashflows, freq.toInteger, accuracy, maxIteration)
-        case Compounding.Continuous => BondYield.solveContinuous(price/ 100.0, cashflows, accuracy, maxIteration)
-        case Compounding.None => accruedAmount.collect{case acc => BondYield.solveNoRate(price/ 100.0, cashflows, acc)}
+        case Compounding.Simple => BondYield.solveNoCompounding(price.toDouble / 100.0, cashflows, accuracy, maxIteration)
+        case Compounding.Compounded | Compounding.SimpleThenCompounded => BondYield.solveCompounded(price.toDouble / 100.0, cashflows, freq.toInteger, accuracy, maxIteration)
+        case Compounding.Continuous => BondYield.solveContinuous(price.toDouble / 100.0, cashflows, accuracy, maxIteration)
+        case Compounding.None => accruedAmount.collect{case acc => BondYield.solveNoRate(price.toDouble / 100.0, cashflows, acc)}
         case _ => None
      }}
     doubleOption(result)

@@ -12,22 +12,24 @@ import net.squantlib.util.FixingInformation
  * Natual format: 0.035 or "3.5%"
  */
 case class FixedPayoff(
-  payoff:Double,
+  payoff:BigDecimal,
   description:String = null,
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
 	
   override val variables:Set[String] = Set.empty
   
-  override val isPriceable = !payoff.isNaN && !payoff.isInfinity
+  override val isPriceable = true // !payoff.isNaN && !payoff.isInfinity
   
   override val isFixed = true
    
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) = payoff
+  override def priceImpl(
+    fixings:List[Map[String, Double]],
+    pastPayments:List[Double],
+    priceResult:PriceResult
+  ):Double = payoff.toDouble
   
-//  override def priceImpl(fixing:Double, pastPayments:List[Double]) = payoff
-  
-  override def priceImpl(priceResult:PriceResult) = payoff
+  override def priceImpl(priceResult:PriceResult):Double = payoff.toDouble
   
   override def toString = payoff.asPercent
   
@@ -48,6 +50,21 @@ object FixedPayoff {
     }
   }
 	
-  def apply(payoff:Double)(implicit fixingInfo:FixingInformation):FixedPayoff = new FixedPayoff(payoff, null, null)
+  def apply(
+    payoff:Double
+ )(implicit fixingInfo:FixingInformation):FixedPayoff = new FixedPayoff(
+    payoff = payoff,
+    description = null,
+    inputString = null
+  )
 
+  def apply(
+    payoff: Double,
+    description: String,
+    inputString: String
+  )(implicit fixingInfo:FixingInformation):FixedPayoff = FixedPayoff(
+    payoff = BigDecimal.valueOf(payoff),
+    description = description,
+    inputString = inputString
+  )
 }

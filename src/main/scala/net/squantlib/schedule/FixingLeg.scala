@@ -1,12 +1,13 @@
 package net.squantlib.schedule
 
 import net.squantlib.util.FixingInformation
+import net.squantlib.util.DisplayUtils._
 
 import scala.collection.LinearSeq
 
 trait FixingLeg {
   
-  protected var preFixings:Map[String, Double] = Map.empty
+  protected var preFixings:Map[String, BigDecimal] = Map.empty
 
   protected var futureFixing:Boolean = false
 
@@ -14,10 +15,15 @@ trait FixingLeg {
 
   val variables:Set[String] // to be implemented
 	
-  def assignFixings(f:Map[String, Double]):Unit =
+  def assignFixings(f:Map[String, BigDecimal]):Unit = {
     if ((variables subsetOf f.keySet) || f.isEmpty) preFixings = f
-	
-  def assignFixings(f:Double):Unit = if (variables.size == 1) assignFixings(Map(variables.head -> f))
+  }
+
+  def assignFixings(f:Map[String, Double])(implicit fixingInfo:FixingInformation):Unit = assignFixings(f.getDecimal)
+
+  def assignFixings(f:Double)(implicit fixingInfo:FixingInformation):Unit = {
+    if (variables.size == 1) assignFixings(Map(variables.head -> f.getDecimal(variables.head)))
+  }
 	
   def clearFixings = preFixings = Map.empty
 
@@ -25,23 +31,26 @@ trait FixingLeg {
 
   def setPastFixing = futureFixing = false
 
-  def getFixings = preFixings
+  def getFixings:Map[String, BigDecimal] = preFixings
+
+  def getDoubleFixings:Map[String, Double] = preFixings.getDouble
 
   def isFutureFixing:Boolean = futureFixing
 	
   def isFixed = variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing)
 
-  protected var settlementFixings:Map[String, Double] = Map.empty // used for physical settlement only
+  protected var settlementFixings:Map[String, BigDecimal] = Map.empty // used for physical settlement only
   
   def isSettlementFixed:Boolean = true
   
-  def assignSettlementFixings(f:Map[String, Double]):Unit = 
+  def assignSettlementFixings(f:Map[String, BigDecimal]):Unit = {
     if ((variables subsetOf f.keySet) || f.isEmpty) settlementFixings = f
-  
-  def assignSettlementFixings(f:Double):Unit = {
-    if (variables.size == 1) {
-      assignSettlementFixings(Map(variables.head -> f))
-    }
+  }
+
+  def assignSettlementFixings(f:Map[String, Double])(implicit fixingInfo:FixingInformation):Unit = assignSettlementFixings(f.getDecimal)
+
+  def assignSettlementFixings(f:Double)(implicit fixingInfo:FixingInformation):Unit = {
+    if (variables.size == 1) assignSettlementFixings(Map(variables.head -> f.getDecimal(variables.head)))
   }
 
   def clearSettlementFixings = settlementFixings = Map.empty
@@ -55,12 +64,12 @@ trait FixingLegs[T <: FixingLeg] {
   
   val fixinglegs:LinearSeq[T]
   
-  def assignFixings(fixings:List[Map[String, Double]]):Unit = {
+  def assignFixings(fixings:List[Map[String, BigDecimal]]):Unit = {
     assert(fixings.size == fixinglegs.size)
     (fixinglegs, fixings).zipped.foreach{case (p, f) => p.assignFixings(f)}
   }
 	
-  def assignFixings(fixings:List[Option[Double]]) (implicit d:DummyImplicit):Unit = {
+  def assignFixings(fixings:List[Option[Double]]) (implicit fixingInfo:FixingInformation):Unit = {
     assert(fixings.size == fixinglegs.size)
     (fixinglegs, fixings).zipped.foreach{
       case (p, Some(f)) => p.assignFixings(f)
@@ -69,12 +78,12 @@ trait FixingLegs[T <: FixingLeg] {
 	
   def isFixed:Boolean = fixinglegs.forall(_.isFixed)
   
-  def assignSettlementFixings(fixings:List[Map[String, Double]]):Unit = {
+  def assignSettlementFixings(fixings:List[Map[String, BigDecimal]]):Unit = {
     assert(fixings.size == fixinglegs.size)
     (fixinglegs, fixings).zipped.foreach{case (p, f) => p.assignSettlementFixings(f)}
   }
     
-  def assignSettlementFixings(fixings:List[Option[Double]]) (implicit d:DummyImplicit):Unit = {
+  def assignSettlementFixings(fixings:List[Option[Double]]) (implicit fixingInfo:FixingInformation):Unit = {
     assert(fixings.size == fixinglegs.size)
     (fixinglegs, fixings).zipped.foreach{
       case (p, Some(f)) => p.assignSettlementFixings(f)

@@ -21,44 +21,46 @@ case class GeneralPayoff(
   
   override val variables:Set[String] = formula.keySet.flatten
   
-  override val isPriceable = formula.values.forall(v => !v.isNaN && !v.isInfinity)
+  override val isPriceable = true //formula.values.forall(v => !v.isNaN && !v.isInfinity)
   
   override def isFixed = variables.size == 0 || super.isFixed
   
   def leverage(index:String):Double = leverage(Set(index))
-  def leverage(index:Set[String]):Double = formula.getOrElse(index, 0.0)
+  def leverage(index:Set[String]):Double = formula.get(index).collect{case v => v.toDouble}.getOrElse(0.0)
   
-  val constant:Double = formula.getOrElse(Set.empty, 0.0)
+  val constant:Double = formula.get(Set.empty).collect{case v => v.toDouble}.getOrElse(0.0)
   
 //  override def priceImpl(fixing:Double, pastPayments:List[Double]) =
 //    if (variables.size == 1 && !fixing.isNaN && !fixing.isInfinity) price(Map(variables.head -> fixing), pastPayments)
 //    else Double.NaN
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) =
-    fixings.lastOption.collect{case f => priceImpl(f, pastPayments, priceResult:PriceResult)}.getOrElse(Double.NaN)
+  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
+    fixings.lastOption.collect { case f => priceImpl(f, pastPayments, priceResult: PriceResult) }.getOrElse(Double.NaN)
+  }
 
   def priceImpl(fixings:Map[String, Double], pastPayments:List[Double], priceResult:PriceResult):Double = {
-    if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN || fixings(v).isInfinity)) {return Double.NaN}
-    
-    var rate = formula.map{
-      case (vs, c) if vs.isEmpty => c
-      case (vs, c) => vs.toList.map(fixings).product * c
-    }.sum
+    if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN || fixings(v).isInfinity)) {
+      return Double.NaN
+    } else {
+      var rate = formula.map {
+        case (vs, c) if vs.isEmpty => c
+        case (vs, c) => vs.toList.map(fixings).product * c
+      }.sum.toDouble
 
-    withMinMax(rate)
-//      if (floor.isDefined) rate = rate.max(floor.get)
-//      if (cap.isDefined) rate = rate.min(cap.get)
-//
-//      rate
+      withMinMax(rate)
+    }
   }
    
-  override def priceImpl(priceResult:PriceResult) =
+  override def priceImpl(priceResult:PriceResult):Double = {
     if (variables.isEmpty) constant
     else Double.NaN
+  }
   
-  override def toString:String = 
-        formula.map{case (variables, coeff) => 
-      ((if (variables.size > 0) variables.mkString("*") + "*" + coeff.toDouble else coeff.asPercent) )}.mkString("+").replace("+-", "+")
+  override def toString:String = {
+    formula.map { case (variables, coeff) =>
+      ((if (variables.size > 0) variables.mkString("*") + "*" + coeff.toDouble else coeff.asPercent))
+    }.mkString("+").replace("+-", "+")
+  }
 
   override def jsonMapImpl = Map.empty
   

@@ -18,7 +18,7 @@ import scala.reflect.ClassTag
  * No strike is considered as no low boundary
  */
 case class ForwardPayoff(
-  strikes:Map[String, Double],
+  strikes:Map[String, BigDecimal],
   override val physical:Boolean,
   reverse:Boolean,
   override val minPayoff:Double,
@@ -29,7 +29,7 @@ case class ForwardPayoff(
   
   override val variables = strikes.keySet
   
-  override val isPriceable = !strikes.exists{case (k, v) => v.isNaN || v.isInfinity} && !strikes.isEmpty
+  override val isPriceable = !strikes.isEmpty
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (physical) List(period.eventDate, period.paymentDate)
@@ -71,25 +71,25 @@ case class ForwardPayoff(
     if ((variables subsetOf fixings.keySet) && variables.forall(ul => !fixings(ul).isNaN && !fixings(ul).isInfinity) && isPriceable) {
       if (physical) {
         if (isFixed) assignPhysicalInfo(priceResult)
-        variables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul)), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+        variables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul).toDouble), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
           case (ul, pf, k) =>
             withMinMax(pf)
         }
       } else {
-        withMinMax(variables.map(ul => getPerformance(fixings(ul), strikes(ul))).min)
+        withMinMax(variables.map(ul => getPerformance(fixings(ul), strikes(ul).toDouble)).min)
       }
     } else Double.NaN
 
   }
 
   def assignPhysicalInfo(priceResult:PriceResult):Unit = {
-    if (isFixed) assignPhysicalInfo(getFixings, priceResult)
+    if (isFixed) assignPhysicalInfo(getDoubleFixings, priceResult)
   }
 
   def assignPhysicalInfo(fixings:Map[String, Double], priceResult:PriceResult):Unit = {
     if (priceResult != null && variables.subsetOf(fixings.keySet)) {
-      variables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul)), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
-        case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
+      variables.map(ul => (ul, getPerformance(fixings(ul), strikes(ul).toDouble), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+        case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k.toDouble)
       }
     }
   }
@@ -126,7 +126,9 @@ object ForwardPayoff {
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val strikes:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables)}.getOrElse(Map.empty)
+    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n =>
+      Payoff.nodeToComputedMap(n, "strike", variables).map{case (ul, v) => (ul, v.getDecimal(ul))}
+    }.getOrElse(Map.empty)
 
 //    val variable:List[String] = fixingInfo.update(formula).parseJsonStringList("variable").map(_.orNull)
 //    val strike:List[Double] = fixingInfo.update(formula).parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
@@ -146,6 +148,28 @@ object ForwardPayoff {
       inputString = inputString
     )
   }
+
+//  def apply(
+//    strikes:Map[String, Double],
+//    physical:Boolean,
+//    reverse:Boolean,
+//    minPayoff:Double,
+//    maxPayoff:Option[Double],
+//    description:String = null,
+//    inputString:String = null
+//  )(implicit fixingInfo:FixingInformation):ForwardPayoff = {
+//
+//    ForwardPayoff(
+//      strikes = strikes.map{case (ul, v) => (ul, v.getDecimal(ul))},
+//      physical = physical,
+//      reverse = reverse,
+//      minPayoff = minPayoff,
+//      maxPayoff = maxPayoff,
+//      description = description,
+//      inputString = inputString
+//    )
+//  }
+
 
 }
 

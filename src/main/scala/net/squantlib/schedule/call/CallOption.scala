@@ -7,7 +7,7 @@ import net.squantlib.util.FixingInformation
 
 case class CallOption(
   triggerUp: Boolean,
-  forward: Map[String, Double],
+  forward: Map[String, BigDecimal],
   forwardInputString: Map[String, String],
   bonus: Double,
   invertedTrigger:Boolean,

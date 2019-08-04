@@ -5,6 +5,7 @@ import java.util.{Date => JavaDate}
 import scala.language.postfixOps
 import net.squantlib.util.JsonUtils
 import net.squantlib.util.JsonUtils._
+import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.Schedule
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
@@ -32,8 +33,8 @@ class Bond(
   @Column("MATURITY")			var maturity: JavaDate,
   @Column("TERMINATIONDATE")	var terminationdate: Option[JavaDate],
   @Column("ISMATURED")			var ismatured: Int,
-  @Column("NOMINAL")			var nominal: Option[Double],
-  @Column("DENOMINATION")		var denomination: Option[Double],
+  @Column("NOMINAL")			var nominal: Option[BigDecimal],
+  @Column("DENOMINATION")		var denomination: Option[BigDecimal],
   @Column("UNDERLYING")			var underlying: String,
   @Column("UNDERLYINGINFO")		var underlyinginfo: String,
   @Column("COUPON")				var coupon: String,
@@ -45,7 +46,7 @@ class Bond(
   @Column("CALENDAR")			var calendar_str: String,
   @Column("INARREARS")			var inarrears: Option[Int],
   @Column("CPNNOTICE")			var cpnnotice: Option[Int],
-  @Column("ISSUEPRICE")			var issueprice: Option[Double],
+  @Column("ISSUEPRICE")			var issueprice: Option[BigDecimal],
   @Column("REDEMPRICE")			var redemprice: String,
   @Column("REDEMNOTICE")		var redemnotice: Option[Int],
   @Column("CALL")				var call: String,
@@ -76,7 +77,7 @@ class Bond(
   @Column("COMMENT") 			var comment: String,
   @Column("PAID_IN_JPY") 		var jpypayment: Int,
   @Column("PHYSICAL_REDEMPTION") var physicalredemption: Int,
-  @Column("MINIMUM_PURCHASE") 	var minimum_purchase: Option[Double],
+  @Column("MINIMUM_PURCHASE") 	var minimum_purchase: Option[BigDecimal],
   @Column("FIXING_METHOD") 	    var fixing_method: String,
   @Column("MODEL_OUTPUT")      var model_output: String,
   @Column("PricingID")      var pricingid: String,
@@ -186,7 +187,7 @@ class Bond(
 
   def underlyingSet:Set[String] = underlyingList.toSet
   
-  def fixingMap:Map[String, Double] = fixings.parseJsonDoubleFields
+  def fixingMap:Map[String, BigDecimal] = fixings.parseJsonDoubleFields.map{case (ul, v) => (ul, v.getDecimal(ul))}
   
   def settingMap:Map[String, String] = settings.parseJsonStringFields
   
@@ -360,9 +361,9 @@ class Bond(
     
   def isMatured(vd:Date):Boolean = (vd ge endDate)
 
-  def getInitialFixings:Map[String, Double] = 
+  def getInitialFixings:Map[String, BigDecimal] =
     if (!fixingMap.isEmpty) fixingMap
-    else if (isBeforeFixing) DB.getLatestPrices(underlyingList.toSet)
+    else if (isBeforeFixing) DB.getLatestPrices(underlyingList.toSet).getDecimal
     else Map.empty
   
   def isBeforeFixing = (fixingdate, DB.latestParamDate) match {
@@ -412,13 +413,14 @@ class Bond(
   lazy val fixingInformationObj = {
     val currentSetting = settingMap
     def getDblSetting(key:String):Option[Double] = currentSetting.get(key).flatMap{case v => try {Some(v.toDouble)} catch {case e:Throwable => None}}
+    def getDecimalSetting(key:String):Option[BigDecimal] = currentSetting.get(key).flatMap{case v => try {Some(BigDecimal(v))} catch {case e:Throwable => None}}
 
     FixingInformation(
       currencyId = currencyid,
       paymentCurrencyId = paymentCurrencyId,
-      tbd = getDblSetting("tbd"),
-      minRange = getDblSetting("tbd_min"),
-      maxRange = getDblSetting("tbd_max"),
+      tbd = getDecimalSetting("tbd"),
+      minRange = getDecimalSetting("tbd_min"),
+      maxRange = getDecimalSetting("tbd_max"),
       initialFixing = getInitialFixings,
       fixingPageInformation = fixingPageInformation
     )
@@ -426,19 +428,21 @@ class Bond(
   
   implicit def fixingInformation = fixingInformationObj
   
-  def accrualPrice(vd:Date):Double = 
-    if (isMatured(vd)) 0.0 
-    else if (issueDate ge vd) issueprice.collect{case p => p / 100.0}.getOrElse(1.0)
+  def accrualPrice(vd:Date):Double = {
+    if (isMatured(vd)) 0.0
+    else if (issueDate ge vd) issueprice.collect { case p => p.toDouble / 100.0 }.getOrElse(1.0)
     else try {
       val r = redemprice.toDouble
-      val i = issueprice.get / 100.0
+      val i = issueprice.get.toDouble / 100.0
       val comp = math.pow(r / i, 1.0 / maturityDate.sub(issueDate).toDouble)
       i * math.pow(comp, vd.sub(issueDate).toDouble)
     } catch {
-      case e:Throwable => issueprice match {
-        case Some(p) => p / 100.0
-        case None => 1.0}
+      case e: Throwable => issueprice match {
+        case Some(p) => p.toDouble / 100.0
+        case None => 1.0
       }
+    }
+  }
     
   /*
    * Accessor for Json parameters

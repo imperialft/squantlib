@@ -26,6 +26,8 @@ trait DbRepository {
   def getCountryIds:Set[String]
 
   def getCurrencyIds:Set[String]
+
+  def getUnderlyingDefaultPrecision(id:String):Int
   
 //  def getCountryHolidayMapping: Map[String, String]
 //
@@ -180,5 +182,7 @@ object DB {
   def getCountryIds:Set[String] = repository.collect{case repo => repo.getCountryIds}.getOrElse(Set.empty)
 
   def getCurrencyIds:Set[String] = repository.collect{case repo => repo.getCurrencyIds}.getOrElse(Set.empty)
+
+  def getUnderlyingDefaultPrecision(id:String):Int = repository.collect{case repo => repo.getUnderlyingDefaultPrecision(id)}.getOrElse(2)
 
 }

@@ -57,11 +57,11 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
   )(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
     assert(fixings.size == payoffs.size && fixings.size == calls.size, s"Number of fixings(${fixings.size}), calls(${calls.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} calls:${calls}")
 
-    val trigList:List[Option[Map[String, Double]]] = calls.map(c => c.optionalTriggers)
+    val trigList:List[Option[Map[String, Double]]] = calls.map(c => c.optionalTriggers.collect{case vs => vs.getDouble})
     val trigUp:List[Boolean] = calls.map(_.triggerUp)
-    val trigAmt:List[Double] = calls.map(_.bonusAmount)
-    val forwardStrikes: List[Option[Map[String, Double]]] = calls.map(_.optionalForwardStrikes)
-    val targets:List[Option[Double]] = calls.map(_.targetRedemption)
+    val trigAmt:List[Double] = calls.map(_.bonusAmount.toDouble)
+    val forwardStrikes: List[Option[Map[String, Double]]] = calls.map(_.optionalForwardStrikes.collect{case vs => vs.getDouble})
+    val targets:List[Option[Double]] = calls.map(_.targetRedemption.collect{case v => v.toDouble})
     val removeSatisfiedTriggers: List[Boolean] = calls.map(_.removeSatisfiedTriggers)
 
     priceTrig(payoffs, fixings, List.empty, trigList, trigUp, trigAmt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts, accruedPayment.getOrElse(0.0), false)

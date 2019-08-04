@@ -9,8 +9,8 @@ import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 class PutDIPayoff(
-  override val triggers:Map[String, Double],
-  override val strikes:Map[String, Double],
+  override val triggers:Map[String, BigDecimal],
+  override val strikes:Map[String, BigDecimal],
   initKnockedIn:Boolean,
   override val physical:Boolean,
   override val reverse: Boolean,
@@ -41,13 +41,9 @@ class PutDIPayoff(
 
   override val variables = triggers.keySet ++ strikes.keySet
 
-  override val strikeOrFinalTriggers:Map[String, Double] = triggers
+  override val strikeOrFinalTriggers:Map[String, BigDecimal] = triggers
 
-  override val isPriceable:Boolean =
-    !triggers.isEmpty &&
-    !triggers.values.exists(v => v.isNaN || v.isInfinity) &&
-    !strikes.isEmpty &&
-    !strikes.values.exists(v => v.isNaN || v.isInfinity)
+  override val isPriceable:Boolean = !triggers.isEmpty && !strikes.isEmpty
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)
@@ -74,7 +70,7 @@ class PutDIPayoff(
     knockedIn = false
   }
 
-  override def assignFixings(f:Map[String, Double]):Unit = {
+  override def assignFixings(f:Map[String, BigDecimal]):Unit = {
     super.assignFixings(f)
     checkKnockIn
   }
@@ -93,8 +89,8 @@ object PutDIPayoff {
     val fixedNode = fixed.jsonNode
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-    val triggers:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables)}.getOrElse(Map.empty)
-    val strikes:Map[String, Double] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables)}.getOrElse(Map.empty)
+    val triggers:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getDecimal}.getOrElse(Map.empty)
+    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getDecimal}.getOrElse(Map.empty)
 
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val description:String = formula.parseJsonString("description").orNull

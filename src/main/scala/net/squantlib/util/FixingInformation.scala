@@ -3,23 +3,24 @@ package net.squantlib.util
 import scala.annotation.tailrec
 import DisplayUtils._
 import net.squantlib.util.initializer._
+import net.squantlib.database.DB
 
 case class FixingInformation(
   currencyId:String,
   paymentCurrencyId: String,
-  var tbd:Option[Double],
-  var minRange:Option[Double],
-  var maxRange:Option[Double],
-  var initialFixing:Map[String, Double],
+  var tbd:Option[BigDecimal],
+  var minRange:Option[BigDecimal],
+  var maxRange:Option[BigDecimal],
+  var initialFixing:Map[String, BigDecimal],
   fixingPageInformation: List[Map[String, String]]
 ) {
   
-  def initialFixingFull:Map[String, Double] = {
-    val inv:Map[String, Double] = initialFixing.withFilter{case (k, v) => k.size == 6}.map{case (k, v) => (((k takeRight 3) + (k take 3)), (if (v == 0.0) 0.0 else 1.0 / v))}.toMap
+  def initialFixingFull:Map[String, BigDecimal] = {
+    val inv:Map[String, BigDecimal] = initialFixing.withFilter{case (k, v) => k.size == 6}.map{case (k, v) => (((k takeRight 3) + (k take 3)), (if (v == 0.0) BigDecimal(0.0) else 1.0 / v))}.toMap
     if (inv.isEmpty) initialFixing else initialFixing ++ inv
   }
     
-  def all:Map[String, Double] = tbd match {
+  def all:Map[String, BigDecimal] = tbd match {
     case Some(c) => initialFixingFull.updated("tbd", c)
     case None => initialFixingFull
   }
@@ -28,7 +29,7 @@ case class FixingInformation(
   
   def updateInitial(p:String):String = multipleReplace(p, initialFixing.map{case (k, v) => ("@" + k, v)})
   
-  @tailrec private def multipleReplace(s:String, replacements:Map[String, Double]):String = 
+  @tailrec private def multipleReplace[T:Numeric](s:String, replacements:Map[String, T]):String =
     if (s == null) null
     else replacements.headOption match {
       case None => s
@@ -63,33 +64,46 @@ case class FixingInformation(
     case _ => ""
   }
 
-  val underlyingAssetIds:Map[String, FixingPage] = fixingPageInformation.map(pageInfo => {
+  val underlyingFixingPage:Map[String, FixingPage] = fixingPageInformation.map(pageInfo => {
     val bidOffer:Option[String] = pageInfo.get("bidoffer") match {
       case Some(b) if b == "bid" || b == "offer" || b == "mid" => Some(b)
       case _ => None
     }
 
+    val underlyingId = pageInfo.getOrElse("underlying", "missingUnderlying")
+
     (
-      pageInfo.getOrElse("underlying", "missingUnderlying"),
+      underlyingId,
       FixingPage(
-        underlying = pageInfo.getOrElse("underlying", "missingUnderlying"),
+        underlying = underlyingId,
         page = pageInfo.get("page"), //getOrElse("page", "missingPage"),
         bidOffer = bidOffer,
         time = pageInfo.get("time"),
         country = pageInfo.get("country"),
         priceType = pageInfo.get("price_type").getOrElse("close"),
-        initialPriceType = pageInfo.get("initial_price_type").getOrElse("close")
-      )
+        initialPriceType = pageInfo.get("initial_price_type").getOrElse("close"),
+        precision = pageInfo.get("precision").collect{case s => s.toInt}.getOrElse(DB.getUnderlyingDefaultPrecision(underlyingId)),
+        roundType = pageInfo.get("rounding").getOrElse("rounded")      )
     )
   }).toMap
 
+  def getUnderlyingPrecision(underlyingId:String):Int = underlyingFixingPage.get(underlyingId) match {
+    case Some(fp) => fp.precision
+    case _ => DB.getUnderlyingDefaultPrecision(underlyingId)
+  }
+
+  def getUnderlyingRoundType(underlyingId:String):String = underlyingFixingPage.get(underlyingId) match {
+    case Some(fp) => fp.roundType
+    case _ => "rounded"
+  }
+
   def getUnderlyingFixing(ul: String):UnderlyingFixingInfo = {
-    underlyingAssetIds.get(ul) match {
+    underlyingFixingPage.get(ul) match {
       case Some(v) => UnderlyingFixingInfo(Set(v), (vs) => vs.get(v))
       case _  if Currencies.isForex(ul) =>
         val ccy1 = ul.take(3)
         val ccy2 = ul.takeRight(3)
-        (underlyingAssetIds.find{case (k, v) => k.contains(ccy1)}, underlyingAssetIds.find{case (k, v) => k.contains(ccy2)}) match {
+        (underlyingFixingPage.find{case (k, v) => k.contains(ccy1)}, underlyingFixingPage.find{case (k, v) => k.contains(ccy2)}) match {
 
           case (Some((fxul1, p1)), Some((fxul2, p2))) if fxul1 == fxul2 =>
             UnderlyingFixingInfo(Set(p1), ulFixings => (ulFixings.get(p1).collect{case v => 1.0 / v}))
@@ -135,13 +149,6 @@ case class UnderlyingFixingInfo(
 
   def getPriceFromFixings(pagePrices:Map[String, Double], isInitialFixing:Boolean):Option[Double] = {
 
-//    val underlyingPrices:Map[FixingPage, Double] = pagePrices.map{case (ul, v) =>
-//      fixingPages.find(p => p.pageList.contains(ul)) match {
-//        case Some(fixingPage) => Some((fixingPage, v))
-//        case _ => None
-//      }
-//    }.flatMap{case s => s}.toMap
-
     val underlyingPrices:Map[FixingPage, Double] =
       fixingPages.map(fixingPage => {fixingPage.getPrice(pagePrices, isInitialFixing) match {
         case Some(v) => Some((fixingPage, v))
@@ -160,7 +167,9 @@ case class FixingPage(
   time:Option[String],
   country:Option[String],
   priceType:String,
-  initialPriceType:String
+  initialPriceType:String,
+  precision:Int,
+  roundType:String
 ) {
 
   val pageFull:List[String] = (page, Set(time, country).exists(_.isDefined), bidOffer) match {

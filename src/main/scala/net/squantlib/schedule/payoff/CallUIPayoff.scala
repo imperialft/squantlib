@@ -17,26 +17,26 @@ import scala.reflect.ClassTag
  * {"type":"callui","variable":[String],"trigger":Double, "strike":[Double], "add":Double, "mult": Double, "min":Double, "max":Double, "baseAmount":Double, "basket":String, "description":""}
  */
 case class CallUIPayoff(
-    callVariables:List[String], 
-    trigger:Double, 
-    strike:List[Double], 
-    mult: Double,
-    added: Double,
-    override val minPayoff : Double,
-    override val maxPayoff : Option[Double],
-    basket: String,
-    var fixedPrice: Option[Double],
-    override val physical: Boolean,
-    baseAmount: Double = 1.0,
-    amount:Double = 1.0,
-    description:String = null,
-    inputString:String = null)(implicit val fixingInfo:FixingInformation) extends Payoff {
+  strike:Map[String, BigDecimal],
+  trigger:Double,
+  mult: Double,
+  added: Double,
+  override val minPayoff : Double,
+  override val maxPayoff : Option[Double],
+  basket: String,
+  var fixedPrice: Option[Double],
+  override val physical: Boolean,
+  baseAmount: Double = 1.0,
+  amount:Double = 1.0,
+  description:String = null,
+  inputString:String = null
+)(implicit val fixingInfo:FixingInformation) extends Payoff {
   
-  val variables = callVariables.toSet
-  
+  val variables = strike.keySet
+
   nominal = amount
   
-  override val isPriceable:Boolean = !trigger.isNaN && !trigger.isInfinity && strike.forall(s => !s.isNaN && !s.isInfinity)
+  override val isPriceable:Boolean = !strike.isEmpty && strike.forall{case (ul, v) => v > 0.000000001}
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)
@@ -52,88 +52,78 @@ case class CallUIPayoff(
     else Double.NaN
   }
 
-//  trait FixingInterpreter[T] {
-//    def basketPerformance(fixings:T, priceResult:PriceResult):Option[Double] // Method to be implemented
-//    def price(fixings:T, currentFixedPrice:Option[Double], priceResult:PriceResult):Double // Method to be implemented
-
-    def getFixedPrice(fixings:Map[String, Double], priceResult:PriceResult):Option[Double] = {
-      basketPerformance(fixings, priceResult) match {
-        case Some(v) if !v.isNaN && !v.isInfinity  => 
-          if (v <= trigger) Some(baseAmount)
-          else {
-            Some(withMinMax(getPerformance(v)))
-//            val perf = getPerformance(v)
-//            (maxPayoff, minPayoff) match {
-//              case (Some(max), _) if perf >= max => Some(max)
-//              case (_, Some(min)) if perf <= min => Some(min)
-//              case _ => None
-//            }
-          }
-        case _ => None
-      }
+  def getFixedPrice(fixings:Map[String, Double], priceResult:PriceResult):Option[Double] = {
+    basketPerformance(fixings, priceResult) match {
+      case Some(v) if !v.isNaN && !v.isInfinity  =>
+        if (v <= trigger) Some(baseAmount)
+        else {
+          Some(withMinMax(getPerformance(v)))
+        }
+      case _ => None
     }
+  }
 
-    def priceList(fixings:Map[String, Double], priceResult:PriceResult):Double = {
-      if (physical) {
-        if (isFixed) priceList(fixings, fixedPrice, priceResult)
-        else Double.NaN
-      }
-      else priceList(fixings, getFixedPrice(fixings, priceResult), priceResult)
+  def priceList(fixings:Map[String, Double], priceResult:PriceResult):Double = {
+    if (physical) {
+      if (isFixed) priceList(fixings, fixedPrice, priceResult)
+      else Double.NaN
     }
-    
-    def priceList(fixings:List[Map[String, Double]], priceResult:PriceResult):Double = {
-      fixings.lastOption match {
-        case Some(lastFixing) => 
-          if (physical) {
-            val fixingSize = fixings.length
-            if (isFixed) priceList(lastFixing, fixedPrice, priceResult)
-            else if (fixingSize >= 2) priceList(lastFixing, getFixedPrice(fixings(fixings.length - 2), priceResult), priceResult)
-            else Double.NaN
-          }
-          else priceList(lastFixing, getFixedPrice(lastFixing, priceResult), priceResult)
-        case None => Double.NaN
-      }
+    else priceList(fixings, getFixedPrice(fixings, priceResult), priceResult)
+  }
+
+  def priceList(fixings:List[Map[String, Double]], priceResult:PriceResult):Double = {
+    fixings.lastOption match {
+      case Some(lastFixing) =>
+        if (physical) {
+          val fixingSize = fixings.length
+          if (isFixed) priceList(lastFixing, fixedPrice, priceResult)
+          else if (fixingSize >= 2) priceList(lastFixing, getFixedPrice(fixings(fixings.length - 2), priceResult), priceResult)
+          else Double.NaN
+        }
+        else priceList(lastFixing, getFixedPrice(lastFixing, priceResult), priceResult)
+      case None => Double.NaN
     }
-//  }
-//
-//  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
+  }
 
-    def basketPerformance(fixings:Map[String, Double], priceResult:PriceResult):Option[Double] = {
-      if (variables.toSet subsetOf fixings.keySet) {
-        val fixValues = (0 to callVariables.size - 1).toList.map(i => fixings(callVariables(i)))
-        if (fixValues.forall(v => !v.isNaN && !v.isInfinity)) {
-          val perfs = (fixValues, strike).zipped.map((v, k) => v/k)
+  def basketPerformance(fixings:Map[String, Double], priceResult:PriceResult):Option[Double] = {
+    if (variables subsetOf fixings.keySet) {
+      val perfs:Map[String, Double] = strike.map{case (ul, v) => (ul, fixings(ul) / v.toDouble)}
 
-          basket match {
-            case "average" => Some(perfs.sum / fixValues.size.toDouble)
+      if (perfs.forall{case (ul, v) => !v.isNaN && !v.isInfinity}) {
 
-            case "max" =>
-              if (physical && priceResult != null) {
-                (perfs, strike, callVariables).zipped.maxBy{case (pf, k, ul) => pf} match {
-                  case (pf, k, ul) => priceResult.setAssetInfo(ul, 1.0 / k)
-                }
+        basket match {
+          case "average" => Some(perfs.values.sum / perfs.size.toDouble)
+
+          case "max" =>
+            if (physical && priceResult != null) {
+              perfs.maxBy{case (ul, pf) => pf} match {
+                case (ul, pf) => priceResult.setAssetInfo(ul, 1.0 / strike(ul).toDouble)
               }
-              Some(perfs.max)
+            }
 
-            case _ => //Some((fixValues, strike).zipped.map((v, k) => v/k).min)
-              if (physical && priceResult != null) {
-                (perfs, strike, callVariables).zipped.minBy{case (pf, k, ul) => pf} match {
-                  case (pf, k, ul) => priceResult.setAssetInfo(ul, 1.0 / k)
-                }
+            Some(perfs.values.max)
+
+          case _ =>
+
+            if (physical && priceResult != null) {
+              perfs.minBy{case (ul, pf) => pf} match {
+                case (ul, pf) => priceResult.setAssetInfo(ul, 1.0 / strike(ul).toDouble)
               }
-              Some(perfs.min)
+            }
 
-          }
-        } else None
+            Some(perfs.values.min)
+
+        }
       } else None
-    }
+    } else None
+  }
 
-    def priceList(fixings:Map[String, Double], currentFixedPrice:Option[Double], priceResult:PriceResult):Double = {
-      currentFixedPrice match {
-        case Some(f) => f
-        case None => basketPerformance(fixings, priceResult).collect{case v => getPerformance(v)}.getOrElse(Double.NaN)
-      }
+  def priceList(fixings:Map[String, Double], currentFixedPrice:Option[Double], priceResult:PriceResult):Double = {
+    currentFixedPrice match {
+      case Some(f) => f
+      case None => basketPerformance(fixings, priceResult).collect{case v => getPerformance(v)}.getOrElse(Double.NaN)
     }
+  }
 //  }
 
   //def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
@@ -144,7 +134,7 @@ case class CallUIPayoff(
     Double.NaN
   }
 
-  override def assignFixings(f:Map[String, Double]):Unit = {
+  override def assignFixings(f:Map[String, BigDecimal]):Unit = {
     super.assignFixings(f)
     checkKnockIn
   }
@@ -155,7 +145,7 @@ case class CallUIPayoff(
   }
   
   def checkKnockIn:Unit = {
-    fixedPrice = getFixedPrice(getFixings, null) //implicitly[FixingInterpreter[Map[String, Double]]] getFixedPrice(getFixings, null)
+    fixedPrice = getFixedPrice(getDoubleFixings, null) //implicitly[FixingInterpreter[Map[String, Double]]] getFixedPrice(getFixings, null)
   }
     
   override def toString =
@@ -163,8 +153,7 @@ case class CallUIPayoff(
   
   override def jsonMapImpl = Map(
     "type" -> "callui", 
-    "variable" -> callVariables.toArray, 
-    "strike" -> strike.toArray, 
+    "strike" -> strike,
     "trigger" -> trigger, 
     "add" -> added,
     "amount" -> amount,
@@ -182,11 +171,13 @@ object CallUIPayoff {
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):CallUIPayoff = {
     val formula = Payoff.updateReplacements(inputString)
     val fixed = fixingInfo.update(formula)
+    val callVariables = formula.parseJsonStringList("variable").map(_.orNull)
+    val strikeList = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+    val strikes = (callVariables, strikeList).zipped.map{case (ul, v) => (ul, v.getDecimal(ul))}.toMap
 
     CallUIPayoff(
-      callVariables = formula.parseJsonStringList("variable").map(_.orNull), 
-      trigger = fixed.parseJsonDouble("trigger").getOrElse(Double.NaN), 
-      strike = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN)), 
+      strike = strikes,
+      trigger = fixed.parseJsonDouble("trigger").getOrElse(Double.NaN),
       mult = fixed.parseJsonDouble("mult").getOrElse(1.0),
       added = fixed.parseJsonDouble("add").getOrElse(0.0),
       minPayoff = fixed.parseJsonDouble("min").getOrElse(0.0),
