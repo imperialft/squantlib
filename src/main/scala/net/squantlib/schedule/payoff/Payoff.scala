@@ -4,7 +4,7 @@ import java.util.{Map => JavaMap}
 
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
-import net.squantlib.util.{Date, FixingInformation, FormulaParser, JsonUtils}
+import net.squantlib.util._
 import net.squantlib.database.DB
 import net.squantlib.model.market.Market
 
@@ -89,13 +89,13 @@ trait Payoff extends FixingLeg {
    */
 
   def price(market:Market, pastPayments:List[Double]):Double = {
-    priceFlat(market.getFixings(variables), pastPayments)
+    priceFlat(UnderlyingFixing(market.getFixings(variables)), pastPayments)
   }
 
   final def price(market:Market, period:CalculationPeriod, pastPayments:List[Double]):Double = price(market, eventDates(period).size, pastPayments)
 
   final def price(market:Market, fixingCount:Int, pastPayments:List[Double]):Double = {
-    val mktFixings = market.getFixings(variables)
+    val mktFixings = UnderlyingFixing(market.getFixings(variables))
     price(List.fill(fixingCount)(mktFixings), pastPayments)
   }
 
@@ -106,7 +106,7 @@ trait Payoff extends FixingLeg {
   final def price:Double = price(null)
 
   final def price(priceResult:PriceResult):Double = {
-    if (isPaymentFixed) priceImpl(List.fill(2)(getDoubleFixings), List.empty, priceResult)
+    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), List.empty, priceResult)
     else if (isPriceable) priceImpl(priceResult)
     else Double.NaN
   }
@@ -115,10 +115,10 @@ trait Payoff extends FixingLeg {
    * Price in case of multiple event dates and multiple variables.
    * Only refers to the last variable by default but can be overridden.
    */
-  final def price(fixings:List[Map[String, Double]], pastPayments:List[Double]):Double = price(fixings, pastPayments, null)
+  final def price(fixings:List[UnderlyingFixing], pastPayments:List[Double]):Double = price(fixings, pastPayments, null)
 
-  final def price(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
-    if (isPaymentFixed) priceImpl(List.fill(2)(getDoubleFixings), pastPayments, priceResult)
+  final def price(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = {
+    if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), pastPayments, priceResult)
     else if (isPriceable) priceImpl(fixings, pastPayments, priceResult)
     else Double.NaN
   }
@@ -126,12 +126,12 @@ trait Payoff extends FixingLeg {
   def priceImpl(priceResult:PriceResult):Double
 
   // PAST PAYMENTS ARE REVERSED (recent first)
-  def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
+  def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = {
     if (fixings.isEmpty) price
     else price(fixings, pastPayments)
   }
 
-  def priceFlat(fixings:Map[String, Double], pastPayments:List[Double]):Double = price(List.fill(2)(fixings), pastPayments)
+  def priceFlat(fixings:UnderlyingFixing, pastPayments:List[Double]):Double = price(List.fill(2)(fixings), pastPayments)
 
   final def priceWithInfo:PriceResult = {
     val priceResult = new PriceResult
@@ -140,7 +140,7 @@ trait Payoff extends FixingLeg {
     priceResult
   }
 
-  final def priceWithInfo(fixings:List[Map[String, Double]], pastPayments:List[Double]):PriceResult = {
+  final def priceWithInfo(fixings:List[UnderlyingFixing], pastPayments:List[Double]):PriceResult = {
     val priceResult = new PriceResult
     val p = price(fixings, pastPayments, priceResult)
     priceResult.setPrice(p)
@@ -161,18 +161,18 @@ trait Payoff extends FixingLeg {
     fixings.takeRight(eventDateFixingIndexFromRight).headOption
   }
 
-  def triggeredUnderlyings(fixing:Map[String, Double], trigger:Map[String, Double], triggerUp:Boolean):Set[String] = {
-    trigger.filter{case (ul, v) =>
-      if (triggerUp) fixing.get(ul).collect{case fv => fv >= v}.getOrElse(false)
-      else fixing.get(ul).collect{case fv => fv <= v}.getOrElse(false)
+  def triggeredUnderlyings(fixing:UnderlyingFixing, trigger:UnderlyingFixing, triggerUp:Boolean):Set[String] = {
+    trigger.getDecimal.filter{case (ul, v) =>
+      if (triggerUp) fixing.getDecimal.get(ul).collect{case fv => fv >= v}.getOrElse(false)
+      else fixing.getDecimal.get(ul).collect{case fv => fv <= v}.getOrElse(false)
     }.keySet
   }
 
-  def isTriggered(fixing:Map[String, Double], trigger:Map[String, Double], triggerUp:Boolean):Boolean =
+  def isTriggered(fixing:UnderlyingFixing, trigger:UnderlyingFixing, triggerUp:Boolean):Boolean =
     !trigger.isEmpty && triggeredUnderlyings(fixing, trigger, triggerUp).size == trigger.size
 
-  def terminationAmount(fixing:Map[String, Double], trigNominal:Double, forwardStrikes:Option[Map[String, Double]]):Double = forwardStrikes match {
-    case Some(k) => trigNominal * k.map{case (k, v) => fixing(k) / v}.min
+  def terminationAmount(fixing:UnderlyingFixing, trigNominal:Double, forwardStrikes:Option[UnderlyingFixing]):Double = forwardStrikes match {
+    case Some(fwd) => trigNominal * fwd.getDouble.map{case (k, v) => fixing.getDouble(k) / v}.min
     case _ => trigNominal
   }
 
@@ -182,14 +182,14 @@ trait Payoff extends FixingLeg {
    * Returns this object if any variables are missing.
    */
 
-  def assignFixings(f:Map[String, Double], pastPayments:List[Double]):Unit = super.assignFixings(f)
+  def assignFixings(f:UnderlyingFixing, pastPayments:List[Double]):Unit = super.assignFixings(f)
 
-  def assignFixings(f:Double, pastPayments:List[Double]):Unit = super.assignFixings(f)
+  //def assignFixings(f:Double, pastPayments:List[Double]):Unit = super.assignFixings(f)
 
   def assignFixings(eventDate:Date, pastPayments:List[Double]):Unit =
     if (variables.size == 0) {}
     else {
-      val fixings:Map[String, Double] = variables.map(v => DB.getPriceOn(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x) (collection.breakOut)
+      val fixings:UnderlyingFixing = UnderlyingFixing(variables.map(v => DB.getPriceOn(v, eventDate).collect{case (_, f) => (v, f)}).flatMap(x => x).toMap)
       assignFixings(fixings)
     }
 
@@ -197,9 +197,9 @@ trait Payoff extends FixingLeg {
    * Returns FixedPayoff if all variables fixing are available on given market.
    * Returns this object if any variables are missing.
    */
-  def assignFixings(market:Market, pastPayments:List[Double]):Unit = assignFixings(market.getFixings(variables))
+  def assignFixings(market:Market, pastPayments:List[Double]):Unit = assignFixings(UnderlyingFixing(market.getFixings(variables)))
 
-  override def assignSettlementFixings(f:Map[String, BigDecimal]):Unit = {
+  override def assignSettlementFixings(f:UnderlyingFixing):Unit = {
     if (physical && (variables subsetOf f.keySet) || f.isEmpty) {
       settlementFixings = f
     }

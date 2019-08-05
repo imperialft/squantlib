@@ -8,7 +8,7 @@ import net.squantlib.schedule.call.{Callabilities, Callability}
 import net.squantlib.schedule.payoff.{FixedPayoff, Payoff, Payoffs}
 
 import scala.collection.JavaConversions._
-import net.squantlib.util.{Date, FixingInformation, UnderlyingFixingInfo}
+import net.squantlib.util.{Date, FixingInformation, UnderlyingFixing}
 import org.jquantlib.time.{BusinessDayConvention, Calendar}
 import org.jquantlib.daycounters.Actual365Fixed
 import org.jquantlib.daycounters._
@@ -140,29 +140,32 @@ case class ScheduledPayoffs(
 
   abstract class withDefault[T] { def defaultValue:T }
     
-  implicit object mapValue extends withDefault[Map[String, Double]] { def defaultValue = Map.empty[String, Double]}
+//  implicit object mapValue extends withDefault[Map[String, Double]] { def defaultValue = Map.empty[String, Double]}
+//
+//  implicit object listValue extends withDefault[List[Double]] { def defaultValue = List.fill(underlyings.size)(Double.NaN)}
+//
+//  implicit object doubleValue extends withDefault[Double] { def defaultValue = Double.NaN}
+//
+//  def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = dateMapper.map(d => {
+//    if (d.isEmpty) List(defclass.defaultValue) else d.map(fixings) })
+
+  def priceMapper(fixings:List[UnderlyingFixing]):List[List[UnderlyingFixing]] = dateMapper.map(d => {
+    if (d.isEmpty) List(UnderlyingFixing.errorValue(underlyings)) else d.map(fixings) })
+
+//  def fixingPrices(fixings:List[Double]):List[List[Double]] = priceMapper(fixings)
   
-  implicit object listValue extends withDefault[List[Double]] { def defaultValue = List.fill(underlyings.size)(Double.NaN)}
-  
-  implicit object doubleValue extends withDefault[Double] { def defaultValue = Double.NaN}
-  
-  def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = dateMapper.map(d => {
-    if (d.isEmpty) List(defclass.defaultValue) else d.map(fixings) })
-    
-  def fixingPrices(fixings:List[Double]):List[List[Double]] = priceMapper(fixings)
-  
-  def fixingPrices(fixings:List[Map[String, Double]])(implicit d:DummyImplicit):List[List[Map[String, Double]]] = priceMapper(fixings)
+  def fixingPrices(fixings:List[UnderlyingFixing])(implicit d:DummyImplicit):List[List[UnderlyingFixing]] = priceMapper(fixings)
 
   def price:List[Double] = if (calls.isTrigger) List.fill(payoffs.size)(Double.NaN) else payoffs.price
 
   // Single Underlying
-  def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
-    case Some(ul) => price(fixings.map(f => Map(ul -> f)))
-    case _ => List.fill(payoffs.size)(Double.NaN)
-  }
+//  def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
+//    case Some(ul) => price(fixings.map(f => UnderlyingFixing(Map(ul -> f))))
+//    case _ => List.fill(payoffs.size)(Double.NaN)
+//  }
 
   // multiple underlyings
-  def price(fixings:List[Map[String, Double]]):List[Double] = payoffs.price(priceMapper(fixings), calls.toList, schedule.dayCounts, None)
+  def price(fixings:List[UnderlyingFixing]):List[Double] = payoffs.price(priceMapper(fixings), calls.toList, schedule.dayCounts, None)
 
   def withValueDate(vd:Date):ScheduledPayoffs = ScheduledPayoffs(scheduledPayoffs, Some(vd))
     
@@ -219,7 +222,7 @@ case class ScheduledPayoffs(
         c.toString,
         if (underlyings.isEmpty || (p.variables.isEmpty && c.variables.isEmpty)) "fixed"
         else if (!p.isPaymentFixed && !c.isFixed) "not fixed"
-        else "fixed:" + (p.getFixings ++ c.getFixings).map{case (k, v) => k + ":" + v}.mkString(" ")
+        else "fixed:" + (p.getFixings.getDecimal ++ c.getFixings.getDecimal).map{case (k, v) => k + ":" + v}.mkString(" ")
         )}.toList
     (title, sched)
   }
@@ -270,7 +273,7 @@ case class ScheduledPayoffs(
 
   def assignFixings = {
 
-    val fixingMap:List[Map[String, BigDecimal]] = ScheduledPayoffs.getFixings(
+    val fixingMap:List[UnderlyingFixing] = ScheduledPayoffs.getFixings(
       ScheduledPayoffs.allFixingUnderlyings(payoffs, calls),
       schedule.eventDates,
       ScheduledPayoffs.getFixingInformation(payoffs, calls),
@@ -344,8 +347,8 @@ object ScheduledPayoffs {
     dates:List[Date],
     fixingInfo:FixingInformation,
     isInitialFixing:Boolean
-  ):List[Map[String, BigDecimal]] = {
-    DB.getFixings(underlyings, dates, fixingInfo, isInitialFixing).map(vs => vs.getDecimal()(fixingInfo))
+  ):List[UnderlyingFixing] = {
+    DB.getFixings(underlyings, dates, fixingInfo, isInitialFixing).map(vs => UnderlyingFixing(vs)(fixingInfo))
   }
     
   def getExterpolatedFixings(
@@ -353,19 +356,19 @@ object ScheduledPayoffs {
     dates:List[Date],
     fixingInfo:FixingInformation,
     valuedate:Date
-  ):List[Map[String, BigDecimal]] = {
+  ):List[UnderlyingFixing] = {
 
     if (dates.isEmpty) {return List.empty}
     val valuedate = DB.latestParamDate.getOrElse(dates.max)
     val (datesBefore, datesAfter) = dates.span(_ le valuedate)
 
-    val fixings:List[Map[String, BigDecimal]] = getFixings(underlyings, datesBefore, fixingInfo, false)
-    val currentFixings:List[Map[String, BigDecimal]] = DB.pastFixings(underlyings, List(valuedate)).map(vs => vs.collect{case (k, Some(v)) => (k, v.getDecimal(k)(fixingInfo))}.collect{case (k, Some(v)) => (k, v)})
+    val fixings:List[UnderlyingFixing] = getFixings(underlyings, datesBefore, fixingInfo, false)
+    val currentFixings:List[UnderlyingFixing] = DB.pastFixings(underlyings, List(valuedate)).map(vs => UnderlyingFixing(vs.collect{case (k, Some(v)) => (k, v)})(fixingInfo))
 
-    val exterps:List[Map[String, BigDecimal]] = datesAfter.map{case _ =>
-      if (!currentFixings.isEmpty) currentFixings.last.map{case (k, v) => (k, v)}
-      else if (!fixings.isEmpty) fixings.last.map{case (k, v) => (k, v)}
-      else Map.empty[String, BigDecimal]
+    val exterps:List[UnderlyingFixing] = datesAfter.map{case _ =>
+      if (!currentFixings.isEmpty) currentFixings.last
+      else if (!fixings.isEmpty) fixings.last
+      else UnderlyingFixing.empty
     }
     
     fixings ++ exterps
@@ -382,12 +385,12 @@ object ScheduledPayoffs {
     require (schedule.size == payoffs.size && schedule.size == calls.size)
     val (datesbefore, datesafter) = schedule.eventDates.span(_ le valuedate)
 
-    val fixingMap:List[Map[String, BigDecimal]] = getExterpolatedFixings(
+    val fixingMap:List[UnderlyingFixing] = getExterpolatedFixings(
       allFixingUnderlyings(payoffs, calls),
       datesbefore,
       getFixingInformation(payoffs, calls),
       valuedate
-    ) ++ List.fill(datesafter.size)(Map.empty[String, BigDecimal])
+    ) ++ List.fill(datesafter.size)(UnderlyingFixing.empty)
 
     payoffs.assignFixings(fixingMap)
     calls.assignFixings(fixingMap)
@@ -396,12 +399,11 @@ object ScheduledPayoffs {
     if (payoffs.exists(p => p.physical)) {
       val (paymentDatesBefore, paymentDatesAfter) = schedule.paymentDates.span(_ le valuedate)
 
-      val settlementFixingMap:List[Map[String, BigDecimal]] = getExterpolatedFixings(
+      val settlementFixingMap:List[UnderlyingFixing] = getExterpolatedFixings(
         allFixingUnderlyings(payoffs, calls),
         paymentDatesBefore,
         getFixingInformation(payoffs, calls),
-        valuedate) ++ List.fill(paymentDatesAfter.size)(Map.empty[String, BigDecimal]
-      )
+        valuedate) ++ List.fill(paymentDatesAfter.size)(UnderlyingFixing.empty)
 
       payoffs.assignSettlementFixings(settlementFixingMap)
     }

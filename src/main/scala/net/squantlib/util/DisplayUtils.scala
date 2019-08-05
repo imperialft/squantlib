@@ -133,7 +133,6 @@ object DisplayUtils { // extends StrictLogging {
 
   }
 
-
   implicit def decimalToExtendedDecimal(d:BigDecimal) = ExtendedDecimal(d)
 
   case class ExtendedDecimal(d:BigDecimal) {

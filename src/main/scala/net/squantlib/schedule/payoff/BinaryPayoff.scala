@@ -42,11 +42,6 @@ case class BinaryPayoff(
     stkLow.values.forall(_.isDefined) && stkHigh.values.forall(_.isDefined)
   }
 
-//  &&
-//    !payoff.exists{ case (k, minK, maxK) =>
-//      k.isNaN || k.isInfinity || minK.exists{case (kk, vv) => vv.isNaN || vv.isInfinity} || maxK.exists {case (kk, vv) => vv.isNaN || vv.isInfinity}
-//    }
-
   private val smallValue = 0.0000001
 
   override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double =
@@ -77,27 +72,30 @@ case class BinaryPayoff(
   
   override def priceImpl(priceResult:PriceResult) = Double.NaN
 
-  def jsonPayoffOutput:Set[JavaMap[String, AnyRef]] = payoffDefinition.map{
-    case (v, minK, maxK) if minK.isEmpty && maxK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef]).asJava
+  def jsonPayoffOutput:Set[Map[String, Any]] = payoffDefinition.map{
+    case (v, minK, maxK) if minK.isEmpty && maxK.isEmpty =>
+      Map(
+        "amount" -> v
+      )
 
     case (v, minK, maxK) if maxK.isEmpty =>
       Map(
-        "amount" -> v.asInstanceOf[AnyRef],
-        "strike" -> minK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toArray.asInstanceOf[AnyRef]
-      ).asJava
+        "amount" -> v,
+        "strike" -> minK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toMap
+      )
 
     case (v, minK, maxK) if minK.isEmpty =>
       Map(
-        "amount" -> v.asInstanceOf[AnyRef],
-        "strike_high" -> maxK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toArray.asInstanceOf[AnyRef]
-      ).asJava
+        "amount" -> v,
+        "strike_high" -> maxK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toMap
+      )
 
     case (v, minK, maxK) =>
       Map(
-        "amount" -> v.asInstanceOf[AnyRef],
-        "strike" -> minK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toArray.asInstanceOf[AnyRef],
-        "strike_high" -> maxK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toArray.asInstanceOf[AnyRef]
-      ).asJava
+        "amount" -> v,
+        "strike" -> minK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toMap,
+        "strike_high" -> maxK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toMap
+      )
   }
 
   override def jsonMapImpl:Map[String, Any] = {
@@ -105,7 +103,7 @@ case class BinaryPayoff(
       "type" -> "binary",
       "variable" -> payoffDefinition.map { case (_, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten,
       "description" -> description,
-      "payoff" -> jsonPayoffOutput.toArray,
+      "payoff" -> jsonPayoffOutput.toArray.map(_.asJava),
       "memory" -> (if (memory) "1" else "0"),
       "memory_amount" -> memoryAmount
     )
@@ -113,7 +111,7 @@ case class BinaryPayoff(
 
   override def fixedConditions:Map[String, Any] = {
     Map(
-      "payoff" -> jsonPayoffOutput.toArray
+      "payoff" -> jsonPayoffOutput.toArray.map(_.asJava)
     )
   }
         

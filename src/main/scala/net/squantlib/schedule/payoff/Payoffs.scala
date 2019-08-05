@@ -2,15 +2,17 @@ package net.squantlib.schedule.payoff
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+
 import scala.collection.LinearSeq
 import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._
-import net.squantlib.util.JsonUtils
+import net.squantlib.util.{FixingInformation, JsonUtils, UnderlyingFixing}
 import net.squantlib.util.JsonUtils._
-import net.squantlib.util.FixingInformation
+
 import scala.collection.JavaConverters._
 import scala.Predef._
 import net.squantlib.schedule.FixingLegs
+
 import scala.Predef.{DummyImplicit => DI}
 import scala.language.postfixOps
 import net.squantlib.schedule.call._
@@ -50,17 +52,17 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
  */
 
   def price(
-    fixings:List[List[Map[String, Double]]],
+    fixings:List[List[UnderlyingFixing]],
     calls: List[Callability],
     dayCounts:List[Double],
     accruedPayment:Option[Double]
   )(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
     assert(fixings.size == payoffs.size && fixings.size == calls.size, s"Number of fixings(${fixings.size}), calls(${calls.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} calls:${calls}")
 
-    val trigList:List[Option[Map[String, Double]]] = calls.map(c => c.optionalTriggers.collect{case vs => vs.getDouble})
+    val trigList:List[Option[UnderlyingFixing]] = calls.map(c => c.optionalTriggers.collect{case vs => vs})
     val trigUp:List[Boolean] = calls.map(_.triggerUp)
     val trigAmt:List[Double] = calls.map(_.bonusAmount.toDouble)
-    val forwardStrikes: List[Option[Map[String, Double]]] = calls.map(_.optionalForwardStrikes.collect{case vs => vs.getDouble})
+    val forwardStrikes: List[Option[UnderlyingFixing]] = calls.map(_.optionalForwardStrikes.collect{case vs => vs.getDouble})
     val targets:List[Option[Double]] = calls.map(_.targetRedemption.collect{case v => v.toDouble})
     val removeSatisfiedTriggers: List[Boolean] = calls.map(_.removeSatisfiedTriggers)
 
@@ -72,7 +74,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
  * @param fixings market parameters as Map(variable name -> value) in order of payoff.
  */
   def price(
-    fixings:List[List[Map[String, Double]]],
+    fixings:List[List[UnderlyingFixing]],
     trigger:List[Option[Map[String, Double]]],
     trigUp: List[Boolean],
     trigAmount:List[Double],
@@ -89,12 +91,12 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
   @tailrec
   private def priceTrig(
     paylist:List[Payoff],
-    fixlist:List[List[Map[String, Double]]],
+    fixlist:List[List[UnderlyingFixing]],
     acc:List[Double],
-    triglist:List[Option[Map[String, Double]]],
+    triglist:List[Option[UnderlyingFixing]],
     trigUp:List[Boolean],
     trigamt:List[Double],
-    forwardStrikes: List[Option[Map[String, Double]]],
+    forwardStrikes: List[Option[UnderlyingFixing]],
     targets:List[Option[Double]],
     removeSatisfiedTriggers:List[Boolean],
     dayCounts:List[Double],
@@ -107,7 +109,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     case _ if triggered => acc.reverse ++ List.fill(paylist.tail.size)(0.0)
 
     case (ph::pt, fh::ft, tlh::tlt, tuh::tut, tah::tat, fsh::fst, tgth::tgtt, memh::memt, dh::dt) =>
-      val eventDateFixing = ph.getEventDateFixing(fh).getOrElse(Map.empty[String, Double])
+      val eventDateFixing = ph.getEventDateFixing(fh).getOrElse(UnderlyingFixing.empty)
       val couponRate = ph.price(fh, acc)
       if (tlh.collect{case trig => ph.isTriggered(eventDateFixing, trig, tuh)}.getOrElse(false)) { //((couponRate + trigamt.head) :: acc).reverse ++ List.fill(paylist.tail.size)(0.0)
         val trigAmount = (tah + 1.0) / dh
@@ -124,7 +126,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
               tlh.collect { case trig =>
                 val triggeredUls = ph.triggeredUnderlyings(eventDateFixing, trig, tuh)
                 if (triggeredUls.isEmpty) tlt
-                else tlt.map(tt => tt.collect { case fut => fut.filter{ case (kk, vv) => !triggeredUls.contains(kk)}})
+                else tlt.map(tt => tt.collect { case fut => UnderlyingFixing(fut.getDecimal.filter{ case (kk, vv) => !triggeredUls.contains(kk)})})
               }.getOrElse(tlt)
             } else tlt
 
