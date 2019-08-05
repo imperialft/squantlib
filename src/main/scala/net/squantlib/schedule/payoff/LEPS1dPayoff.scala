@@ -174,15 +174,15 @@ object LEPS1dComponent {
   def apply(underlyingId:String, subnode:JsonNode)(implicit fixingInfo:FixingInformation):LEPS1dComponent = {
     val coeff:Option[Double] = Some(subnode.parseDouble("mult").getOrElse(0.0))
     val constant:Option[Double] = subnode.parseDouble("add")
-    val minRange:Option[Double] = subnode.parseDouble("minrange")
-    val maxRange:Option[Double] = subnode.parseDouble("maxrange")
+    val minRange:Option[BigDecimal] = subnode.parseDecimal("minrange")
+    val maxRange:Option[BigDecimal] = subnode.parseDecimal("maxrange")
 
     LEPS1dComponent(
       underlyingId,
       coeff,
       constant,
-      minRange.flatMap{case v => v.getDecimal(underlyingId)},
-      maxRange.flatMap{case v => v.getDecimal(underlyingId)}
+      minRange.collect{case v => v.scaled(underlyingId)},
+      maxRange.collect{case v => v.scaled(underlyingId)}
     )
   }
 }

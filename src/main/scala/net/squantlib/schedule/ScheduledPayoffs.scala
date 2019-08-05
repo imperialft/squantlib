@@ -42,10 +42,10 @@ case class ScheduledPayoffs(
       if (c.isTrigger) 
         Callability(
           bermudan = false,
-          triggers = c.triggers,
+          triggerDefinition = c.triggerDefinition,
           triggerUp = c.triggerUp,
           targetRedemption = None,
-          forward = Map.empty, //c.forward,
+          forwardDefinition = Map.empty, //c.forward,
           bonusAmount = 0.0, //c.bonusAmount,
           removeSatisfiedTriggers = c.removeSatisfiedTriggers,
           inputString = c.inputString,

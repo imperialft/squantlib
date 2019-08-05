@@ -85,9 +85,17 @@ object JsonUtils {
       case n if n.isNumber => Some(n.doubleValue)
       case n => FormulaParser.calculate(n.asText)
     }
-    
+
     def parseDouble(name:String):Option[Double] = if (hasName(name)) node.get(name).parseDouble else None
-    
+
+    def parseDecimal:Option[BigDecimal] = node match {
+      case n if n == null || n.isNull => None
+      case n if n.isNumber => Some(n.decimalValue)
+      case n => FormulaParser.calculate(n.asText).flatMap{case v => v.getRoundedDecimal}
+    }
+
+    def parseDecimal(name:String):Option[BigDecimal] = if (hasName(name)) node.get(name).parseDecimal else None
+
     def parseString:Option[String] = Some(node.asText)
     
     def parseString(name:String):Option[String] = if (hasName(name)) node.get(name).parseString else None
@@ -146,7 +154,10 @@ object JsonUtils {
     
     def parseDoubleList:List[Option[Double]] = parseList.map(_.parseDouble)
     def parseDoubleList(name:String):List[Option[Double]] = if (hasName(name)) node.get(name).parseDoubleList else List.empty
-    
+
+    def parseDecimalList:List[Option[BigDecimal]] = parseList.map(_.parseDecimal)
+    def parseDecimalList(name:String):List[Option[BigDecimal]] = if (hasName(name)) node.get(name).parseDecimalList else List.empty
+
     def parseStringList:List[Option[String]] = parseList.map(_.parseString)
     def parseStringList(name:String):List[Option[String]] = if (hasName(name)) node.get(name).parseStringList else List.empty
     
@@ -281,6 +292,9 @@ object JsonUtils {
     def parseJsonDouble:Option[Double] = jsonParser(_.parseDouble)
     def parseJsonDouble(name:String):Option[Double] = jsonParser(_.parseDouble(name))
 
+    def parseJsonDecimal:Option[BigDecimal] = jsonParser(_.parseDecimal)
+    def parseJsonDecimal(name:String):Option[BigDecimal] = jsonParser(_.parseDecimal(name))
+
     def parseJsonString:Option[String] = jsonParser(_.parseString)
     def parseJsonString(name:String):Option[String] = jsonParser(_.parseString(name))
 
@@ -298,6 +312,9 @@ object JsonUtils {
 
     def parseJsonDoubleList:List[Option[Double]] = jsonParserOrElse(_.parseDoubleList, List.empty)
     def parseJsonDoubleList(name:String):List[Option[Double]] = jsonParserOrElse(_.parseDoubleList(name), List.empty)
+
+    def parseJsonDecimalList:List[Option[BigDecimal]] = jsonParserOrElse(_.parseDecimalList, List.empty)
+    def parseJsonDecimalList(name:String):List[Option[BigDecimal]] = jsonParserOrElse(_.parseDecimalList(name), List.empty)
 
     def parseJsonStringList:List[Option[String]] = jsonParserOrElse(_.parseStringList, List.empty)
     def parseJsonStringList(name:String):List[Option[String]] = jsonParserOrElse(_.parseStringList(name), List.empty)
@@ -320,21 +337,24 @@ object JsonUtils {
     
     def getDouble(key:String):Option[Double] = map.get(key) match {
       case Some(v:Double) => Some(v)
+      case Some(v:BigDecimal) => Some(v.toDouble)
       case Some(v:Int) => Some(v.toDouble)
       case Some(v:String) => FormulaParser.calculate(v)
       case _ => None
     }
 
     def getDecimal(key:String):Option[BigDecimal] = map.get(key) match {
-      case Some(v:Double) => Some(BigDecimal.valueOf(v))
+      case Some(v:Double) => v.getRoundedDecimal
+      case Some(v:BigDecimal) => Some(v)
       case Some(v:Int) => Some(BigDecimal(v))
-      case Some(v:String) => FormulaParser.calculate(v).collect{case v => BigDecimal.valueOf(v)}
+      case Some(v:String) => FormulaParser.calculate(v).flatMap{case v => v.getRoundedDecimal}
       case _ => None
     }
 
     def getInt(key:String):Option[Int] = map.get(key) match {
-      case Some(v:Int) => Some(v)
       case Some(v:Double) => Some(v.round.toInt)
+      case Some(v:BigDecimal) => Some(v.toInt)
+      case Some(v:Int) => Some(v)
       case Some(v:String) => FormulaParser.calculate(v).collect{case s => s.round.toInt}
       case _ => None
     }

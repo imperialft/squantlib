@@ -17,7 +17,7 @@ import scala.reflect.ClassTag
  * {"type":"callui","variable":[String],"trigger":Double, "strike":[Double], "add":Double, "mult": Double, "min":Double, "max":Double, "baseAmount":Double, "basket":String, "description":""}
  */
 case class CallUIPayoff(
-  strike:Map[String, BigDecimal],
+  strikeDefinition:Map[String, Option[BigDecimal]],
   trigger:Double,
   mult: Double,
   added: Double,
@@ -31,12 +31,14 @@ case class CallUIPayoff(
   description:String = null,
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
-  
-  val variables = strike.keySet
+
+  val strike:Map[String, BigDecimal] = strikeDefinition.collect{case (ul, Some(v)) => (ul, v)}
+
+  val variables = strikeDefinition.keySet
 
   nominal = amount
   
-  override val isPriceable:Boolean = !strike.isEmpty && strike.forall{case (ul, v) => v > 0.000000001}
+  override val isPriceable:Boolean = !strike.isEmpty && strike.values.forall(_ > 0.000000001) && strikeDefinition.values.forall(_.isDefined)
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)
@@ -153,8 +155,8 @@ case class CallUIPayoff(
   
   override def jsonMapImpl = Map(
     "type" -> "callui", 
-    "strike" -> strike,
-    "trigger" -> trigger, 
+    "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))},
+    "trigger" -> trigger,
     "add" -> added,
     "amount" -> amount,
     "mult" -> mult,
@@ -171,12 +173,15 @@ object CallUIPayoff {
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):CallUIPayoff = {
     val formula = Payoff.updateReplacements(inputString)
     val fixed = fixingInfo.update(formula)
+    val fixedNode = fixed.jsonNode
     val callVariables = formula.parseJsonStringList("variable").map(_.orNull)
-    val strikeList:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
-    val strikes = (callVariables, strikeList).zipped.toMap.getDecimal
+//    val strikeList:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
+//    val strikes = (callVariables, strikeList).zipped.toMap.getOptionalDecimal
+    val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", callVariables).getOptionalDecimal}.getOrElse(Map.empty)
+
 
     CallUIPayoff(
-      strike = strikes,
+      strikeDefinition = strikes,
       trigger = fixed.parseJsonDouble("trigger").getOrElse(Double.NaN),
       mult = fixed.parseJsonDouble("mult").getOrElse(1.0),
       added = fixed.parseJsonDouble("add").getOrElse(0.0),

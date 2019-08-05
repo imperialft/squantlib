@@ -18,9 +18,9 @@ import scala.collection.JavaConverters._
  * No strike is considered as no low boundary
  */
 case class RangeForwardPayoff(
-  triggerLow:Map[String, BigDecimal],
-  triggerHigh:Map[String, BigDecimal],
-  strikes:Map[String, BigDecimal],
+  triggerLowDefinition:Map[String, Option[BigDecimal]],
+  triggerHighDefinition:Map[String, Option[BigDecimal]],
+  strikeDefinition:Map[String, Option[BigDecimal]],
   var knockedIn:Boolean,
   override val physical:Boolean,
   forwardInRange:Boolean = true,
@@ -29,26 +29,25 @@ case class RangeForwardPayoff(
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
 
-  val variables = triggerLow.keySet ++ triggerHigh.keySet ++ strikes.keySet
+  val variables = triggerLowDefinition.keySet ++ triggerHighDefinition.keySet ++ strikeDefinition.keySet
+
+  val triggerLow:Map[String, BigDecimal] = triggerLowDefinition.collect{case (ul, Some(v)) => (ul, v)}
+  val triggerHigh:Map[String, BigDecimal] = triggerHighDefinition.collect{case (ul, Some(v)) => (ul, v)}
+  val strikes:Map[String, BigDecimal] = strikeDefinition.collect{case (ul, Some(v)) => (ul, v)}
 
   nominal = amount
 
-  val strikeVariables:Set[String] = strikes.keySet
-  val triggerVariables:Set[String] = triggerLow.keySet ++ triggerHigh.keySet
+  val triggerVariables:Set[String] = triggerLowDefinition.keySet ++ triggerHighDefinition.keySet
+  val strikeVariables:Set[String] = strikeDefinition.keySet
   val doubleStrikes = strikes.map{case (ul, v) => (ul, v.toDouble)}
 
-  override val isPriceable:Boolean = !strikes.isEmpty
+  override val isPriceable:Boolean = !strikes.isEmpty && triggerLowDefinition.values.forall(_.isDefined) && triggerHighDefinition.values.forall(_.isDefined) && strikeDefinition.values.forall(_.isDefined)
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)
     else if (physical) List(period.eventDate, period.paymentDate)
     else List(period.eventDate)
   }
-
-//    def isKnockIn(fixings:T):Option[Boolean] // Method to be implemented
-//    def price(fixings:T, isKnockedIn:Boolean, priceResult:PriceResult):Double // Method to be implemented
-//    def assignPhysicalInfo(priceResult:PriceResult):Unit // Method to be implemented
-//    def assignPhysicalInfo(fixings:T, priceResult:PriceResult):Unit // Method to be implemented
 
     def priceEmpty(priceResult:PriceResult):Double = {
       if (isFixed) {
@@ -183,10 +182,10 @@ case class RangeForwardPayoff(
   override def jsonMapImpl = {
     Map(
       "type" -> "rangeforward",
-      "variable" -> (triggerLow.keySet ++ triggerHigh.keySet ++ strikes.keySet).asJava,
-      "triggerlow" -> triggerLow.asJava,
-      "triggerhigh" -> triggerHigh.asJava,
-      "strike" -> strikes.asJava,
+      "variable" -> (triggerLowDefinition.keySet ++ triggerHighDefinition.keySet ++ strikeDefinition.keySet).asJava,
+      "triggerlow" -> triggerLowDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "triggerhigh" -> triggerHighDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
       "description" -> description
     )
   }
@@ -201,9 +200,9 @@ object RangeForwardPayoff {
     val fixedNode = fixed.jsonNode
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-    val triggerHigh:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerhigh", variable).getDecimal}.getOrElse(Map.empty)
-    val triggerLow:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerlow", variable).getDecimal}.getOrElse(Map.empty)
-    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variable).getDecimal}.getOrElse(Map.empty)
+    val triggerHigh:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerhigh", variable).getOptionalDecimal}.getOrElse(Map.empty)
+    val triggerLow:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerlow", variable).getOptionalDecimal}.getOrElse(Map.empty)
+    val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variable).getOptionalDecimal}.getOrElse(Map.empty)
 
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val forwardInRange:Boolean = formula.parseJsonString("range_type").getOrElse("in") != "out"

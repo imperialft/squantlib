@@ -9,8 +9,8 @@ import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 class PutDIPayoff(
-  override val triggers:Map[String, BigDecimal],
-  override val strikes:Map[String, BigDecimal],
+  override val triggerDefinition:Map[String, Option[BigDecimal]],
+  override val strikeDefinition:Map[String, Option[BigDecimal]],
   initKnockedIn:Boolean,
   override val physical:Boolean,
   override val reverse: Boolean,
@@ -21,9 +21,9 @@ class PutDIPayoff(
   override val description:String = null,
   override val inputString:String = null
 )(implicit override val fixingInfo:FixingInformation) extends PutDIAmericanPayoff(
-  triggers = triggers,
-  strikes = strikes,
-  finalTriggers = triggers,
+  triggerDefinition = triggerDefinition,
+  strikeDefinition = strikeDefinition,
+  finalTriggerDefinition = triggerDefinition,
   refstart = null,
   refend = null,
   knockedIn = initKnockedIn,
@@ -62,9 +62,9 @@ class PutDIPayoff(
 
   override def jsonMapImpl = Map(
     "type" -> "putdiamerican",
-    "variable" -> (triggers.keySet ++ strikes.keySet).toArray,
-    "trigger" -> triggers.asJava,
-    "strike" -> strikes.asJava,
+    "variable" -> (triggerDefinition.keySet ++ strikeDefinition.keySet).toArray,
+    "trigger" -> triggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+    "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
     "description" -> description
   )
 
@@ -93,8 +93,8 @@ object PutDIPayoff {
     val fixedNode = fixed.jsonNode
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-    val triggers:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getDecimal}.getOrElse(Map.empty)
-    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getDecimal}.getOrElse(Map.empty)
+    val triggers:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getOptionalDecimal}.getOrElse(Map.empty)
+    val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal}.getOrElse(Map.empty)
 
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val description:String = formula.parseJsonString("description").orNull
@@ -106,8 +106,8 @@ object PutDIPayoff {
     val knockedIn:Boolean = false
 
     new PutDIPayoff(
-      triggers = triggers,
-      strikes = strikes,
+      triggerDefinition = triggers,
+      strikeDefinition = strikes,
       initKnockedIn = knockedIn,
       physical = physical,
       reverse = reverse,

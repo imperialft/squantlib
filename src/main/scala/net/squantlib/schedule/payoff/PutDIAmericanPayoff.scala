@@ -18,9 +18,9 @@ import scala.collection.JavaConverters._
  * No strike is considered as no low boundary
  */
 case class PutDIAmericanPayoff(
-  triggers:Map[String, BigDecimal],
-  strikes:Map[String, BigDecimal],
-  finalTriggers:Map[String, BigDecimal],
+  triggerDefinition:Map[String, Option[BigDecimal]],
+  strikeDefinition:Map[String, Option[BigDecimal]],
+  finalTriggerDefinition:Map[String, Option[BigDecimal]],
   refstart:Date,
   refend:Date,
   var knockedIn:Boolean,
@@ -35,12 +35,16 @@ case class PutDIAmericanPayoff(
   description:String = null,
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
-  
-  override val variables = triggers.keySet ++ strikes.keySet ++ finalTriggers.keySet
 
-  val strikeVariables = strikes.keySet
-  val triggerVariables = triggers.keySet
-  val strikeOrFinalTriggerVariables = finalTriggers.keySet
+  override val variables = triggerDefinition.keySet ++ strikeDefinition.keySet ++ finalTriggerDefinition.keySet
+
+  val strikes = strikeDefinition.collect{case (ul, Some(v)) => (ul, v)}
+  val triggers = triggerDefinition.collect{case (ul, Some(v)) => (ul, v)}
+  val finalTriggers = finalTriggerDefinition.collect{case (ul, Some(v)) => (ul, v)}
+
+  val strikeVariables = strikeDefinition.keySet
+  val triggerVariables = triggerDefinition.keySet
+  val strikeOrFinalTriggerVariables = finalTriggerDefinition.keySet
 
   val strikesDouble = strikes.map{case (ul, v) => (ul, v.toDouble)}
   
@@ -62,8 +66,11 @@ case class PutDIAmericanPayoff(
     !strikes.isEmpty &&
     refstart != null &&
     refend != null &&
-    (refstart le refend)
-  
+    (refstart le refend) &&
+    triggerDefinition.values.forall(_.isDefined) &&
+    strikeDefinition.values.forall(_.isDefined) &&
+    finalTriggerDefinition.values.forall(_.isDefined)
+
   var mcPeriod6m = 30
   var mcPeriod1y = 90
   var mcPeriodbefore = 180
@@ -232,10 +239,10 @@ case class PutDIAmericanPayoff(
   
   override def jsonMapImpl = Map(
     "type" -> "putdiamerican", 
-    "variable" -> (triggers.keySet ++ strikes.keySet ++ finalTriggers.keySet).toArray,
-    "trigger" -> triggers.asJava,
-    "strike" -> strikes.asJava,
-    "final_trigger" -> finalTriggers.asJava,
+    "variable" -> (triggerDefinition.keySet ++ strikeDefinition.keySet ++ finalTriggerDefinition.keySet).toArray,
+    "trigger" -> triggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+    "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+    "final_trigger" -> finalTriggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
     "refstart" -> (if (refstart == null) null else refstart.toString),
     "refend" -> (if (refend == null) null else refend.toString),
     "description" -> description
@@ -290,13 +297,13 @@ object PutDIAmericanPayoff {
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val triggers:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getDecimal}.getOrElse(Map.empty)
+    val triggers:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getOptionalDecimal}.getOrElse(Map.empty)
 
-    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getDecimal}.getOrElse(Map.empty)
+    val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal}.getOrElse(Map.empty)
 
-    val finalTriggers:Map[String, BigDecimal] =
+    val finalTriggers:Map[String, Option[BigDecimal]] =
       fixedNode.collect{case n =>
-        if (n.has("final_trigger")) strikes ++ Payoff.nodeToComputedMap(n, "final_trigger", variables).getDecimal
+        if (n.has("final_trigger")) strikes ++ Payoff.nodeToComputedMap(n, "final_trigger", variables).getOptionalDecimal
         else strikes
       }.getOrElse(Map.empty)
 
@@ -315,9 +322,9 @@ object PutDIAmericanPayoff {
     val knockedIn:Boolean = false
     
     PutDIAmericanPayoff(
-      triggers = triggers,
-      strikes = strikes,
-      finalTriggers = finalTriggers,
+      triggerDefinition = triggers,
+      strikeDefinition = strikes,
+      finalTriggerDefinition = finalTriggers,
       refstart = refstart,
       refend = refend,
       knockedIn = knockedIn,

@@ -150,13 +150,13 @@ trait PriceableBond extends BondModel with Priceable {
       case s if s < trigger.size => List.fill(trigger.size - trig.size)(List.empty) ++ trig
     case s if s > trigger.size => trig takeRight trigger.size
     }
-//  val newSchedule = ScheduledPayoffs(schedule, payoffs, Callabilities(bermudan, newtrig, underlyings))
+
     val newCalls:List[Callability] = (calls, newtrig).zipped.map{case (c, t) => Callability(
       bermudan = c.bermudan,
-      triggers = underlyings.zip(t).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.collect{case (k, Some(v)) => (k, v)}.toMap,
+      triggerDefinition = underlyings.zip(t).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.toMap,
       triggerUp = c.triggerUp,
       targetRedemption = c.targetRedemption,
-      forward = c.forward,
+      forwardDefinition = c.forwardDefinition,
       bonusAmount = c.bonusAmount,
       removeSatisfiedTriggers = c.removeSatisfiedTriggers,
       inputString = Map.empty,

@@ -198,7 +198,7 @@ object Payoffs {
 	def payoffType(formula:String):String = formula.trim match {
 	  case f if f.parseDouble.isDefined => "fixed"
 	  case f if f.startsWith("leps") => "leps1d"
-	  case f => formula.parseJsonString("type").orNull
+	  case _ => formula.parseJsonString("type").orNull
 	  }
 	
 	def getPayoff(f:String)(implicit fixingInfo:FixingInformation):Payoff = Payoff(f).getOrElse(GeneralPayoff(f))

@@ -9,10 +9,10 @@ import net.squantlib.util.JsonUtils
 
 case class Callability(
   bermudan: Boolean,
-  triggers: Map[String, BigDecimal],
+  triggerDefinition: Map[String, Option[BigDecimal]],
   triggerUp: Boolean,
   targetRedemption: Option[BigDecimal],
-  forward: Map[String, BigDecimal],
+  forwardDefinition: Map[String, Option[BigDecimal]],
   bonusAmount: BigDecimal,
   removeSatisfiedTriggers: Boolean,
   inputString: Map[String, Any],
@@ -20,9 +20,13 @@ case class Callability(
   var simulatedFrontier: Map[String, Double] = Map.empty
 )(implicit val fixingInfo: FixingInformation) extends FixingLeg {
 
-  val triggerVariables = triggers.keySet
+  val triggers:Map[String, BigDecimal] = triggerDefinition.collect{case (ul, Some(v)) => (ul, v)}
 
-  val forwardVariables = forward.keySet
+  val forward:Map[String, BigDecimal] = forwardDefinition.collect{case (ul, Some(v)) => (ul, v)}
+
+  val triggerVariables = triggerDefinition.keySet
+
+  val forwardVariables = forwardDefinition.keySet
 
   val doubleForward = forward.map{case (ul, v) => (ul, v.toDouble)}
 
@@ -74,9 +78,8 @@ case class Callability(
   
   def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && targetRedemption.isDefined && !isFutureFixing
   
-  def isPriceable:Boolean = !forward.values.exists(v => v <= 0.0000000000001)
-  // && forward.keySet.subsetOf(triggers.keySet)
-  
+  def isPriceable:Boolean = forward.values.forall(v => v > 0.0000000000001) && triggerDefinition.values.forall(_.isDefined) && forwardDefinition.values.forall(_.isDefined)
+
   def isEmpty:Boolean = !bermudan && triggers.isEmpty && targetRedemption.isEmpty
   
   def fixedTriggerByTrigger:Option[Boolean] = 
@@ -161,7 +164,7 @@ case class Callability(
         "strike" -> inputString.getOrElse("forward", forward)
       ))
       new ForwardPayoff(
-        strikes = forward,
+        strikeDefinition = forwardDefinition,
         physical = true,
         reverse = false,
         minPayoff = 0.0,
@@ -188,10 +191,10 @@ case class Callability(
   def triggerShifted(shiftedTriggers: Map[String, Double]):Callability = {
     Callability(
       bermudan = bermudan,
-      triggers = shiftedTriggers.getDecimal,
+      triggerDefinition = shiftedTriggers.getDecimal.map{case (ul, v) => (ul, Some(v))},
       triggerUp = triggerUp,
       targetRedemption = targetRedemption,
-      forward = forward,
+      forwardDefinition = forwardDefinition,
       bonusAmount = bonusAmount,
       removeSatisfiedTriggers = removeSatisfiedTriggers,
       inputString = inputString,
@@ -220,7 +223,7 @@ object Callability {
   
   val empty = Callability(
     bermudan = false,
-    triggers = Map.empty[String, BigDecimal],
+    triggerDefinition = Map.empty[String, Option[BigDecimal]],
     targetRedemption = None,
     callOption = CallOption.empty,
     inputString = Map.empty[String, Any],
@@ -230,7 +233,7 @@ object Callability {
 
   def apply(
     bermudan:Boolean,
-    triggers:Map[String, BigDecimal],
+    triggerDefinition:Map[String, Option[BigDecimal]],
     targetRedemption:Option[BigDecimal],
     callOption: CallOption,
     inputString:Map[String, Any],
@@ -239,10 +242,10 @@ object Callability {
   )(implicit fixingInfo:FixingInformation):Callability = 
     Callability(
       bermudan = bermudan,
-      triggers = triggers,
+      triggerDefinition = triggerDefinition,
       triggerUp = callOption.triggerUp,
       targetRedemption = targetRedemption,
-      forward = callOption.forward,
+      forwardDefinition = callOption.forwardDefinition,
       bonusAmount = callOption.bonus,
       removeSatisfiedTriggers = callOption.removeSatisfiedTriggers,
       inputString = inputString,
@@ -256,7 +259,7 @@ object Callability {
     triggers:List[Option[Double]],
     triggerUp:Boolean,
     targetRedemption:Option[Double],
-    forward: Map[String, BigDecimal],
+    forward: Map[String, Option[BigDecimal]],
     bonusAmount:Double,
     removeSatisfiedTriggers: Boolean,
     inputString:Map[String, Any],
@@ -265,11 +268,11 @@ object Callability {
     )(implicit fixingInfo:FixingInformation):Callability = 
     Callability(
       bermudan = bermudan,
-      triggers = underlyings.zip(triggers).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.collect{case (k, Some(v)) => (k, v)}.toMap,
+      triggerDefinition = underlyings.zip(triggers).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.toMap,
       triggerUp = triggerUp,
-      targetRedemption = targetRedemption.collect{case v => BigDecimal.valueOf(v)},
-      forward = forward,
-      bonusAmount = BigDecimal.valueOf(bonusAmount),
+      targetRedemption = targetRedemption.flatMap{case v => v.getRoundedDecimal},
+      forwardDefinition = forward,
+      bonusAmount = bonusAmount.getRoundedDecimal.getOrElse(0.0),
       removeSatisfiedTriggers = removeSatisfiedTriggers,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,

@@ -18,7 +18,7 @@ import scala.reflect.ClassTag
  * No strike is considered as no low boundary
  */
 case class ForwardPayoff(
-  strikes:Map[String, BigDecimal],
+  strikeDefinition:Map[String, Option[BigDecimal]],
   override val physical:Boolean,
   reverse:Boolean,
   override val minPayoff:Double,
@@ -26,10 +26,12 @@ case class ForwardPayoff(
   description:String = null,
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
+
+  val strikes = strikeDefinition.collect{case (ul, Some(v)) => (ul, v)}
+
+  override val variables = strikeDefinition.keySet
   
-  override val variables = strikes.keySet
-  
-  override val isPriceable = !strikes.isEmpty
+  override val isPriceable = !strikes.isEmpty && strikeDefinition.values.forall(_.isDefined)
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (physical) List(period.eventDate, period.paymentDate)
@@ -109,8 +111,8 @@ case class ForwardPayoff(
   
   override def jsonMapImpl = Map(
     "type" -> "forward", 
-    "variable" -> strikes.keySet,
-    "strike" -> strikes, //(fwdVariables, strike).zipped.toMap,
+    "variable" -> strikeDefinition.keySet,
+    "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))},
     "description" -> description
   )
 
@@ -126,10 +128,8 @@ object ForwardPayoff {
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val strikes:Map[String, BigDecimal] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getDecimal}.getOrElse(Map.empty)
+    val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal}.getOrElse(Map.empty)
 
-//    val variable:List[String] = fixingInfo.update(formula).parseJsonStringList("variable").map(_.orNull)
-//    val strike:List[Double] = fixingInfo.update(formula).parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
     val minPayoff:Double = fixed.parseJsonDouble("min").getOrElse(0.0)
@@ -137,7 +137,7 @@ object ForwardPayoff {
     val description:String = fixingInfo.update(formula).parseJsonString("description").orNull
 
     ForwardPayoff(
-      strikes = strikes,
+      strikeDefinition = strikes,
       physical = physical,
       reverse = reverse,
       minPayoff = minPayoff,
@@ -146,27 +146,6 @@ object ForwardPayoff {
       inputString = inputString
     )
   }
-
-//  def apply(
-//    strikes:Map[String, Double],
-//    physical:Boolean,
-//    reverse:Boolean,
-//    minPayoff:Double,
-//    maxPayoff:Option[Double],
-//    description:String = null,
-//    inputString:String = null
-//  )(implicit fixingInfo:FixingInformation):ForwardPayoff = {
-//
-//    ForwardPayoff(
-//      strikes = strikes.map{case (ul, v) => (ul, v.getDecimal(ul))},
-//      physical = physical,
-//      reverse = reverse,
-//      minPayoff = minPayoff,
-//      maxPayoff = maxPayoff,
-//      description = description,
-//      inputString = inputString
-//    )
-//  }
 
 
 }

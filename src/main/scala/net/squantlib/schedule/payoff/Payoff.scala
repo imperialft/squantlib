@@ -78,6 +78,12 @@ trait Payoff extends FixingLeg {
 
   def jsonMapImpl:Map[String, Any]
 
+  def fixedConditions:Map[String, Any] = Map.empty
+
+  def fixedConditionsString:String = {
+    JsonUtils.jsonString(fixedConditions.asJava)
+  }
+
   /*
    * Price assuming all variables fixed at spot market.
    */

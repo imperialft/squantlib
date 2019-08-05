@@ -62,6 +62,7 @@ object DisplayUtils { // extends StrictLogging {
   }
   
   implicit def doubleToExtendedDouble(d:Double) = ExtendedDouble(d)
+
   case class ExtendedDouble(d:Double) {
     def asPercent:String = (if (d.isNaN || d.isInfinity) defaultNaNdisplay else "%.4f".format(d * 100.0).trimZeros) + "%"
     def asPercent(decimals:Int):String = (if (d.isNaN || d.isInfinity) defaultNaNdisplay else ("%." + decimals + "f").format(d * 100.0).trimZeros) + "%"
@@ -71,6 +72,8 @@ object DisplayUtils { // extends StrictLogging {
 
     def getDecimal(precision:Int, roundType:String):Option[BigDecimal] = ExtendedDouble.getDecimal(d, precision, roundType)
     def getDecimal(underlyingId:String)(implicit fixingInfo:FixingInformation):Option[BigDecimal] = ExtendedDouble.getDecimal(d, underlyingId)
+
+    def getRoundedDecimal:Option[BigDecimal] = if (d.isNaN || d.isInfinity) None else Some(BigDecimal.valueOf(d).setScale(10, BigDecimal.RoundingMode.HALF_UP))
 
     def getRoundedDouble(precision:Int, roundType:String):Double = getDecimal(precision, roundType).collect{case v => v.toDouble}.getOrElse(Double.NaN)
     def getRoundedDouble(underlyingId:String)(implicit fixingInfo:FixingInformation):Double = {
@@ -116,10 +119,13 @@ object DisplayUtils { // extends StrictLogging {
   object ExtendedDouble {
     def getDecimal(v:Double, precision:Int, roundType:String):Option[BigDecimal] = {
       if (v.isInfinite || v.isNaN) None
-      else roundType match {
-        case "roundup" => Some(BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.CEILING))
-        case "rounddown" => Some(BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.FLOOR))
-        case _ => Some(BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.HALF_UP))
+      else {
+        val baseRounded:BigDecimal = BigDecimal.valueOf(v).setScale(precision + 2, BigDecimal.RoundingMode.HALF_UP)
+        roundType match {
+          case "roundup" => Some(baseRounded.setScale(precision, BigDecimal.RoundingMode.CEILING))
+          case "rounddown" => Some(baseRounded.setScale(precision, BigDecimal.RoundingMode.FLOOR))
+          case _ => Some(baseRounded.setScale(precision, BigDecimal.RoundingMode.HALF_UP))
+        }
       }
     }
 
@@ -178,7 +184,9 @@ object DisplayUtils { // extends StrictLogging {
   implicit def extendUnderlyingPrices(ulv: Map[String, Double]) = ExtendedUnderlyingPrices(ulv)
 
   case class ExtendedUnderlyingPrices(ulv:Map[String, Double]) {
-    def getDecimal()(implicit fixingInfo: FixingInformation):Map[String, BigDecimal] = ulv.map { case (ul, v) => (ul, v.getDecimal(ul))}.collect{case (ul, Some(v)) => (ul, v)}
+    def getOptionalDecimal()(implicit fixingInfo: FixingInformation):Map[String, Option[BigDecimal]] = ulv.map { case (ul, v) => (ul, v.getDecimal(ul))}
+
+    def getDecimal()(implicit fixingInfo: FixingInformation):Map[String, BigDecimal] = getOptionalDecimal.collect{case (ul, Some(v)) => (ul, v)}
   }
 
   implicit def extendUnderlyingPricesDecimal(ulv: Map[String, BigDecimal]) = ExtendedUnderlyingPricesDecimal(ulv)

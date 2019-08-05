@@ -17,14 +17,20 @@ la specification for sum of linear formulas with discrete range.
  * No strike is considered as no low boundary
  */
 case class BinaryPayoff(
-  payoff:Set[(BigDecimal, Map[String, BigDecimal], Map[String, BigDecimal])],
+  payoffDefinition:Set[(BigDecimal, Map[String, Option[BigDecimal]], Map[String, Option[BigDecimal]])],
   memory:Boolean,
   memoryAmount:BigDecimal,
   description:String = null,
   inputString:String = null,
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
 
-  override val variables: Set[String] = payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten
+  val payoff:Set[(BigDecimal, Map[String, BigDecimal], Map[String, BigDecimal])] = {
+    payoffDefinition.map{
+      case (amount, stkLow, stkHigh) => (amount, stkLow.collect{case (ul1, Some(v1)) => (ul1, v1)}, stkHigh.collect{case (ul1, Some(v1)) => (ul1, v1)})
+    }
+  }
+
+  override val variables: Set[String] = payoffDefinition.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten
 
   val unconditionalAmount:BigDecimal = payoff.filter{
     case (r, minK, maxK) => minK.isEmpty && maxK.isEmpty
@@ -32,8 +38,10 @@ case class BinaryPayoff(
     case (r, minK, maxK) => r
   }.reduceOption(_ min _).getOrElse(0.0)
 
-  override val isPriceable: Boolean =
-    !payoff.isEmpty
+  override val isPriceable: Boolean = !payoff.isEmpty && payoffDefinition.forall{case (amount, stkLow, stkHigh) =>
+    stkLow.values.forall(_.isDefined) && stkHigh.values.forall(_.isDefined)
+  }
+
 //  &&
 //    !payoff.exists{ case (k, minK, maxK) =>
 //      k.isNaN || k.isInfinity || minK.exists{case (kk, vv) => vv.isNaN || vv.isInfinity} || maxK.exists {case (kk, vv) => vv.isNaN || vv.isInfinity}
@@ -68,23 +76,44 @@ case class BinaryPayoff(
     }.mkString(" ")
   
   override def priceImpl(priceResult:PriceResult) = Double.NaN
-  
-  override def jsonMapImpl = {
-    
-    val jsonPayoff:Array[JavaMap[String, AnyRef]] = payoff.map{
-      case (v, minK, maxK) if minK.isEmpty && maxK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef]).asJava
-      case (v, minK, maxK) if maxK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef], "strike" -> minK.toArray.asInstanceOf[AnyRef]).asJava
-      case (v, minK, maxK) if minK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef], "strike_high" -> maxK.toArray.asInstanceOf[AnyRef]).asJava
-      case (v, minK, maxK) => Map("amount" -> v.asInstanceOf[AnyRef], "strike" -> minK.toArray.asInstanceOf[AnyRef], "strike_high" -> maxK.toArray.asInstanceOf[AnyRef]).asJava
-    }.toArray
 
+  def jsonPayoffOutput:Set[JavaMap[String, AnyRef]] = payoffDefinition.map{
+    case (v, minK, maxK) if minK.isEmpty && maxK.isEmpty => Map("amount" -> v.asInstanceOf[AnyRef]).asJava
+
+    case (v, minK, maxK) if maxK.isEmpty =>
+      Map(
+        "amount" -> v.asInstanceOf[AnyRef],
+        "strike" -> minK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toArray.asInstanceOf[AnyRef]
+      ).asJava
+
+    case (v, minK, maxK) if minK.isEmpty =>
+      Map(
+        "amount" -> v.asInstanceOf[AnyRef],
+        "strike_high" -> maxK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toArray.asInstanceOf[AnyRef]
+      ).asJava
+
+    case (v, minK, maxK) =>
+      Map(
+        "amount" -> v.asInstanceOf[AnyRef],
+        "strike" -> minK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toArray.asInstanceOf[AnyRef],
+        "strike_high" -> maxK.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.toArray.asInstanceOf[AnyRef]
+      ).asJava
+  }
+
+  override def jsonMapImpl:Map[String, Any] = {
     Map(
       "type" -> "binary",
-      "variable" -> payoff.map { case (k, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten,
+      "variable" -> payoffDefinition.map { case (_, minK, maxK) => minK.keySet ++ maxK.keySet}.flatten,
       "description" -> description,
-      "payoff" -> jsonPayoff,
+      "payoff" -> jsonPayoffOutput.toArray,
       "memory" -> (if (memory) "1" else "0"),
       "memory_amount" -> memoryAmount
+    )
+  }
+
+  override def fixedConditions:Map[String, Any] = {
+    Map(
+      "payoff" -> jsonPayoffOutput.toArray
     )
   }
         
@@ -94,19 +123,18 @@ object BinaryPayoff {
   
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):BinaryPayoff = {
     val formula = Payoff.updateReplacements(inputString)
-    val fixedNode = formula.jsonNode
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
     val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
 
-    val payoffs:Set[(BigDecimal, Map[String, BigDecimal], Map[String, BigDecimal])] = fixingInfo.update(formula).jsonNode("payoff") match {
+    val payoffs:Set[(BigDecimal, Map[String, Option[BigDecimal]], Map[String, Option[BigDecimal]])] = fixingInfo.update(formula).jsonNode("payoff") match {
       case None => Set.empty
   	  case Some(subnode) if subnode.isArray =>
         subnode.asScala.map(n => {
-          val amount = BigDecimal.valueOf(n.parseDouble("amount").getOrElse(0.0))
-          val strikes = Payoff.nodeToComputedMap(n, (if (reverse) "strike_low" else "strike"), variable).getDecimal
-          val strikeHighs = Payoff.nodeToComputedMap(n, (if (reverse) "strike" else "strike_high"), variable).getDecimal
+          val amount = n.parseDecimal("amount").getOrElse(BigDecimal(0.0))
+          val strikes = Payoff.nodeToComputedMap(n, (if (reverse) "strike_low" else "strike"), variable).getOptionalDecimal
+          val strikeHighs = Payoff.nodeToComputedMap(n, (if (reverse) "strike" else "strike_high"), variable).getOptionalDecimal
           (amount, strikes, strikeHighs)
         }) (collection.breakOut)
 	    case _ => Set.empty
@@ -114,12 +142,12 @@ object BinaryPayoff {
 
     val memory:Boolean = formula.parseJsonString("memory").getOrElse("0") == "1"
 
-    val memoryAmount:BigDecimal = BigDecimal.valueOf(formula.parseJsonDouble("memory_amount").getOrElse(0.0))
+    val memoryAmount:BigDecimal = formula.parseJsonDecimal("memory_amount").getOrElse(BigDecimal(0.0))
 
     val description:String = formula.parseJsonString("description").orNull
 
 	  BinaryPayoff(
-      payoff = payoffs,
+      payoffDefinition = payoffs,
       memory = memory,
       memoryAmount = memoryAmount,
       description = description,

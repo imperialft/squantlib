@@ -57,8 +57,8 @@ object RangeAccrualPayoff {
     val variable:String = formula.parseJsonString("variable").getOrElse(null)
     val baseAmount:Double = fixed.parseJsonDouble("base_amount").getOrElse(0.0)
     val bonusAmount:Double = fixed.parseJsonDouble("bonus_amount").getOrElse(0.0)
-    val rangeLow:Option[BigDecimal] = fixed.parseJsonDouble("rangelow").flatMap{case v => v.getDecimal(variable)}
-    val rangeHigh:Option[BigDecimal] = fixed.parseJsonDouble("rangehigh").flatMap{case v => v.getDecimal(variable)}
+    val rangeLow:Option[BigDecimal] = fixed.parseJsonDecimal("rangelow").collect{case v => v.scaled(variable)}
+    val rangeHigh:Option[BigDecimal] = fixed.parseJsonDecimal("rangehigh").collect{case v => v.scaled(variable)}
     val refstart:Date = formula.parseJsonDate("refstart").orNull
     val refend:Date = formula.parseJsonDate("refend").orNull
     val description:String = formula.parseJsonString("description").orNull

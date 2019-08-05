@@ -63,7 +63,7 @@ object FixedPayoff {
     description: String,
     inputString: String
   )(implicit fixingInfo:FixingInformation):FixedPayoff = FixedPayoff(
-    payoff = BigDecimal.valueOf(payoff),
+    payoff = payoff.getRoundedDecimal.getOrElse(BigDecimal(0.0)),
     description = description,
     inputString = inputString
   )
