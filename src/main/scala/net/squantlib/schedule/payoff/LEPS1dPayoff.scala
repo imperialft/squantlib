@@ -44,27 +44,31 @@ case class LEPS1dPayoff(
   override def toString = payoff.map(p => p.toString(variable)).mkString(" ")
   
   override def priceImpl(priceResult:PriceResult) = Double.NaN
-  
+
+  def jsonPayoffOutput:List[Map[String, Any]] = payoff.map(p => {
+    Map(
+      "minrange" -> p.minRange.getOrElse("None"),
+      "maxrange" -> p.maxRange.getOrElse("None"),
+      "mult" -> p.coeff.getOrElse("None"),
+      "add" -> p.constant.getOrElse("None")
+    )
+  })
+
   override def jsonMapImpl = {
-    val jsonPayoff:Array[JavaMap[String, Any]] = payoff.toArray.map(p => {
-      val leg:JavaMap[String, Any] = Map(
-        "minrange" -> p.minRange.getOrElse("None"),
-        "maxrange" -> p.maxRange.getOrElse("None"),
-        "mult" -> p.coeff.getOrElse("None"),
-        "add" -> p.constant.getOrElse("None")
-        ).asJava
-      leg
-    })
-      
     Map(
       "type" -> "leps1d",
       "variable" -> variable,
       "description" -> description,
-      "payoff" -> jsonPayoff
+      "payoff" -> jsonPayoffOutput.toArray.map(_.asJava)
     )
-    
-  }  
-  
+  }
+
+  override def fixedConditions:Map[String, Any] = {
+    Map(
+      "payoff" -> jsonPayoffOutput.toArray.map(_.asJava)
+    )
+  }
+
 }
 
 

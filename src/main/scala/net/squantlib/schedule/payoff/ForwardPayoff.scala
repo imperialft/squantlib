@@ -116,7 +116,13 @@ case class ForwardPayoff(
     "description" -> description
   )
 
-	
+  override def fixedConditions:Map[String, Any] = {
+    Map(
+      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))},
+    )
+  }
+
+
 }
 
 object ForwardPayoff {

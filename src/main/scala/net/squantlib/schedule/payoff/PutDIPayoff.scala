@@ -68,6 +68,12 @@ class PutDIPayoff(
     "description" -> description
   )
 
+  override def fixedConditions:Map[String, Any] = {
+    Map(
+      "trigger" -> triggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+    )
+  }
 
   override def clearFixings = {
     super.clearFixings

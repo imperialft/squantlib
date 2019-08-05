@@ -190,6 +190,14 @@ case class RangeForwardPayoff(
     )
   }
 
+  override def fixedConditions:Map[String, Any] = {
+    Map(
+      "triggerlow" -> triggerLowDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "triggerhigh" -> triggerHighDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava
+    )
+  }
+
 }
 
 object RangeForwardPayoff {

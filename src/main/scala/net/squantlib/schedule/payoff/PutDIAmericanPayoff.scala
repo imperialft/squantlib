@@ -247,7 +247,15 @@ case class PutDIAmericanPayoff(
     "refend" -> (if (refend == null) null else refend.toString),
     "description" -> description
   )
-    
+
+  override def fixedConditions:Map[String, Any] = {
+    Map(
+      "trigger" -> triggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "final_trigger" -> finalTriggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava
+    )
+  }
+
 
   override def clearFixings = {
     super.clearFixings
