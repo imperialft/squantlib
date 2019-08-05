@@ -92,7 +92,7 @@ case class McNf(
     //skip the "current" coupon
     (remainingMtM, underlyingFixings, scheduledPayoffs.calls).zipped.map{case (p, ul, c) =>
       ul.lastOption match{
-        case Some(ull) if !c.isTriggeredDouble(ull) && c.triggers.keySet.subsetOf(ull.keySet) && c.triggers.forall{case (k, t) => ull(k) > t * (1.0 - range)} => p
+        case Some(ull) if !c.isTriggered(ull) && c.triggers.keySet.subsetOf(ull.keySet) && c.triggers.getDouble.forall{case (k, t) => ull(k) > t * (1.0 - range)} => p
         case _ => 0.0
       }
     }

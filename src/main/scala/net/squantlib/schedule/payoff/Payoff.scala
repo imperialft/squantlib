@@ -123,6 +123,22 @@ trait Payoff extends FixingLeg {
     else Double.NaN
   }
 
+  final def price(underlyingId:String, fixings:List[Double], pastPayments:List[Double]):Double = {
+    price(fixings.map(f => UnderlyingFixing(Map(underlyingId -> f))), pastPayments)
+  }
+
+  final def price(underlyingId:String, fixings:List[Double], pastPayments:List[Double], priceResult:PriceResult):Double = {
+    price(fixings.map(f => UnderlyingFixing(Map(underlyingId -> f))), pastPayments, priceResult)
+  }
+
+  final def price(fixings:List[Map[String, Double]], pastPayments:List[Double])(implicit dummyImplicit: DummyImplicit):Double = {
+    price(fixings.map(fs => UnderlyingFixing(fs)), pastPayments)
+  }
+
+  final def price(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult)(implicit dummyImplicit: DummyImplicit):Double = {
+    price(fixings.map(fs => UnderlyingFixing(fs)), pastPayments, priceResult)
+  }
+
   def priceImpl(priceResult:PriceResult):Double
 
   // PAST PAYMENTS ARE REVERSED (recent first)

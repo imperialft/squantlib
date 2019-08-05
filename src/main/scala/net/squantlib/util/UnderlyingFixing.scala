@@ -8,6 +8,8 @@ case class UnderlyingFixing(
 
   def getDecimal:Map[String, Option[BigDecimal]] = fixings
 
+  lazy val getDecimalValue:Map[String, BigDecimal] = fixings.collect{case (ul, Some(v)) => (ul, v)}
+
   lazy val doubleFixings:Map[String, Double] = fixings.map{case (ul, v) => (ul, v.collect{case v => v.toDouble}.getOrElse(Double.NaN))}
 
   def getDouble:Map[String, Double] = doubleFixings
@@ -17,6 +19,10 @@ case class UnderlyingFixing(
   def size = fixings.size
 
   def keySet = fixings.keySet
+
+  val isAllValid:Boolean = fixings.values.forall(_.isDefined)
+
+  def isValidFor(underlyingIds:Set[String]):Boolean = underlyingIds.forall(ul => getDecimalValue.contains(ul))
 
 }
 
@@ -30,7 +36,7 @@ object UnderlyingFixing {
 
   def apply(
     decimalFixings:Map[String, BigDecimal]
-  ):UnderlyingFixing = UnderlyingFixing(decimalFixings.map{case (ul, v) => (ul, Some(v))})
+  )(implicit dummyImplicit:DummyImplicit):UnderlyingFixing = UnderlyingFixing(decimalFixings.map{case (ul, v) => (ul, Some(v))})
 
   def empty:UnderlyingFixing = new UnderlyingFixing(Map.empty)
 

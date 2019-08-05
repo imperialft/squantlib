@@ -38,7 +38,7 @@ case class Callability(
     else None
   }
 
-  val optionalForwardStrikes = {
+  val optionalForwardStrikes:Option[UnderlyingFixing] = {
     if (forward.isEmpty) None
     else Some(forward)
   }
@@ -55,9 +55,9 @@ case class Callability(
   
   def isBermuda:Boolean = bermudan 
   
-  def underlyings:List[String] = triggers.keys.toList ++ forward.keys.filter(k => !triggers.keySet.contains(k))
+  def underlyings:Set[String] = variables
   
-  def triggerValues(underlyings:List[String]):List[Option[BigDecimal]] = underlyings.map(ul => triggers.get(ul))
+  def triggerValues(underlyings:List[String]):List[Option[BigDecimal]] = underlyings.map(ul => triggers.getDecimalValue.get(ul))
   
   def isTrigger:Boolean = !triggers.isEmpty
   
@@ -101,15 +101,16 @@ case class Callability(
 //    }
 //  )
 //
-//  def isTriggeredDouble(f:Map[String, Double]):Boolean = judgeTriggerDouble(if (isFixed) getDoubleFixings else f)
 
   def judgeTrigger(f:UnderlyingFixing):Boolean = (
     isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) &&
       triggers.getDecimal.forall{case (ul, v) =>
-        if (triggerUp) v <= f(ul)
-        else v >= f(ul)
+        if (triggerUp) v <= f.getDecimal(ul)
+        else v >= f.getDecimal(ul)
       }
     )
+
+  def isTriggered(f:Map[String, Double]):Boolean = isTriggered(UnderlyingFixing(f))
 
   def isTriggered(f:UnderlyingFixing):Boolean = judgeTrigger(if (isFixed) getFixings else f)
 
@@ -130,7 +131,7 @@ case class Callability(
       bermudan && 
       !simulatedFrontier.isEmpty && 
       (simulatedFrontier.keySet subsetOf f.keySet) && 
-      simulatedFrontier.forall{case (k, v) => if (triggerUp) v <= f(k) else v >= f(k)}
+      simulatedFrontier.getDecimal.forall{case (k, v) => if (triggerUp) v <= f.getDecimal(k) else v >= f.getDecimal(k)}
     )
     
   def isProbablyCalled:Boolean = if (isFixed) isProbablyCalled(getFixings) else false
@@ -139,10 +140,10 @@ case class Callability(
   
   def redemptionNominal:BigDecimal = 1.0 + bonusAmount
 
-  def redemptionAmount(f:Map[String, Double]):Double = {
+  def redemptionAmount(f:UnderlyingFixing):Double = {
     if (forward.isEmpty) redemptionNominal.toDouble
     else if (forward.keySet.subsetOf(f.keySet)) forward.getDouble.map {
-      case (ul, fk) => (redemptionNominal.toDouble * f(ul) / fk.toDouble)
+      case (ul, fk) => (redemptionNominal.toDouble * f.getDouble(ul) / fk.toDouble)
     }.min
     else Double.NaN
   }
@@ -156,7 +157,7 @@ case class Callability(
         "strike" -> inputString.getOrElse("forward", forward)
       ))
       new ForwardPayoff(
-        strike = forward,
+        strikes = forward,
         physical = true,
         reverse = false,
         minPayoff = 0.0,
@@ -179,6 +180,8 @@ case class Callability(
     }
     else redemptionNominal.toDouble
   }
+
+  def triggerShifted(shiftedTriggers: Map[String, Double]):Callability = triggerShifted(UnderlyingFixing(shiftedTriggers))
 
   def triggerShifted(shiftedTriggers: UnderlyingFixing):Callability = {
     Callability(
@@ -237,7 +240,7 @@ object Callability {
       triggers = triggers,
       triggerUp = callOption.triggerUp,
       targetRedemption = targetRedemption,
-      forward = callOption.forwardDefinition,
+      forward = callOption.forward,
       bonusAmount = callOption.bonus,
       removeSatisfiedTriggers = callOption.removeSatisfiedTriggers,
       inputString = inputString,

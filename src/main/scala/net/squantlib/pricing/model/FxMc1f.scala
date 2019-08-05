@@ -9,7 +9,7 @@ import net.squantlib.schedule.call.Callability
 import net.squantlib.model.bond.PriceableBond
 import net.squantlib.util.JsonUtils._
 import net.squantlib.model.rates.DiscountCurve
-import net.squantlib.util.Date
+import net.squantlib.util.{Date, UnderlyingFixing}
 import com.fasterxml.jackson.databind.JsonNode
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import scala.annotation.tailrec
@@ -57,7 +57,7 @@ case class FxMc1f(
 
   val callShiftedScheduledPayoffs = scheduledPayoffs.callShifted(shiftedCalls)
 
-  override def modelPaths(paths:Int):List[List[Double]] = modelPaths(paths, (p:List[Double]) => callShiftedScheduledPayoffs.price(p))
+  override def modelPaths(paths:Int):List[List[Double]] = modelPaths(paths, (p:List[Double]) => callShiftedScheduledPayoffs.price(fx.id, p))
 
   def modelPaths(paths:Int, pricing:List[Double] => List[Double]):List[List[Double]] = {
     val mcYears = scheduledPayoffs.eventDateYears(valuedate)
@@ -78,7 +78,7 @@ case class FxMc1f(
   def mcPrice(paths:Int):List[Double] = {
     try {
       val mcYears = scheduledPayoffs.eventDateYears(valuedate)
-      mcengine.generatePrice(mcYears, paths, (p:List[Double]) => callShiftedScheduledPayoffs.price(p))
+      mcengine.generatePrice(mcYears, paths, (p:List[Double]) => callShiftedScheduledPayoffs.price(fx.id, p))
 
       //      if (mcdates.sameElements(mcYears)) mcpaths
       //      else {
@@ -117,18 +117,18 @@ case class FxMc1f(
   }
 
   def binaryPathMtM(range:Double, discounts:List[Double]):List[Double] => List[Double] = (underlyingPrices:List[Double]) => {
-    val prices = (scheduledPayoffs.price(underlyingPrices), scheduledPayoffs.schedule.dayCounts, discounts).zipped.map{case (p, dc, zc) => p * dc * zc}
+    val prices = (scheduledPayoffs.price(fx.id, underlyingPrices), scheduledPayoffs.schedule.dayCounts, discounts).zipped.map{case (p, dc, zc) => p * dc * zc}
 
     @tailrec def forwardSum(input:List[Double], result:List[Double]):List[Double]= input match {
       case Nil => result
       case h::t => forwardSum(t, (h + result.headOption.getOrElse(0.0)) :: result)
     }
 
-    val underlyingFixings = scheduledPayoffs.fixingPrices(underlyingPrices)
+    val underlyingFixings = scheduledPayoffs.fixingPrices(fx.id, underlyingPrices)
     val remainingMtM = forwardSum(prices.tail.reverse, List(0.0)).zip(discounts).map{case (p, zc) => p / zc}
     //skip the "current" coupon
     (remainingMtM, underlyingFixings, scheduledPayoffs.calls).zipped.map{case (p, ul, c) =>
-      (c.triggers.get(fx.id), ul.headOption) match{
+      (c.triggers.getDouble.get(fx.id), ul.headOption) match{
         case (Some(t), Some(ull)) if ull >= t * (1.0 - range) && ull < t => p
         case _ => 0.0
       }
@@ -242,7 +242,7 @@ object FxMc1f {
     obj match {
       case fs:List[d] =>
         (bond.livePayoffs, fs).zipped.map{
-          case ((_, _, c), Some(f:Double)) => c.simulatedFrontier = Map(bond.underlyings.head -> f)
+          case ((_, _, c), Some(f:Double)) => c.simulatedFrontier = UnderlyingFixing(Map(bond.underlyings.head -> f))(bond.fixingInformation)
           case _ => {}}
       case _ => {}
     }

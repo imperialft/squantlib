@@ -137,7 +137,10 @@ case class FixingInformation(
   
 object FixingInformation {
   
-  def empty(currencyId:String, paymentCurrencyId:String) = FixingInformation(currencyId, paymentCurrencyId, None, None, None, List.empty)
+  def empty(
+    currencyId:String,
+    paymentCurrencyId:String
+  ) = FixingInformation(currencyId, paymentCurrencyId, None, None, None, List.empty)
   
 }
 

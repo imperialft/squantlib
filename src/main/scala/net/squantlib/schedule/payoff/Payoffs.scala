@@ -62,7 +62,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     val trigList:List[Option[UnderlyingFixing]] = calls.map(c => c.optionalTriggers.collect{case vs => vs})
     val trigUp:List[Boolean] = calls.map(_.triggerUp)
     val trigAmt:List[Double] = calls.map(_.bonusAmount.toDouble)
-    val forwardStrikes: List[Option[UnderlyingFixing]] = calls.map(_.optionalForwardStrikes.collect{case vs => vs.getDouble})
+    val forwardStrikes: List[Option[UnderlyingFixing]] = calls.map(_.optionalForwardStrikes)
     val targets:List[Option[Double]] = calls.map(_.targetRedemption.collect{case v => v.toDouble})
     val removeSatisfiedTriggers: List[Boolean] = calls.map(_.removeSatisfiedTriggers)
 
@@ -75,10 +75,10 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
  */
   def price(
     fixings:List[List[UnderlyingFixing]],
-    trigger:List[Option[Map[String, Double]]],
+    trigger:List[Option[UnderlyingFixing]],
     trigUp: List[Boolean],
     trigAmount:List[Double],
-    forwardStrikes: List[Option[Map[String, Double]]],
+    forwardStrikes: List[Option[UnderlyingFixing]],
     targets:List[Option[Double]],
     removeSatisfiedTriggers:List[Boolean],
     dayCounts:List[Double],

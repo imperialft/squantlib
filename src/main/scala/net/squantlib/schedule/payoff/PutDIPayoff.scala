@@ -3,14 +3,14 @@ package net.squantlib.schedule.payoff
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.FixingInformation
-import net.squantlib.util.Date
+import net.squantlib.util.{Date, UnderlyingFixing}
 import net.squantlib.schedule.CalculationPeriod
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
 class PutDIPayoff(
-  override val triggerDefinition:Map[String, Option[BigDecimal]],
-  override val strikeDefinition:Map[String, Option[BigDecimal]],
+  override val triggers:UnderlyingFixing,
+  override val strikes:UnderlyingFixing,
   initKnockedIn:Boolean,
   override val physical:Boolean,
   override val reverse: Boolean,
@@ -21,9 +21,9 @@ class PutDIPayoff(
   override val description:String = null,
   override val inputString:String = null
 )(implicit override val fixingInfo:FixingInformation) extends PutDIAmericanPayoff(
-  triggerDefinition = triggerDefinition,
-  strikeDefinition = strikeDefinition,
-  finalTriggerDefinition = triggerDefinition,
+  triggers = triggers,
+  strikes = strikes,
+  finalTriggers = triggers,
   refstart = null,
   refend = null,
   knockedIn = initKnockedIn,
@@ -43,7 +43,7 @@ class PutDIPayoff(
 
   override val variables = triggers.keySet ++ strikes.keySet
 
-  override val strikeOrFinalTriggers:Map[String, BigDecimal] = triggers
+  override val strikeOrFinalTriggers:Map[String, BigDecimal] = triggers.getDecimalValue
 
   override val isPriceable:Boolean = !triggers.isEmpty && !strikes.isEmpty
 
@@ -53,25 +53,29 @@ class PutDIPayoff(
     else List(period.eventDate)
   }
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings.takeRight(2), priceResult)
+  override def priceImpl(
+    fixings:List[UnderlyingFixing],
+    pastPayments:List[Double],
+    priceResult:PriceResult
+  ):Double = priceList(fixings.takeRight(2), priceResult)
 
   override def toString = {
-    nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Eur) " + nominal.asPercent +
-      " x Min([" + variables.mkString(",") + "] / [" + strikes.values.map(_.asDouble).mkString(",") + "])"
+    nominal.asPercent + " [" + triggers.getDouble.values.mkString(",") + "](Eur) " + nominal.asPercent +
+      " x Min([" + variables.mkString(",") + "] / [" + strikes.getDouble.values.mkString(",") + "])"
   }
 
   override def jsonMapImpl = Map(
     "type" -> "putdiamerican",
-    "variable" -> (triggerDefinition.keySet ++ strikeDefinition.keySet).toArray,
-    "trigger" -> triggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-    "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+    "variable" -> (triggers.keySet ++ strikes.keySet).toArray,
+    "trigger" -> triggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+    "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava,
     "description" -> description
   )
 
   override def fixedConditions:Map[String, Any] = {
     Map(
-      "trigger" -> triggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "trigger" -> triggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+      "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava,
     )
   }
 
@@ -80,7 +84,7 @@ class PutDIPayoff(
     knockedIn = false
   }
 
-  override def assignFixings(f:Map[String, BigDecimal]):Unit = {
+  override def assignFixings(f:UnderlyingFixing):Unit = {
     super.assignFixings(f)
     checkKnockIn
   }
@@ -112,8 +116,8 @@ object PutDIPayoff {
     val knockedIn:Boolean = false
 
     new PutDIPayoff(
-      triggerDefinition = triggers,
-      strikeDefinition = strikes,
+      triggers = UnderlyingFixing(triggers),
+      strikes = UnderlyingFixing(strikes),
       initKnockedIn = knockedIn,
       physical = physical,
       reverse = reverse,

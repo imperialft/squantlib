@@ -3,11 +3,12 @@ package net.squantlib.schedule.payoff
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.database.DB
-import net.squantlib.util.Date
+import net.squantlib.util.{Date, FixingInformation, UnderlyingFixing}
 import net.squantlib.schedule.CalculationPeriod
-import net.squantlib.util.FixingInformation
+
 import scala.reflect.ClassTag
 import net.squantlib.model.market.Market
+
 import scala.collection.JavaConverters._
 
 
@@ -18,9 +19,9 @@ import scala.collection.JavaConverters._
  * No strike is considered as no low boundary
  */
 case class PutDIAmericanPayoff(
-  triggerDefinition:Map[String, Option[BigDecimal]],
-  strikeDefinition:Map[String, Option[BigDecimal]],
-  finalTriggerDefinition:Map[String, Option[BigDecimal]],
+  triggers: UnderlyingFixing,
+  strikes: UnderlyingFixing,
+  finalTriggers: UnderlyingFixing,
   refstart:Date,
   refend:Date,
   var knockedIn:Boolean,
@@ -36,23 +37,17 @@ case class PutDIAmericanPayoff(
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
 
-  override val variables = triggerDefinition.keySet ++ strikeDefinition.keySet ++ finalTriggerDefinition.keySet
+  override val variables = triggers.keySet ++ strikes.keySet ++ finalTriggers.keySet
 
-  val strikes = strikeDefinition.collect{case (ul, Some(v)) => (ul, v)}
-  val triggers = triggerDefinition.collect{case (ul, Some(v)) => (ul, v)}
-  val finalTriggers = finalTriggerDefinition.collect{case (ul, Some(v)) => (ul, v)}
+  val strikeVariables = strikes.keySet
+  val triggerVariables = triggers.keySet
+  val strikeOrFinalTriggerVariables = finalTriggers.keySet
 
-  val strikeVariables = strikeDefinition.keySet
-  val triggerVariables = triggerDefinition.keySet
-  val strikeOrFinalTriggerVariables = finalTriggerDefinition.keySet
-
-  val strikesDouble = strikes.map{case (ul, v) => (ul, v.toDouble)}
-  
   nominal = amount
   
   val strikeOrFinalTriggers:Map[String, BigDecimal] = {
     (strikes.keySet ++ finalTriggers.keySet).map(v =>
-      (strikes.get(v), finalTriggers.get(v)) match {
+      (strikes.getDecimalValue.get(v), finalTriggers.getDecimalValue.get(v)) match {
         case (Some(s), Some(t)) => (v, s.min(t))
         case (None, Some(t)) => (v, t)
         case (Some(s), None) => (v, s)
@@ -67,9 +62,9 @@ case class PutDIAmericanPayoff(
     refstart != null &&
     refend != null &&
     (refstart le refend) &&
-    triggerDefinition.values.forall(_.isDefined) &&
-    strikeDefinition.values.forall(_.isDefined) &&
-    finalTriggerDefinition.values.forall(_.isDefined)
+    triggers.getDecimal.values.forall(_.isDefined) &&
+    strikes.getDecimal.values.forall(_.isDefined) &&
+    finalTriggers.getDecimal.values.forall(_.isDefined)
 
   var mcPeriod6m = 30
   var mcPeriod1y = 90
@@ -130,7 +125,7 @@ case class PutDIAmericanPayoff(
     else Double.NaN
   }
 
-  def priceList(fixings:Map[String, Double], priceResult:PriceResult):Double = {
+  def priceList(fixings:UnderlyingFixing, priceResult:PriceResult):Double = {
     if (physical) {
       if (isFixed) {
         if (knockedIn) assignPhysicalInfo(priceResult)
@@ -138,10 +133,10 @@ case class PutDIAmericanPayoff(
       }
       else Double.NaN
     }
-    else priceList(fixings, isKnockInDouble(fixings), priceResult)
+    else priceList(fixings, isKnockIn(fixings), priceResult)
   }
 
-  def priceList(fixings:List[Map[String, Double]], priceResult:PriceResult):Double = {
+  def priceList(fixings:List[UnderlyingFixing], priceResult:PriceResult):Double = {
     fixings.lastOption match {
       case Some(lastFixing) =>
         if (physical) {
@@ -162,51 +157,37 @@ case class PutDIAmericanPayoff(
     }
   }
 
-  def isKnockIn(fixings:List[Map[String, Double]]):Boolean = {
+  def isKnockIn(fixings:List[UnderlyingFixing]):Boolean = {
     if (fixings.isEmpty) knockedIn
-    else (knockedIn || fixings.exists(isKnockInDouble(_))) && (forward || knockInAtRedemptionDouble(fixings.last))
+    else (knockedIn || fixings.exists(isKnockIn(_))) && (forward || knockInAtRedemption(fixings.last))
   }
 
-  def isKnockIn(fixings:Map[String, BigDecimal]):Boolean = {
-    knockedIn || triggerVariables.exists(ul => fixings.get(ul) match {
-      case Some(v) if triggers.contains(ul) => isKnockedInPrice(ul, v, triggers(ul))
+  def isKnockIn(fixings:UnderlyingFixing):Boolean = {
+    knockedIn || triggerVariables.exists(ul => fixings.getDecimalValue.get(ul) match {
+      case Some(v) if triggers.getDecimalValue.contains(ul) => isKnockedInPrice(ul, v, triggers.getDecimalValue(ul))
       case _ => false
     })
   }
 
-  def isKnockInDouble(fixings:Map[String, Double]):Boolean = {
-    knockedIn || triggerVariables.exists(ul => fixings.get(ul) match {
-      case Some(v) if triggers.contains(ul) => isKnockedInPrice(ul, v, triggers(ul))
-      case _ => false
-    })
-  }
-
-  def knockInAtRedemption(fixings:Map[String, BigDecimal]):Boolean = {
-    strikeOrFinalTriggerVariables.exists(ul => fixings.get(ul) match {
-      case Some(v) if strikeOrFinalTriggers.contains(ul) => isKnockedInPrice(ul, v, strikeOrFinalTriggers(ul))
-      case _ => false
-    })
-  }
-
-  def knockInAtRedemptionDouble(fixings:Map[String, Double]):Boolean = {
-    strikeOrFinalTriggerVariables.exists(ul => fixings.get(ul) match {
+  def knockInAtRedemption(fixings:UnderlyingFixing):Boolean = {
+    strikeOrFinalTriggerVariables.exists(ul => fixings.getDecimalValue.get(ul) match {
       case Some(v) if strikeOrFinalTriggers.contains(ul) => isKnockedInPrice(ul, v, strikeOrFinalTriggers(ul))
       case _ => false
     })
   }
 
 
-  def priceList(fixings:Map[String, Double], isKnockedIn:Boolean, priceResult:PriceResult):Double = {
-    if ((strikeVariables subsetOf fixings.keySet) && strikeVariables.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) && isPriceable) {
+  def priceList(fixings:UnderlyingFixing, isKnockedIn:Boolean, priceResult:PriceResult):Double = {
+    if (isPriceable && fixings.isValidFor(strikeVariables)) {
       if (isKnockedIn) {
         if (physical && priceResult != null) {
-          strikeVariables.map(ul => (ul, getPerformance(fixings(ul), strikesDouble(ul)), strikes(ul))).minBy{case (ul, perf, k) => perf} match {
+          strikeVariables.map(ul => (ul, getPerformance(fixings.getDouble(ul), strikes.getDouble(ul)), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
             case (ul, pf, k) =>
               //priceResult.setAssetInfo(ul, 1.0 / k)
               withMinMax(pf)
           }
         } else {
-          withMinMax(strikeVariables.map(v => getPerformance(fixings(v), strikesDouble(v))).min)
+          withMinMax(strikeVariables.map(v => getPerformance(fixings.getDouble(v), strikes.getDouble(v))).min)
         }
       }
       else 1.0
@@ -214,12 +195,12 @@ case class PutDIAmericanPayoff(
   }
 
   def assignPhysicalInfo(priceResult:PriceResult):Unit = {
-    if (isFixed) assignPhysicalInfo(getDoubleFixings, priceResult)
+    if (isFixed) assignPhysicalInfo(getFixings, priceResult)
   }
 
-  def assignPhysicalInfo(fixings:Map[String, Double], priceResult:PriceResult):Unit = {
+  def assignPhysicalInfo(fixings:UnderlyingFixing, priceResult:PriceResult):Unit = {
     if (priceResult != null && strikeVariables.subsetOf(fixings.keySet)) {
-      strikeVariables.map(ul => (ul, getPerformance(fixings(ul), strikesDouble(ul)), strikesDouble(ul))).minBy{case (ul, perf, k) => perf} match {
+      strikeVariables.map(ul => (ul, getPerformance(fixings.getDouble(ul), strikes.getDouble(ul)), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
         case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
       }
     }
@@ -229,20 +210,20 @@ case class PutDIAmericanPayoff(
 
 //  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
+  override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
 
   override def priceImpl(priceResult:PriceResult) = priceSingle(priceResult) //implicitly[FixingInterpreter[Map[String, Double]]] priceSingle(priceResult)
 
   override def toString =
-    nominal.asPercent + " [" + triggers.values.map(_.asDouble).mkString(",") + "](Amer) " + nominal.asPercent +
-    " x Min([" + variables.mkString(",") + "] / [" + strikes.values.map(_.asDouble).mkString(",") + "])"
+    nominal.asPercent + " [" + triggers.getDecimalValue.values.mkString(",") + "](Amer) " + nominal.asPercent +
+    " x Min([" + variables.mkString(",") + "] / [" + strikes.getDecimalValue.values.mkString(",") + "])"
   
   override def jsonMapImpl = Map(
     "type" -> "putdiamerican", 
-    "variable" -> (triggerDefinition.keySet ++ strikeDefinition.keySet ++ finalTriggerDefinition.keySet).toArray,
-    "trigger" -> triggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-    "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-    "final_trigger" -> finalTriggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+    "variable" -> (triggers.keySet ++ strikes.keySet ++ finalTriggers.keySet).toArray,
+    "trigger" -> triggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+    "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+    "final_trigger" -> finalTriggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
     "refstart" -> (if (refstart == null) null else refstart.toString),
     "refend" -> (if (refend == null) null else refend.toString),
     "description" -> description
@@ -250,9 +231,9 @@ case class PutDIAmericanPayoff(
 
   override def fixedConditions:Map[String, Any] = {
     Map(
-      "trigger" -> triggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-      "final_trigger" -> finalTriggerDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava
+      "trigger" -> triggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+      "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+      "final_trigger" -> finalTriggers.getDouble.map{case (ul, v) => (ul, v)}.asJava
     )
   }
 
@@ -262,7 +243,7 @@ case class PutDIAmericanPayoff(
     knockedIn = false
   }
     
-  override def assignFixings(f:Map[String, BigDecimal]):Unit = {
+  override def assignFixings(f:UnderlyingFixing):Unit = {
     super.assignFixings(f)
     checkKnockIn
   }
@@ -270,25 +251,25 @@ case class PutDIAmericanPayoff(
   def checkKnockIn:Unit = {
     knockedIn = {
       if (refstart == null || refend == null) false
-      else triggers.exists { case (v, trig) =>
+      else triggers.getDecimalValue.exists { case (ul, trig) =>
 
         val historicalPrices = {
-          if (closeOnly) DB.getHistorical(v, refstart, refend)
-          else if (reverse) DB.getHistorical(v, refstart, refend) ++ DB.getHistoricalHigh(v, refstart, refend)
-          else DB.getHistorical(v, refstart, refend) ++ DB.getHistoricalLow(v, refstart, refend)
+          if (closeOnly) DB.getHistorical(ul, refstart, refend)
+          else if (reverse) DB.getHistorical(ul, refstart, refend) ++ DB.getHistoricalHigh(ul, refstart, refend)
+          else DB.getHistorical(ul, refstart, refend) ++ DB.getHistoricalLow(ul, refstart, refend)
         }
 
         (historicalPrices, historicalPrices.values.lastOption) match {
           case (hs, _) if hs.isEmpty => false
 
           case (hs, Some(hsLast)) if hs.get(refend).isDefined =>
-            hs.values.exists(hp => isKnockedInPrice(v, hp, trig)) && //hp <= trig) &&
+            hs.values.exists(hp => isKnockedInPrice(ul, hp, trig)) && //hp <= trig) &&
             (
               forward ||
-              strikeOrFinalTriggers.get(v).collect { case s => isKnockedInPrice(v, hsLast, s)}.getOrElse(true) //hsLast <= s }.getOrElse(true)
+              strikeOrFinalTriggers.get(ul).collect { case s => isKnockedInPrice(ul, hsLast, s)}.getOrElse(true)
             )
 
-          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(v, x, trig)} //x <= trig }
+          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(ul, x, trig)} //x <= trig }
         }
       }
     }
@@ -305,11 +286,11 @@ object PutDIAmericanPayoff {
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val triggers:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getOptionalDecimal}.getOrElse(Map.empty)
+    val triggers = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getOptionalDecimal}.getOrElse(Map.empty)
 
-    val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal}.getOrElse(Map.empty)
+    val strikes = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal}.getOrElse(Map.empty)
 
-    val finalTriggers:Map[String, Option[BigDecimal]] =
+    val finalTriggers =
       fixedNode.collect{case n =>
         if (n.has("final_trigger")) strikes ++ Payoff.nodeToComputedMap(n, "final_trigger", variables).getOptionalDecimal
         else strikes
@@ -330,9 +311,9 @@ object PutDIAmericanPayoff {
     val knockedIn:Boolean = false
     
     PutDIAmericanPayoff(
-      triggerDefinition = triggers,
-      strikeDefinition = strikes,
-      finalTriggerDefinition = finalTriggers,
+      triggers = UnderlyingFixing(triggers),
+      strikes = UnderlyingFixing(strikes),
+      finalTriggers = UnderlyingFixing(finalTriggers),
       refstart = refstart,
       refend = refend,
       knockedIn = knockedIn,

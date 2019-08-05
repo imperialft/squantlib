@@ -2,12 +2,11 @@ package net.squantlib.schedule.call
 
 import scala.language.postfixOps
 import scala.collection.LinearSeq
-//import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.schedule.FixingLegs
-import net.squantlib.util.FixingInformation
+import net.squantlib.util.{FixingInformation, UnderlyingFixing}
 import net.squantlib.schedule.Schedule
 import net.squantlib.schedule.payoff.Payoffs
 import com.fasterxml.jackson.databind.JsonNode
@@ -18,16 +17,16 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	
 	def bermudans:List[Boolean] = calls.map(_.bermudan)
 	
-	def triggers:List[Option[Map[String, BigDecimal]]] = calls.map(c =>
-	  if (c.isTriggered) Some(c.triggers.map{case (k, v) => (k, BigDecimal(0.0))})
+	def triggers:List[Option[UnderlyingFixing]] = calls.map(c =>
+	  if (c.isTriggered) Some(UnderlyingFixing(c.triggers.keySet.map(ul => (ul, BigDecimal(0.0))).toMap))
 	  else if (c.isFixed) None
-	  else if (c isTrigger) Some(c.triggers.map{case (ul, v) => (ul, v)})
+	  else if (c isTrigger) Some(c.triggers)
 	  else None
   )
 
-  def forwardStrikes:List[Option[Map[String, BigDecimal]]] = calls.map(c =>
+  def forwardStrikes:List[Option[UnderlyingFixing]] = calls.map(c =>
     if (c.forward.isEmpty) None
-    else Some(c.forward.map{case (ul, v) => (ul, v)})
+    else Some(c.forward)
   )
   
   def triggerUps:List[Boolean] = calls.map(c => c.triggerUp).toList
@@ -66,7 +65,7 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
     
   val isTrigger = calls.exists(_.isTrigger) && !isTriggeredByTrigger
     
-	def triggerCheck(fixings:List[Map[String, BigDecimal]]):List[Boolean] = (fixings, calls).zipped.map{case (f, c) => c.isTriggered(f)}
+	def triggerCheck(fixings:List[UnderlyingFixing]):List[Boolean] = (fixings, calls).zipped.map{case (f, c) => c.isTriggered(f)}
 	
 	override def isEmpty:Boolean = calls.isEmpty || calls.forall(_.isEmpty)
 	
@@ -153,7 +152,7 @@ object Callabilities {
 
         CallOption(
           triggerUp = if (invertedTrigger) !triggerUp else triggerUp,
-          forwardDefinition = forwardStrikes.getOptionalDecimal,
+          forward = UnderlyingFixing(forwardStrikes),
           forwardInputString = forwardMap,
           bonus = bonus,
           invertedTrigger = invertedTrigger,
@@ -235,9 +234,9 @@ object Callabilities {
   def triggerMap(
     underlyings:List[String],
     triggers:List[List[Option[Double]]]
-  )(implicit fixingInfo:FixingInformation):List[Map[String, Double]] = {
+  )(implicit fixingInfo:FixingInformation):List[UnderlyingFixing] = {
     triggers.map(trigs => {
-      (underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v.getRoundedDouble(k))}.toMap
+      UnderlyingFixing((underlyings, trigs).zipped.collect{case (k, Some(v)) => (k, v)}.toMap)
     })
   }
 
@@ -265,7 +264,7 @@ object Callabilities {
 
     val callOptions:List[CallOption] = callOptionList(formula, legs)
 
-    val trigMap:List[Map[String, Option[BigDecimal]]] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedTrigger)).map(_.getOptionalDecimal)
+    val trigMap:List[UnderlyingFixing] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedTrigger)).map(vs => UnderlyingFixing(vs))
 
     val targets:List[Option[BigDecimal]] = targetList(formula, legs).map(vs => vs.flatMap{case v => v.getRoundedDecimal})
 
@@ -292,7 +291,7 @@ object Callabilities {
           inputString = inputString.updated("trigger", f).updated("trigger_type", (if(callOption.triggerUp) "up" else "down"))
         }
   
-        if (!callOption.forwardDefinition.isEmpty) {
+        if (!callOption.forward.isEmpty) {
           inputString = inputString.updated("forward", callOption.forwardInputString)
         }
         
@@ -308,12 +307,12 @@ object Callabilities {
           
         Callability.apply(
           bermudan = berm,
-          triggerDefinition = trig,
+          triggers = trig,
           targetRedemption = tgt,
           callOption = callOption,
           inputString = inputString,
           accumulatedPayments = None,
-          simulatedFrontier= Map.empty[String, Double]
+          simulatedFrontier= UnderlyingFixing.empty
         )
     }
     
@@ -333,12 +332,12 @@ object Callabilities {
       bermudans.zip(triggerMap(underlyings, triggers)).zip(callOptions.zip(targets)).map{case ((berm, trig), (callOption, tgt)) => 
         Callability(
           bermudan = berm,
-          triggerDefinition = trig.getOptionalDecimal,
+          triggers = trig,
           targetRedemption = tgt.flatMap{case v => v.getRoundedDecimal},
           callOption = callOption,
           inputString = Map.empty[String, Any],
           accumulatedPayments = None,
-          simulatedFrontier= Map.empty[String, Double]
+          simulatedFrontier= UnderlyingFixing.empty
         )
       }
     )

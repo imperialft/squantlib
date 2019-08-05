@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import java.util.{Map => JavaMap}
-import net.squantlib.util.Date
+import net.squantlib.util.{Date, UnderlyingFixing}
 import net.squantlib.util.FixingInformation
 
 /**
@@ -35,7 +35,7 @@ case class RangeAccrualPayoff(
 
   override val isFixed = false
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) = Double.NaN
+  override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult) = Double.NaN
 
 //  override def priceImpl(fixing:Double, pastPayments:List[Double]) = Double.NaN
 

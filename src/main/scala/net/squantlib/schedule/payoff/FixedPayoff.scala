@@ -4,7 +4,7 @@ import scala.collection.JavaConversions._
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
-import net.squantlib.util.FixingInformation
+import net.squantlib.util.{FixingInformation, UnderlyingFixing}
 
 /**
  * Interprets JSON formula specification for a fixed leg.
@@ -24,7 +24,7 @@ case class FixedPayoff(
   override val isFixed = true
    
   override def priceImpl(
-    fixings:List[Map[String, Double]],
+    fixings:List[UnderlyingFixing],
     pastPayments:List[Double],
     priceResult:PriceResult
   ):Double = payoff.toDouble

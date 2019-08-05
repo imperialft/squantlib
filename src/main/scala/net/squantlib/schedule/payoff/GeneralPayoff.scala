@@ -2,8 +2,8 @@ package net.squantlib.schedule.payoff
 
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
-import net.squantlib.util.FormulaParser
-import net.squantlib.util.FixingInformation
+import net.squantlib.util.{FixingInformation, FormulaParser, UnderlyingFixing}
+
 import scala.collection.JavaConverters._
 
 /**
@@ -34,18 +34,18 @@ case class GeneralPayoff(
 //    if (variables.size == 1 && !fixing.isNaN && !fixing.isInfinity) price(Map(variables.head -> fixing), pastPayments)
 //    else Double.NaN
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
+  override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = {
     fixings.lastOption.collect { case f => priceImpl(f, pastPayments, priceResult: PriceResult) }.getOrElse(Double.NaN)
   }
 
-  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double], priceResult:PriceResult):Double = {
-    if (!(variables subsetOf fixings.keySet) || variables.exists(v => fixings(v).isNaN || fixings(v).isInfinity)) {
+  def priceImpl(fixings:UnderlyingFixing, pastPayments:List[Double], priceResult:PriceResult):Double = {
+    if (!(variables subsetOf fixings.keySet) || variables.exists(v => !fixings.getDecimal(v).isDefined)) {
       return Double.NaN
     } else {
       var rate = formula.map {
         case (vs, c) if vs.isEmpty => c
-        case (vs, c) => vs.toList.map(fixings).product * c
-      }.sum.toDouble
+        case (vs, c) => vs.toList.map(fixings.getDouble).product * c
+      }.sum
 
       withMinMax(rate)
     }

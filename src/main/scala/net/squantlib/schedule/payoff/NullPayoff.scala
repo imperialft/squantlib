@@ -1,9 +1,7 @@
 package net.squantlib.schedule.payoff
 
-import scala.collection.JavaConversions._
-import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
-import net.squantlib.util.FixingInformation
+import net.squantlib.util.{FixingInformation, UnderlyingFixing}
 
 /**
  * Interprets JSON formula specification for a fixed leg.
@@ -21,7 +19,7 @@ case class NullPayoff(
   
   override val isFixed = false
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult) = Double.NaN
+  override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult) = Double.NaN
   
 //  override def priceImpl(fixing:Double, pastPayments:List[Double]) = Double.NaN
   

@@ -338,16 +338,16 @@ trait GreekAnalysis {
   def nextTriggerBinarySize:Option[Double] = (market, livePayoffs.headOption) match {
     case (Some(mkt), Some((s, p, c))) if c.isTrigger => 
       val dateshifted = this.dateShifted(mkt.valuedate.sub(s.paymentDate).toInt)
-      val shifts:Map[String, Double] = c.triggers.map{case (k, v) => mkt.getUnderlying(k) match {
-        case Some(ul) if ul.spot > 0.0 => (k, v.toDouble / ul.spot)
+      val shifts:Map[String, Double] = c.triggers.getDouble.map{case (k, v) => mkt.getUnderlying(k) match {
+        case Some(ul) if ul.spot > 0.0 => (k, v / ul.spot)
         case _ => (k, Double.NaN)
       }}
       if (shifts.exists{case (k, v) => v.isNaN}) None
       else mkt.underlyingShifted(shifts) match {
         case Some(newmkt) => 
           dateshifted.market = newmkt
-          val fwdPnl:Double = if (c.isForward) c.forward.map{case (k, v) => mkt.getUnderlying(k) match {
-            case Some(ul) if ul.spot > 0.0 => ul.spot / v.toDouble
+          val fwdPnl:Double = if (c.isForward) c.forward.getDouble.map{case (k, v) => mkt.getUnderlying(k) match {
+            case Some(ul) if ul.spot > 0.0 => ul.spot / v
             case _ => Double.NaN
           }}.min else 1.0
           

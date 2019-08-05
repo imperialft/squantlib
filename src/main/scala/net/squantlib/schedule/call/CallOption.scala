@@ -1,13 +1,13 @@
 package net.squantlib.schedule.call
 
 import scala.collection.immutable.ListMap
-import net.squantlib.util.DisplayUtils._
+import net.squantlib.util.UnderlyingFixing
 import net.squantlib.schedule.FixingLeg
 import net.squantlib.util.FixingInformation
 
 case class CallOption(
   triggerUp: Boolean,
-  forwardDefinition: Map[String, Option[BigDecimal]],
+  forward: UnderlyingFixing,
   forwardInputString: Map[String, String],
   bonus: Double,
   invertedTrigger:Boolean,
@@ -19,5 +19,5 @@ case class CallOption(
 }
 
 object CallOption {
-  def empty = CallOption(true, Map.empty, Map.empty, 0.0, false, false, false)
+  def empty = CallOption(true, UnderlyingFixing.empty, Map.empty, 0.0, false, false, false)
 }

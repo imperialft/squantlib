@@ -16,16 +16,18 @@ import scala.annotation.tailrec
 import net.squantlib.util.DisplayUtils._
 
 
-case class EquityMc1f(valuedate:Date, 
-					  mcengine:Montecarlo1f, 
-					  scheduledPayoffs:ScheduledPayoffs, 
-					  equity:Equity,
-					  defaultPaths:Int,
-					  bondid:String) extends PricingModel {
+case class EquityMc1f(
+	valuedate:Date,
+	mcengine:Montecarlo1f,
+	scheduledPayoffs:ScheduledPayoffs,
+	equity:Equity,
+	defaultPaths:Int,
+	bondid:String
+) extends PricingModel {
   
 	mcPaths = defaultPaths
 
-	override def modelPaths(paths:Int) = modelPaths(paths, (p:List[Double]) => scheduledPayoffs.price(p))
+	override def modelPaths(paths:Int) = modelPaths(paths, (p:List[Double]) => scheduledPayoffs.price(equity.id, p))
 	
 	def modelPaths(paths:Int, pricer:List[Double] => List[Double]):List[List[Double]] = {
 	  val mcYears = scheduledPayoffs.eventDateYears(valuedate)
@@ -51,7 +53,7 @@ case class EquityMc1f(valuedate:Date,
     try { 
       val mcYears = scheduledPayoffs.eventDateYears(valuedate)
       if (mcYears.exists(_ < 0.0)) {errorOutput(bondid, "MC paths - cannot compute past dates"); List.empty}
-			mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p))
+			mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(equity.id, p))
 //      val (mcdates, mcpaths) = mcengine.generatePrice(mcYears, paths, (p:List[Double]) => scheduledPayoffs.price(p))
 //      if (mcdates.sameElements(mcYears)) mcpaths
 //      else { modelOutput("error", List("invalid mc dates")); errorOutput(bondid, "invalid mc dates"); List.empty}
@@ -74,18 +76,20 @@ case class EquityMc1f(valuedate:Date,
 	})
 	
 	def binaryPathMtM(range:Double, discounts:List[Double]):List[Double] => List[Double] = (underlyingPrices:List[Double]) => {
-	  val prices = (scheduledPayoffs.price(underlyingPrices), scheduledPayoffs.schedule.dayCounts, discounts).zipped.map{case (p, dc, zc) => p * dc * zc}
+	  val prices = (scheduledPayoffs.price(equity.id, underlyingPrices), scheduledPayoffs.schedule.dayCounts, discounts).zipped.map{case (p, dc, zc) => p * dc * zc}
 	  
 	  @tailrec def forwardSum(input:List[Double], result:List[Double]):List[Double]= input match {
 	    case Nil => result
 	    case h::t => forwardSum(t, (h + result.headOption.getOrElse(0.0)) :: result)
 	  }
 	  
-    val underlyingFixings = scheduledPayoffs.fixingPrices(underlyingPrices)
+    val underlyingFixings = scheduledPayoffs.fixingPrices(equity.id, underlyingPrices)
+
     val remainingMtM = forwardSum(prices.tail.reverse, List(0.0)).zip(discounts).map{case (p, zc) => p / zc}
+
 	  //skip the "current" coupon
 	  (remainingMtM, underlyingFixings, scheduledPayoffs.calls).zipped.map{case (p, ul, c) =>
-	    (c.triggers.get(equity.id), ul.headOption) match{
+	    (c.triggers.getDouble.get(equity.id), ul.headOption) match{
         case (Some(t), Some(ull)) if ull >= t * (1.0 - range) && ull < t => p
 	      case _ => 0.0
 	    }

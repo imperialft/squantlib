@@ -5,10 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
-import net.squantlib.util.FormulaParser
+import net.squantlib.util.{FixingInformation, FormulaParser, UnderlyingFixing}
 import java.util.{Map => JavaMap}
+
 import scala.Array.canBuildFrom
-import net.squantlib.util.FixingInformation
 
 /**
  * Interprets JSON formula specification for sum of linear formulas with discrete range.
@@ -30,13 +30,13 @@ case class LEPS1dPayoff(
   
   override val isPriceable = !payoff.isEmpty
 
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = {
+  override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = {
     fixings.lastOption.collect { case f => priceImpl(f, pastPayments, priceResult: PriceResult) }.getOrElse(Double.NaN)
   }
 
-  def priceImpl(fixings:Map[String, Double], pastPayments:List[Double], priceResult:PriceResult):Double = {
-    fixings.get(variable) match {
-  	  case Some(f) if !f.isNaN && !f.isInfinity => payoff.map(_.price(f)).sum
+  def priceImpl(fixings:UnderlyingFixing, pastPayments:List[Double], priceResult:PriceResult):Double = {
+    fixings.getDecimalValue.get(variable) match {
+  	  case Some(f) => payoff.map(_.price(f)).sum
       case _ => Double.NaN
     }
   }
@@ -148,22 +148,22 @@ case class LEPS1dComponent (
   maxRange:Option[BigDecimal]
 )(implicit val fixingInfo:FixingInformation) {
    
-  def price(fixing:Double):Double = {
+  def price(fixing:BigDecimal):Double = {
     minRange match {
-      case Some(f) if fixing ~< (f, underlyingId) => return 0.0
+      case Some(f) if fixing < f => return 0.0
       case _ =>
     }
     
     maxRange match {
-      case Some(c) if fixing ~>= (c, underlyingId) => return 0.0
+      case Some(c) if fixing >= c => return 0.0
       case _ =>
     }
      
     (coeff, constant) match {
       case (None, None) => 0.0
       case (None, Some(c)) => c
-      case (Some(x), None) => x * fixing
-      case (Some(x), Some(c)) => x * fixing + c
+      case (Some(x), None) => x * fixing.toDouble
+      case (Some(x), Some(c)) => x * fixing.toDouble + c
     }
   }
   

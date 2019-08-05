@@ -5,7 +5,7 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.FixingInformation
-import net.squantlib.util.Date
+import net.squantlib.util.{Date, UnderlyingFixing}
 import net.squantlib.schedule.CalculationPeriod
 import scala.reflect.ClassTag
 import com.fasterxml.jackson.databind.JsonNode
@@ -18,9 +18,9 @@ import scala.collection.JavaConverters._
  * No strike is considered as no low boundary
  */
 case class RangeForwardPayoff(
-  triggerLowDefinition:Map[String, Option[BigDecimal]],
-  triggerHighDefinition:Map[String, Option[BigDecimal]],
-  strikeDefinition:Map[String, Option[BigDecimal]],
+  triggerLow:UnderlyingFixing,
+  triggerHigh:UnderlyingFixing,
+  strikes:UnderlyingFixing,
   var knockedIn:Boolean,
   override val physical:Boolean,
   forwardInRange:Boolean = true,
@@ -29,19 +29,14 @@ case class RangeForwardPayoff(
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
 
-  val variables = triggerLowDefinition.keySet ++ triggerHighDefinition.keySet ++ strikeDefinition.keySet
-
-  val triggerLow:Map[String, BigDecimal] = triggerLowDefinition.collect{case (ul, Some(v)) => (ul, v)}
-  val triggerHigh:Map[String, BigDecimal] = triggerHighDefinition.collect{case (ul, Some(v)) => (ul, v)}
-  val strikes:Map[String, BigDecimal] = strikeDefinition.collect{case (ul, Some(v)) => (ul, v)}
+  val variables = triggerLow.keySet ++ triggerHigh.keySet ++ strikes.keySet
 
   nominal = amount
 
-  val triggerVariables:Set[String] = triggerLowDefinition.keySet ++ triggerHighDefinition.keySet
-  val strikeVariables:Set[String] = strikeDefinition.keySet
-  val doubleStrikes = strikes.map{case (ul, v) => (ul, v.toDouble)}
+  val triggerVariables:Set[String] = triggerLow.keySet ++ triggerHigh.keySet
+  val strikeVariables:Set[String] = strikes.keySet
 
-  override val isPriceable:Boolean = !strikes.isEmpty && triggerLowDefinition.values.forall(_.isDefined) && triggerHighDefinition.values.forall(_.isDefined) && strikeDefinition.values.forall(_.isDefined)
+  override val isPriceable:Boolean = !strikes.isEmpty && triggerLow.getDecimal.values.forall(_.isDefined) && triggerHigh.getDecimal.values.forall(_.isDefined) && strikes.getDecimal.values.forall(_.isDefined)
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)
@@ -61,7 +56,7 @@ case class RangeForwardPayoff(
       else Double.NaN
     }
 
-    def priceList(fixings:Map[String, Double], priceResult:PriceResult):Double = {
+    def priceList(fixings:UnderlyingFixing, priceResult:PriceResult):Double = {
       if (physical) {
         if (isFixed) {
           if (knockedIn) assignPhysicalInfo(priceResult)
@@ -77,7 +72,7 @@ case class RangeForwardPayoff(
       }
     }
 
-    def priceList(fixings:List[Map[String, Double]], priceResult:PriceResult):Double = {
+    def priceList(fixings:List[UnderlyingFixing], priceResult:PriceResult):Double = {
       fixings.lastOption match {
         case Some(lastFixing) =>
           if (physical) {
@@ -105,15 +100,13 @@ case class RangeForwardPayoff(
 //
 //  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
 
-    private def validFixings(fixings:Map[String, Double], vs:Set[String]):Boolean =
-      vs.subsetOf(fixings.keySet) &&
-      vs.forall(v => !fixings(v).isNaN && !fixings(v).isInfinity) &&
-      isPriceable
+    private def validFixings(fixings:UnderlyingFixing, vs:Set[String]):Boolean =
+      vs.subsetOf(fixings.keySet) && fixings.isValidFor(vs) && isPriceable
 
-    def isKnockIn(fixings:Map[String, Double]):Option[Boolean] = {
+    def isKnockIn(fixings:UnderlyingFixing):Option[Boolean] = {
       if (knockedIn) Some(true)
       else if (validFixings(fixings, triggerVariables)) {
-        val r = triggerLow.forall{case (ul, v) => v ~<= (fixings(ul), ul)} && triggerHigh.forall{case (ul, v) => v ~>= (fixings(ul), ul)}
+        val r = triggerLow.getDecimalValue.forall{case (ul, v) => v <= fixings.getDecimalValue(ul)} && triggerHigh.getDecimalValue.forall{case (ul, v) => v >= fixings.getDecimalValue(ul)}
         if (forwardInRange) Some(r) else Some(!r)
       }
       else {
@@ -121,28 +114,28 @@ case class RangeForwardPayoff(
       }
     }
 
-    def priceList(fixings:Map[String, Double], isKnockedIn:Boolean, priceResult:PriceResult):Double = {
+    def priceList(fixings:UnderlyingFixing, isKnockedIn:Boolean, priceResult:PriceResult):Double = {
       if (!isKnockedIn) 1.0
       else if (validFixings(fixings, strikeVariables)) {
         if (physical && priceResult != null) {
-          strikeVariables.map(ul => (ul, fixings(ul) / doubleStrikes(ul), doubleStrikes(ul))).minBy{case (ul, perf, k) => perf} match {
+          strikeVariables.map(ul => (ul, fixings.getDouble(ul) / strikes.getDouble(ul), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
             case (ul, pf, k) =>
               //priceResult.setAssetInfo(ul, 1.0 / k)
               pf
           }
-        } else strikeVariables.map(v => fixings(v) / doubleStrikes(v)).min
+        } else strikeVariables.map(v => fixings.getDouble(v) / strikes.getDouble(v)).min
         //strikeVariables.map(v => fixings(v) / strikes(v)).min
       }
       else Double.NaN
     }
 
     def assignPhysicalInfo(priceResult:PriceResult):Unit = {
-      if (isFixed) assignPhysicalInfo(getDoubleFixings, priceResult)
+      if (isFixed) assignPhysicalInfo(getFixings, priceResult)
     }
 
-    def assignPhysicalInfo(fixings:Map[String, Double], priceResult:PriceResult):Unit = {
+    def assignPhysicalInfo(fixings:UnderlyingFixing, priceResult:PriceResult):Unit = {
       if (priceResult != null && strikeVariables.subsetOf(fixings.keySet)) {
-        strikeVariables.map(ul => (ul, fixings(ul) / doubleStrikes(ul), doubleStrikes(ul))).minBy{case (ul, perf, k) => perf} match {
+        strikeVariables.map(ul => (ul, fixings.getDouble(ul) / strikes.getDouble(ul), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
           case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
         }
       }
@@ -152,7 +145,7 @@ case class RangeForwardPayoff(
 
 //  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
 //
-  override def priceImpl(fixings:List[Map[String, Double]], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
+  override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
 //
   override def priceImpl(priceResult:PriceResult) = priceEmpty(priceResult)
 
@@ -161,40 +154,40 @@ case class RangeForwardPayoff(
     knockedIn = false
   }
 
-  override def assignFixings(f:Map[String, BigDecimal]):Unit = {
+  override def assignFixings(f:UnderlyingFixing):Unit = {
     super.assignFixings(f)
     checkKnockIn
   }
 
   def checkKnockIn:Unit = {
-    knockedIn = isKnockIn(getDoubleFixings).getOrElse(false) //(implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)).getOrElse(false)
+    knockedIn = isKnockIn(getFixings).getOrElse(false) //(implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)).getOrElse(false)
   }
 
   override def toString =
     nominal.asPercent +
-      " [" + triggerLow.mkString(",") + "] " +
-      " [" + triggerHigh.mkString(",") + "] " +
+      " [" + triggerLow.getDouble.mkString(",") + "] " +
+      " [" + triggerHigh.getDouble.mkString(",") + "] " +
       nominal.asPercent +
-      " x Min([" + strikeVariables.mkString(",") + "] / [" + strikes.mkString(",") + "])"
+      " x Min([" + strikeVariables.mkString(",") + "] / [" + strikes.getDouble.mkString(",") + "])"
 
 //  override def priceImpl = Double.NaN
 
   override def jsonMapImpl = {
     Map(
       "type" -> "rangeforward",
-      "variable" -> (triggerLowDefinition.keySet ++ triggerHighDefinition.keySet ++ strikeDefinition.keySet).asJava,
-      "triggerlow" -> triggerLowDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-      "triggerhigh" -> triggerHighDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
+      "variable" -> (triggerLow.keySet ++ triggerHigh.keySet ++ strikes.keySet).asJava,
+      "triggerlow" -> triggerLow.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+      "triggerhigh" -> triggerHigh.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+      "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava,
       "description" -> description
     )
   }
 
   override def fixedConditions:Map[String, Any] = {
     Map(
-      "triggerlow" -> triggerLowDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-      "triggerhigh" -> triggerHighDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava,
-      "strike" -> strikeDefinition.map{case (ul, v) => (ul, v.collect{case vv => vv.toDouble}.getOrElse(Double.NaN))}.asJava
+      "triggerlow" -> triggerLow.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+      "triggerhigh" -> triggerHigh.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+      "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava
     )
   }
 
@@ -217,7 +210,17 @@ object RangeForwardPayoff {
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val description:String = formula.parseJsonString("description").orNull
 
-    RangeForwardPayoff(triggerLow, triggerHigh, strikes, false, physical, forwardInRange, amount, description, inputString)
+    RangeForwardPayoff(
+      triggerLow = UnderlyingFixing(triggerLow),
+      triggerHigh = UnderlyingFixing(triggerHigh),
+      strikes = UnderlyingFixing(strikes),
+      knockedIn = false,
+      physical = physical,
+      forwardInRange = forwardInRange,
+      amount = amount,
+      description = description,
+      inputString = inputString
+    )
 
   }
 
