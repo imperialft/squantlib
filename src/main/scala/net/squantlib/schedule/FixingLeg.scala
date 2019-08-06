@@ -16,7 +16,7 @@ trait FixingLeg {
   val variables:Set[String] // to be implemented
 	
   def assignFixings(f:UnderlyingFixing):Unit = {
-    if ((variables subsetOf f.keySet) || f.isEmpty) preFixings = f
+    if (f.isValidFor(variables) || f.isEmpty) preFixings = f
   }
 
 //  def assignFixings(f:Map[String, Double])(implicit fixingInfo:FixingInformation):Unit = assignFixings(f.getDecimal)
@@ -47,7 +47,7 @@ trait FixingLeg {
   def isSettlementFixed:Boolean = true
   
   def assignSettlementFixings(f:UnderlyingFixing):Unit = {
-    if ((variables subsetOf f.keySet) || f.isEmpty) settlementFixings = f
+    if (f.isValidFor(variables) || f.isEmpty) settlementFixings = f
   }
 
 //  def assignSettlementFixings(f:UnderlyingFixing)(implicit fixingInfo:FixingInformation):Unit = assignSettlementFixings(f.getDecimal)

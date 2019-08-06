@@ -39,15 +39,15 @@ case class GeneralPayoff(
   }
 
   def priceImpl(fixings:UnderlyingFixing, pastPayments:List[Double], priceResult:PriceResult):Double = {
-    if (!(variables subsetOf fixings.keySet) || variables.exists(v => !fixings.getDecimal(v).isDefined)) {
-      return Double.NaN
-    } else {
+    if (fixings.isValidFor(variables)) {
       var rate = formula.map {
         case (vs, c) if vs.isEmpty => c
         case (vs, c) => vs.toList.map(fixings.getDouble).product * c
       }.sum
 
       withMinMax(rate)
+    } else {
+      Double.NaN
     }
   }
    

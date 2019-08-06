@@ -14,27 +14,31 @@ case class FixingInformation(
   fixingPageInformation: List[Map[String, String]]
 ) {
 
-  var initialFixing:Map[String, BigDecimal] = Map.empty
+  var initialFixing:UnderlyingFixing = UnderlyingFixing.empty
 
   def setInitialFixingDouble(vs:Map[String, Double]) = {
-    initialFixing = vs.getDecimal()(this)
+    initialFixing = UnderlyingFixing(vs)(this)
   }
 
-  def initialFixingFull:Map[String, BigDecimal] = {
-    val inv:Map[String, BigDecimal] = initialFixing.withFilter{case (k, v) => k.size == 6}.map{case (k, v) => (((k takeRight 3) + (k take 3)), (if (v == 0.0) BigDecimal(0.0) else 1.0 / v))}.toMap
-    if (inv.isEmpty) initialFixing else initialFixing ++ inv
+  def initialFixingFull:UnderlyingFixing = {
+    val inv:Map[String, Option[BigDecimal]] = initialFixing.getDecimalValue
+      .withFilter{case (k, v) => k.size == 6}
+      .map{case (k, v) => (((k takeRight 3) + (k take 3)), (if (v == 0.0) None else Some(1.0 / v)))}
+      .collect{case (k, Some(v)) => (k, Some(v))}
+
+    if (inv.isEmpty) initialFixing else UnderlyingFixing(initialFixing.getDecimal ++ inv)
   }
     
-  def all:Map[String, BigDecimal] = tbd match {
-    case Some(c) => initialFixingFull.updated("tbd", c)
+  def all:UnderlyingFixing = tbd match {
+    case Some(c) => UnderlyingFixing(initialFixingFull.getDecimal.updated("tbd", Some(c)))
     case None => initialFixingFull
   }
     
   def update(p:String):String = {
-    multipleReplace(p, all.map{case (k, v) => ("@" + k, v)})
+    multipleReplace(p, all.getDecimalValue.map{case (k, v) => ("@" + k, v)})
   }
   
-  def updateInitial(p:String):String = multipleReplace(p, initialFixing.map{case (k, v) => ("@" + k, v)})
+  def updateInitial(p:String):String = multipleReplace(p, initialFixing.getDecimalValue.map{case (k, v) => ("@" + k, v)})
   
   @tailrec private def multipleReplace[T:Numeric](s:String, replacements:Map[String, T]):String =
     if (s == null) null

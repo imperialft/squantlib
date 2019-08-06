@@ -2,15 +2,15 @@ package net.squantlib.database.schemadefinitions
 
 import java.sql.Timestamp
 import java.util.{Date => JavaDate}
+
 import scala.language.postfixOps
-import net.squantlib.util.JsonUtils
+import net.squantlib.util._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.Schedule
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
-import net.squantlib.util.{FixingInformation, Date, DbCalendar}
-import org.jquantlib.time.{Period => qlPeriod, DateGeneration, BusinessDayConvention, TimeUnit}
+import org.jquantlib.time.{BusinessDayConvention, DateGeneration, TimeUnit, Period => qlPeriod}
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
 import com.fasterxml.jackson.databind.JsonNode
@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.squeryl.annotations.Transient
 import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
+
 import scala.collection.JavaConverters._
 
 class Bond(
@@ -52,7 +53,7 @@ class Bond(
   @Column("CALL")				var call: String,
   @Column("CALLNOTICE")				var callnotice: Int,
   @Column("TYPE")				var bondtype: String,
-  @Column("INITIALFX")			var initialfx: Double,
+  @Column("INITIALFX")			var initialfx: BigDecimal,
   @Column("FIXINGDATE")			var fixingdate: Option[JavaDate],
   @Column("FIXINGS")			var fixings: String,
   @Column("ISIN")				var isin: String,
@@ -187,10 +188,10 @@ class Bond(
 
   def underlyingSet:Set[String] = underlyingList.toSet
 
-  def fixingMap:Map[String, BigDecimal] = fixingMapDouble.getDecimal()(fixingInformation)
+  def fixingMap:UnderlyingFixing = UnderlyingFixing(fixingMapDouble)(fixingInformation)
 
   def fixingMapDouble:Map[String, Double] = fixings.parseJsonDoubleFields
-  
+
   def settingMap:Map[String, String] = settings.parseJsonStringFields
   
   def tbdValue:Option[Double] = try{Some(settingMap("tbd").toDouble)} catch {case e:Throwable => None} 
@@ -365,7 +366,7 @@ class Bond(
     
   def isMatured(vd:Date):Boolean = (vd ge endDate)
 
-  def getInitialFixings:Map[String, BigDecimal] = getInitialFixingsDouble.getDecimal()(fixingInformation)
+  def getInitialFixings:UnderlyingFixing = UnderlyingFixing(getInitialFixingsDouble)(fixingInformation)
 
   def getInitialFixingsDouble:Map[String, Double] = {
     val fMap = fixingMapDouble
@@ -380,9 +381,9 @@ class Bond(
     case _ => false
   }
 
-  def getInitialFixingPrices:Map[String, Double] = getInitialFixingPrices(underlyingList.toSet)
+  def getInitialFixingPrices:UnderlyingFixing = getInitialFixingPrices(underlyingList.toSet)
 
-  def getInitialFixingPrices(ids:Set[String]):Map[String, Double] = fixingDate match {
+  def getInitialFixingPrices(ids:Set[String]):UnderlyingFixing = fixingDate match {
     case Some(d) =>
       val customFixings: Map[String, Double] = try {
         settingsJson.get("initial_fixing") match {
@@ -397,15 +398,16 @@ class Bond(
         if ((ids -- customFixings.keySet).size > 0) getFixingPriceFromDb(ids, List(d), true).headOption.getOrElse(Map.empty)
         else Map.empty
       }
-      missingFixings ++ customFixings.filter{case (k, v) => ids.contains(k)}
 
-    case _ => Map.empty
+      UnderlyingFixing(missingFixings ++ customFixings.filter{case (k, v) => ids.contains(k)})(fixingInformation)
+
+    case _ => UnderlyingFixing.empty
   }
 
-  def getFixingPrices(dates:List[Date]):List[Map[String, Double]] = getFixingPrices(underlyingList.toSet, dates)
+  def getFixingPrices(dates:List[Date]):List[UnderlyingFixing] = getFixingPrices(underlyingList.toSet, dates)
 
-  def getFixingPrices(ids:Set[String], dates:List[Date]):List[Map[String, Double]] = {
-    DB.getFixings(ids, dates, fixingInformation, false)
+  def getFixingPrices(ids:Set[String], dates:List[Date]):List[UnderlyingFixing] = {
+    DB.getFixings(ids, dates, fixingInformation, false).map(ps => UnderlyingFixing(ps)(fixingInformation))
   }
 
   def getFixingPriceFromDb(ids:Set[String], dates:List[Date], isInitialFixing:Boolean) = DB.getFixings(ids, dates, fixingInformation, isInitialFixing)

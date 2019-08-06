@@ -100,8 +100,7 @@ case class RangeForwardPayoff(
 //
 //  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
 
-    private def validFixings(fixings:UnderlyingFixing, vs:Set[String]):Boolean =
-      vs.subsetOf(fixings.keySet) && fixings.isValidFor(vs) && isPriceable
+    private def validFixings(fixings:UnderlyingFixing, vs:Set[String]):Boolean = isPriceable && fixings.isValidFor(vs)
 
     def isKnockIn(fixings:UnderlyingFixing):Option[Boolean] = {
       if (knockedIn) Some(true)
@@ -134,7 +133,7 @@ case class RangeForwardPayoff(
     }
 
     def assignPhysicalInfo(fixings:UnderlyingFixing, priceResult:PriceResult):Unit = {
-      if (priceResult != null && strikeVariables.subsetOf(fixings.keySet)) {
+      if (priceResult != null && fixings.isValidFor(strikeVariables)) {
         strikeVariables.map(ul => (ul, fixings.getDouble(ul) / strikes.getDouble(ul), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
           case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
         }

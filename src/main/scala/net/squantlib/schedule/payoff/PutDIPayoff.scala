@@ -43,7 +43,7 @@ class PutDIPayoff(
 
   override val variables = triggers.keySet ++ strikes.keySet
 
-  override val strikeOrFinalTriggers:Map[String, BigDecimal] = triggers.getDecimalValue
+  override val strikeOrFinalTriggers:UnderlyingFixing = triggers
 
   override val isPriceable:Boolean = !triggers.isEmpty && !strikes.isEmpty
 

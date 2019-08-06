@@ -24,6 +24,8 @@ case class UnderlyingFixing(
 
   def isValidFor(underlyingIds:Set[String]):Boolean = underlyingIds.forall(ul => getDecimalValue.contains(ul))
 
+  def getSubset(underlyingIds:Set[String]):UnderlyingFixing = UnderlyingFixing(fixings.filter{case (ul, v) => underlyingIds.contains(ul)})
+
 }
 
 object UnderlyingFixing {

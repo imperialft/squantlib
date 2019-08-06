@@ -102,13 +102,13 @@ case class Callability(
 //  )
 //
 
-  def judgeTrigger(f:UnderlyingFixing):Boolean = (
-    isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) &&
-      triggers.getDecimal.forall{case (ul, v) =>
-        if (triggerUp) v <= f.getDecimal(ul)
-        else v >= f.getDecimal(ul)
-      }
-    )
+  def judgeTrigger(f:UnderlyingFixing):Boolean =
+    isTrigger && !triggers.isEmpty && f.isValidFor(triggers.keySet) &&
+    triggers.getDecimal.forall{case (ul, v) =>
+      if (triggerUp) v <= f.getDecimal(ul)
+      else v >= f.getDecimal(ul)
+    }
+
 
   def isTriggered(f:Map[String, Double]):Boolean = isTriggered(UnderlyingFixing(f))
 
@@ -130,7 +130,7 @@ case class Callability(
     (
       bermudan && 
       !simulatedFrontier.isEmpty && 
-      (simulatedFrontier.keySet subsetOf f.keySet) && 
+      f.isValidFor(simulatedFrontier.keySet) &&
       simulatedFrontier.getDecimal.forall{case (k, v) => if (triggerUp) v <= f.getDecimal(k) else v >= f.getDecimal(k)}
     )
     
@@ -142,7 +142,7 @@ case class Callability(
 
   def redemptionAmount(f:UnderlyingFixing):Double = {
     if (forward.isEmpty) redemptionNominal.toDouble
-    else if (forward.keySet.subsetOf(f.keySet)) forward.getDouble.map {
+    else if (f.isValidFor(forward.keySet)) forward.getDouble.map {
       case (ul, fk) => (redemptionNominal.toDouble * f.getDouble(ul) / fk.toDouble)
     }.min
     else Double.NaN
@@ -172,7 +172,7 @@ case class Callability(
   
   val fixedRedemptionAmountAtTrigger:Double = {
     if (isForward) {
-      if (triggers.size == forward.size && forward.keySet.subsetOf(triggers.keySet)) {
+      if (triggers.size == forward.size && triggers.isValidFor(forward.keySet)) {
         redemptionNominal.toDouble * forward.getDouble.map { case (k, v) => (triggers.getDouble(k) / v.toDouble) }.min
       } else {
         Double.NaN

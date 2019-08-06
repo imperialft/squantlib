@@ -164,7 +164,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    * Returns JPY dirty price defined as price x FX/FX0, where FX0 = FX as of issue date.
    */
   def dirtyPriceJpy:Option[Double] = (dirtyPrice, fxjpy, db.initialfx) match { 
-    case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+    case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init.toDouble)
     case _ => None
   }
 
@@ -190,7 +190,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    * Returns JPY clean price defined as price x FX/FX0, where FX0 = FX as of issue date.
    */
   def cleanPriceJpy:Option[Double] = (cleanPrice, fxjpy, db.initialfx) match { 
-    case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+    case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init.toDouble)
     case _ => None
   }
   
@@ -212,7 +212,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    * Returns JPY accrued amount defined as accrued x FX/FX0, where FX0 = FX as of issue date.
    */
   def accruedAmountJpy:Option[Double] = (accruedAmount, fxjpy, db.initialfx) match { 
-    case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+    case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init.toDouble)
     case _ => None
   }
   
@@ -230,7 +230,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   def fxjpy:Option[Double] = market.flatMap (mkt => mkt.fx(currency.code, "JPY"))
   
   def modelPriceJpy:Option[Double] = (modelPrice, fxjpy, db.initialfx) match { 
-    case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init)
+    case (Some(p), Some(fx), init) if init > 0 => Some(p * fx / init.toDouble)
     case (Some(p), Some(fx), init) if isIssued == Some(false) => Some(p)
     case _ => None
   }
@@ -331,7 +331,7 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   /*  
    * Returns FX at which JPY dirty bond price becomes 100% (if any)
    */
-  def parMtMfx:Option[Double] = if (currency.code == "JPY") None else dirtyPrice.collect{case p => db.initialfx / p }
+  def parMtMfx:Option[Double] = if (currency.code == "JPY") None else dirtyPrice.collect{case p => db.initialfx.toDouble / p }
   
   /*  
    * Returns present value of adding 1 basis point of coupon for the remainder of the bond.

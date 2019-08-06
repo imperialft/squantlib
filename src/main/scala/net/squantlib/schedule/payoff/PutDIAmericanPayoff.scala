@@ -45,8 +45,8 @@ case class PutDIAmericanPayoff(
 
   nominal = amount
   
-  val strikeOrFinalTriggers:Map[String, BigDecimal] = {
-    (strikes.keySet ++ finalTriggers.keySet).map(v =>
+  val strikeOrFinalTriggers:UnderlyingFixing = {
+    val mktparam = (strikes.keySet ++ finalTriggers.keySet).map(v =>
       (strikes.getDecimalValue.get(v), finalTriggers.getDecimalValue.get(v)) match {
         case (Some(s), Some(t)) => (v, s.min(t))
         case (None, Some(t)) => (v, t)
@@ -54,17 +54,19 @@ case class PutDIAmericanPayoff(
         case _ => (v, BigDecimal.valueOf(999999999999.0))
       }
     ).toMap
+    UnderlyingFixing(mktparam)
   }
 
-  override val isPriceable:Boolean =
+  override val isPriceable:Boolean = {
     !triggers.isEmpty &&
     !strikes.isEmpty &&
     refstart != null &&
     refend != null &&
     (refstart le refend) &&
-    triggers.getDecimal.values.forall(_.isDefined) &&
-    strikes.getDecimal.values.forall(_.isDefined) &&
-    finalTriggers.getDecimal.values.forall(_.isDefined)
+    triggers.isAllValid &&
+    strikes.isAllValid &&
+    finalTriggers.isAllValid
+  }
 
   var mcPeriod6m = 30
   var mcPeriod1y = 90
@@ -87,16 +89,16 @@ case class PutDIAmericanPayoff(
     }
   }
 
-  def isKnockedInPrice(ul:String, p:Double, trig:BigDecimal):Boolean = {
-    (knockInOnEqual, reverse) match {
-      case (true, true) => p ~>= (trig, ul)
-      case (false, true) => p ~> (trig, ul)
-      case (true, false) => p ~<= (trig, ul)
-      case (false, false) => p ~< (trig, ul)
-    }
-  }
+//  def isKnockedInPrice(ul:String, p:Double, trig:BigDecimal):Boolean = {
+//    (knockInOnEqual, reverse) match {
+//      case (true, true) => p ~>= (trig, ul)
+//      case (false, true) => p ~> (trig, ul)
+//      case (true, false) => p ~<= (trig, ul)
+//      case (false, false) => p ~< (trig, ul)
+//    }
+//  }
 
-  def isKnockedInPrice(ul:String, p:BigDecimal, trig:BigDecimal):Boolean = {
+  def isKnockedInPrice(p:BigDecimal, trig:BigDecimal):Boolean = {
     (knockInOnEqual, reverse) match {
       case (true, true) => p >= trig
       case (false, true) => p > trig
@@ -163,15 +165,15 @@ case class PutDIAmericanPayoff(
   }
 
   def isKnockIn(fixings:UnderlyingFixing):Boolean = {
-    knockedIn || triggerVariables.exists(ul => fixings.getDecimalValue.get(ul) match {
-      case Some(v) if triggers.getDecimalValue.contains(ul) => isKnockedInPrice(ul, v, triggers.getDecimalValue(ul))
+    knockedIn || triggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), triggers.getDecimalValue.get(ul)) match {
+      case (Some(v), Some(trig)) => isKnockedInPrice(v, trig)
       case _ => false
     })
   }
 
   def knockInAtRedemption(fixings:UnderlyingFixing):Boolean = {
-    strikeOrFinalTriggerVariables.exists(ul => fixings.getDecimalValue.get(ul) match {
-      case Some(v) if strikeOrFinalTriggers.contains(ul) => isKnockedInPrice(ul, v, strikeOrFinalTriggers(ul))
+    strikeOrFinalTriggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), strikeOrFinalTriggers.getDecimalValue.get(ul)) match {
+      case (Some(v), Some(stk)) => isKnockedInPrice(v, stk)
       case _ => false
     })
   }
@@ -199,7 +201,7 @@ case class PutDIAmericanPayoff(
   }
 
   def assignPhysicalInfo(fixings:UnderlyingFixing, priceResult:PriceResult):Unit = {
-    if (priceResult != null && strikeVariables.subsetOf(fixings.keySet)) {
+    if (priceResult != null && fixings.isValidFor(strikeVariables)) {
       strikeVariables.map(ul => (ul, getPerformance(fixings.getDouble(ul), strikes.getDouble(ul)), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
         case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
       }
@@ -263,13 +265,13 @@ case class PutDIAmericanPayoff(
           case (hs, _) if hs.isEmpty => false
 
           case (hs, Some(hsLast)) if hs.get(refend).isDefined =>
-            hs.values.exists(hp => isKnockedInPrice(ul, hp, trig)) && //hp <= trig) &&
+            hs.values.exists(hp => isKnockedInPrice(hp, trig)) && //hp <= trig) &&
             (
               forward ||
-              strikeOrFinalTriggers.get(ul).collect { case s => isKnockedInPrice(ul, hsLast, s)}.getOrElse(true)
+              strikeOrFinalTriggers.getDecimalValue.get(ul).collect { case s => isKnockedInPrice(hsLast, s)}.getOrElse(true)
             )
 
-          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(ul, x, trig)} //x <= trig }
+          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(x, trig)} //x <= trig }
         }
       }
     }

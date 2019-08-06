@@ -216,7 +216,7 @@ trait Payoff extends FixingLeg {
   def assignFixings(market:Market, pastPayments:List[Double]):Unit = assignFixings(UnderlyingFixing(market.getFixings(variables)))
 
   override def assignSettlementFixings(f:UnderlyingFixing):Unit = {
-    if (physical && (variables subsetOf f.keySet) || f.isEmpty) {
+    if ((physical && f.isValidFor(variables)) || f.isEmpty) {
       settlementFixings = f
     }
   }
