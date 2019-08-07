@@ -64,9 +64,9 @@ case class BinaryPayoff(
     if (payoff.isEmpty) description
     else payoff.map{
       case (v, minK, maxK) if minK.isEmpty && maxK.isEmpty => v.asPercent
-      case (v, minK, maxK) if maxK.isEmpty => " [" + minK.getDecimal.values.mkString(",") + "]" + v.asPercent
-      case (v, minK, maxK) if minK.isEmpty => v.asPercent + " [" + maxK.getDecimal.values.mkString(",") + "]"
-      case (v, minK, maxK) => " [" + minK.getDecimal.values.mkString(",") + "]" + v.asPercent + " [" + maxK.getDecimal.values.mkString(",") + "]"
+      case (v, minK, maxK) if maxK.isEmpty => " [" + minK + "]" + v.asPercent
+      case (v, minK, maxK) if minK.isEmpty => v.asPercent + " [" + maxK + "]"
+      case (v, minK, maxK) => " [" + minK + "]" + v.asPercent + " [" + maxK + "]"
     }.mkString(" ")
   
   override def priceImpl(priceResult:PriceResult) = Double.NaN

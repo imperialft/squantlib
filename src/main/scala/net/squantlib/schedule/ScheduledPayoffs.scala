@@ -238,7 +238,7 @@ case class ScheduledPayoffs(
         c.toString,
         if (underlyings.isEmpty || (p.variables.isEmpty && c.variables.isEmpty)) "fixed"
         else if (!p.isPaymentFixed && !c.isFixed) "not fixed"
-        else "fixed:" + (p.getFixings.getDecimal ++ c.getFixings.getDecimal).map{case (k, v) => k + ":" + v}.mkString(" ")
+        else "fixed:" + UnderlyingFixing(p.getFixings.getDecimal ++ c.getFixings.getDecimal)
         )}.toList
     (title, sched)
   }

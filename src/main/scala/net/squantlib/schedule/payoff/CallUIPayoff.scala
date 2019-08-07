@@ -150,7 +150,7 @@ case class CallUIPayoff(
   }
     
   override def toString =
-    baseAmount.asPercent + " [" + trigger.asPercent + "] " + nominal.asPercent + " + " + mult.asPercent + " x " + basket + "([" + variables.mkString(",") + "] / [" + strike.getDecimalValue.mkString(",") + "]) + " + added.asPercent
+    baseAmount.asPercent + " [" + trigger.asPercent + "] " + nominal.asPercent + " + " + mult.asPercent + " x " + basket + "([" + variables.mkString(",") + "] / [" + strike + "]) + " + added.asPercent
   
   override def jsonMapImpl = Map(
     "type" -> "callui", 

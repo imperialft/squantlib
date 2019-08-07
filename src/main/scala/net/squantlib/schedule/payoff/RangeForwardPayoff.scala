@@ -164,10 +164,10 @@ case class RangeForwardPayoff(
 
   override def toString =
     nominal.asPercent +
-      " [" + triggerLow.getDouble.mkString(",") + "] " +
-      " [" + triggerHigh.getDouble.mkString(",") + "] " +
+      (if (triggerLow.isEmpty) "" else  "[" + triggerLow + "] ") +
+      " [" + triggerHigh + "] " +
       nominal.asPercent +
-      " x Min([" + strikeVariables.mkString(",") + "] / [" + strikes.getDouble.mkString(",") + "])"
+      " x Min([" + strikeVariables.mkString(",") + "] / [" + strikes + "])"
 
 //  override def priceImpl = Double.NaN
 

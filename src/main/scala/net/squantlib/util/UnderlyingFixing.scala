@@ -1,6 +1,7 @@
 package net.squantlib.util
 
 import net.squantlib.util.DisplayUtils._
+import net.squantlib.database.DB
 
 case class UnderlyingFixing(
   fixings:Map[String, Option[BigDecimal]]
@@ -25,6 +26,18 @@ case class UnderlyingFixing(
   def isValidFor(underlyingIds:Set[String]):Boolean = underlyingIds.forall(ul => getDecimalValue.contains(ul))
 
   def getSubset(underlyingIds:Set[String]):UnderlyingFixing = UnderlyingFixing(fixings.filter{case (ul, v) => underlyingIds.contains(ul)})
+
+  def forexNormalized:Map[String, Option[BigDecimal]] = fixings.map{
+    case (ul, v) if ul.size == 6 && ul.take(3) == "JPY" && DB.getCurrencyIds.contains(ul.takeRight(3)) =>
+      val invertedUl = ul.takeRight(3) + ul.take(3)
+      (invertedUl, v.collect{case vv => (1.0 / vv).setScale(DB.getUnderlyingDefaultPrecision(invertedUl), BigDecimal.RoundingMode.HALF_UP)})
+    case (ul, v) => (ul, v)
+  }
+
+  override def toString = {
+    if (fixings.isEmpty) "(empty)"
+    else forexNormalized.map{case (ul, v) => ul + ":" + v.getOrElse("undef")}.mkString(",")
+  }
 
 }
 

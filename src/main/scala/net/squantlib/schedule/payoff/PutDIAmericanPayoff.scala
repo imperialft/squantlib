@@ -217,8 +217,8 @@ case class PutDIAmericanPayoff(
   override def priceImpl(priceResult:PriceResult) = priceSingle(priceResult) //implicitly[FixingInterpreter[Map[String, Double]]] priceSingle(priceResult)
 
   override def toString =
-    nominal.asPercent + " [" + triggers.getDecimalValue.values.mkString(",") + "](Amer) " + nominal.asPercent +
-    " x Min([" + variables.mkString(",") + "] / [" + strikes.getDecimalValue.values.mkString(",") + "])"
+    nominal.asPercent + " [" + triggers + "](Amer) " + nominal.asPercent +
+    " x Min([" + variables.mkString(",") + "] / [" + strikes + "])"
   
   override def jsonMapImpl = Map(
     "type" -> "putdiamerican", 

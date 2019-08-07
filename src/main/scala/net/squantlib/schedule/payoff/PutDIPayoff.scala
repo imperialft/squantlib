@@ -60,8 +60,8 @@ class PutDIPayoff(
   ):Double = priceList(fixings.takeRight(2), priceResult)
 
   override def toString = {
-    nominal.asPercent + " [" + triggers.getDouble.values.mkString(",") + "](Eur) " + nominal.asPercent +
-      " x Min([" + variables.mkString(",") + "] / [" + strikes.getDouble.values.mkString(",") + "])"
+    nominal.asPercent + " [" + triggers + "](Eur) " + nominal.asPercent +
+      " x Min([" + variables.mkString(",") + "] / [" + strikes + "])"
   }
 
   override def jsonMapImpl = Map(

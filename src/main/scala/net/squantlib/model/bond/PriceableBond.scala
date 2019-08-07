@@ -177,7 +177,7 @@ trait PriceableBond extends BondModel with Priceable {
       disp("market", market match { case None => "Not defined" case Some(m) => m.paramset + " : " + m.valuedate})
       disp("underlyings", underlyings.mkString(" "))
 //      disp("initial", underlyings.map(u => u + " -> " + db.fixingMap.getOrElse(u, "not fixed")).mkString(" "))
-      disp("initial", underlyings.map(u => u + " -> " + fixingInformation.initialFixing.getDecimalValue.getOrElse(u, "not fixed")).mkString(" "))
+      disp("initial", fixingInformation.initialFixing)
       disp("current", market.collect{case mkt => underlyings.map(u => u + " -> " + mkt.getFixing(u).getOrElse("not fixed")).mkString(" ")}.getOrElse("no market"))
       disp("termination", earlyTerminationDate.getOrElse("not terminated"))
       standardOutput(id, "Full schedule:")

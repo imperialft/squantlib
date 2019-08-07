@@ -96,7 +96,7 @@ case class ForwardPayoff(
   }
 
   override def toString =
-    "Min{[" + strikes.getDouble.map{case (k, v) => s"${k}: ${v.asDouble}"}.mkString(",") + "]}"
+    "Min{[" + strikes + "]}"
   
   override def priceImpl(priceResult:PriceResult) = {
     if (isFixed) {

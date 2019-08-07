@@ -129,7 +129,9 @@ object DisplayUtils { // extends StrictLogging {
       }
     }
 
-    def getDecimal(v:Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Option[BigDecimal] = getDecimal(v, fixingInfo.getUnderlyingPrecision(underlyingId), fixingInfo.getUnderlyingRoundType(underlyingId))
+    def getDecimal(v:Double, underlyingId:String)(implicit fixingInfo:FixingInformation):Option[BigDecimal] = {
+      getDecimal(v, fixingInfo.getUnderlyingPrecision(underlyingId), fixingInfo.getUnderlyingRoundType(underlyingId))
+    }
 
   }
 

@@ -202,11 +202,11 @@ case class Callability(
   override def toString:String =
     List(
 	    if (bermudan) "call " else "",
-	    if (isTrigger) (triggers.getDouble.map{case (k, v) => k + ":" + v}.mkString(" ")) else "",
+	    if (isTrigger) triggers else "",
 	    if (isTrigger) {if (triggerUp) "up" else "down"} else "",
 	    targetRedemption.collect{case t => "target : " + t.asPercent}.getOrElse(""),
 	    if (bonusAmount != 0.0) "bonus " + bonusAmount.asPercent(3) else "",
-	    if (forward.isEmpty) "" else "forward " + forward.getDecimal.map{case (k, v) => k + ":" + v}.mkString(" "),
+	    if (forward.isEmpty) "" else "forward " + forward,
 	    if (isEmpty) "no call" else "",
       if (removeSatisfiedTriggers) "memory" else ""
 	    ).mkString(" ") 
