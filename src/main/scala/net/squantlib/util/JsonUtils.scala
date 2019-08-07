@@ -376,7 +376,16 @@ object JsonUtils {
     case c => c
   }
   
-  def jsonString(obj:Any):String = try {mapper.writeValueAsString(toJavaCollection(obj))} catch {case e:Throwable => ""}
+  def jsonString(obj:Any):String = {
+    try {
+      obj match {
+        case v:UnderlyingFixing => mapper.writeValueAsString(toJavaCollection(v.getDouble))
+        case v => mapper.writeValueAsString(toJavaCollection(v))
+      }
+    } catch {
+      case e:Throwable => ""
+    }
+  }
 
 }
 
