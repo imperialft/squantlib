@@ -100,8 +100,14 @@ case class FixingInformation(
     )
   }).toMap
 
-  def getUnderlyingPrecision(underlyingId:String):Int = underlyingFixingPage.get(underlyingId) match {
-    case Some(fp) => fp.precision
+  val underlyingPrecisions:Map[String, Int] = {
+    val basePrecision = underlyingFixingPage.map{case (ul, fixingPage) => (ul, fixingPage.precision)}
+    val inversePrecision = (underlyingFixingPage.keySet.filter(ul => Currencies.isForex(ul) && !underlyingFixingPage.contains(ul.takeRight(3) + ul.take(3)))).map(ul => (ul.takeRight(3) + ul.take(3), 25)).toMap
+    inversePrecision ++ basePrecision
+  }
+
+  def getUnderlyingPrecision(underlyingId:String):Int = underlyingPrecisions.get(underlyingId) match {
+    case Some(fp) => fp
     case _ => DB.getUnderlyingDefaultPrecision(underlyingId)
   }
 
