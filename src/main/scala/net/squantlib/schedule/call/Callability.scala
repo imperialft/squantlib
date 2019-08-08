@@ -2,8 +2,8 @@ package net.squantlib.schedule.call
 
 import scala.collection.immutable.ListMap
 import net.squantlib.util.DisplayUtils._
-import net.squantlib.schedule.FixingLeg
-import net.squantlib.util.{FixingInformation, JsonUtils, UnderlyingFixing}
+import net.squantlib.schedule.{CalculationPeriod, FixingLeg}
+import net.squantlib.util.{Date, FixingInformation, JsonUtils, UnderlyingFixing}
 import net.squantlib.schedule.payoff._
 
 case class Callability(
@@ -91,6 +91,10 @@ case class Callability(
       case Some(t) => Some(t)
       case None => fixedTriggerByTargetRedemption
     }
+  }
+
+  def eventDate(d:CalculationPeriod):List[Date] = {
+    List(d.eventDate)
   }
 
 //  def judgeTriggerDouble(f:Map[String, Double]):Boolean = (

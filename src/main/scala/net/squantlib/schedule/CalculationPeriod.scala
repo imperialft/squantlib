@@ -37,18 +37,28 @@ case class CalculationPeriod(
     case _ => false
   }
 	
-  def shifted(shift:Int):CalculationPeriod = CalculationPeriod(eventDate.add(shift), startDate.add(shift), endDate.add(shift), paymentDate.add(shift), daycounter, isRedemption, nominal)
+  def shifted(shift:Int):CalculationPeriod = CalculationPeriod(
+    eventDate = eventDate.add(shift),
+    startDate = startDate.add(shift),
+    endDate = endDate.add(shift),
+    paymentDate = paymentDate.add(shift),
+    daycounter = daycounter,
+    isRedemption = isRedemption,
+    nominal = nominal
+  )
   
-  override def toString = eventDate.toString + " " + startDate.toString + " " + endDate.toString + " " + paymentDate.toString + " " + daycounter.toString
+  override def toString = {
+    eventDate.toString + " " + startDate.toString + " " + endDate.toString + " " + paymentDate.toString + " " + daycounter.toString
+  }
 
   def getRedemptionLeg(nom:Double):CalculationPeriod = CalculationPeriod(
-    eventDate,
-    endDate,
-    endDate,
-    paymentDate,
-    new Absolute,
-    true,
-    nom
+    eventDate = eventDate,
+    startDate = endDate,
+    endDate = endDate,
+    paymentDate = paymentDate,
+    daycounter = new Absolute,
+    isRedemption = true,
+    nominal = nom
   )
 
 }
@@ -58,7 +68,7 @@ object CalculationPeriod {
   def apply(
     startDate:Date,
     endDate:Date,
-    notice:Int,
+    couponNotice:Int,
     inarrears:Boolean,
     daycount:DayCounter,
     fixingCalendar:Calendar,
@@ -72,9 +82,13 @@ object CalculationPeriod {
 
     val paymentDate = endDate.adjust(paymentCalendar, paymentConvention)
 
-    val calculationDate = if (inarrears) {
-      if (fixingOnCalculationEndDate) endDate else paymentDate
-    } else startDate
+    val calculationDate = {
+      if (inarrears) {
+        if (fixingOnCalculationEndDate) endDate
+        else paymentDate
+      }
+      else startDate
+    }
     
     val baseDate = fixedDayOfMonth match {
       case Some(d) =>
@@ -82,17 +96,34 @@ object CalculationPeriod {
           Date(calculationDate.year, calculationDate.month, d)
         }
 
-        else { // previous month
+        else {
           val prevmonth = calculationDate.addMonths(-1)
           Date(prevmonth.year, prevmonth.month, d, true)
         }
 
       case None => calculationDate
 	}
-    
-    val eventDate = baseDate.advance(fixingCalendar, -notice, TimeUnit.Days)
 
-    new CalculationPeriod(eventDate, startDate, endDate, paymentDate, daycount, isRedemption, nominal)
+    val couponEventDate = baseDate.advance(fixingCalendar, -couponNotice, TimeUnit.Days)
+
+    val callRedemptionBaseDate = {
+      if (fixingOnCalculationEndDate) endDate
+      else paymentDate
+    }
+
+//    val redemptionEventDate = callRedemptionBaseDate.advance(fixingCalendar, -redemptionNotice, TimeUnit.Days)
+//
+//    val callEventDate = callRedemptionBaseDate.advance(fixingCalendar, -callNotice, TimeUnit.Days)
+
+    new CalculationPeriod(
+      eventDate = couponEventDate,
+      startDate = startDate,
+      endDate = endDate,
+      paymentDate = paymentDate,
+      daycounter = daycount,
+      isRedemption = isRedemption,
+      nominal = nominal
+    )
   }
   
   def simpleCashflow(
@@ -102,7 +133,21 @@ object CalculationPeriod {
     isRedemption: Boolean
   ):CalculationPeriod = {
 
-    apply(paymentDate, paymentDate, 0, false, new Absolute, paymentCalendar, paymentCalendar, paymentConvention, isRedemption)
+    apply(
+      startDate = paymentDate,
+      endDate = paymentDate,
+      couponNotice = 0,
+      inarrears = false,
+      daycount = new Absolute,
+      fixingCalendar = paymentCalendar,
+      paymentCalendar = paymentCalendar,
+      paymentConvention = paymentConvention,
+      isRedemption = isRedemption,
+      nominal = 1.0,
+      fixedDayOfMonth = None,
+      fixingOnCalculationEndDate = false
+    )
+
   }
   
 }

@@ -15,7 +15,10 @@ import Ordering.Tuple2
 
 class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationPeriod] {
  
-  def sort:Schedule = if (isEmpty) this else Schedule(dates.sortBy(_.eventDate))
+  def sort:Schedule = {
+    if (isEmpty) this
+    else Schedule(dates.sortBy(_.eventDate))
+  }
 
   def sortWith[A](obj:LinearSeq[A]):LinearSeq[(CalculationPeriod, A)] = (dates zip obj).sortBy{case (d, _) => (d.paymentDate, d.dayCount)}
   
