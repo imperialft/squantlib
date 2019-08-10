@@ -21,18 +21,18 @@ import scala.collection.mutable.ListBuffer
  */
 
 case class BsNfQtoAtm(
-    variables:List[String],
-    spot: List[Double], 
-    rate: Double => Double, 
-    dividendYield: List[Double => Double],
-    repoYield: List[Double => Double], 
-    dividends: List[Map[Double, Double]], 
-    volatility: List[Double => Double],
-    correl:Array[Array[Double]],
-    isQuanto:List[Boolean],
-    volatilityfx: List[Double => Double],
-    correlfx:List[Double])
-    extends MontecarloNf{
+  variables:List[String],
+  spot: List[Double],
+  rate: Double => Double,
+  dividendYield: List[Double => Double],
+  repoYield: List[Double => Double],
+  dividends: List[Map[Double, Double]],
+  volatility: List[Double => Double],
+  correl:Array[Array[Double]],
+  isQuanto:List[Boolean],
+  volatilityfx: List[Double => Double],
+  correlfx:List[Double]
+)  extends MontecarloNf{
   
   override def getRandomGenerator:RandomGenerator = new MersenneTwister(1)
 
@@ -59,11 +59,12 @@ case class BsNfQtoAtm(
   }
   
   def getForwards(
-      mcdates:List[Double], 
-      ratedom:List[Double], 
-      ratefor:List[List[Double]], 
-      sigma:List[List[Double]],
-      sigmafx:List[List[Double]]):(List[Double], List[List[Double]], List[List[Double]], List[List[Double]]) = {
+    mcdates:List[Double],
+    ratedom:List[Double],
+    ratefor:List[List[Double]],
+    sigma:List[List[Double]],
+    sigmafx:List[List[Double]]
+  ):(List[Double], List[List[Double]], List[List[Double]], List[List[Double]]) = {
     
     val uls = spot.size
     
@@ -119,14 +120,15 @@ case class BsNfQtoAtm(
     
     val sigt:List[List[Double]] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig.map(s => s * math.sqrt(ss))}
     
-    @tailrec def iter(sp:List[Double], gauss:List[Double], dev:List[Double], drft:List[Double], divv:List[Double], current:List[Double]):List[Double] = 
-      if (sp.isEmpty) current.reverse 
+    @tailrec def iter(sp:List[Double], gauss:List[Double], dev:List[Double], drft:List[Double], divv:List[Double], current:List[Double]):List[Double] = {
+      if (sp.isEmpty) current.reverse
       else iter(sp.tail, gauss.tail, dev.tail, drft.tail, divv.tail, (sp.head * math.exp(gauss.head * dev.head + drft.head) - divv.head) :: current)
+    }
       
     val randomGenerator = getRandomGenerator
     def normSInv(x:Double) = NormSInv(x)
  
-    @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[A] = 
+    @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[A] = {
       if (steps.isEmpty) {
         val pathmap = pathmapper.map(current.reverse.tail).map(l => (variables zip l).toMap)
         payoff(pathmap)
@@ -136,9 +138,12 @@ case class BsNfQtoAtm(
         val correlatedGaussian = Mathematical.lowerTriangleMatrixMult(chol, independentGaussian)
         getApath(steps.tail, drft.tail, siggt.tail, divv.tail, iter(current.head, correlatedGaussian, siggt.head, drft.head, divv.head, List.empty) :: current)
       }
+    }
     
-    @tailrec def getPathes(nbpath:Int, current:List[List[A]]):List[List[A]] = 
-      if (nbpath == 0) current else getPathes(nbpath - 1, getApath(stepsize, drift, sigt, divs, List(spot))::current)
+    @tailrec def getPathes(nbpath:Int, current:List[List[A]]):List[List[A]] = {
+      if (nbpath == 0) current
+      else getPathes(nbpath - 1, getApath(stepsize, drift, sigt, divs, List(spot)) :: current)
+    }
   
     (eventDates.sorted, getPathes(paths, List.empty))
   }
@@ -167,9 +172,10 @@ case class BsNfQtoAtm(
     
     val sigt:List[List[Double]] = (fsigma, stepsize).zipped.map{case (sig, ss) => sig.map(s => s * math.sqrt(ss))}
     
-    @tailrec def iter(sp:List[Double], gauss:List[Double], dev:List[Double], drft:List[Double], divv:List[Double], current:List[Double]):List[Double] = 
-      if (sp.isEmpty) current.reverse 
+    @tailrec def iter(sp:List[Double], gauss:List[Double], dev:List[Double], drft:List[Double], divv:List[Double], current:List[Double]):List[Double] = {
+      if (sp.isEmpty) current.reverse
       else iter(sp.tail, gauss.tail, dev.tail, drft.tail, divv.tail, (sp.head * math.exp(gauss.head * dev.head + drft.head) - divv.head) :: current)
+    }
       
     val randomGenerator = getRandomGenerator
     def normSInv(x:Double) = NormSInv(x)
@@ -177,7 +183,7 @@ case class BsNfQtoAtm(
     val spotList = List(spot)
     val priceLegs = payoff(List.fill(eventDates.size)((variables zip spot).toMap)).size
  
-    @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[Double] = 
+    @tailrec def getApath(steps:List[Double], drft:List[List[Double]], siggt:List[List[Double]], divv:List[List[Double]], current:List[List[Double]]):List[Double] = {
       if (steps.isEmpty) {
         payoff(reversePathMapper.map(i => (variables zip current(i)).toMap))
       }
@@ -186,10 +192,12 @@ case class BsNfQtoAtm(
         val correlatedGaussian = Mathematical.lowerTriangleMatrixMult(chol, independentGaussian)
         getApath(steps.tail, drft.tail, siggt.tail, divv.tail, iter(current.head, correlatedGaussian, siggt.head, drft.head, divv.head, List.empty) :: current)
       }
+    }
     
-    @tailrec def getPrices(nbpath:Int, current:List[Double]):List[Double] = 
-      if (nbpath == 0) current 
+    @tailrec def getPrices(nbpath:Int, current:List[Double]):List[Double] = {
+      if (nbpath == 0) current
       else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, divs, spotList), current).zipped.map(_ + _))
+    }
   
     getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble)
   }

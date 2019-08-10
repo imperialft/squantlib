@@ -17,12 +17,13 @@ import net.squantlib.util.DisplayUtils._
 
 
 case class McNf(
-    valuedate:Date, 
-    mcengine:MontecarloNf, 
-    scheduledPayoffs:ScheduledPayoffs, 
-    underlyings:List[Underlying],
-    defaultPaths:Int,
-    bondid:String) extends PricingModel {
+	valuedate:Date,
+	mcengine:MontecarloNf,
+	scheduledPayoffs:ScheduledPayoffs,
+	underlyings:List[Underlying],
+	defaultPaths:Int,
+	bondid:String
+) extends PricingModel {
   
   mcPaths = defaultPaths
   val variables:List[String] = underlyings.map(_.id)
@@ -46,13 +47,15 @@ case class McNf(
     catch {case e:Throwable => 
       val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
       modelOutput("error", List(errormsg))
-      errorOutput(bondid, s"MC calculation error vd ${underlyings.headOption.collect{case u => u.valuedate}.getOrElse("NA")} ${errormsg}"); List.empty}
+      errorOutput(bondid, s"MC calculation error vd ${underlyings.headOption.collect{case u => u.valuedate}.getOrElse("NA")} ${errormsg}")
+			List.empty
+		}
   }
 
   def mcPrice(paths:Int):List[Double] = mcPrice(paths, (p:List[Map[String,Double]]) => scheduledPayoffs.price(p))
 	
   def mcPrice(paths:Int, pricer: List[Map[String,Double]] => List[Double]):List[Double] = {
-//    try {
+    try {
       val mcYears = scheduledPayoffs.eventDateYears(valuedate)
       if (mcYears.exists(_ < 0.0)) {errorOutput(bondid, "MC paths : cannot compute past dates"); List.empty}
 			mcengine.generatePrice(mcYears, paths, pricer)
@@ -60,11 +63,13 @@ case class McNf(
 //      if (mcdates.sameElements(mcYears)) mcpaths
 //      else { errorOutput(bondid, "invalid mc dates"); List.empty}
 
-//    }
-//    catch {case e:Throwable =>
-//      val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
-//      modelOutput("error", List(errormsg))
-//      errorOutput(bondid, s"MC calculation error vd ${underlyings.headOption.collect{case u => u.valuedate}.getOrElse("NA")} ${errormsg}"); List.empty}
+    }
+    catch {case e:Throwable =>
+      val errormsg = e.getStackTrace.mkString(sys.props("line.separator"))
+      modelOutput("error", List(errormsg))
+      errorOutput(bondid, s"MC calculation error vd ${underlyings.headOption.collect{case u => u.valuedate}.getOrElse("NA")} ${errormsg}")
+			List.empty
+		}
   }
 	
 	override def calculatePrice:List[Double] = calculatePrice(mcPaths)

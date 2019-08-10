@@ -52,9 +52,11 @@ trait PricingModel {
   /*  
    * Store trigger information in the model.
    */
-  def updateTriggerProbabilities:Unit = if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {
-    val probs = triggerProbabilities
-    if (probs.isEmpty) modelOutput("exercise_probability", null) else modelOutput("exercise_probability", probs.map(p => (p * 100000.0).round / 100000.0))
+  def updateTriggerProbabilities:Unit = {
+    if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {
+      val probs = triggerProbabilities
+      if (probs.isEmpty) modelOutput("exercise_probability", null) else modelOutput("exercise_probability", probs.map(p => (p * 100000.0).round / 100000.0))
+    }
   }
   
   /*  
@@ -68,10 +70,12 @@ trait PricingModel {
   
   def updateBinarySize(range:Double, curve:DiscountCurve):Unit = updateBinarySize(mcPaths, range, curve)
   
-  def updateBinarySize(paths:Int, range:Double, curve:DiscountCurve):Unit = if (scheduledPayoffs.calls.exists(_.isTrigger)) {
-    val bin = binarySize(paths, range, curve)
-    if (bin.isEmpty) modelOutput("binary_size", null) else modelOutput("binary_size", bin.map(d => (d * 10000.0).round / 10000.0))
-  } 
+  def updateBinarySize(paths:Int, range:Double, curve:DiscountCurve):Unit = {
+    if (scheduledPayoffs.calls.exists(_.isTrigger)) {
+      val bin = binarySize(paths, range, curve)
+      if (bin.isEmpty) modelOutput("binary_size", null) else modelOutput("binary_size", bin.map(d => (d * 10000.0).round / 10000.0))
+    }
+  }
   
   /*	
    * Returns forward value of each coupon. Result is annual rate without discount.
