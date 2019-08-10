@@ -68,7 +68,7 @@ trait FixingLeg {
 
 trait FixingLegs[T <: FixingLeg] {
   
-  val fixinglegs:LinearSeq[T]
+  val fixinglegs: LinearSeq[T]
   
   def assignFixings(fixings:List[UnderlyingFixing]):Unit = {
     assert(fixings.size == fixinglegs.size)

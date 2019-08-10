@@ -53,14 +53,14 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 
   def price(
     fixingList:List[List[UnderlyingFixing]],
-		callFixingList:List[UnderlyingFixing],
+		callFixingList:List[Option[UnderlyingFixing]],
     calls: List[Callability],
     dayCounts:List[Double],
     accruedPayment:Option[Double]
   )(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
     assert(fixingList.size == payoffs.size && fixingList.size == calls.size, s"Number of fixingList(${fixingList.size}), calls(${calls.size}) and payoffs(${payoffs.size}) must match - fixingList:${fixingList} calls:${calls}")
 
-    val trigList:List[Option[UnderlyingFixing]] = calls.map(c => c.optionalTriggers.collect{case vs => vs})
+    val triggerStrikes:List[Option[UnderlyingFixing]] = calls.map(c => c.optionalTriggers.collect{case vs => vs})
     val trigUp:List[Boolean] = calls.map(_.triggerUp)
     val trigAmt:List[Double] = calls.map(_.bonusAmount.toDouble)
     val forwardStrikes: List[Option[UnderlyingFixing]] = calls.map(_.optionalForwardStrikes)
@@ -68,11 +68,11 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     val removeSatisfiedTriggers: List[Boolean] = calls.map(_.removeSatisfiedTriggers)
 
     priceTrig(
-			paylist = payoffs,
+			paymentList = payoffs,
 			fixingList = fixingList,
 			callFixingList = callFixingList,
 			acc = List.empty,
-			triglist = trigList,
+			triggerStrikes = triggerStrikes,
 			trigUp = trigUp,
 			trigamt = trigAmt,
 			forwardStrikes = forwardStrikes,
@@ -80,7 +80,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 			removeSatisfiedTriggers = removeSatisfiedTriggers,
 			dayCounts = dayCounts,
 			accruedPayment = accruedPayment.getOrElse(0.0),
-			triggered = FALSE
+			triggered = false
 		)
   }
 
@@ -90,8 +90,8 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
  */
   def price(
     fixingList:List[List[UnderlyingFixing]],
-		callFixingList:List[UnderlyingFixing],
-    trigger:List[Option[UnderlyingFixing]],
+		callFixingList:List[Option[UnderlyingFixing]],
+		triggerStrikes:List[Option[UnderlyingFixing]],
     trigUp: List[Boolean],
     trigAmount:List[Double],
     forwardStrikes: List[Option[UnderlyingFixing]],
@@ -100,13 +100,13 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     dayCounts:List[Double],
     accruedPayment:Option[Double]
   )(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
-    assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
+    assert(fixingList.size == payoffs.size && fixingList.size == triggerStrikes.size, s"Number of fixings(${fixingList.size}), trigger(${triggerStrikes.size}) and payoffs(${payoffs.size}) must match - fixings:${fixingList} triggers:${triggerStrikes}")
     priceTrig(
 			paymentList = payoffs,
 			fixingList = fixingList,
 			callFixingList = callFixingList,
 			acc = List.empty,
-			triglist = trigger,
+			triggerStrikes = triggerStrikes,
 			trigUp = trigUp,
 			trigamt = trigAmount,
 			forwardStrikes = forwardStrikes,
@@ -122,9 +122,9 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
   private def priceTrig(
     paymentList:List[Payoff],
     fixingList:List[List[UnderlyingFixing]],
-		callFixingList:List[UnderlyingFixing],
+		callFixingList:List[Option[UnderlyingFixing]],
     acc:List[Double],
-    triglist:List[Option[UnderlyingFixing]],
+    triggerStrikes:List[Option[UnderlyingFixing]],
     trigUp:List[Boolean],
     trigamt:List[Double],
     forwardStrikes: List[Option[UnderlyingFixing]],
@@ -133,7 +133,7 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     dayCounts:List[Double],
     accruedPayment:Double,
     triggered:Boolean
-  ):List[Double] = (paymentList, fixingList, callFixingList, triglist, trigUp, trigamt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts) match {
+  ):List[Double] = (paymentList, fixingList, callFixingList, triggerStrikes, trigUp, trigamt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts) match {
 
     case (Nil, _, _, _, _, _, _, _, _, _) => acc.reverse
 
@@ -142,10 +142,15 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     case (ph::pt, fh::ft, cfh::cft, tlh::tlt, tuh::tut, tah::tat, fsh::fst, tgth::tgtt, memh::memt, dh::dt) =>
       val eventDateFixing = ph.getEventDateFixing(fh).getOrElse(UnderlyingFixing.empty)
       val couponRate = ph.price(fh, acc)
-      if (tlh.collect{case trig => ph.isTriggered(cfh, trig, tuh)}.getOrElse(false)) { //((couponRate + trigamt.head) :: acc).reverse ++ List.fill(paymentList.tail.size)(0.0)
+
+      if ((tlh, cfh) match {
+				case (Some(trig), Some(callFixing)) => ph.isTriggered(callFixing, trig, tuh)
+				case _ => false
+			}) {
         val trigAmount = (tah + 1.0) / dh
         ((couponRate + ph.terminationAmount(eventDateFixing, trigAmount, fsh)) :: acc).reverse ++ List.fill(pt.size)(0.0)
       }
+
       else {
         val paidAmount = accruedPayment + couponRate * dh
         tgth match {
@@ -203,7 +208,10 @@ object Payoffs {
 	
 	def apply(payoffs:LinearSeq[Payoff]) = new Payoffs(payoffs.toList)
 	
-	def apply(formula:String, legs:Int = 1)(implicit fixingInfo:FixingInformation):Option[Payoffs] =	{
+	def apply(
+		formula:String,
+		legs:Int = 1
+	)(implicit fixingInfo:FixingInformation):Option[Payoffs] =	{
 	  if (legs == 0) Some(Payoffs(List.empty))
 	  else if (formula == null || formula.trim.isEmpty) {
 	    def getNullPayoff = new NullPayoff()
@@ -234,7 +242,7 @@ object Payoffs {
 	  case f if f.parseDouble.isDefined => "fixed"
 	  case f if f.startsWith("leps") => "leps1d"
 	  case _ => formula.parseJsonString("type").orNull
-	  }
+	}
 	
 	def getPayoff(f:String)(implicit fixingInfo:FixingInformation):Payoff = Payoff(f).getOrElse(GeneralPayoff(f))
 	  

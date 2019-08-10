@@ -13,7 +13,9 @@ import org.jquantlib.daycounters._
 import java.util.{Date => JavaDate}
 import Ordering.Tuple2
 
-class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationPeriod] {
+class Schedule(
+  val dates:List[CalculationPeriod]
+) extends LinearSeq[CalculationPeriod] {
  
   def sort:Schedule = {
     if (isEmpty) this
@@ -75,6 +77,10 @@ class Schedule(val dates:List[CalculationPeriod]) extends LinearSeq[CalculationP
   val paymentDates:List[Date] = dates.map(_.paymentDate)
   
   def paymentYears(baseDate:Date):List[Double] = dates.map(d => Date.daycount(baseDate, d.paymentDate, defaultDaycounter))
+
+  def callEventDate(i:Int):Date = dates(i).callEventDate
+
+  val callEventDates:List[Date] = dates.map(_.callEventDate)
 
   def currentPeriods(ref:Date):List[CalculationPeriod] = dates.filter(d => (ref ge d.startDate) && (ref lt d.endDate))
   

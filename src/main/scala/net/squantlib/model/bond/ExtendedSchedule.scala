@@ -44,13 +44,33 @@ trait ExtendedSchedule {
    *   @returns element 1: Schedule containing legs with payment date after market value date or specified value date.
    *       element 2: Payoffs containing legs with payment dates after market value date or specified value date.
    */
-  def livePayoffs:ScheduledPayoffs = valueDate.collect {case d => livePayoffs(d)}.getOrElse(ScheduledPayoffs.empty)
+  var cachedLivePayoffs:Option[(Date, ScheduledPayoffs)] = None
+
+  def livePayoffs:ScheduledPayoffs = valueDate.collect{case d => livePayoffs(d)}.getOrElse(ScheduledPayoffs.empty)
+
+    //  def livePayoffs:ScheduledPayoffs = (valueDate, cachedLivePayoffs) match {
+//    case (None, _) => ScheduledPayoffs.empty
+//    case (Some(vd), Some((cachedVd, po))) if vd == cachedVd => po
+//    case (Some(vd), _) =>
+//      val newLivePayoffs = livePayoffs(vd)
+//      cachedLivePayoffs = Some((vd, newLivePayoffs))
+//      newLivePayoffs
+//  }
 
   def livePayoffs(vd:Date):ScheduledPayoffs = {
-    val p = (earlyTerminationDate,earlyTerminationAmount) match {
+    val p = (earlyTerminationDate, earlyTerminationAmount) match {
       case (Some(d), _) if vd ge d => ScheduledPayoffs.empty
-      case (Some(d), Some(a)) => scheduledPayoffs.after(vd).called(d, db.currencyid, db.paymentCurrencyId, a, db.paymentCalendar, db.paymentAdjust).withValueDate(vd)
-      case _ => scheduledPayoffs.after(vd).withValueDate(vd)
+
+      case (Some(d), Some(a)) => scheduledPayoffs.after(vd).called(
+        vd = d,
+        currencyId = db.currencyid,
+        paymentCurrencyId = db.paymentCurrencyId,
+        redemAmount = a,
+        paymentCalendar = db.paymentCalendar,
+        convention = db.paymentAdjust
+      ).withValueDate(vd)
+
+      case _ => scheduledPayoffs.afterWithValueDate(vd)
     }
     p
   }

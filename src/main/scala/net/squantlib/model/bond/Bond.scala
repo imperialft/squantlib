@@ -74,7 +74,12 @@ object Bond {
   
   def noFixings(db:dbBond):Option[Bond] = getScheduledPayoffs(db, None, false).collect{case po => new Bond(db, po, db.underlyingList)}
 
-  def getScheduledPayoffs(db:dbBond, valuedate:Option[Date] = None, assignPastFixings:Boolean = true, customFixings:FixingInformation = null):Option[ScheduledPayoffs] = {
+  def getScheduledPayoffs(
+    db:dbBond,
+    valuedate:Option[Date] = None,
+    assignPastFixings:Boolean = true,
+    customFixings:FixingInformation = null
+  ):Option[ScheduledPayoffs] = {
     val schedule = db.schedule.orNull
     if (schedule == null) {return None}
     
