@@ -153,7 +153,9 @@ case class ScheduledPayoffs(
 
   var callDateMapper:List[Option[Int]] = computeCallDateMapper
 
-  def eventDateYears(basedate:Date):List[Double] = eventDates.map(d => Date.daycount(basedate, d, defaultDaycounter))
+  def allEventDates:List[Date] = (eventDates ++ callEventDates).toSet.toList.sorted
+
+  def eventDateYears(basedate:Date):List[Double] = allEventDates.map(d => Date.daycount(basedate, d, defaultDaycounter))
 
   def clearFixings:Unit = {
     payoffs.foreach(_.clearFixings)
@@ -162,6 +164,7 @@ case class ScheduledPayoffs(
     eventDates = computeEventDates
     callEventDates = computeCallEventDates
     dateMapper = computeDateMapper
+    callDateMapper = computeCallDateMapper
   }
 
   abstract class withDefault[T] { def defaultValue:T }
