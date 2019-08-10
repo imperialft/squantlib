@@ -106,8 +106,7 @@ case class ScheduledPayoffs(
   def computeEventDateLegs:List[List[Date]] = {
     val dates: List[List[Date]] = scheduledPayoffs.map {
       case (d, p, t) if p.isFutureFixing => p.eventDates(d)
-      case (d, p, t) if p.isPaymentFixed && t.isFixed => List.empty
-      case (d, p, t) if p.isPaymentFixed => List(p.eventDates(d).last)
+      case (d, p, t) if p.isPaymentFixed => List.empty
       case (d, p, t) => p.eventDates(d)
     }(collection.breakOut)
 
@@ -117,15 +116,37 @@ case class ScheduledPayoffs(
     }
   }
 
-  def computeEventDates:List[Date] = eventDateLegs.flatten.toSet.toList.sorted
+  def computeCallEventDateLegs:List[Option[Date]] = {
+    val dates: List[Option[Date]] = scheduledPayoffs.map {
+      case (d, p, t) if t.isFixed => None
+      case (d, p, t) => Some(d.callEventDate)
+    }(collection.breakOut)
 
+    valuedate match {
+      case Some(d) => dates.map{
+        case Some(td) => if (td gt d) Some(td) else None
+        case None => None
+      }
+      case None => dates
+    }
+  }
+
+  var dateMapper:List[List[Int]] = computeDateMapper
   def computeDateMapper:List[List[Int]] = eventDateLegs.map(_.map(eventDates.indexOf(_)))
 
   var eventDateLegs:List[List[Date]] = computeEventDateLegs
 
+  def computeEventDates:List[Date] = eventDateLegs.flatten.toSet.toList.sorted
+
   var eventDates:List[Date] = computeEventDates
 
-  var dateMapper:List[List[Int]] = computeDateMapper
+  var callDateMapper:List[Option[Int]] = computeCallDateMapper
+  def computeCallDateMapper:List[Option[Int]] = callEventDateLegs.map{case l => l.collect(callEventDates.indexOf(_))}
+
+  var callEventDateLegs:List[Option[Date]] = computeCallEventDateLegs
+  def computeCallEventDates:List[Date] = callEventDateLegs.collect{case Some(d) => d}
+
+  var callEventDates:List[Date] = computeCallEventDates
 
   def eventDateYears(basedate:Date):List[Double] = eventDates.map(d => Date.daycount(basedate, d, defaultDaycounter))
 
@@ -134,6 +155,7 @@ case class ScheduledPayoffs(
     calls.foreach(_.clearFixings)
     eventDateLegs = computeEventDateLegs
     eventDates = computeEventDates
+    callEventDates = computeCallEventDates
     dateMapper = computeDateMapper
   }
 
@@ -147,25 +169,47 @@ case class ScheduledPayoffs(
 
   implicit object doubleValue extends withDefault[Double] { def defaultValue = Double.NaN}
 
-  def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = dateMapper.map(d => {
-    if (d.isEmpty) List(defclass.defaultValue) else d.map(fixings) })
+  def priceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[List[T]] = {
+    dateMapper.map(ds => {
+      if (ds.isEmpty) List(defclass.defaultValue) else ds.map(fixings)
+    })
+  }
 
-//  def priceMapper(fixings:List[UnderlyingFixing]):List[List[UnderlyingFixing]] = dateMapper.map(d => {
+  def callPriceMapper[T](fixings:List[T])(implicit defclass:withDefault[T]):List[Option[T]] = {
+    callDateMapper.map(ds match {
+      case Some(d) => Some(fixings(d))
+      case _ => None
+    })
+  }
+
+  //  def priceMapper(fixings:List[UnderlyingFixing]):List[List[UnderlyingFixing]] = dateMapper.map(d => {
 //    if (d.isEmpty) List(UnderlyingFixing.errorValue(underlyings)) else d.map(fixings) })
 
 //  def fixingPrices(fixings:List[Double]):List[List[Double]] = priceMapper(fixings)
 
-  def fixingPrices(underlyingId:String, fixings:List[Double]):List[List[Double]] = {
+  def fixingPrices(
+    underlyingId:String,
+    fixings:List[Double]
+  ):List[List[Double]] = {
     priceMapper(fixings)
   }
 
-  def fixingPrices(fixings:List[Map[String, Double]]):List[List[Map[String, Double]]] = {
+  def fixingPrices(
+    fixings:List[Map[String, Double]]
+  ):List[List[Map[String, Double]]] = {
     priceMapper(fixings)
   }
 
-  def fixingPrices(fixings:List[UnderlyingFixing])(implicit d:DummyImplicit):List[List[UnderlyingFixing]] = priceMapper(fixings)
+  def fixingPrices(
+    fixings:List[UnderlyingFixing]
+  )(implicit d:DummyImplicit):List[List[UnderlyingFixing]] = {
+    priceMapper(fixings)
+  }
 
-  def price:List[Double] = if (calls.isTrigger) List.fill(payoffs.size)(Double.NaN) else payoffs.price
+  def price:List[Double] = {
+    if (calls.isTrigger) List.fill(payoffs.size)(Double.NaN)
+    else payoffs.price
+  }
 
   // Single Underlying
 //  def price(fixings:List[Double])(implicit d:DummyImplicit):List[Double] = singleUnderlying match {
@@ -174,11 +218,28 @@ case class ScheduledPayoffs(
 //  }
 
   // multiple underlyings
-  def price(fixings:List[UnderlyingFixing]):List[Double] = payoffs.price(priceMapper(fixings), calls.toList, schedule.dayCounts, None)
+  def price(
+    fixings:List[UnderlyingFixing]
+ ):List[Double] = {
+    payoffs.price(
+      fixingList = priceMapper(fixings),
+      callFixingList = callPriceMapper(fixings),
+      calls = calls.toList,
+      dayCounts = schedule.dayCounts,
+      accruedPayment = None
+    )
+  }
 
-  def price(fixings:List[Map[String, Double]])(implicit dummyImplicit:DummyImplicit):List[Double] = price(fixings.map(f => UnderlyingFixing(f)))
+  def price(
+    fixings:List[Map[String, Double]]
+  )(implicit dummyImplicit:DummyImplicit):List[Double] = {
+    price(fixings.map(f => UnderlyingFixing(f)))
+  }
 
-  def price(underlyingId:String, fixings:List[Double]):List[Double] = {
+  def price(
+    underlyingId:String,
+    fixings:List[Double]
+  ):List[Double] = {
     price(fixings.map(f => UnderlyingFixing(Map(underlyingId -> f))))
   }
 

@@ -9,6 +9,7 @@ import org.jquantlib.time.calendars.NullCalendar
 
 case class CalculationPeriod(
   eventDate:Date,
+  callEventDate:Date,
   startDate:Date,
   endDate:Date,
   paymentDate:Date,
@@ -37,29 +38,35 @@ case class CalculationPeriod(
     case _ => false
   }
 	
-  def shifted(shift:Int):CalculationPeriod = CalculationPeriod(
-    eventDate = eventDate.add(shift),
-    startDate = startDate.add(shift),
-    endDate = endDate.add(shift),
-    paymentDate = paymentDate.add(shift),
-    daycounter = daycounter,
-    isRedemption = isRedemption,
-    nominal = nominal
-  )
+  def shifted(shift:Int):CalculationPeriod = {
+    CalculationPeriod(
+      eventDate = eventDate.add(shift),
+      callEventDate = callEventDate.add(shift),
+      startDate = startDate.add(shift),
+      endDate = endDate.add(shift),
+      paymentDate = paymentDate.add(shift),
+      daycounter = daycounter,
+      isRedemption = isRedemption,
+      nominal = nominal
+    )
+  }
   
   override def toString = {
     eventDate.toString + " " + startDate.toString + " " + endDate.toString + " " + paymentDate.toString + " " + daycounter.toString
   }
 
-  def getRedemptionLeg(nom:Double):CalculationPeriod = CalculationPeriod(
-    eventDate = eventDate,
-    startDate = endDate,
-    endDate = endDate,
-    paymentDate = paymentDate,
-    daycounter = new Absolute,
-    isRedemption = true,
-    nominal = nom
-  )
+  def getRedemptionLeg(nom:Double):CalculationPeriod = {
+    CalculationPeriod(
+      eventDate = eventDate,
+      callEventDate = callEventDate,
+      startDate = endDate,
+      endDate = endDate,
+      paymentDate = paymentDate,
+      daycounter = new Absolute,
+      isRedemption = true,
+      nominal = nom
+    )
+  }
 
 }
 
@@ -69,6 +76,7 @@ object CalculationPeriod {
     startDate:Date,
     endDate:Date,
     couponNotice:Int,
+    callNotice:Int,
     inarrears:Boolean,
     daycount:DayCounter,
     fixingCalendar:Calendar,
@@ -102,21 +110,24 @@ object CalculationPeriod {
         }
 
       case None => calculationDate
-	}
+  	}
 
     val couponEventDate = baseDate.advance(fixingCalendar, -couponNotice, TimeUnit.Days)
 
-    val callRedemptionBaseDate = {
+    val callBaseDate = {
       if (fixingOnCalculationEndDate) endDate
       else paymentDate
     }
 
-//    val redemptionEventDate = callRedemptionBaseDate.advance(fixingCalendar, -redemptionNotice, TimeUnit.Days)
+    val callEventDate = callBaseDate.advance(fixingCalendar, -callNotice, TimeUnit.Days)
+
+    //    val redemptionEventDate = callRedemptionBaseDate.advance(fixingCalendar, -redemptionNotice, TimeUnit.Days)
 //
 //    val callEventDate = callRedemptionBaseDate.advance(fixingCalendar, -callNotice, TimeUnit.Days)
 
     new CalculationPeriod(
       eventDate = couponEventDate,
+      callEventDate = callEventDate,
       startDate = startDate,
       endDate = endDate,
       paymentDate = paymentDate,
@@ -137,6 +148,7 @@ object CalculationPeriod {
       startDate = paymentDate,
       endDate = paymentDate,
       couponNotice = 0,
+      callNotice = 0,
       inarrears = false,
       daycount = new Absolute,
       fixingCalendar = paymentCalendar,

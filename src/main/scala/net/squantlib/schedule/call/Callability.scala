@@ -94,7 +94,7 @@ case class Callability(
   }
 
   def eventDate(d:CalculationPeriod):List[Date] = {
-    List(d.eventDate)
+    List(d.callEventDate)
   }
 
 //  def judgeTriggerDouble(f:Map[String, Double]):Boolean = (

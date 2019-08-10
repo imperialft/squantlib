@@ -264,7 +264,9 @@ class Bond(
   def couponNotice:Int = cpnnotice.getOrElse(5)
   
   def redemptionNotice:Int = redemnotice.getOrElse(couponNotice)
-  
+
+  def callNotice:Int = callnotice
+
   def remainLife(valuedate:Date):Double = math.max(0.0, endDate.sub(valuedate).toDouble / 365.25)
   
   @Transient
@@ -344,12 +346,13 @@ class Bond(
         terminationDateConvention = maturityAdjust,
         rule = DateGeneration.Rule.Backward,
         fixingInArrears = isFixingInArrears,
-        noticeDay = couponNotice,
+        couponNotice = couponNotice,
+        redemptionNotice = redemptionNotice,
+        callNotice = callNotice,
         daycount = daycounter,
         firstDate = firstPaymentDateAfter,
         nextToLastDate = lastRollDate,
         addRedemption = true,
-        maturityNotice = redemptionNotice,
         fixedDayOfMonth = customFixingDayOfMonth,
         fixingOnCalculationEndDate = isFixingOnCalculationEndDate,
         rollMonthEnd = isRollMonthEnd

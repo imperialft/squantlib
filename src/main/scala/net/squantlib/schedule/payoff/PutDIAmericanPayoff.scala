@@ -110,6 +110,10 @@ case class PutDIAmericanPayoff(
 //    else p <= trig
   }
 
+  def isKnockedInPrice(p:UnderlyingFixing, trig:UnderlyingFixing):Boolean = {
+    trig.getDecimalValue.exists{case (ul, t) => p.getDecimalValue.get(ul).collect{case f => isKnockedInPrice(f, t)}.getOrElse(false)}
+  }
+
   def getPerformance(p:Double, stk:Double):Double = {
     if (reverse) withMinMax(2.0 - p / stk)
     else withMinMax(p / stk)
@@ -253,25 +257,23 @@ case class PutDIAmericanPayoff(
   def checkKnockIn:Unit = {
     knockedIn = {
       if (refstart == null || refend == null) false
-      else triggers.getDecimalValue.exists { case (ul, trig) =>
-
-        val historicalPrices = {
-          if (closeOnly) DB.getHistorical(ul, refstart, refend)
-          else if (reverse) DB.getHistorical(ul, refstart, refend) ++ DB.getHistoricalHigh(ul, refstart, refend)
-          else DB.getHistorical(ul, refstart, refend) ++ DB.getHistoricalLow(ul, refstart, refend)
+      else {
+        val historicalPrices:Map[Date, UnderlyingFixing] = {
+          if (closeOnly) DB.getHistoricalUnderlyingFixings(triggers.keySet, refstart, refend)
+          else if (reverse) DB.getHistoricalUnderlyingFixings(triggers.keySet, refstart, refend) ++ DB.getHistoricalHighUnderlyingFixings(triggers.keySet, refstart, refend)
+          else DB.getHistoricalUnderlyingFixings(triggers.keySet, refstart, refend) ++ DB.getHistoricalLowUnderlyingFixings(triggers.keySet, refstart, refend)
         }
 
-        (historicalPrices, historicalPrices.values.lastOption) match {
+        (historicalPrices, historicalPrices.get(refend)) match {
           case (hs, _) if hs.isEmpty => false
 
-          case (hs, Some(hsLast)) if hs.get(refend).isDefined =>
-            hs.values.exists(hp => isKnockedInPrice(hp, trig)) && //hp <= trig) &&
+          case (hs, Some(hsLast)) =>
+            hs.values.exists(hp => isKnockedInPrice(hp, triggers)) &&
             (
-              forward ||
-              strikeOrFinalTriggers.getDecimalValue.get(ul).collect { case s => isKnockedInPrice(hsLast, s)}.getOrElse(true)
+              forward || isKnockedInPrice(hsLast, strikeOrFinalTriggers)
             )
 
-          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(x, trig)} //x <= trig }
+          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(x, triggers)}
         }
       }
     }

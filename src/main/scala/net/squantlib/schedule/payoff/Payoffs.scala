@@ -52,12 +52,13 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
  */
 
   def price(
-    fixings:List[List[UnderlyingFixing]],
+    fixingList:List[List[UnderlyingFixing]],
+		callFixingList:List[UnderlyingFixing],
     calls: List[Callability],
     dayCounts:List[Double],
     accruedPayment:Option[Double]
   )(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
-    assert(fixings.size == payoffs.size && fixings.size == calls.size, s"Number of fixings(${fixings.size}), calls(${calls.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} calls:${calls}")
+    assert(fixingList.size == payoffs.size && fixingList.size == calls.size, s"Number of fixingList(${fixingList.size}), calls(${calls.size}) and payoffs(${payoffs.size}) must match - fixingList:${fixingList} calls:${calls}")
 
     val trigList:List[Option[UnderlyingFixing]] = calls.map(c => c.optionalTriggers.collect{case vs => vs})
     val trigUp:List[Boolean] = calls.map(_.triggerUp)
@@ -66,7 +67,21 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     val targets:List[Option[Double]] = calls.map(_.targetRedemption.collect{case v => v.toDouble})
     val removeSatisfiedTriggers: List[Boolean] = calls.map(_.removeSatisfiedTriggers)
 
-    priceTrig(payoffs, fixings, List.empty, trigList, trigUp, trigAmt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts, accruedPayment.getOrElse(0.0), false)
+    priceTrig(
+			paylist = payoffs,
+			fixingList = fixingList,
+			callFixingList = callFixingList,
+			acc = List.empty,
+			triglist = trigList,
+			trigUp = trigUp,
+			trigamt = trigAmt,
+			forwardStrikes = forwardStrikes,
+			targets = targets,
+			removeSatisfiedTriggers = removeSatisfiedTriggers,
+			dayCounts = dayCounts,
+			accruedPayment = accruedPayment.getOrElse(0.0),
+			triggered = FALSE
+		)
   }
 
   /*
@@ -74,7 +89,8 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
  * @param fixings market parameters as Map(variable name -> value) in order of payoff.
  */
   def price(
-    fixings:List[List[UnderlyingFixing]],
+    fixingList:List[List[UnderlyingFixing]],
+		callFixingList:List[UnderlyingFixing],
     trigger:List[Option[UnderlyingFixing]],
     trigUp: List[Boolean],
     trigAmount:List[Double],
@@ -85,13 +101,28 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     accruedPayment:Option[Double]
   )(implicit d1:DI, d2:DI, d3:DI):List[Double] = {
     assert(fixings.size == payoffs.size && fixings.size == trigger.size, s"Number of fixings(${fixings.size}), trigger(${trigger.size}) and payoffs(${payoffs.size}) must match - fixings:${fixings} triggers:${trigger}")
-    priceTrig(payoffs, fixings, List.empty, trigger, trigUp, trigAmount, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts, accruedPayment.getOrElse(0.0), false)
+    priceTrig(
+			paymentList = payoffs,
+			fixingList = fixingList,
+			callFixingList = callFixingList,
+			acc = List.empty,
+			triglist = trigger,
+			trigUp = trigUp,
+			trigamt = trigAmount,
+			forwardStrikes = forwardStrikes,
+			targets = targets,
+			removeSatisfiedTriggers = removeSatisfiedTriggers,
+			dayCounts = dayCounts,
+			accruedPayment = accruedPayment.getOrElse(0.0),
+			triggered = false
+		)
   }
 
   @tailrec
   private def priceTrig(
-    paylist:List[Payoff],
-    fixlist:List[List[UnderlyingFixing]],
+    paymentList:List[Payoff],
+    fixingList:List[List[UnderlyingFixing]],
+		callFixingList:List[UnderlyingFixing],
     acc:List[Double],
     triglist:List[Option[UnderlyingFixing]],
     trigUp:List[Boolean],
@@ -102,23 +133,23 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     dayCounts:List[Double],
     accruedPayment:Double,
     triggered:Boolean
-  ):List[Double] = (paylist, fixlist, triglist, trigUp, trigamt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts) match {
+  ):List[Double] = (paymentList, fixingList, callFixingList, triglist, trigUp, trigamt, forwardStrikes, targets, removeSatisfiedTriggers, dayCounts) match {
 
-    case (Nil, _, _, _, _, _, _, _, _) => acc.reverse
+    case (Nil, _, _, _, _, _, _, _, _, _) => acc.reverse
 
-    case _ if triggered => acc.reverse ++ List.fill(paylist.tail.size)(0.0)
+    case _ if triggered => acc.reverse ++ List.fill(paymentList.tail.size)(0.0)
 
-    case (ph::pt, fh::ft, tlh::tlt, tuh::tut, tah::tat, fsh::fst, tgth::tgtt, memh::memt, dh::dt) =>
+    case (ph::pt, fh::ft, cfh::cft, tlh::tlt, tuh::tut, tah::tat, fsh::fst, tgth::tgtt, memh::memt, dh::dt) =>
       val eventDateFixing = ph.getEventDateFixing(fh).getOrElse(UnderlyingFixing.empty)
       val couponRate = ph.price(fh, acc)
-      if (tlh.collect{case trig => ph.isTriggered(eventDateFixing, trig, tuh)}.getOrElse(false)) { //((couponRate + trigamt.head) :: acc).reverse ++ List.fill(paylist.tail.size)(0.0)
+      if (tlh.collect{case trig => ph.isTriggered(cfh, trig, tuh)}.getOrElse(false)) { //((couponRate + trigamt.head) :: acc).reverse ++ List.fill(paymentList.tail.size)(0.0)
         val trigAmount = (tah + 1.0) / dh
         ((couponRate + ph.terminationAmount(eventDateFixing, trigAmount, fsh)) :: acc).reverse ++ List.fill(pt.size)(0.0)
       }
       else {
         val paidAmount = accruedPayment + couponRate * dh
         tgth match {
-          case Some(tgt) if paidAmount >= tgt => //((couponRate + trigamt.head)::acc).reverse ++ List.fill(paylist.tail.size)(0.0)
+          case Some(tgt) if paidAmount >= tgt => //((couponRate + trigamt.head)::acc).reverse ++ List.fill(paymentList.tail.size)(0.0)
             val trigAmount = (tah + 1.0) / dh
             ((couponRate + ph.terminationAmount(eventDateFixing, trigAmount, fsh))::acc).reverse ++ List.fill(pt.size)(0.0)
           case _ =>
@@ -126,14 +157,16 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
               tlh.collect { case trig =>
                 val triggeredUls = ph.triggeredUnderlyings(eventDateFixing, trig, tuh)
                 if (triggeredUls.isEmpty) tlt
-                else tlt.map(tt => tt.collect { case fut => UnderlyingFixing(fut.getDecimal.filter{ case (kk, vv) => !triggeredUls.contains(kk)})})
+                else tlt.map(tt => tt.collect { case fut =>
+									UnderlyingFixing(fut.getDecimal.filter{ case (kk, vv) => !triggeredUls.contains(kk)})
+								})
               }.getOrElse(tlt)
             } else tlt
 
-            priceTrig(pt, ft, couponRate :: acc, remainTrigger, tut, tat, fst, tgtt, memt, dt, paidAmount, false)
+            priceTrig(pt, ft, cft, couponRate :: acc, remainTrigger, tut, tat, fst, tgtt, memt, dt, paidAmount, false)
         }
       }
-    case _ => acc.reverse ++ List.fill(paylist.tail.size)(Double.NaN)
+    case _ => acc.reverse ++ List.fill(paymentList.tail.size)(Double.NaN)
   }
 
 	def ++(another:Payoffs) = new Payoffs(payoffs ++ another.payoffs)

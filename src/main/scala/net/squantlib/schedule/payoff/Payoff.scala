@@ -171,7 +171,7 @@ trait Payoff extends FixingLeg {
     else List(d.eventDate)
   }
 
-  val eventDateFixingIndexFromRight:Int = 10 //if (physical) 2 else 1
+  val eventDateFixingIndexFromRight:Int = if (physical) 2 else 1 //10
 
   def getEventDateFixing[T](fixings:List[T]):Option[T] = {
     fixings.takeRight(eventDateFixingIndexFromRight).headOption

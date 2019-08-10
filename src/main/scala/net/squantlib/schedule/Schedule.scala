@@ -117,12 +117,13 @@ object Schedule{
     terminationDateConvention:BusinessDayConvention,
     rule:DateGeneration.Rule,
     fixingInArrears:Boolean,
-    noticeDay:Int,
+    couponNotice:Int,
+    redemptionNotice:Int,
+    callNotice:Int,
     daycount:DayCounter,
     firstDate:Option[Date],
     nextToLastDate:Option[Date],
     addRedemption:Boolean,
-    maturityNotice:Int,
     fixedDayOfMonth:Option[Int],
     fixingOnCalculationEndDate:Boolean,
     rollMonthEnd: Boolean
@@ -133,37 +134,43 @@ object Schedule{
     
     val nullCalendar = Calendars.empty
     
-    def calcperiod(startdate:Date, enddate:Date, isRedemption: Boolean):CalculationPeriod = {
+    def calcperiod(
+      startdate:Date,
+      enddate:Date,
+      isRedemption: Boolean
+    ):CalculationPeriod = {
       CalculationPeriod(
-        startdate,
-        enddate,
-        noticeDay,
-        fixingInArrears,
-        daycount,
-        fixingCalendar,
-        paymentCalendar,
-        if (enddate == terminationDate) terminationDateConvention else paymentConvention,
-        isRedemption,
-        1.0,
-        fixedDayOfMonth,
-        fixingOnCalculationEndDate
+        startDate = startdate,
+        endDate = enddate,
+        couponNotice = couponNotice,
+        callNotice = callNotice,
+        inarrears = fixingInArrears,
+        daycount = daycount,
+        fixingCalendar = fixingCalendar,
+        paymentCalendar = paymentCalendar,
+        paymentConvention = if (enddate == terminationDate) terminationDateConvention else paymentConvention,
+        isRedemption = isRedemption,
+        nominal = 1.0,
+        fixedDayOfMonth = fixedDayOfMonth,
+        fixingOnCalculationEndDate = fixingOnCalculationEndDate
       )
     }
 
     val redemptionLegs:List[CalculationPeriod] = {
       if(addRedemption) List(CalculationPeriod(
-        effectiveDate,
-        terminationDate,
-        maturityNotice,
-        true,
-        new Absolute,
-        fixingCalendar,
-        paymentCalendar,
-        terminationDateConvention,
-        true,
-        1.0,
-        fixedDayOfMonth,
-        fixingOnCalculationEndDate
+        startDate = effectiveDate,
+        endDate = terminationDate,
+        couponNotice = redemptionNotice,
+        callNotice = callNotice,
+        inarrears = true,
+        daycount = new Absolute,
+        fixingCalendar = fixingCalendar,
+        paymentCalendar = paymentCalendar,
+        paymentConvention = terminationDateConvention,
+        isRedemption = true,
+        nominal = 1.0,
+        fixedDayOfMonth = fixedDayOfMonth,
+        fixingOnCalculationEndDate = fixingOnCalculationEndDate
       ))
       else List.empty
     }
@@ -255,37 +262,40 @@ object Schedule{
     terminationDateConvention:BusinessDayConvention,
     rule:DateGeneration.Rule,
     fixingInArrears:Boolean,
-    noticeDay:Int,
+    couponNotice:Int,
+    redemptionNotice:Int,
+    callNotice:Int,
     daycount:DayCounter,
     firstDate:Option[JavaDate],
     nextToLastDate:Option[JavaDate],
     addRedemption:Boolean,
-    maturityNotice:Int,
     fixedDayOfMonth:Option[Int],
     fixingOnCalculationEndDate:Boolean,
     rollMonthEnd: Boolean
-  ):Schedule
-    = apply(
-      Date(effectiveDate), 
-      Date(terminationDate), 
-      tenor, 
-      fixingCalendar,
-      paymentCalendar, 
-      calendarConvention, 
-      paymentConvention,
-      terminationDateConvention, 
-      rule, 
-      fixingInArrears, 
-      noticeDay, 
-      daycount, 
-      firstDate.collect{case d => Date(d)}, 
-      nextToLastDate.collect{case d => Date(d)}, 
-      addRedemption, 
-      maturityNotice,
-      fixedDayOfMonth,
-      fixingOnCalculationEndDate,
-      rollMonthEnd
-  )
+  ):Schedule = {
+    apply(
+      effectiveDate = Date(effectiveDate),
+      terminationDate = Date(terminationDate),
+      tenor = tenor,
+      fixingCalendar = fixingCalendar,
+      paymentCalendar = paymentCalendar,
+      calendarConvention = calendarConvention,
+      paymentConvention = paymentConvention,
+      terminationDateConvention = terminationDateConvention,
+      rule = rule,
+      fixingInArrears = fixingInArrears,
+      couponNotice = couponNotice,
+      redemptionNotice = redemptionNotice,
+      callNotice = callNotice,
+      daycount = daycount,
+      firstDate = firstDate.collect { case d => Date(d) },
+      nextToLastDate = nextToLastDate.collect { case d => Date(d) },
+      addRedemption = addRedemption,
+      fixedDayOfMonth = fixedDayOfMonth,
+      fixingOnCalculationEndDate = fixingOnCalculationEndDate,
+      rollMonthEnd = rollMonthEnd
+    )
+  }
 
         
   def periodicalDates(

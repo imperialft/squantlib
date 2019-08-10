@@ -1,6 +1,6 @@
 package net.squantlib.database
 
-import net.squantlib.util.{Date, FixingInformation, UnderlyingFixingInfo, UnderlyingParser}
+import net.squantlib.util.{Date, FixingInformation, UnderlyingFixingInfo, UnderlyingParser, UnderlyingFixing}
 import net.squantlib.database.schemadefinitions.{Equity, Index}
 import net.squantlib.math.timeseries.TimeSeries
 import java.util.{Date => JavaDate}
@@ -153,6 +153,21 @@ object DB {
     case None => TimeSeries.empty
   }
 
+  def getHistoricalUnderlyingFixings(
+    underlyingIds:Set[String],
+    startDate:Date,
+    endDate:Date,
+    assetId:String = null
+  )(implicit fixingInfo:FixingInformation):Map[Date, UnderlyingFixing] = {
+    getHistoricalUnderlyingFixingsGen(
+      underlyingIds,
+      startDate,
+      endDate,
+      (ul:String, d1:Date, d2:Date, assetId:String) => getHistorical(ul, d1, d2, assetId),
+      assetId
+    )
+  }
+
   def getHistoricalLow(id:String):TimeSeries = getHistoricalLow(id, null)
     
   def getHistoricalLow(id:String, paramType:String):TimeSeries = getHistoricalLow(id, null, null, paramType)
@@ -161,7 +176,22 @@ object DB {
     case Some(repo) => repo.getHistoricalLow(id, startDate, endDate, assetId)
     case None => TimeSeries.empty
   }
-  
+
+  def getHistoricalLowUnderlyingFixings(
+    underlyingIds:Set[String],
+    startDate:Date,
+    endDate:Date,
+    assetId:String = null
+  )(implicit fixingInfo:FixingInformation):Map[Date, UnderlyingFixing] = {
+    getHistoricalUnderlyingFixingsGen(
+      underlyingIds,
+      startDate,
+      endDate,
+      (ul:String, d1:Date, d2:Date, assetId:String) => getHistoricalLow(ul, d1, d2, assetId),
+      assetId
+    )
+  }
+
   def getHistoricalHigh(id:String):TimeSeries = getHistoricalHigh(id, null)
     
   def getHistoricalHigh(id:String, paramType:String):TimeSeries = getHistoricalHigh(id, null, null, paramType)
@@ -170,7 +200,35 @@ object DB {
     case Some(repo) => repo.getHistoricalHigh(id, startDate, endDate, assetId)
     case None => TimeSeries.empty
   }
-  
+
+  def getHistoricalHighUnderlyingFixings(
+   underlyingIds:Set[String],
+   startDate:Date,
+   endDate:Date,
+   assetId:String = null
+  )(implicit fixingInfo:FixingInformation):Map[Date, UnderlyingFixing] = {
+    getHistoricalUnderlyingFixingsGen(
+      underlyingIds,
+      startDate,
+      endDate,
+      (ul:String, d1:Date, d2:Date, assetId:String) => getHistoricalHigh(ul, d1, d2, assetId),
+      assetId
+    )
+  }
+
+  def getHistoricalUnderlyingFixingsGen(
+    underlyingIds:Set[String],
+    startDate:Date,
+    endDate:Date,
+    priceFunction:(String, Date, Date, String) => TimeSeries,
+    assetId:String = null
+  )(implicit fixingInfo:FixingInformation):Map[Date, UnderlyingFixing] = {
+    val priceSeries:Map[String, TimeSeries] = underlyingIds.map(ul => (ul, priceFunction(ul, startDate, endDate, assetId))).toMap
+    val dates:Set[Date] = priceSeries.values.map(_.keySet).flatten.toSet
+    dates.map(d => (d, UnderlyingFixing(priceSeries.map{case (ul, ps) => (ul, ps.get(d).getOrElse(Double.NaN))}))).toMap
+  }
+
+
   def getForwardPrices(assetId:String, id:String):TimeSeries = repository.collect{case repo => repo.getForwardPrices(assetId, id)}.getOrElse(TimeSeries.empty)
   
   def getEquities:Set[Equity] = repository.collect{case repo => repo.getEquities}.getOrElse(Set.empty)
