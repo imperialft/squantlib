@@ -205,11 +205,11 @@ class Bond(
   } catch { case _:Throwable => false}
 
   def redemptionFixingOnCoupon:Boolean = try {
-    settingMap.get("redemptionFixingOnCoupon").collect{case v => v.toInt == 1}.getOrElse(true)
+    settingMap.get("redemption_fixing_on_coupon").collect{case v => v.toInt == 1}.getOrElse(true)
   } catch { case _:Throwable => true}
 
   def callFixingOnCoupon:Boolean = try {
-    settingMap.get("callFixingOnCoupon").collect{case v => v.toInt == 1}.getOrElse(true)
+    settingMap.get("call_fixing_on_coupon").collect{case v => v.toInt == 1}.getOrElse(true)
   } catch { case _:Throwable => true}
 
   def getUniqueIds:Map[String, String] = {
