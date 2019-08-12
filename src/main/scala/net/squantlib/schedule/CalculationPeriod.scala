@@ -76,9 +76,9 @@ object CalculationPeriod {
     startDate:Date,
     endDate:Date,
     couponNotice:Int,
-    callNotice:Int,
-    inarrears:Boolean,
-    daycount:DayCounter,
+    callNotice:Option[Int],
+    inArrears:Boolean,
+    daycounter:DayCounter,
     fixingCalendar:Calendar,
     paymentCalendar:Calendar,
     paymentConvention:BusinessDayConvention,
@@ -91,7 +91,7 @@ object CalculationPeriod {
     val paymentDate = endDate.adjust(paymentCalendar, paymentConvention)
 
     val calculationDate = {
-      if (inarrears) {
+      if (inArrears) {
         if (fixingOnCalculationEndDate) endDate
         else paymentDate
       }
@@ -105,8 +105,8 @@ object CalculationPeriod {
         }
 
         else {
-          val prevmonth = calculationDate.addMonths(-1)
-          Date(prevmonth.year, prevmonth.month, d, true)
+          val prevMonth = calculationDate.addMonths(-1)
+          Date(prevMonth.year, prevMonth.month, d, true)
         }
 
       case None => calculationDate
@@ -114,16 +114,15 @@ object CalculationPeriod {
 
     val couponEventDate = baseDate.advance(fixingCalendar, -couponNotice, TimeUnit.Days)
 
-    val callBaseDate = {
-      if (fixingOnCalculationEndDate) endDate
-      else paymentDate
+    val callEventDate = callNotice match {
+      case None => couponEventDate
+      case Some(d) =>
+        val callBaseDate = {
+          if (fixingOnCalculationEndDate) endDate
+          else paymentDate
+        }
+        callBaseDate.advance(fixingCalendar, -d, TimeUnit.Days)
     }
-
-    val callEventDate = callBaseDate.advance(fixingCalendar, -callNotice, TimeUnit.Days)
-
-    //    val redemptionEventDate = callRedemptionBaseDate.advance(fixingCalendar, -redemptionNotice, TimeUnit.Days)
-//
-//    val callEventDate = callRedemptionBaseDate.advance(fixingCalendar, -callNotice, TimeUnit.Days)
 
     new CalculationPeriod(
       eventDate = couponEventDate,
@@ -131,7 +130,7 @@ object CalculationPeriod {
       startDate = startDate,
       endDate = endDate,
       paymentDate = paymentDate,
-      daycounter = daycount,
+      daycounter = daycounter,
       isRedemption = isRedemption,
       nominal = nominal
     )
@@ -148,9 +147,9 @@ object CalculationPeriod {
       startDate = paymentDate,
       endDate = paymentDate,
       couponNotice = 0,
-      callNotice = 0,
-      inarrears = false,
-      daycount = new Absolute,
+      callNotice = None,
+      inArrears = false,
+      daycounter = new Absolute,
       fixingCalendar = paymentCalendar,
       paymentCalendar = paymentCalendar,
       paymentConvention = paymentConvention,

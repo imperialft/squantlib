@@ -204,6 +204,14 @@ class Bond(
     settingMap.get("auto_id").collect{case d => d.toInt == 1}.getOrElse(false)
   } catch { case _:Throwable => false}
 
+  def redemptionFixingOnCoupon:Boolean = try {
+    settingMap.get("redemptionFixingOnCoupon").collect{case v => v.toInt == 1}.getOrElse(true)
+  } catch { case _:Throwable => true}
+
+  def callFixingOnCoupon:Boolean = try {
+    settingMap.get("callFixingOnCoupon").collect{case v => v.toInt == 1}.getOrElse(true)
+  } catch { case _:Throwable => true}
+
   def getUniqueIds:Map[String, String] = {
     settings.jsonNode match {
       case Some(s) => s.getOption("uniq_ids") match {
@@ -347,9 +355,9 @@ class Bond(
         rule = DateGeneration.Rule.Backward,
         fixingInArrears = isFixingInArrears,
         couponNotice = couponNotice,
-        redemptionNotice = redemptionNotice,
-        callNotice = callNotice,
-        daycount = daycounter,
+        redemptionNotice = (if (redemptionFixingOnCoupon) None else Some(redemptionNotice)),
+        callNotice = (if (callFixingOnCoupon) None else Some(callNotice)),
+        daycounter = daycounter,
         firstDate = firstPaymentDateAfter,
         nextToLastDate = lastRollDate,
         addRedemption = true,
@@ -428,11 +436,11 @@ class Bond(
 
     val currentSetting = settingMap
 
-    def getDblSetting(key:String):Option[Double] = currentSetting.get(key)
-      .flatMap{case v =>
-        try {Some(v.toDouble)}
-        catch {case e:Throwable => None}
-      }
+//    def getDblSetting(key:String):Option[Double] = currentSetting.get(key)
+//      .flatMap{case v =>
+//        try {Some(v.toDouble)}
+//        catch {case e:Throwable => None}
+//      }
 
     def getDecimalSetting(key:String):Option[BigDecimal] = currentSetting.get(key)
       .flatMap{case v =>

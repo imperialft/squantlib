@@ -124,9 +124,9 @@ object Schedule{
     rule:DateGeneration.Rule,
     fixingInArrears:Boolean,
     couponNotice:Int,
-    redemptionNotice:Int,
-    callNotice:Int,
-    daycount:DayCounter,
+    redemptionNotice:Option[Int],
+    callNotice:Option[Int],
+    daycounter:DayCounter,
     firstDate:Option[Date],
     nextToLastDate:Option[Date],
     addRedemption:Boolean,
@@ -140,21 +140,21 @@ object Schedule{
     
     val nullCalendar = Calendars.empty
     
-    def calcperiod(
-      startdate:Date,
-      enddate:Date,
+    def getCalculationPeriod(
+      startDate:Date,
+      endDate:Date,
       isRedemption: Boolean
     ):CalculationPeriod = {
       CalculationPeriod(
-        startDate = startdate,
-        endDate = enddate,
+        startDate = startDate,
+        endDate = endDate,
         couponNotice = couponNotice,
         callNotice = callNotice,
-        inarrears = fixingInArrears,
-        daycount = daycount,
+        inArrears = fixingInArrears,
+        daycounter = daycounter,
         fixingCalendar = fixingCalendar,
         paymentCalendar = paymentCalendar,
-        paymentConvention = if (enddate == terminationDate) terminationDateConvention else paymentConvention,
+        paymentConvention = if (endDate == terminationDate) terminationDateConvention else paymentConvention,
         isRedemption = isRedemption,
         nominal = 1.0,
         fixedDayOfMonth = fixedDayOfMonth,
@@ -166,16 +166,19 @@ object Schedule{
       if(addRedemption) List(CalculationPeriod(
         startDate = effectiveDate,
         endDate = terminationDate,
-        couponNotice = redemptionNotice,
+        couponNotice = redemptionNotice.getOrElse(couponNotice),
         callNotice = callNotice,
-        inarrears = true,
-        daycount = new Absolute,
+        inArrears = true,
+        daycounter = new Absolute,
         fixingCalendar = fixingCalendar,
         paymentCalendar = paymentCalendar,
         paymentConvention = terminationDateConvention,
         isRedemption = true,
         nominal = 1.0,
-        fixedDayOfMonth = fixedDayOfMonth,
+        fixedDayOfMonth = redemptionNotice match {
+          case Some(d) => None
+          case _ => fixedDayOfMonth
+        },
         fixingOnCalculationEndDate = fixingOnCalculationEndDate
       ))
       else List.empty
@@ -185,14 +188,14 @@ object Schedule{
       if (tenor.length == 0) List.empty
       else rule match {
         
-        case Zero => List(calcperiod(effectiveDate, terminationDate, false))
+        case Zero => List(getCalculationPeriod(effectiveDate, terminationDate, false))
   
         case Backward => 
-          var tempdates:MutableList[CalculationPeriod] = MutableList.empty
+          var tempDates:MutableList[CalculationPeriod] = MutableList.empty
             
           val initialDate = nextToLastDate match {
             case Some(d) if d lt terminationDate => 
-              tempdates += calcperiod(d, terminationDate, false)
+              tempDates += getCalculationPeriod(d, terminationDate, false)
               d
             case None => terminationDate
           }
@@ -220,18 +223,18 @@ object Schedule{
               startDate = effectiveDate
             }
 
-            tempdates += calcperiod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate, false)
+            tempDates += getCalculationPeriod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate, false)
 
             periods = periods + 1
           } while (startDate gt effectiveDate)
 
-          tempdates.sortBy(_.eventDate).toList
+          tempDates.sortBy(_.eventDate).toList
   
         case Forward =>
-          var tempdates:MutableList[CalculationPeriod] = MutableList.empty
+          var tempDates:MutableList[CalculationPeriod] = MutableList.empty
             
           val initialDate = firstDate match {
-            case Some(d) => tempdates += calcperiod(effectiveDate, d, false); d
+            case Some(d) => tempDates += getCalculationPeriod(effectiveDate, d, false); d
             case None => effectiveDate
           }
           
@@ -243,11 +246,11 @@ object Schedule{
             startDate = endDate
             endDate = initialDate.advance(nullCalendar, tenor.mul(periods), calendarConvention)
             if (Math.abs(terminationDate.sub(endDate)) < 14) {endDate = terminationDate}
-            tempdates += calcperiod(startDate, if (endDate ge terminationDate) terminationDate else endDate, false)
+            tempDates += getCalculationPeriod(startDate, if (endDate ge terminationDate) terminationDate else endDate, false)
             periods = periods + 1
           } while (endDate lt terminationDate)
             
-          tempdates.sortBy(_.eventDate).toList
+          tempDates.sortBy(_.eventDate).toList
   
         case _ => 
           errorOutput("Unknown schedule rule")
@@ -269,9 +272,9 @@ object Schedule{
     rule:DateGeneration.Rule,
     fixingInArrears:Boolean,
     couponNotice:Int,
-    redemptionNotice:Int,
-    callNotice:Int,
-    daycount:DayCounter,
+    redemptionNotice:Option[Int],
+    callNotice:Option[Int],
+    daycounter:DayCounter,
     firstDate:Option[JavaDate],
     nextToLastDate:Option[JavaDate],
     addRedemption:Boolean,
@@ -293,7 +296,7 @@ object Schedule{
       couponNotice = couponNotice,
       redemptionNotice = redemptionNotice,
       callNotice = callNotice,
-      daycount = daycount,
+      daycounter = daycounter,
       firstDate = firstDate.collect { case d => Date(d) },
       nextToLastDate = nextToLastDate.collect { case d => Date(d) },
       addRedemption = addRedemption,
@@ -313,15 +316,15 @@ object Schedule{
   ):List[Date] = {
     
     var periods = 1
-    var currentPeriod = 0
+//    var currentPeriod = 0
     var currentDate = startDate
-    var tempdates:MutableList[Date] = MutableList(currentDate)
+    var tempDates:MutableList[Date] = MutableList(currentDate)
     do {
         currentDate = Date(paymentCalendar.advance(startDate.ql, period.mul(periods), convention))
-        tempdates += (if (currentDate ge endDate) endDate else currentDate)
+        tempDates += (if (currentDate ge endDate) endDate else currentDate)
         periods = periods + 1
     } while (endDate gt currentDate)
-    tempdates.toList
+    tempDates.toList
   }
 
 }
