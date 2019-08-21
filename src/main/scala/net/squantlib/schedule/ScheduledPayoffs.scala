@@ -46,6 +46,8 @@ case class ScheduledPayoffs(
           forward = UnderlyingFixing.empty, //c.forward,
           bonusAmount = 0.0, //c.bonusAmount,
           removeSatisfiedTriggers = c.removeSatisfiedTriggers,
+          resetCondition = c.resetCondition,
+          resetNewTriggers = c.resetNewTriggers,
           inputString = c.inputString,
           accumulatedPayments = None,
           simulatedFrontier= c.simulatedFrontier

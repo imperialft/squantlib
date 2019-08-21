@@ -1,8 +1,7 @@
 package net.squantlib.schedule.call
 
-import scala.collection.immutable.ListMap
 import net.squantlib.util.DisplayUtils._
-import net.squantlib.schedule.{CalculationPeriod, FixingLeg}
+import net.squantlib.schedule.{CalculationPeriod, FixingLeg, KnockInCondition}
 import net.squantlib.util.{Date, FixingInformation, JsonUtils, UnderlyingFixing}
 import net.squantlib.schedule.payoff._
 
@@ -14,6 +13,8 @@ case class Callability(
   forward: UnderlyingFixing,
   bonusAmount: BigDecimal,
   removeSatisfiedTriggers: Boolean,
+  resetCondition: KnockInCondition,
+  resetNewTriggers: UnderlyingFixing,
   inputString: Map[String, Any],
   var accumulatedPayments: Option[Double],
   var simulatedFrontier: UnderlyingFixing = UnderlyingFixing.empty
@@ -196,6 +197,8 @@ case class Callability(
       forward = forward,
       bonusAmount = bonusAmount,
       removeSatisfiedTriggers = removeSatisfiedTriggers,
+      resetNewTriggers = resetNewTriggers,
+      resetCondition = resetCondition,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier = simulatedFrontier
@@ -225,6 +228,8 @@ object Callability {
     triggers = UnderlyingFixing.empty,
     targetRedemption = None,
     callOption = CallOption.empty,
+    resetCondition = KnockInCondition.empty,
+    resetNewTriggers = UnderlyingFixing.empty,
     inputString = Map.empty[String, Any],
     accumulatedPayments = None,
     simulatedFrontier= UnderlyingFixing.empty
@@ -235,6 +240,8 @@ object Callability {
     triggers: UnderlyingFixing,
     targetRedemption:Option[BigDecimal],
     callOption: CallOption,
+    resetCondition: KnockInCondition,
+    resetNewTriggers: UnderlyingFixing,
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:UnderlyingFixing
@@ -247,6 +254,8 @@ object Callability {
       forward = callOption.forward,
       bonusAmount = callOption.bonus,
       removeSatisfiedTriggers = callOption.removeSatisfiedTriggers,
+      resetCondition = resetCondition,
+      resetNewTriggers = resetNewTriggers,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier = simulatedFrontier
@@ -261,6 +270,8 @@ object Callability {
     forward: UnderlyingFixing,
     bonusAmount:Double,
     removeSatisfiedTriggers: Boolean,
+    resetCondition: KnockInCondition,
+    resetNewTriggers: UnderlyingFixing,
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:UnderlyingFixing
@@ -273,6 +284,8 @@ object Callability {
       forward = forward,
       bonusAmount = bonusAmount.getRoundedDecimal.getOrElse(0.0),
       removeSatisfiedTriggers = removeSatisfiedTriggers,
+      resetCondition = resetCondition,
+      resetNewTriggers = resetNewTriggers,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier
@@ -280,4 +293,3 @@ object Callability {
   
   
 }
-

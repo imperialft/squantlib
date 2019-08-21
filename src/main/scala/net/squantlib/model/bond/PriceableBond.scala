@@ -159,6 +159,8 @@ trait PriceableBond extends BondModel with Priceable {
       forward = c.forward,
       bonusAmount = c.bonusAmount,
       removeSatisfiedTriggers = c.removeSatisfiedTriggers,
+      resetCondition = c.resetCondition,
+      resetNewTriggers = c.resetNewTriggers,
       inputString = Map.empty,
       accumulatedPayments = c.accumulatedPayments,
       simulatedFrontier = UnderlyingFixing.empty

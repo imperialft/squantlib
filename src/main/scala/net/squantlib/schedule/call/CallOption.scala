@@ -19,5 +19,15 @@ case class CallOption(
 }
 
 object CallOption {
-  def empty = CallOption(true, UnderlyingFixing.empty, Map.empty, 0.0, false, false, false)
+
+  def empty = CallOption(
+    triggerUp = true,
+    forward = UnderlyingFixing.empty,
+    forwardInputString = Map.empty,
+    bonus = 0.0,
+    invertedTrigger = false,
+    invertedForward = false,
+    removeSatisfiedTriggers = false
+  )
+
 }
