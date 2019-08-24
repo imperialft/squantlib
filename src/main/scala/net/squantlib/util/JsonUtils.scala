@@ -100,6 +100,8 @@ object JsonUtils {
     
     def parseString(name:String):Option[String] = if (hasName(name)) node.get(name).parseString else None
 
+    def parseDate:Option[Date] = Date.getDate(node.asText)
+
 
     def ignoreErr[T](f: =>T):T = {
       val emptyStream = new java.io.PrintStream(new java.io.OutputStream {override def write(b:Int){}})

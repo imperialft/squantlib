@@ -6,8 +6,8 @@ import scala.collection.JavaConverters._
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.schedule.FixingLegs
-import net.squantlib.util.{FixingInformation, UnderlyingFixing}
-import net.squantlib.schedule.Schedule
+import net.squantlib.util.{FixingInformation, UnderlyingFixing, Date}
+import net.squantlib.schedule.{Schedule, KnockInCondition}
 import net.squantlib.schedule.payoff.Payoffs
 import com.fasterxml.jackson.databind.JsonNode
 
@@ -126,7 +126,7 @@ object Callabilities {
 //  }
   
   def targetList(formula:String, nbLegs:Int):List[Option[Double]] = formula.jsonNode match {
-    case Some(bs) if bs isArray => 
+    case Some(bs) if bs isArray =>
       val targetList = bs.asScala.map(_.get("target").parseDouble).toList
       List.fill(nbLegs - 2 - bs.size)(None) ++ targetList ++ List(None, None)
 
@@ -166,29 +166,38 @@ object Callabilities {
     
     case _ => List.fill(nbLegs)(CallOption.empty)
   }
-  
-  private def triggerList(formula:String, nbLegs:Int, underlyings:List[String]):List[Map[String, String]] = formula.jsonNode match {
-    case Some(bs) if bs isArray =>
-      val trigList:List[Map[String, String]] = bs.asScala.map(_ match {
-        case n if (n isArray) => 
-          (underlyings, n.asScala.map(_.parseString.getOrElse("")).toList).zipped.toMap
 
-        case n if (n.isObject) => 
-          n.getOption("trigger") match {
-            case Some(trigs) if trigs.isArray =>
-              (underlyings, trigs.asScala.map(_.parseString.getOrElse(""))).zipped.toMap
-            case Some(trigs) if trigs.isObject => 
-              trigs.parseStringFields
-            case _ => Map.empty[String, String]
-          }
-          
-        case _ => 
-          Map.empty[String, String]
-      }).toList
+  private def underlyingStrikeList(
+    formula:String,
+    nbLegs:Int,
+    underlyings:List[String],
+    keyword: String
+  ):List[Map[String, String]] = {
 
-      List.fill(nbLegs - bs.size - 2)(Map.empty[String, String]) ++ trigList ++ List.fill(2)(Map.empty[String, String])
+    formula.jsonNode match {
+      case Some(bs) if bs isArray =>
+        val trigList:List[Map[String, String]] = bs.asScala.map(_ match {
+          case n if (n isArray) =>
+            (underlyings, n.asScala.map(_.parseString.getOrElse("")).toList).zipped.toMap
 
-    case _ => List.fill(nbLegs)(Map.empty)
+          case n if (n.isObject) =>
+            n.getOption(keyword) match {
+              case Some(trigs) if trigs.isArray =>
+                (underlyings, trigs.asScala.map(_.parseString.getOrElse(""))).zipped.toMap
+              case Some(trigs) if trigs.isObject =>
+                trigs.parseStringFields
+              case _ => Map.empty[String, String]
+            }
+
+          case _ =>
+            Map.empty[String, String]
+
+        }).toList
+
+        List.fill(nbLegs - bs.size - 2)(Map.empty[String, String]) ++ trigList ++ List.fill(2)(Map.empty[String, String])
+
+      case _ => List.fill(nbLegs)(Map.empty)
+    }
   }
 
 
@@ -207,6 +216,7 @@ object Callabilities {
               (ul, p.getRoundedDouble(ul))
           }
         } else assignedTrig
+
       case (trig, inverted) => assignFixings(trig)
     }
   
@@ -260,15 +270,38 @@ object Callabilities {
     
     val bermudans = bermudan(formula, legs)
 
-    val trigFormulas:List[Map[String, String]] = triggerList(formula, legs, underlyings)
+    val trigFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "trigger")
 
     val callOptions:List[CallOption] = callOptionList(formula, legs)
 
-    val trigMap:List[UnderlyingFixing] = triggerToAssignedTrigger(trigFormulas, callOptions.map(c => c.invertedTrigger)).map(vs => UnderlyingFixing(vs))
+    val invertedTriggerList:List[Boolean] = callOptions.map(c => c.invertedTrigger)
+
+    val trigMap:List[UnderlyingFixing] = triggerToAssignedTrigger(trigFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
 
     val targets:List[Option[BigDecimal]] = targetList(formula, legs).map(vs => vs.flatMap{case v => v.getRoundedDecimal})
 
     val baseFormulas:List[Map[String, Any]] = mapList(formula, legs)
+
+    val resetConditions:List[KnockInCondition] = {
+      val resetStrikeFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "reset_strike")
+      val resetStrikeMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetStrikeFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
+
+      val resetNewTriggerFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "reset_new_trigger")
+      val resetNewTriggerMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetNewTriggerFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
+
+      val refStartList:List[Option[Date]] = formula.jsonNode match {
+        case Some(bs) if bs isArray =>
+          val targetList = bs.asScala.map(_.get("reset_refstart").parseDate).toList
+          List.fill(legs - 2 - bs.size)(None) ++ targetList ++ List(None, None)
+
+        case _ => List.fill(legs)(None)
+      }
+
+      //    "reset_on_equal":"0"
+      //    "reset_reftype":"closing"
+    }
+
+
 
     val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).map{
       case (((berm, f), (trig, tgt)), (callOption, baseFormula)) =>
