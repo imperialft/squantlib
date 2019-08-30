@@ -107,8 +107,7 @@ object Callabilities {
 	}
 	
   def bermudanList(formula:String, nbLegs:Int):List[Boolean] = formula.jsonNode match {
-//    case Some(b) if b.isArray && b.size == 1 => List.fill(nbLegs - 2)(b.head.parseString == Some("berm")) ++ List(false, false)
-    case Some(b) if b isArray => 
+    case Some(b) if b isArray =>
       val bermList = b.asScala.map(_ match {
         case s if s.isTextual => s.parseString == Some("berm")
         case s if s.isObject => s.parseString("type") == Some("berm")
@@ -120,11 +119,6 @@ object Callabilities {
     case _ => List.fill(nbLegs)(false)
   }
   
-//  def target(formula:String, legs:Int):List[Option[Double]] = targetList(formula, legs) match {
-//    case targets if !targets.isEmpty && targets.takeRight(1).head.isDefined => targets.dropRight(1) :+ None
-//    case targets => targets
-//  }
-  
   def targetList(formula:String, nbLegs:Int):List[Option[Double]] = formula.jsonNode match {
     case Some(bs) if bs isArray =>
       val targetList = bs.asScala.map(_.get("target").parseDouble).toList
@@ -133,7 +127,10 @@ object Callabilities {
     case _ => List.fill(nbLegs)(None)
   }
 
-  def callOptionList(formula:String, nbLegs:Int)(implicit fixingInfo:FixingInformation):List[CallOption] = formula.jsonNode match {
+  def callOptionList(
+    formula:String,
+    nbLegs:Int
+  )(implicit fixingInfo:FixingInformation):List[CallOption] = formula.jsonNode match {
     case Some(bb) if bb isArray => 
       val optlist = bb.asScala.map{case b =>
         val invertedStrike:Boolean = b.parseInt("inverted_strike").getOrElse(0) == 1
@@ -228,19 +225,6 @@ object Callabilities {
     }
   }
   
-    
-//	private def triggerMap(
-//    formula:List[List[String]],
-//    underlyings:List[String]
-//  )(implicit fixingInfo:FixingInformation):List[Map[String, Double]] = {
-//	  formula.map(trig =>
-//	    (underlyings, trig).zipped
-//        .map{case (k, v) => (k, fixingInfo.updateCompute(v))}
-//	      .collect{case (k, Some(v)) => (k, v.getRoundedDouble(k))}
-//        .toMap
-//	   )
-//	}
-
   def triggerMap(
     underlyings:List[String],
     triggers:List[List[Option[Double]]]
@@ -282,29 +266,44 @@ object Callabilities {
 
     val baseFormulas:List[Map[String, Any]] = mapList(formula, legs)
 
-    val resetConditions:List[KnockInCondition] = {
+    val resetNewTriggerFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "reset_new_trigger")
+    val resetNewTriggerMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetNewTriggerFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
+
+    val resetKnockInConditions:List[KnockInCondition] = {
       val resetStrikeFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "reset_strike")
       val resetStrikeMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetStrikeFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
 
-      val resetNewTriggerFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "reset_new_trigger")
-      val resetNewTriggerMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetNewTriggerFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
+      formula.jsonNode match {
+        case Some(bs) if bs.isArray =>
+          val allLegs = List.fill(legs - 2 - bs.size)(None) ++ bs.asScala.map(s => Some(s)) ++ List(None, None)
 
-      val refStartList:List[Option[Date]] = formula.jsonNode match {
-        case Some(bs) if bs isArray =>
-          val targetList = bs.asScala.map(_.get("reset_refstart").parseDate).toList
-          List.fill(legs - 2 - bs.size)(None) ++ targetList ++ List(None, None)
+          (allLegs, resetStrikeMap).zipped.map{
+            case (Some(aleg), strike) if !strike.isEmpty =>
+              val knockInOnEqual:Boolean = aleg.get("reset_on_equal").parseInt.collect{case i => i == 1}.getOrElse(true)
+              val knockInOnClose:Boolean = aleg.get("reset_reftype").parseString.collect{case i => i == "closing"}.getOrElse(true)
 
-        case _ => List.fill(legs)(None)
+              (aleg.get("reset_refstart").parseDate, aleg.get("reset_refend").parseDate) match {
+                case (Some(dStart), Some(dEnd)) =>
+                  KnockInCondition(
+                    trigger = strike,
+                    refStart = dStart,
+                    refEnd = dEnd,
+                    closeOnly = knockInOnClose,
+                    triggerOnEqual = knockInOnEqual
+                  )
+                case _ => KnockInCondition.empty
+              }
+
+
+            case _ => KnockInCondition.empty
+          }
+
+        case _ => List.fill(legs)(KnockInCondition.empty)
       }
-
-      //    "reset_on_equal":"0"
-      //    "reset_reftype":"closing"
     }
 
-
-
-    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).map{
-      case (((berm, f), (trig, tgt)), (callOption, baseFormula)) =>
+    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).zip(resetKnockInConditions.zip(resetNewTriggerMap)).map{
+      case ((((berm, f), (trig, tgt)), (callOption, baseFormula)), (resetKnockInCondition, resetNewTriggers)) =>
 
         var inputString:Map[String, Any] = baseFormula
 
@@ -343,6 +342,8 @@ object Callabilities {
           triggers = trig,
           targetRedemption = tgt,
           callOption = callOption,
+          resetCondition = resetKnockInCondition,
+          resetNewTriggers = resetNewTriggers,
           inputString = inputString,
           accumulatedPayments = None,
           simulatedFrontier= UnderlyingFixing.empty
@@ -352,29 +353,34 @@ object Callabilities {
     Callabilities(calls)
   }
 
-
-	def apply(
-    bermudans:List[Boolean], 
-    triggers:List[List[Option[Double]]],
-    targets:List[Option[Double]],
-    underlyings:List[String], 
-    callOptions:List[CallOption]
-  )(implicit fixingInfo:FixingInformation):Callabilities = {
-
-    Callabilities(
-      bermudans.zip(triggerMap(underlyings, triggers)).zip(callOptions.zip(targets)).map{case ((berm, trig), (callOption, tgt)) => 
-        Callability(
-          bermudan = berm,
-          triggers = trig,
-          targetRedemption = tgt.flatMap{case v => v.getRoundedDecimal},
-          callOption = callOption,
-          inputString = Map.empty[String, Any],
-          accumulatedPayments = None,
-          simulatedFrontier= UnderlyingFixing.empty
-        )
-      }
-    )
-	}
+//
+//	def apply(
+//    bermudans:List[Boolean],
+//    triggers:List[List[Option[Double]]],
+//    targets:List[Option[Double]],
+//    resetKnockInConditions: List[KnockInCondition],
+//    resetKnockInNewTriggers: List[UnderlyingFixing],
+//    underlyings:List[String],
+//    callOptions:List[CallOption]
+//  )(implicit fixingInfo:FixingInformation):Callabilities = {
+//
+//    Callabilities(
+//      bermudans.zip(triggerMap(underlyings, triggers)).zip(callOptions.zip(targets)).zip(resetKnockInConditions.zip(resetKnockInNewTriggers)).map{
+//        case (((berm, trig), (callOption, tgt)), (resetKnockInCondition, resetNewTriggers)) =>
+//          Callability(
+//            bermudan = berm,
+//            triggers = trig,
+//            targetRedemption = tgt.flatMap{case v => v.getRoundedDecimal},
+//            callOption = callOption,
+//            resetCondition = resetKnockInCondition,
+//            resetNewTriggers = resetNewTriggers,
+//            inputString = Map.empty[String, Any],
+//            accumulatedPayments = None,
+//            simulatedFrontier= UnderlyingFixing.empty
+//          )
+//      }
+//    )
+//	}
 	  
 
 }
