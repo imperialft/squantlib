@@ -36,7 +36,7 @@ case class RangeForwardPayoff(
   val triggerVariables:Set[String] = triggerLow.keySet ++ triggerHigh.keySet
   val strikeVariables:Set[String] = strikes.keySet
 
-  override val isPriceable:Boolean = !strikes.isEmpty && triggerLow.getDecimal.values.forall(_.isDefined) && triggerHigh.getDecimal.values.forall(_.isDefined) && strikes.getDecimal.values.forall(_.isDefined)
+  override val isPriceable:Boolean = strikes.isPositive && triggerLow.isAllValid && triggerHigh.isAllValid
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)

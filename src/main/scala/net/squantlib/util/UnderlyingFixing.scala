@@ -23,6 +23,8 @@ case class UnderlyingFixing(
 
   val isAllValid:Boolean = fixings.values.forall(_.isDefined)
 
+  lazy val isPositive:Boolean = !fixings.isEmpty && fixings.values.forall(v => v.collect{case vv => vv >= 0.0000000000001}.getOrElse(false))
+
   def isValidFor(underlyingIds:Set[String]):Boolean = underlyingIds.forall(ul => getDecimalValue.contains(ul))
 
   def getSubset(underlyingIds:Set[String]):UnderlyingFixing = UnderlyingFixing(fixings.filter{case (ul, v) => underlyingIds.contains(ul)})
@@ -53,9 +55,9 @@ object UnderlyingFixing {
     decimalFixings:Map[String, BigDecimal]
   )(implicit dummyImplicit:DummyImplicit):UnderlyingFixing = UnderlyingFixing(decimalFixings.map{case (ul, v) => (ul, Some(v))})
 
-  def empty:UnderlyingFixing = new UnderlyingFixing(Map.empty)
+  def empty:UnderlyingFixing = UnderlyingFixing(Map.empty[String, Option[BigDecimal]])
 
-  def errorValue(uls:Set[String]):UnderlyingFixing = new UnderlyingFixing(uls.map(ul => (ul, None)).toMap)
+  def errorValue(uls:Set[String]):UnderlyingFixing = UnderlyingFixing(uls.map(ul => (ul, None)).toMap)
 
-
+  def flat(uls:Set[String], v: Option[BigDecimal]) = UnderlyingFixing(uls.map(ul => (ul, v)).toMap)
 }

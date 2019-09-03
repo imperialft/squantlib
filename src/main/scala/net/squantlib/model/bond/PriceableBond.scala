@@ -151,20 +151,22 @@ trait PriceableBond extends BondModel with Priceable {
     case s if s > trigger.size => trig takeRight trigger.size
     }
 
-    val newCalls:List[Callability] = (calls, newtrig).zipped.map{case (c, t) => Callability(
-      bermudan = c.bermudan,
-      triggers = UnderlyingFixing(underlyings.zip(t).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.toMap),
-      triggerUp = c.triggerUp,
-      targetRedemption = c.targetRedemption,
-      forward = c.forward,
-      bonusAmount = c.bonusAmount,
-      removeSatisfiedTriggers = c.removeSatisfiedTriggers,
-      resetCondition = c.resetCondition,
-      resetNewTriggers = c.resetNewTriggers,
-      inputString = Map.empty,
-      accumulatedPayments = c.accumulatedPayments,
-      simulatedFrontier = UnderlyingFixing.empty
-    )}.toList
+    val newCalls:List[Callability] = (calls, newtrig).zipped.map{case (c, t) =>
+      val triggerCondition = c.triggerCondition.strikeShifted(
+        UnderlyingFixing(underlyings.zip(t).collect{case (k, Some(v)) => (k, v.getDecimal(k))}.toMap)
+      )
+
+      Callability(
+        bermudanCondition = c.bermudanCondition,
+        triggerCondition = triggerCondition,
+        targetRedemptionCondition = c.targetRedemptionCondition,
+        forward = c.forward,
+        bonusAmount = c.bonusAmount,
+        inputString = Map.empty,
+        accumulatedPayments = c.accumulatedPayments,
+        simulatedFrontier = UnderlyingFixing.empty
+      )
+    }.toList
     
     val newSchedule = ScheduledPayoffs.noFixing(schedule, payoffs, Callabilities(newCalls))
 

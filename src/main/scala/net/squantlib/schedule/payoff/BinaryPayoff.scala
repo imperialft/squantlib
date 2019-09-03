@@ -35,7 +35,7 @@ case class BinaryPayoff(
   }.reduceOption(_ min _).getOrElse(0.0)
 
   override val isPriceable: Boolean = !payoff.isEmpty && payoff.forall{case (amount, stkLow, stkHigh) =>
-    stkLow.getDecimal.values.forall(_.isDefined) && stkHigh.getDecimal.values.forall(_.isDefined)
+    stkLow.isAllValid && stkHigh.isAllValid
   }
 
   private val smallValue = 0.0000001

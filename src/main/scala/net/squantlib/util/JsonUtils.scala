@@ -96,7 +96,9 @@ object JsonUtils {
 
     def parseDecimal(name:String):Option[BigDecimal] = if (hasName(name)) node.get(name).parseDecimal else None
 
-    def parseString:Option[String] = Some(node.asText)
+    def parseString:Option[String] = {
+      if (node == null) None else Some(node.asText)
+    }
     
     def parseString(name:String):Option[String] = if (hasName(name)) node.get(name).parseString else None
 

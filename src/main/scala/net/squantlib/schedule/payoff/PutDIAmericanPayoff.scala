@@ -59,12 +59,11 @@ case class PutDIAmericanPayoff(
 
   override val isPriceable:Boolean = {
     !triggers.isEmpty &&
-    !strikes.isEmpty &&
+    triggers.isAllValid &&
+    strikes.isPositive &&
     refstart != null &&
     refend != null &&
     (refstart le refend) &&
-    triggers.isAllValid &&
-    strikes.isAllValid &&
     finalTriggers.isAllValid
   }
 

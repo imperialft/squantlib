@@ -45,7 +45,7 @@ class PutDIPayoff(
 
   override val strikeOrFinalTriggers:UnderlyingFixing = triggers
 
-  override val isPriceable:Boolean = !triggers.isEmpty && !strikes.isEmpty
+  override val isPriceable:Boolean = !triggers.isEmpty && triggers.isAllValid && strikes.isPositive
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)

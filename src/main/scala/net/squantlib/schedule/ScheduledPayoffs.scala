@@ -4,7 +4,7 @@ import scala.collection.LinearSeq
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.database.DB
-import net.squantlib.schedule.call.{Callabilities, Callability}
+import net.squantlib.schedule.call._
 import net.squantlib.schedule.payoff.{FixedPayoff, Payoff, Payoffs}
 
 import scala.collection.JavaConversions._
@@ -39,15 +39,11 @@ case class ScheduledPayoffs(
     val newcalls = calls.map(c => {
       if (c.isTrigger) 
         Callability(
-          bermudan = false,
-          triggers = c.triggers,
-          triggerUp = c.triggerUp,
-          targetRedemption = None,
+          bermudanCondition = BermudanCondition.empty,
+          triggerCondition = c.triggerCondition,
+          targetRedemptionCondition = TargetRedemptionCondition.empty,
           forward = UnderlyingFixing.empty, //c.forward,
           bonusAmount = 0.0, //c.bonusAmount,
-          removeSatisfiedTriggers = c.removeSatisfiedTriggers,
-          resetCondition = c.resetCondition,
-          resetNewTriggers = c.resetNewTriggers,
           inputString = c.inputString,
           accumulatedPayments = None,
           simulatedFrontier= c.simulatedFrontier
@@ -78,7 +74,7 @@ case class ScheduledPayoffs(
 
   lazy val bonusAmounts:List[BigDecimal] = calls.map(_.bonusAmount).toList
 
-  lazy val triggerUps:List[Boolean] = calls.map(_.triggerUp).toList
+  lazy val triggerUps:List[Boolean] = calls.map(_.triggerCondition.triggerUp).toList
 
   lazy val forwardStrikes:List[Option[UnderlyingFixing]] = calls.map(c => if (c.forward.isEmpty) None else Some(c.forward)).toList
   
@@ -323,6 +319,7 @@ case class ScheduledPayoffs(
         c.toString,
         if (underlyings.isEmpty || (p.variables.isEmpty && c.variables.isEmpty)) "fixed"
         else if (!p.isPaymentFixed && !c.isFixed) "not fixed"
+        else if (p.getFixings == c.getFixings) p.getFixings.toString
         else "coupon:" + p.getFixings + " call:" +  c.getFixings
       )
     }.toList

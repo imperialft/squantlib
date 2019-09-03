@@ -30,7 +30,7 @@ case class ForwardPayoff(
 
   override val variables = strikes.keySet
   
-  override val isPriceable = !strikes.isEmpty && strikes.getDecimal.values.forall(_.collect{case d => d > 0.00}.getOrElse(false))
+  override val isPriceable = strikes.isPositive
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (physical) List(period.eventDate, period.paymentDate)

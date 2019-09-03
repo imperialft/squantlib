@@ -6,23 +6,21 @@ import net.squantlib.util.{Date, FixingInformation, JsonUtils, UnderlyingFixing}
 import net.squantlib.schedule.payoff._
 
 case class Callability(
-  bermudan: Boolean,
-  triggers: UnderlyingFixing,
-  triggerUp: Boolean,
-  targetRedemption: Option[BigDecimal],
+  bermudanCondition: BermudanCondition,
+  triggerCondition: TriggerCondition,
+  targetRedemptionCondition: TargetRedemptionCondition,
   forward: UnderlyingFixing,
   bonusAmount: BigDecimal,
-  removeSatisfiedTriggers: Boolean,
-  resetCondition: KnockInCondition,
-  resetNewTriggers: UnderlyingFixing,
   inputString: Map[String, Any],
   var accumulatedPayments: Option[Double],
   var simulatedFrontier: UnderlyingFixing = UnderlyingFixing.empty
 )(implicit val fixingInfo: FixingInformation) extends FixingLeg {
 
-  val triggerVariables = triggers.keySet
+  def triggers:UnderlyingFixing = triggerCondition.getStrikes
 
-  val forwardVariables = forward.keySet
+  val triggerVariables:Set[String] = triggers.keySet
+
+  val forwardVariables:Set[String] = forward.keySet
 
   var issuerCalled:Option[Boolean] = None
 
@@ -32,7 +30,7 @@ case class Callability(
 
   def optionalTriggers:Option[UnderlyingFixing] = {
     if (isFixed) {
-      if (isTriggered(getFixings)) Some(UnderlyingFixing(triggers.keySet.map(ul => (ul, Some(BigDecimal(0.0)))).toMap))
+      if (isTriggered(getFixings)) Some(UnderlyingFixing.flat(triggers.keySet, Some(BigDecimal(0.0))))
       else None
     }
     else if (isTrigger) Some(triggers)
@@ -44,7 +42,7 @@ case class Callability(
     else Some(forward)
   }
 
-  override val variables = triggerVariables ++ forwardVariables
+  override val variables:Set[String] = triggerVariables ++ forwardVariables
   
   def triggerInputString:Map[String, String] = inputString.get("trigger") match {
     case Some(trig:Map[_, _]) => trig.map{
@@ -54,36 +52,41 @@ case class Callability(
     case _ => Map.empty
   }
   
-  def isBermuda:Boolean = bermudan 
-  
+
   def underlyings:Set[String] = variables
   
   def triggerValues(underlyings:List[String]):List[Option[BigDecimal]] = underlyings.map(ul => triggers.getDecimalValue.get(ul))
-  
-  def isTrigger:Boolean = !triggers.isEmpty
+
+  def isBermuda:Boolean = bermudanCondition.isActive
+
+  def isTrigger:Boolean = triggerCondition.isActive
   
   def isForward:Boolean = !forward.isEmpty
   
-  def isTargetRedemption:Boolean = targetRedemption.isDefined
+  def isTargetRedemption:Boolean = targetRedemptionCondition.isActive
   
   override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty
   
-  def isFixedTrigger = isTrigger && (variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing))
+  def isFixedTrigger:Boolean = isTrigger && (variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing))
   
-  def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && targetRedemption.isDefined && !isFutureFixing
+  def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && !isFutureFixing
   
-  def isPriceable:Boolean = forward.getDouble.values.forall(v => v > 0.0000000000001) && triggers.getDecimal.values.forall(_.isDefined) && forward.getDecimal.values.forall(_.isDefined)
+  def isPriceable:Boolean = forward.isPositive && triggers.isAllValid
 
-  def isEmpty:Boolean = !bermudan && triggers.isEmpty && targetRedemption.isEmpty
+  def isEmpty:Boolean = !bermudanCondition.isActive && !triggerCondition.isActive && !targetRedemptionCondition.isActive
   
-  def fixedTriggerByTrigger:Option[Boolean] = 
+  def fixedTriggerByTrigger:Option[Boolean] = {
     if (isFixed && isTrigger)
-      Some(triggers.getDecimal.forall{case (k, v) => if (triggerUp) v <= getFixings.getDecimal(k) else v >= getFixings.getDecimal(k)})
-    else None
-  
-  def fixedTriggerByTargetRedemption:Option[Boolean] = (targetRedemption, accumulatedPayments) match {
-    case (Some(tgt), Some(acc)) => Some(acc >= tgt - 0.0000000001)
-    case _ => None
+      Some(triggerCondition.isTriggered(getFixings))
+    else
+      None
+  }
+
+  def fixedTriggerByTargetRedemption:Option[Boolean] = {
+    if (targetRedemptionCondition.isActive) accumulatedPayments match {
+      case Some(acc) => Some(targetRedemptionCondition.isTriggered(acc))
+      case _ => None
+    } else None
   }
 
   def fixedTrigger:Option[Boolean] = {
@@ -98,51 +101,31 @@ case class Callability(
     List(d.callEventDate)
   }
 
-//  def judgeTriggerDouble(f:Map[String, Double]):Boolean = (
-//    isTrigger && !triggers.isEmpty && (triggers.keySet subsetOf f.keySet) &&
-//    triggers.forall{case (ul, v) =>
-//      if (triggerUp) v ~<= (f(ul), ul)
-//      else v ~>= (f(ul), ul)
-//    }
-//  )
-//
-
-  def judgeTrigger(f:UnderlyingFixing):Boolean =
-    isTrigger && !triggers.isEmpty && f.isValidFor(triggers.keySet) &&
-    triggers.getDecimal.forall{case (ul, v) =>
-      if (triggerUp) v <= f.getDecimal(ul)
-      else v >= f.getDecimal(ul)
-    }
-
-
   def isTriggered(f:Map[String, Double]):Boolean = isTriggered(UnderlyingFixing(f))
 
-  def isTriggered(f:UnderlyingFixing):Boolean = judgeTrigger(if (isFixed) getFixings else f)
+  def isTriggered(f:UnderlyingFixing):Boolean = triggerCondition.isTriggered(if (isFixed) getFixings else f)
 
   def isTriggered:Boolean = {
     if (isFixed) isTriggered(getFixings)
     else false
   }
 
-//  def isTargetRedeemed:Boolean = (accumulatedPayments, targetRedemption) match {
-//    case (Some(acc), Some(tgt)) => acc >= tgt
-//    case _ => false
-//  }
-
-  def isProbablyCalled(f:UnderlyingFixing):Boolean =
+  def isProbablyCalled(f:UnderlyingFixing):Boolean = {
     isTriggered(f) ||
     fixedTriggerByTargetRedemption.getOrElse(false) ||
     (
-      bermudan && 
-      !simulatedFrontier.isEmpty && 
+      bermudanCondition.isActive &&
+      !simulatedFrontier.isEmpty &&
       f.isValidFor(simulatedFrontier.keySet) &&
-      simulatedFrontier.getDecimal.forall{case (k, v) => if (triggerUp) v <= f.getDecimal(k) else v >= f.getDecimal(k)}
+      triggerCondition.isTriggered(simulatedFrontier)
     )
+  }
     
-  def isProbablyCalled:Boolean = if (isFixed) isProbablyCalled(getFixings) else false
+  def isProbablyCalled:Boolean = {
+    if (isFixed) isProbablyCalled(getFixings)
+    else false
+  }
      
-//  def redemptionAmount:Double = 1.0 + bonus 
-  
   def redemptionNominal:BigDecimal = 1.0 + bonusAmount
 
   def redemptionAmount(f:UnderlyingFixing):Double = {
@@ -173,7 +156,10 @@ case class Callability(
     }
   }
     
-  def fixedRedemptionAmount:Option[Double] = if (isFixed && isProbablyCalled) Some(redemptionAmount(getFixings)) else None
+  def fixedRedemptionAmount:Option[Double] = {
+    if (isFixed && isProbablyCalled) Some(redemptionAmount(getFixings))
+    else None
+  }
   
   val fixedRedemptionAmountAtTrigger:Double = {
     if (isForward) {
@@ -190,15 +176,11 @@ case class Callability(
 
   def triggerShifted(shiftedTriggers: UnderlyingFixing):Callability = {
     Callability(
-      bermudan = bermudan,
-      triggers = shiftedTriggers,
-      triggerUp = triggerUp,
-      targetRedemption = targetRedemption,
+      bermudanCondition = bermudanCondition,
+      triggerCondition = triggerCondition.strikeShifted(shiftedTriggers),
+      targetRedemptionCondition = targetRedemptionCondition,
       forward = forward,
       bonusAmount = bonusAmount,
-      removeSatisfiedTriggers = removeSatisfiedTriggers,
-      resetNewTriggers = resetNewTriggers,
-      resetCondition = resetCondition,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier = simulatedFrontier
@@ -208,14 +190,14 @@ case class Callability(
 
   override def toString:String =
     List(
-	    if (bermudan) "call " else "",
+	    if (isBermuda) "call " else "",
 	    if (isTrigger) triggers else "",
-	    if (isTrigger) {if (triggerUp) "up" else "down"} else "",
-	    targetRedemption.collect{case t => "target : " + t.asPercent}.getOrElse(""),
+	    if (isTrigger) {if (triggerCondition.triggerUp) "up" else "down"} else "",
+	    targetRedemptionCondition.target.collect{case t => "target : " + t.asPercent}.getOrElse(""),
 	    if (bonusAmount != 0.0) "bonus " + bonusAmount.asPercent(3) else "",
 	    if (forward.isEmpty) "" else "forward " + forward,
 	    if (isEmpty) "no call" else "",
-      if (removeSatisfiedTriggers) "memory" else ""
+      if (triggerCondition.removeSatisfiedTriggers) "memory" else ""
 	    ).mkString(" ") 
 
 
@@ -224,12 +206,11 @@ case class Callability(
 object Callability {
   
   val empty = Callability(
-    bermudan = false,
-    triggers = UnderlyingFixing.empty,
-    targetRedemption = None,
-    callOption = CallOption.empty,
-    resetCondition = KnockInCondition.empty,
-    resetNewTriggers = UnderlyingFixing.empty,
+    bermudanCondition = BermudanCondition.empty,
+    triggerCondition = TriggerCondition.empty,
+    targetRedemptionCondition = TargetRedemptionCondition.empty,
+    forward = UnderlyingFixing.empty,
+    bonusAmount = 0.0,
     inputString = Map.empty[String, Any],
     accumulatedPayments = None,
     simulatedFrontier= UnderlyingFixing.empty
@@ -241,21 +222,23 @@ object Callability {
     targetRedemption:Option[BigDecimal],
     callOption: CallOption,
     resetCondition: KnockInCondition,
-    resetNewTriggers: UnderlyingFixing,
+    resetStrikes: UnderlyingFixing,
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:UnderlyingFixing
   )(implicit fixingInfo:FixingInformation):Callability = 
     Callability(
-      bermudan = bermudan,
-      triggers = triggers,
-      triggerUp = callOption.triggerUp,
-      targetRedemption = targetRedemption,
+      bermudanCondition = BermudanCondition(bermudan),
+      triggerCondition = TriggerCondition.initialize(
+        strikes = triggers,
+        triggerUp = callOption.triggerUp,
+        removeSatisfiedTriggers = callOption.removeSatisfiedTriggers,
+        resetCondition = resetCondition,
+        resetStrikes = resetStrikes
+      ),
+      targetRedemptionCondition = TargetRedemptionCondition(targetRedemption),
       forward = callOption.forward,
       bonusAmount = callOption.bonus,
-      removeSatisfiedTriggers = callOption.removeSatisfiedTriggers,
-      resetCondition = resetCondition,
-      resetNewTriggers = resetNewTriggers,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier = simulatedFrontier
@@ -271,21 +254,23 @@ object Callability {
     bonusAmount:Double,
     removeSatisfiedTriggers: Boolean,
     resetCondition: KnockInCondition,
-    resetNewTriggers: UnderlyingFixing,
+    resetStrikes: UnderlyingFixing,
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:UnderlyingFixing
-    )(implicit fixingInfo:FixingInformation):Callability = 
+  )(implicit fixingInfo:FixingInformation):Callability =
     Callability(
-      bermudan = bermudan,
-      triggers = UnderlyingFixing(underlyings.zip(triggers).collect{case (k, Some(v)) => (k, v)}.toMap),
-      triggerUp = triggerUp,
-      targetRedemption = targetRedemption.flatMap{case v => v.getRoundedDecimal},
+      bermudanCondition = BermudanCondition(bermudan),
+      triggerCondition = TriggerCondition.initialize(
+        strikes = UnderlyingFixing(underlyings.zip(triggers).collect{case (k, Some(v)) => (k, v)}.toMap),
+        triggerUp = triggerUp,
+        removeSatisfiedTriggers = removeSatisfiedTriggers,
+        resetCondition = resetCondition,
+        resetStrikes = resetStrikes
+      ),
+      targetRedemptionCondition = TargetRedemptionCondition(targetRedemption.flatMap{case v => v.getRoundedDecimal}),
       forward = forward,
       bonusAmount = bonusAmount.getRoundedDecimal.getOrElse(0.0),
-      removeSatisfiedTriggers = removeSatisfiedTriggers,
-      resetCondition = resetCondition,
-      resetNewTriggers = resetNewTriggers,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier

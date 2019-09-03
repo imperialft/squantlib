@@ -61,11 +61,11 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
     assert(fixingList.size == payoffs.size && fixingList.size == calls.size, s"Number of fixingList(${fixingList.size}), calls(${calls.size}) and payoffs(${payoffs.size}) must match - fixingList:${fixingList} calls:${calls}")
 
     val triggerStrikes:List[Option[UnderlyingFixing]] = calls.map(c => c.optionalTriggers.collect{case vs => vs})
-    val trigUp:List[Boolean] = calls.map(_.triggerUp)
+    val trigUp:List[Boolean] = calls.map(_.triggerCondition.triggerUp)
     val trigAmt:List[Double] = calls.map(_.bonusAmount.toDouble)
     val forwardStrikes: List[Option[UnderlyingFixing]] = calls.map(_.optionalForwardStrikes)
-    val targets:List[Option[Double]] = calls.map(_.targetRedemption.collect{case v => v.toDouble})
-    val removeSatisfiedTriggers: List[Boolean] = calls.map(_.removeSatisfiedTriggers)
+    val targets:List[Option[Double]] = calls.map(_.targetRedemptionCondition.target.collect{case v => v.toDouble})
+    val removeSatisfiedTriggers: List[Boolean] = calls.map(_.triggerCondition.removeSatisfiedTriggers)
 
     priceTrig(
 			paymentList = payoffs,

@@ -15,8 +15,8 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
   
 	val underlyings:Set[String] = calls.map(_.underlyings).flatten.toSet
 	
-	def bermudans:List[Boolean] = calls.map(_.bermudan)
-	
+	def bermudans:List[Boolean] = calls.map(_.isBermuda)
+
 	def triggers:List[Option[UnderlyingFixing]] = calls.map(c =>
 	  if (c.isTriggered) Some(UnderlyingFixing(c.triggers.keySet.map(ul => (ul, BigDecimal(0.0))).toMap))
 	  else if (c.isFixed) None
@@ -29,13 +29,13 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
     else Some(c.forward)
   )
   
-  def triggerUps:List[Boolean] = calls.map(c => c.triggerUp).toList
+  def triggerUps:List[Boolean] = calls.map(c => c.triggerCondition.triggerUp).toList
 	  
 	def triggerValues(variables:List[String]):List[List[Option[BigDecimal]]] = calls.map(_.triggerValues(variables))
 	
-	def isTargetRedemption = calls.exists(c => c.targetRedemption.isDefined)
+	def isTargetRedemption = calls.exists(_.isTargetRedemption)
 
-	def targetRedemptions:List[Option[BigDecimal]] = calls.map(_.targetRedemption)
+	def targetRedemptions:List[Option[BigDecimal]] = calls.map(_.targetRedemptionCondition.target)
 	
 	def isTriggeredByTrigger:Boolean = calls.exists(c => c.isFixed && c.fixedTriggerByTrigger == Some(true))
 
@@ -60,9 +60,9 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 	override def toString = calls.map(_.toString).mkString("\n")
 	
   def apply(i:Int):Callability = calls(i)
-    
-  def isBermuda:Boolean = calls.exists(_.bermudan)
-    
+
+  def isBermuda:Boolean = calls.exists(_.isBermuda)
+
   val isTrigger = calls.exists(_.isTrigger) && !isTriggeredByTrigger
     
 	def triggerCheck(fixings:List[UnderlyingFixing]):List[Boolean] = (fixings, calls).zipped.map{case (f, c) => c.isTriggered(f)}
@@ -288,7 +288,9 @@ object Callabilities {
                     trigger = strike,
                     refStart = dStart,
                     refEnd = dEnd,
+                    finalTrigger = UnderlyingFixing.empty,
                     closeOnly = knockInOnClose,
+                    triggerDown = aleg.get("reset_down").parseInt.collect{case i => i != 0}.getOrElse(true),
                     triggerOnEqual = knockInOnEqual
                   )
                 case _ => KnockInCondition.empty
@@ -303,7 +305,7 @@ object Callabilities {
     }
 
     val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).zip(resetKnockInConditions.zip(resetNewTriggerMap)).map{
-      case ((((berm, f), (trig, tgt)), (callOption, baseFormula)), (resetKnockInCondition, resetNewTriggers)) =>
+      case ((((berm, f), (trig, tgt)), (callOption, baseFormula)), (resetKnockInCondition, resetStrikes)) =>
 
         var inputString:Map[String, Any] = baseFormula
 
@@ -343,7 +345,7 @@ object Callabilities {
           targetRedemption = tgt,
           callOption = callOption,
           resetCondition = resetKnockInCondition,
-          resetNewTriggers = resetNewTriggers,
+          resetStrikes = resetStrikes,
           inputString = inputString,
           accumulatedPayments = None,
           simulatedFrontier= UnderlyingFixing.empty
@@ -366,14 +368,14 @@ object Callabilities {
 //
 //    Callabilities(
 //      bermudans.zip(triggerMap(underlyings, triggers)).zip(callOptions.zip(targets)).zip(resetKnockInConditions.zip(resetKnockInNewTriggers)).map{
-//        case (((berm, trig), (callOption, tgt)), (resetKnockInCondition, resetNewTriggers)) =>
+//        case (((berm, trig), (callOption, tgt)), (resetKnockInCondition, resetStrikes)) =>
 //          Callability(
 //            bermudan = berm,
 //            triggers = trig,
 //            targetRedemption = tgt.flatMap{case v => v.getRoundedDecimal},
 //            callOption = callOption,
 //            resetCondition = resetKnockInCondition,
-//            resetNewTriggers = resetNewTriggers,
+//            resetStrikes = resetStrikes,
 //            inputString = Map.empty[String, Any],
 //            accumulatedPayments = None,
 //            simulatedFrontier= UnderlyingFixing.empty

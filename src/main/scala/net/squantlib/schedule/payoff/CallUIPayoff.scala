@@ -37,7 +37,7 @@ case class CallUIPayoff(
 
   nominal = amount
   
-  override val isPriceable:Boolean = !strike.isEmpty && strike.getDecimal.values.forall(_.isDefined) && strike.getDouble.values.forall(_ > 0.000000001)
+  override val isPriceable:Boolean = strike.isPositive
 
   override def eventDates(period:CalculationPeriod):List[Date] = {
     if (!isPriceable) List(period.endDate)
