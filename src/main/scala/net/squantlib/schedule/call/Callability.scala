@@ -71,7 +71,7 @@ case class Callability(
   
   def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && !isFutureFixing
   
-  def isPriceable:Boolean = forward.isPositive && triggers.isAllValid
+  def isPriceable:Boolean = (forward.isEmpty || forward.isPositive) && triggers.isAllValid
 
   def isEmpty:Boolean = !bermudanCondition.isActive && !triggerCondition.isActive && !targetRedemptionCondition.isActive
   
