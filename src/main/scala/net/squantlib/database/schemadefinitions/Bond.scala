@@ -175,7 +175,7 @@ class Bond(
     case ls if ls.isEmpty => None
     case ls => Some(ls.mkString("; "))
   }
-  
+
   def containsTbd:Boolean = tbdParameter.isDefined
   
   def isPhysicalRedemption:Boolean = physicalredemption == 1
@@ -194,7 +194,7 @@ class Bond(
 
   def settingMap:Map[String, String] = settings.parseJsonStringFields
   
-  def tbdValue:Option[Double] = try{Some(settingMap("tbd").toDouble)} catch {case e:Throwable => None} 
+  def tbdValue:Option[Double] = try{Some(settingMap("tbd").toDouble)} catch {case e:Throwable => None}
   
   def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
   
@@ -222,9 +222,9 @@ class Bond(
     }
   }
 
-  def settingsDistributorIds:List[String] = {
-    settings.jsonArray("distributor_ids").map(_.parseString).flatMap{case s => s}
-  }
+//  def settingsDistributorIds:List[String] = {
+//    settings.jsonArray("distributor_ids").map(_.parseString).flatMap{case s => s}
+//  }
 
   def updateRefNumber(refId:Int) = {
     id = s"${issuerid}-${refId}"
@@ -428,7 +428,9 @@ class Bond(
   def modelOutputJson:Option[JsonNode] = try {Some(model_output.jsonNode.get)} catch {case e:Throwable => None}
 
   def modelOutputMap:Map[String, List[Any]] = modelOutputJson.collect{case j => j.parseAllFieldMap}.getOrElse(Map.empty)
-  
+
+  def isPublic:Boolean = (bond_status == "PUBLIC")
+
   override def toString():String = "%-5s %-15s %-25s %-10s %-15s %-15s".format(id, issuedate.toString, maturity.toString, coupon, initialfx.toString, created.toString)
 
   @Transient
