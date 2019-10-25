@@ -162,6 +162,7 @@ trait PriceableBond extends BondModel with Priceable {
         targetRedemptionCondition = c.targetRedemptionCondition,
         forward = c.forward,
         bonusAmount = c.bonusAmount,
+        exercised = c.exercised,
         inputString = Map.empty,
         accumulatedPayments = c.accumulatedPayments,
         simulatedFrontier = UnderlyingFixing.empty

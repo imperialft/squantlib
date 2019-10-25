@@ -11,6 +11,7 @@ case class Callability(
   targetRedemptionCondition: TargetRedemptionCondition,
   forward: UnderlyingFixing,
   bonusAmount: BigDecimal,
+  exercised: Option[Boolean],
   inputString: Map[String, Any],
   var accumulatedPayments: Option[Double],
   var simulatedFrontier: UnderlyingFixing = UnderlyingFixing.empty
@@ -22,7 +23,7 @@ case class Callability(
 
   val forwardVariables:Set[String] = forward.keySet
 
-  var issuerCalled:Option[Boolean] = None
+  var issuerCalled:Option[Boolean] = exercised //None
 
   def setIssuerCalled(setTrue:Boolean = true) = {
     issuerCalled = Some(setTrue)
@@ -181,6 +182,7 @@ case class Callability(
       targetRedemptionCondition = targetRedemptionCondition,
       forward = forward,
       bonusAmount = bonusAmount,
+      exercised = issuerCalled,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier = simulatedFrontier
@@ -211,6 +213,7 @@ object Callability {
     targetRedemptionCondition = TargetRedemptionCondition.empty,
     forward = UnderlyingFixing.empty,
     bonusAmount = 0.0,
+    exercised = None,
     inputString = Map.empty[String, Any],
     accumulatedPayments = None,
     simulatedFrontier= UnderlyingFixing.empty
@@ -239,6 +242,7 @@ object Callability {
       targetRedemptionCondition = TargetRedemptionCondition(targetRedemption),
       forward = callOption.forward,
       bonusAmount = callOption.bonus,
+      exercised = callOption.exercised,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier = simulatedFrontier
@@ -252,6 +256,7 @@ object Callability {
     targetRedemption:Option[Double],
     forward: UnderlyingFixing,
     bonusAmount:Double,
+    exercised: Option[Boolean],
     removeSatisfiedTriggers: Boolean,
     resetCondition: KnockInCondition,
     resetStrikes: UnderlyingFixing,
@@ -271,6 +276,7 @@ object Callability {
       targetRedemptionCondition = TargetRedemptionCondition(targetRedemption.flatMap{case v => v.getRoundedDecimal}),
       forward = forward,
       bonusAmount = bonusAmount.getRoundedDecimal.getOrElse(0.0),
+      exercised = exercised,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier

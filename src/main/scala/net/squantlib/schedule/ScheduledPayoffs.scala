@@ -44,6 +44,7 @@ case class ScheduledPayoffs(
           targetRedemptionCondition = TargetRedemptionCondition.empty,
           forward = UnderlyingFixing.empty, //c.forward,
           bonusAmount = 0.0, //c.bonusAmount,
+          exercised = c.exercised,
           inputString = c.inputString,
           accumulatedPayments = None,
           simulatedFrontier= c.simulatedFrontier

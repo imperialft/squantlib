@@ -12,7 +12,8 @@ case class CallOption(
   bonus: Double,
   invertedTrigger:Boolean,
   invertedForward:Boolean,
-  removeSatisfiedTriggers:Boolean
+  removeSatisfiedTriggers:Boolean,
+  exercised:Option[Boolean]
 ) {
   
 
@@ -27,7 +28,8 @@ object CallOption {
     bonus = 0.0,
     invertedTrigger = false,
     invertedForward = false,
-    removeSatisfiedTriggers = false
+    removeSatisfiedTriggers = false,
+    exercised = None
   )
 
 }

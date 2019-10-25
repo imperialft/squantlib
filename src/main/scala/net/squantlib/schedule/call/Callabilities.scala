@@ -142,6 +142,7 @@ object Callabilities {
         val forward = assignFixings(forwardMap)
         val bonus = b.parseDouble("bonus").getOrElse(0.0)
         val removeSatisfiedTriggers = b.parseInt("memory").getOrElse(0) == 1
+        val issuerExercised:Option[Boolean] = b.parseInt("exercised").collect{case v => v == 1}
         val forwardStrikes = {
           if (invertedForward && forward.keys.forall(_.size == 6)) forward.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap
           else forward
@@ -154,7 +155,8 @@ object Callabilities {
           bonus = bonus,
           invertedTrigger = invertedTrigger,
           invertedForward = invertedForward,
-          removeSatisfiedTriggers = removeSatisfiedTriggers
+          removeSatisfiedTriggers = removeSatisfiedTriggers,
+          exercised = issuerExercised
         )
 
       }.toList
