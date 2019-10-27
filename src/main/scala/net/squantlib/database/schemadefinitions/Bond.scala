@@ -249,10 +249,10 @@ class Bond(
   
   def fixingDate = fixingdate.collect{case d => Date(d)}
 
-  def manualTerminationDate:Option[Date] = settingMap.get("terminated_on") match {
-    case Some(d) => Date.getDate(d)
-    case _ => None
-  }
+//  def manualTerminationDate:Option[Date] = settingMap.get("terminated_on") match {
+//    case Some(d) => Date.getDate(d)
+//    case _ => None
+//  }
 
 //  def getTerminationDate:Option[Date] = (manualTerminationDate, terminationdate.collect{case d => Date(d)}) match {
 //    case (Some(d1), Some(d2)) if d1 le d2 => Some(d1)

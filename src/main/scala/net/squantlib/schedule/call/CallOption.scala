@@ -15,7 +15,7 @@ case class CallOption(
   removeSatisfiedTriggers:Boolean,
   exercised:Option[Boolean]
 ) {
-  
+
 
 }
 

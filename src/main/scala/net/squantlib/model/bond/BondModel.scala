@@ -102,7 +102,7 @@ trait BondModel {
   var earlyTerminationAmountFixed:Option[Double] = null
 
   def initializeEarlyTermination = {
-    val (v1, v2) = scheduledPayoffs.triggeredDate.collect { case (p, a) => (Some(p), Some(a)) }.getOrElse((None, None))
+    val (v1, v2) = scheduledPayoffs.calledDate.collect { case (p, a) => (Some(p), Some(a)) }.getOrElse((None, None))
     earlyTerminationPeriodFixed = v1
     earlyTerminationAmountFixed = v2
   }

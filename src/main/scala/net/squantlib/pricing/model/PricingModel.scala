@@ -55,7 +55,8 @@ trait PricingModel {
   def updateTriggerProbabilities:Unit = {
     if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {
       val probs = triggerProbabilities
-      if (probs.isEmpty) modelOutput("exercise_probability", null) else modelOutput("exercise_probability", probs.map(p => (p * 100000.0).round / 100000.0))
+      if (probs.isEmpty) modelOutput("exercise_probability", null)
+      else modelOutput("exercise_probability", probs.map(p => (p * 100000.0).round / 100000.0))
     }
   }
   

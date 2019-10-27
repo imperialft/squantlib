@@ -11,7 +11,7 @@ case class Callability(
   targetRedemptionCondition: TargetRedemptionCondition,
   forward: UnderlyingFixing,
   bonusAmount: BigDecimal,
-  exercised: Option[Boolean],
+  var exercised: Option[Boolean],
   inputString: Map[String, Any],
   var accumulatedPayments: Option[Double],
   var simulatedFrontier: UnderlyingFixing = UnderlyingFixing.empty
@@ -23,10 +23,12 @@ case class Callability(
 
   val forwardVariables:Set[String] = forward.keySet
 
-  var issuerCalled:Option[Boolean] = exercised //None
+//  var issuerCalled:Option[Boolean] = exercised //None
+
+  def isIssuerCalled:Boolean = (bermudanCondition.isActive && exercised == Some(true))
 
   def setIssuerCalled(setTrue:Boolean = true) = {
-    issuerCalled = Some(setTrue)
+    exercised = Some(setTrue)
   }
 
   def optionalTriggers:Option[UnderlyingFixing] = {
@@ -66,7 +68,7 @@ case class Callability(
   
   def isTargetRedemption:Boolean = targetRedemptionCondition.isActive
   
-  override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty
+  override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty || isIssuerCalled
   
   def isFixedTrigger:Boolean = isTrigger && (variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing))
   
@@ -91,8 +93,7 @@ case class Callability(
   }
 
   def fixedTrigger:Option[Boolean] = {
-    if (issuerCalled == Some(true)) Some(true)
-    else fixedTriggerByTrigger match {
+    fixedTriggerByTrigger match {
       case Some(t) => Some(t)
       case None => fixedTriggerByTargetRedemption
     }
@@ -111,15 +112,26 @@ case class Callability(
     else false
   }
 
-  def isProbablyCalled(f:UnderlyingFixing):Boolean = {
+  def isCalled(f:UnderlyingFixing):Boolean = {
     isTriggered(f) ||
     fixedTriggerByTargetRedemption.getOrElse(false) ||
-    (
-      bermudanCondition.isActive &&
-      !simulatedFrontier.isEmpty &&
-      f.isValidFor(simulatedFrontier.keySet) &&
-      triggerCondition.isTriggered(simulatedFrontier)
-    )
+    isIssuerCalled
+  }
+
+  def isCalled:Boolean = {
+    if (isFixed) isCalled(getFixings)
+    else false
+  }
+
+  def isCalledByExerciseFrontier(f:UnderlyingFixing):Boolean = {
+    bermudanCondition.isActive &&
+    !simulatedFrontier.isEmpty &&
+    f.isValidFor(simulatedFrontier.keySet) &&
+    triggerCondition.isTriggered(simulatedFrontier)
+  }
+
+  def isProbablyCalled(f:UnderlyingFixing):Boolean = {
+    isCalled(f) || isCalledByExerciseFrontier(f)
   }
     
   def isProbablyCalled:Boolean = {
@@ -182,7 +194,7 @@ case class Callability(
       targetRedemptionCondition = targetRedemptionCondition,
       forward = forward,
       bonusAmount = bonusAmount,
-      exercised = issuerCalled,
+      exercised = exercised,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier = simulatedFrontier
