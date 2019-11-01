@@ -246,6 +246,12 @@ object DisplayUtils { // extends StrictLogging {
     logger.info(s"""${id} : Done ${processName} ${if (r == null || r.isEmpty) "" else s"- ${r}"} (${"%.2fs".format(((t2 - t1) / 1000.0))})""")
     x
   }
+
+  def getIdOrBondCount(ids:Set[String]) = {
+    if (ids.size == 0) "No Bond"
+    else if (ids.size == 1) ids.head
+    else s"${ids.size} bonds"
+  }
   
   def standardOutput(s:Any*) =
     if (s.size == 1) logger.info(s.head.toString)
