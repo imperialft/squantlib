@@ -78,13 +78,17 @@ case class PutDIAmericanPayoff(
     val mcEnd = Math.min(refend.serialNumber, period.eventDate.serialNumber)
     val basemod = mcEnd % mcPeriod6m
 
-    val dates:List[Date] = (
-      for (i <- (mcStart to mcEnd)
-        if (i >= mcEnd - 180 && i % mcPeriod6m == basemod)
-        || (i >= mcEnd - 360 && i % mcPeriod1y == basemod)
-        || (i % mcPeriodbefore == basemod)
-      ) yield Date(i)
-    ) (collection.breakOut)
+    val dates:List[Date] = {
+      if (mcStart <= mcEnd) {
+        (
+          for (i <- (mcStart to mcEnd)
+               if (i >= mcEnd - 180 && i % mcPeriod6m == basemod)
+                 || (i >= mcEnd - 360 && i % mcPeriod1y == basemod)
+                 || (i % mcPeriodbefore == basemod)
+          ) yield Date(i)
+          ) (collection.breakOut)
+      } else List.empty //List(Date(mcEnd))
+    }
 
     if (physical) {
       if (dates.head == refstart) dates :+ period.paymentDate else (refstart :: dates) :+ period.paymentDate
@@ -282,7 +286,27 @@ case class PutDIAmericanPayoff(
       }
     }
   }
-  
+
+
+  override def dateShifted(shift:Int):Payoff = PutDIAmericanPayoff(
+    triggers = triggers,
+    strikes = strikes,
+    finalTriggers = finalTriggers,
+    refstart = refstart.add(shift),
+    refend = refend.add(shift),
+    knockedIn = knockedIn,
+    physical = physical,
+    forward = forward,
+    closeOnly = closeOnly,
+    reverse = reverse,
+    minPayoff = minPayoff,
+    maxPayoff = maxPayoff,
+    knockInOnEqual = knockInOnEqual,
+    amount = amount,
+    description = description,
+    inputString = inputString
+  )
+
 }
 
 object PutDIAmericanPayoff {

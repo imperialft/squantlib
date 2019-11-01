@@ -348,7 +348,7 @@ case class ScheduledPayoffs(
   def mapped(mapFunction:((CalculationPeriod, Payoff, Callability)) => (CalculationPeriod, Payoff, Callability)):ScheduledPayoffs = 
     ScheduledPayoffs(scheduledPayoffs.map(mapFunction), valuedate)
 	
-  def shifted(days:Int):ScheduledPayoffs = ScheduledPayoffs.noFixing(schedule.shifted(days), payoffs, calls)
+  def shifted(days:Int):ScheduledPayoffs = ScheduledPayoffs.noFixing(schedule.shifted(days), payoffs.dateShifted(days), calls)
     
   override def toList:List[(CalculationPeriod, Payoff, Callability)] = scheduledPayoffs.toList
   

@@ -29,6 +29,8 @@ trait Payoff extends FixingLeg {
 
   val isPriceable:Boolean // checks priceablility of the payoff
 
+  def dateShifted(d:Int):Payoff = this
+
   var isAbsolute:Boolean = false
 
   def setAbsolute = {

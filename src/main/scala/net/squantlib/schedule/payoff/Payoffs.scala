@@ -195,7 +195,9 @@ case class Payoffs(payoffs:List[Payoff]) extends LinearSeq[Payoff] with FixingLe
 	override def toList:List[Payoff] = payoffs
 	
 	override def size:Int = payoffs.size
-	
+
+	def dateShifted(shift:Int):Payoffs = new Payoffs(payoffs.map(p => p.dateShifted(shift)))
+
 	def reorder(order:List[Int]) = new Payoffs((0 to payoffs.size-1).toList.map(i => payoffs(order(i))))
 	
 	val jsonString:String = payoffs.map(_.jsonString).mkString(";")
