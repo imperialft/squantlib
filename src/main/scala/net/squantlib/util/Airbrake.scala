@@ -33,6 +33,7 @@ object Airbrake {
 
   def notify(e:Throwable):Boolean = notifier match {
     case Some(n) =>
+      println("report Airbrake")
       n.report(e)
       true
     case _ =>
