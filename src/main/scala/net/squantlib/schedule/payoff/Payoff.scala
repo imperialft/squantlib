@@ -319,11 +319,22 @@ object Payoff {
     result
   }
 
-  def nodeToComputedMap(node:JsonNode, s:String, variable:List[String])(implicit fixingInfo:FixingInformation):Map[String, Double] = {
+  def nodeToComputedMap(
+    node:JsonNode,
+    s:String,
+    variable:List[String]
+  )(implicit fixingInfo:FixingInformation):Map[String, Double] = nodeToComputedMap(node, s, variable, Set.empty)
+
+  def nodeToComputedMap(
+    node:JsonNode,
+    s:String,
+    variable:List[String],
+    ignoredInputs:Set[String]
+  )(implicit fixingInfo:FixingInformation):Map[String, Double] = {
     node.getOption(s) match {
       case Some(n) =>
         JsonUtils.nodeToHashMap(n, variable)
-          .filter{case (k, v) => v != null && v != "null"}
+          .filter{case (k, v) => v != null && v != "null" && !ignoredInputs.contains(v)}
           .map{case (k, v) => (k, fixingInfo.updateCompute(v))}
           .collect { case (k, v) => (k, v.getOrElse(Double.NaN)) }
           .toMap

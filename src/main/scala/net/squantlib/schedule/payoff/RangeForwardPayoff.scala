@@ -200,8 +200,8 @@ object RangeForwardPayoff {
     val fixedNode = fixed.jsonNode
 
     val variable:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-    val triggerHigh:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerhigh", variable).getOptionalDecimal}.getOrElse(Map.empty)
-    val triggerLow:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerlow", variable).getOptionalDecimal}.getOrElse(Map.empty)
+    val triggerHigh:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerhigh", variable, Set("")).getOptionalDecimal}.getOrElse(Map.empty)
+    val triggerLow:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "triggerlow", variable, Set("")).getOptionalDecimal}.getOrElse(Map.empty)
     val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variable).getOptionalDecimal}.getOrElse(Map.empty)
 
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
