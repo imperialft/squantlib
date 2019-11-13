@@ -108,7 +108,8 @@ trait Date extends Ordered[Date] with Cloneable with Serializable{
   }
   
   override def toString = yyyymmdd("/", "/", "")
-  
+
+  def toSqlString = yyyymmdd("-", "-", "")
 }
 
 object Date {
