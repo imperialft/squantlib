@@ -203,13 +203,20 @@ trait Priceable extends ExtendedSchedule with Cloneable {
   def accruedAmount:Option[Double] = market.flatMap(mkt => 
     if (issueDate ge mkt.valuedate) Some(0.0)
     else if (coupon isEmpty) Some(0.0)
-    else livePayoffs.filter{case (d, p, _) => !d.isRedemption} match {
-      case po if po.size == 1 && po.head._1.paymentDate == terminationDate =>
-        po.head match {case (dd, pp, _) => Some(Date.daycount(dd.startDate, mkt.valuedate, dd.daycounter) * pp.price(mkt, List.empty))}
-      case po => po.filter{case (dd, pp, _) => (dd.isCurrentPeriod(mkt.valuedate))} match {
-        case pos if pos.isEmpty => Some(0.0)
-        case pos => Some(pos.map{case (ddd, ppp, _) => (ddd.accrued(mkt.valuedate)) * ppp.price(mkt, List.empty)}.sum)
-    }})
+    else {
+      val amt = livePayoffs.filter{case (d, p, _) => !d.isRedemption} match {
+        case po if po.size == 1 && po.head._1.paymentDate == terminationDate =>
+          po.head match {case (dd, pp, _) =>
+            Date.daycount(dd.startDate, mkt.valuedate, dd.daycounter) * pp.price(mkt, List.empty)
+          }
+        case po => po.filter{case (dd, pp, _) => (dd.isCurrentPeriod(mkt.valuedate))} match {
+          case pos if pos.isEmpty => 0.0
+          case pos => pos.map{case (ddd, ppp, _) => (ddd.accrued(mkt.valuedate)) * ppp.price(mkt, List.empty)}.sum
+        }
+      }
+      if (amt.isNaN) None else Some(amt)
+    }
+  )
     
   /*  
    * Returns JPY accrued amount defined as accrued x FX/FX0, where FX0 = FX as of issue date.
