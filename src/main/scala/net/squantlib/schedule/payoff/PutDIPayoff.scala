@@ -93,6 +93,20 @@ class PutDIPayoff(
     knockedIn = isKnockIn(getFixings) //implicitly[FixingInterpreter[Map[String, Double]]] isKnockIn(getFixings)
   }
 
+  override def dateShifted(shift:Int):Payoff = new PutDIPayoff(
+    triggers = triggers,
+    strikes = strikes,
+    initKnockedIn = initKnockedIn,
+    physical = physical,
+    reverse = reverse,
+    minPayoff = minPayoff,
+    maxPayoff = maxPayoff,
+    knockInOnEqual = knockInOnEqual,
+    amount = amount,
+    description = description,
+    inputString = inputString
+  )
+
 }
 
 object PutDIPayoff {

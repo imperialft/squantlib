@@ -193,7 +193,7 @@ class Bond(
   def fixingMapDouble:Map[String, Double] = fixings.parseJsonDoubleFields
 
   def settingMap:Map[String, String] = settings.parseJsonStringFields
-  
+
   def tbdValue:Option[Double] = try{Some(settingMap("tbd").toDouble)} catch {case e:Throwable => None}
   
   def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
@@ -426,6 +426,12 @@ class Bond(
   def settingsJson:ObjectNode = settings.objectNode.getOrElse((new ObjectMapper).createObjectNode)
 
   def modelOutputJson:Option[JsonNode] = try {Some(model_output.jsonNode.get)} catch {case e:Throwable => None}
+
+  def modelOutputObject:ObjectNode = try {
+    if (model_output != null && !model_output.isEmpty) model_output.objectNode.getOrElse(JsonUtils.newObjectNode)
+    else JsonUtils.newObjectNode
+  } catch {case _ => JsonUtils.newObjectNode}
+
 
   def modelOutputMap:Map[String, List[Any]] = modelOutputJson.collect{case j => j.parseAllFieldMap}.getOrElse(Map.empty)
 

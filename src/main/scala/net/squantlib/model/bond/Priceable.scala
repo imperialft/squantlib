@@ -134,7 +134,10 @@ trait Priceable extends ExtendedSchedule with Cloneable {
    * Returns dirty price of the bond. (ie. including accrued interest)
    */
   def dirtyPrice:Option[Double] = 
-    if(!scheduledPayoffs.isPriceable) {errorOutput(id, "invalid payoff or trigger"); None}
+    if(!scheduledPayoffs.isPriceable) {
+      errorOutput(id, "invalid payoff or trigger")
+      None
+    }
     else (earlyTerminationDate, valueDate) match {
       case (Some(td), Some(vd)) if td le vd => standardOutput(id, "terminated on " + td); None
       case _ => (model, discountCurve) match {
