@@ -115,8 +115,8 @@ class Bs1fContinuousAtm(
       }
     }
     
-    @tailrec def getPrices(nbpath:Int, current:List[Double]):List[Double] = 
-      if (nbpath == 0) current 
+    @tailrec def getPrices(nbpath:Int, current:List[Double]):List[Double] =
+      if (nbpath == 0) current
       else getPrices(nbpath - 1, (getApath(stepsize, drift, sigt, spotList), current).zipped.map(_ + _))
  
     getPrices(paths, List.fill(priceLegs)(0.0)).map(a => a / paths.toDouble)
