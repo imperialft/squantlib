@@ -113,9 +113,6 @@ case class PutDIAmericanPayoff(
       case (true, false) => p <= trig
       case (false, false) => p < trig
     }
-
-//    if (reverse) p >= trig
-//    else p <= trig
   }
 
   def isKnockedInPrice(p:UnderlyingFixing, trig:UnderlyingFixing):Boolean = {

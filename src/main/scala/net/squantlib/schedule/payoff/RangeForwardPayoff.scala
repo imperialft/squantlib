@@ -25,6 +25,8 @@ case class RangeForwardPayoff(
   override val physical:Boolean,
   forwardInRange:Boolean = true,
   amount:Double = 1.0,
+  knockInOnEqualHigh:Boolean = false,
+  knockInOnEqualLow:Boolean = true,
   description:String = null,
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
@@ -44,101 +46,107 @@ case class RangeForwardPayoff(
     else List(period.eventDate)
   }
 
-    def priceEmpty(priceResult:PriceResult):Double = {
+  def priceEmpty(priceResult:PriceResult):Double = {
+    if (isFixed) {
+      if (physical && knockedIn) {
+        assignPhysicalInfo(priceResult)
+        Double.NaN
+      } else if (!knockedIn) {
+        1.0
+      } else Double.NaN
+    }
+    else Double.NaN
+  }
+
+  def priceList(fixings:UnderlyingFixing, priceResult:PriceResult):Double = {
+    if (physical) {
       if (isFixed) {
-        if (physical && knockedIn) {
-          assignPhysicalInfo(priceResult)
-          Double.NaN
-        } else if (!knockedIn) {
-          1.0
-        } else Double.NaN
+        if (knockedIn) assignPhysicalInfo(priceResult)
+        priceList(fixings, knockedIn, priceResult)
       }
       else Double.NaN
     }
-
-    def priceList(fixings:UnderlyingFixing, priceResult:PriceResult):Double = {
-      if (physical) {
-        if (isFixed) {
-          if (knockedIn) assignPhysicalInfo(priceResult)
-          priceList(fixings, knockedIn, priceResult)
-        }
-        else Double.NaN
+    else isKnockIn(fixings) match {
+      case Some(ki) => {
+        priceList(fixings, ki, priceResult)
       }
-      else isKnockIn(fixings) match {
-        case Some(ki) => {
-          priceList(fixings, ki, priceResult)
-        }
-        case _ => Double.NaN
-      }
+      case _ => Double.NaN
     }
+  }
 
-    def priceList(fixings:List[UnderlyingFixing], priceResult:PriceResult):Double = {
-      fixings.lastOption match {
-        case Some(lastFixing) =>
-          if (physical) {
-            val fixingSize = fixings.length
-            if (isFixed) {
-              if (knockedIn) assignPhysicalInfo(priceResult)
-              priceList(lastFixing, knockedIn, priceResult)
-            }
-            else if (fixingSize >= 2) isKnockIn(fixings(fixings.length - 2)) match {
-              case Some(ki) =>
-                if (ki && priceResult != null) assignPhysicalInfo(fixings(fixings.length - 2), priceResult)
-                priceList(lastFixing, ki, priceResult)
-              case _ => Double.NaN
-            }
-            else Double.NaN
+  def priceList(fixings:List[UnderlyingFixing], priceResult:PriceResult):Double = {
+    fixings.lastOption match {
+      case Some(lastFixing) =>
+        if (physical) {
+          val fixingSize = fixings.length
+          if (isFixed) {
+            if (knockedIn) assignPhysicalInfo(priceResult)
+            priceList(lastFixing, knockedIn, priceResult)
           }
-          else isKnockIn(lastFixing) match {
-            case Some(ki) => priceList(lastFixing, ki, priceResult)
+          else if (fixingSize >= 2) isKnockIn(fixings(fixings.length - 2)) match {
+            case Some(ki) =>
+              if (ki && priceResult != null) assignPhysicalInfo(fixings(fixings.length - 2), priceResult)
+              priceList(lastFixing, ki, priceResult)
             case _ => Double.NaN
           }
-        case None => Double.NaN
-      }
+          else Double.NaN
+        }
+        else isKnockIn(lastFixing) match {
+          case Some(ki) => priceList(lastFixing, ki, priceResult)
+          case _ => Double.NaN
+        }
+      case None => Double.NaN
     }
+  }
 //  }
 //
 //  implicit object MapInterpreter extends FixingInterpreter[Map[String, Double]] {
 
-    private def validFixings(fixings:UnderlyingFixing, vs:Set[String]):Boolean = isPriceable && fixings.isValidFor(vs)
+  private def validFixings(fixings:UnderlyingFixing, vs:Set[String]):Boolean = isPriceable && fixings.isValidFor(vs)
 
-    def isKnockIn(fixings:UnderlyingFixing):Option[Boolean] = {
-      if (knockedIn) Some(true)
-      else if (validFixings(fixings, triggerVariables)) {
-        val r = triggerLow.getDecimalValue.forall{case (ul, v) => v <= fixings.getDecimalValue(ul)} && triggerHigh.getDecimalValue.forall{case (ul, v) => v >= fixings.getDecimalValue(ul)}
-        if (forwardInRange) Some(r) else Some(!r)
-      }
-      else {
-        None
-      }
+  def isKnockIn(fixings:UnderlyingFixing):Option[Boolean] = {
+    if (knockedIn) Some(true)
+    else if (validFixings(fixings, triggerVariables)) {
+//        val r = triggerLow.getDecimalValue.forall{case (ul, v) => v <= fixings.getDecimalValue(ul)} && triggerHigh.getDecimalValue.forall{case (ul, v) => fixings.getDecimalValue(ul) <= v}
+      val r = triggerLow.getDecimalValue.forall{case (ul, v) => isKnockedInPrice(v, fixings.getDecimalValue(ul), knockInOnEqualLow)} && triggerHigh.getDecimalValue.forall{case (ul, v) => isKnockedInPrice(fixings.getDecimalValue(ul), v, knockInOnEqualHigh)}
+      if (forwardInRange) Some(r) else Some(!r)
     }
-
-    def priceList(fixings:UnderlyingFixing, isKnockedIn:Boolean, priceResult:PriceResult):Double = {
-      if (!isKnockedIn) 1.0
-      else if (validFixings(fixings, strikeVariables)) {
-        if (physical && priceResult != null) {
-          strikeVariables.map(ul => (ul, fixings.getDouble(ul) / strikes.getDouble(ul), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
-            case (ul, pf, k) =>
-              //priceResult.setAssetInfo(ul, 1.0 / k)
-              pf
-          }
-        } else strikeVariables.map(v => fixings.getDouble(v) / strikes.getDouble(v)).min
-        //strikeVariables.map(v => fixings(v) / strikes(v)).min
-      }
-      else Double.NaN
+    else {
+      None
     }
+  }
 
-    def assignPhysicalInfo(priceResult:PriceResult):Unit = {
-      if (isFixed) assignPhysicalInfo(getFixings, priceResult)
-    }
+  def isKnockedInPrice(p:BigDecimal, trig:BigDecimal, knockInOnEqual:Boolean):Boolean = {
+    if (knockInOnEqual) p <= trig
+    else p < trig
+  }
 
-    def assignPhysicalInfo(fixings:UnderlyingFixing, priceResult:PriceResult):Unit = {
-      if (priceResult != null && fixings.isValidFor(strikeVariables)) {
+  def priceList(fixings:UnderlyingFixing, isKnockedIn:Boolean, priceResult:PriceResult):Double = {
+    if (!isKnockedIn) 1.0
+    else if (validFixings(fixings, strikeVariables)) {
+      if (physical && priceResult != null) {
         strikeVariables.map(ul => (ul, fixings.getDouble(ul) / strikes.getDouble(ul), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
-          case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
+          case (ul, pf, k) =>
+            //priceResult.setAssetInfo(ul, 1.0 / k)
+            pf
         }
+      } else strikeVariables.map(v => fixings.getDouble(v) / strikes.getDouble(v)).min
+      //strikeVariables.map(v => fixings(v) / strikes(v)).min
+    }
+    else Double.NaN
+  }
+
+  def assignPhysicalInfo(priceResult:PriceResult):Unit = {
+    if (isFixed) assignPhysicalInfo(getFixings, priceResult)
+  }
+
+  def assignPhysicalInfo(fixings:UnderlyingFixing, priceResult:PriceResult):Unit = {
+    if (priceResult != null && fixings.isValidFor(strikeVariables)) {
+      strikeVariables.map(ul => (ul, fixings.getDouble(ul) / strikes.getDouble(ul), strikes.getDouble(ul))).minBy{case (ul, perf, k) => perf} match {
+        case (ul, pf, k) => priceResult.setAssetInfo(ul, 1.0 / k)
       }
     }
+  }
 
 //  }
 
@@ -209,6 +217,9 @@ object RangeForwardPayoff {
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val description:String = formula.parseJsonString("description").orNull
 
+    val knockInOnEqualHigh:Boolean = formula.parseJsonString("ki_on_equal_high").getOrElse("0") == "1"
+    val knockInOnEqualLow:Boolean = formula.parseJsonString("ki_on_equal_low").getOrElse("1") == "1"
+
     RangeForwardPayoff(
       triggerLow = UnderlyingFixing(triggerLow),
       triggerHigh = UnderlyingFixing(triggerHigh),
@@ -217,6 +228,8 @@ object RangeForwardPayoff {
       physical = physical,
       forwardInRange = forwardInRange,
       amount = amount,
+      knockInOnEqualHigh = knockInOnEqualHigh,
+      knockInOnEqualLow = knockInOnEqualLow,
       description = description,
       inputString = inputString
     )
