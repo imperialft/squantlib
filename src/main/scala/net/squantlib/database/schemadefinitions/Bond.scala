@@ -237,7 +237,10 @@ class Bond(
   
   def paymentAdjust = DayAdjustments.getOrElse(payment_adj, BusinessDayConvention.ModifiedFollowing)
   
-  def maturityAdjust = DayAdjustments.getOrElse(daycount_adj, BusinessDayConvention.ModifiedFollowing)
+  def maturityAdjust = {
+    val maturityAdjust:String = settingMap.getOrElse("maturity_adj", payment_adj)
+    DayAdjustments.getOrElse(maturityAdjust, BusinessDayConvention.ModifiedFollowing)
+  } //DayAdjustments.getOrElse(daycount_adj, BusinessDayConvention.ModifiedFollowing)
   
   def period = (coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
