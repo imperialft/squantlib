@@ -166,7 +166,7 @@ object Callabilities {
     case _ => List.fill(nbLegs)(CallOption.empty)
   }
 
-  private def underlyingStrikeList(
+  def underlyingStrikeList(
     formula:String,
     nbLegs:Int,
     underlyings:List[String],
@@ -200,7 +200,7 @@ object Callabilities {
   }
 
 
-  private def triggerToAssignedTrigger(
+  def triggerToAssignedTrigger(
     trigs:List[Map[String, String]],
     invertedStrikes:List[Boolean]
   )(implicit fixingInfo:FixingInformation):List[Map[String, Double]] =
