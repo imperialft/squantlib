@@ -124,7 +124,7 @@ object DisplayUtils { // extends StrictLogging {
         roundType match {
           case "roundup" => Some(baseRounded.setScale(precision, BigDecimal.RoundingMode.CEILING))
           case "rounddown" => Some(baseRounded.setScale(precision, BigDecimal.RoundingMode.FLOOR))
-          case _ => Some(BigDecimal.valueOf(v).setScale(precision, BigDecimal.RoundingMode.HALF_UP))
+          case _ => Some(BigDecimal.valueOf(v).setScale(precision + 5, BigDecimal.RoundingMode.HALF_UP).setScale(precision, BigDecimal.RoundingMode.HALF_UP))
         }
       }
     }
