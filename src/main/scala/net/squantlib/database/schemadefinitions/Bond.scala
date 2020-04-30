@@ -188,9 +188,10 @@ class Bond(
 
   def underlyingSet:Set[String] = underlyingList.toSet
 
-  def fixingMap:UnderlyingFixing = UnderlyingFixing(fixingMapDouble)(fixingInformation)
+  def fixingMap:UnderlyingFixing = UnderlyingFixing(fixingMapDecimal) //UnderlyingFixing(fixingMapDouble)(fixingInformation)
 
-  def fixingMapDouble:Map[String, Double] = fixings.parseJsonDoubleFields
+//  def fixingMapDouble:Map[String, Double] = fixings.parseJsonDoubleFields
+  def fixingMapDecimal:Map[String, BigDecimal] = fixings.parseJsonDoubleFields.map{case (k, v) => (k, BigDecimal(v))}
 
   def settingMap:Map[String, String] = settings.parseJsonStringFields
 
@@ -380,13 +381,13 @@ class Bond(
     
   def isMatured(vd:Date):Boolean = (vd ge endDate)
 
-  def getInitialFixings:UnderlyingFixing = UnderlyingFixing(getInitialFixingsDouble)(fixingInformation)
+  def getInitialFixings:UnderlyingFixing = UnderlyingFixing(getInitialFixingsDecimal) // (fixingInformation)
 
-  def getInitialFixingsDouble:Map[String, Double] = {
-    val fMap = fixingMapDouble
+  def getInitialFixingsDecimal:Map[String, BigDecimal] = {
+    val fMap = fixingMapDecimal
 
     if (!fMap.isEmpty) fMap
-    else if (isBeforeFixing) DB.getLatestPrices(underlyingList.toSet)
+    else if (isBeforeFixing) DB.getLatestPrices(underlyingList.toSet).map{case (k, v) => (k, BigDecimal(v))}
     else Map.empty
   }
   
@@ -408,12 +409,21 @@ class Bond(
         }
       } catch {case _: Exception => Map.empty}
 
+      val customFixingPrices = customFixings.filter{case (k, v) => ids.contains(k)}.map{case (k, v) => (k, BigDecimal(v))}
+
       val missingFixings:Map[String, Double] = {
         if ((ids -- customFixings.keySet).size > 0) getFixingPriceFromDb(ids, List(d), true).headOption.getOrElse(Map.empty)
         else Map.empty
       }
 
-      UnderlyingFixing(missingFixings ++ customFixings.filter{case (k, v) => ids.contains(k)})(fixingInformation)
+      (customFixingPrices.isEmpty, missingFixings.isEmpty) match {
+        case (true, true) => UnderlyingFixing.empty
+        case (false, true) => UnderlyingFixing(customFixingPrices)
+        case (true, false) => UnderlyingFixing(missingFixings)(fixingInformation)
+        case (false, false) => UnderlyingFixing(UnderlyingFixing(missingFixings)(fixingInformation).getDecimalValue ++ customFixingPrices)
+      }
+
+    //      UnderlyingFixing(missingFixings ++ customFixings.filter{case (k, v) => ids.contains(k)})(fixingInformation)
 
     case _ => UnderlyingFixing.empty
   }
@@ -468,7 +478,7 @@ class Bond(
       fixingPageInformation = fixingPageInformation
     )
 
-    info.setInitialFixingDouble(getInitialFixingsDouble)
+    info.setInitialFixingDecimal(getInitialFixingsDecimal)
 
     info
   }

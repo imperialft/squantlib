@@ -20,6 +20,11 @@ case class FixingInformation(
     initialFixing = UnderlyingFixing(vs)(this)
   }
 
+  def setInitialFixingDecimal(vs:Map[String, BigDecimal]) = {
+    initialFixing = UnderlyingFixing(vs)
+  }
+
+
   def initialFixingFull:UnderlyingFixing = {
     val inv:Map[String, Option[BigDecimal]] = initialFixing.getDecimalValue
       .withFilter{case (k, v) => k.size == 6}
