@@ -29,6 +29,7 @@ case class PutDIAmericanPayoff(
   forward:Boolean,
   closeOnly:Boolean,
   reverse: Boolean,
+  leverage: Double,
   override val minPayoff: Double,
   override val maxPayoff: Option[Double],
   knockInOnEqual: Boolean,
@@ -120,8 +121,10 @@ case class PutDIAmericanPayoff(
   }
 
   def getPerformance(p:Double, stk:Double):Double = {
-    if (reverse) withMinMax(2.0 - p / stk)
-    else withMinMax(p / stk)
+    withMinMax(1.0 - leverage * (stk - p) / stk)
+
+//    if (reverse) withMinMax(2.0 - p / stk)
+//    else withMinMax(p / stk)
   }
 
   def priceSingle(priceResult:PriceResult):Double = {
@@ -235,6 +238,7 @@ case class PutDIAmericanPayoff(
     "trigger" -> triggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
     "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava,
     "final_trigger" -> finalTriggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+    "leverage" -> leverage,
     "refstart" -> (if (refstart == null) null else refstart.toString),
     "refend" -> (if (refend == null) null else refend.toString),
     "description" -> description
@@ -296,6 +300,7 @@ case class PutDIAmericanPayoff(
     forward = forward,
     closeOnly = closeOnly,
     reverse = reverse,
+    leverage = leverage,
     minPayoff = minPayoff,
     maxPayoff = maxPayoff,
     knockInOnEqual = knockInOnEqual,
@@ -331,6 +336,7 @@ object PutDIAmericanPayoff {
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val forward:Boolean = formula.parseJsonString("forward").getOrElse("0") == "1"
     val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
+    val leverage:Double = fixed.parseJsonDouble("leverage").getOrElse(1.0)
     val minPayoff:Double = fixed.parseJsonDouble("min").getOrElse(0.0)
     val maxPayoff:Option[Double] = fixed.parseJsonDouble("max")
     val description:String = formula.parseJsonString("description").orNull
@@ -350,6 +356,7 @@ object PutDIAmericanPayoff {
       forward = forward,
       closeOnly = closeOnly,
       reverse = reverse,
+      leverage = leverage,
       minPayoff = minPayoff,
       maxPayoff = maxPayoff,
       amount = amount,

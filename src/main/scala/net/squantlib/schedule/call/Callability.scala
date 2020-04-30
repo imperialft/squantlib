@@ -155,12 +155,13 @@ case class Callability(
       val jsonString = JsonUtils.jsonString(Map(
         "type" -> "forward",
         "variable" -> forward.keySet,
+        "leverage" -> 1.0,
         "strike" -> inputString.getOrElse("forward", forward)
       ))
       new ForwardPayoff(
         strikes = forward,
         physical = true,
-        reverse = false,
+        leverage = 1.0,
         minPayoff = 0.0,
         maxPayoff = None,
         description = "",

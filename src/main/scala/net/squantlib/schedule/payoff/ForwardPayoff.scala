@@ -21,7 +21,7 @@ import scala.reflect.ClassTag
 case class ForwardPayoff(
   strikes:UnderlyingFixing,
   override val physical:Boolean,
-  reverse:Boolean,
+  leverage: Double,
   override val minPayoff:Double,
   override val maxPayoff:Option[Double],
   description:String = null,
@@ -38,8 +38,9 @@ case class ForwardPayoff(
   }
   
   def getPerformance(p:Double, stk:Double):Double = {
-    if (reverse) withMinMax(2.0 - p / stk)
-    else withMinMax(p / stk)
+    withMinMax(1.0 - leverage * (stk - p) / stk)
+//    if (reverse) withMinMax(2.0 - p / stk)
+//    else withMinMax(p / stk)
   }
 
   override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = {
@@ -95,8 +96,7 @@ case class ForwardPayoff(
     }
   }
 
-  override def toString =
-    "Min{[" + strikes + "]}"
+  override def toString = s"${leverage.asPercent} x Min{[${strikes}]}"
   
   override def priceImpl(priceResult:PriceResult) = {
     if (isFixed) {
@@ -136,15 +136,16 @@ object ForwardPayoff {
     val strikes:UnderlyingFixing = UnderlyingFixing(fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables)}.getOrElse(Map.empty))
 
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
-    val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
+//    val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
     val minPayoff:Double = fixed.parseJsonDouble("min").getOrElse(0.0)
     val maxPayoff:Option[Double] = fixed.parseJsonDouble("max")
+    val leverage:Double = fixed.parseJsonDouble("leverage").getOrElse(1.0)
     val description:String = fixingInfo.update(formula).parseJsonString("description").orNull
 
     ForwardPayoff(
       strikes = strikes,
       physical = physical,
-      reverse = reverse,
+      leverage = leverage,
       minPayoff = minPayoff,
       maxPayoff = maxPayoff,
       description = description,

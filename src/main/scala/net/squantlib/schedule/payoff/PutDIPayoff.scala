@@ -14,6 +14,7 @@ class PutDIPayoff(
   initKnockedIn:Boolean,
   override val physical:Boolean,
   override val reverse: Boolean,
+  override val leverage:Double,
   override val minPayoff:Double,
   override val maxPayoff: Option[Double],
   knockInOnEqual: Boolean,
@@ -31,6 +32,7 @@ class PutDIPayoff(
   forward = false,
   closeOnly = true,
   reverse = reverse,
+  leverage = leverage,
   minPayoff = minPayoff,
   maxPayoff = maxPayoff,
   knockInOnEqual = knockInOnEqual,
@@ -59,16 +61,14 @@ class PutDIPayoff(
     priceResult:PriceResult
   ):Double = priceList(fixings.takeRight(2), priceResult)
 
-  override def toString = {
-    nominal.asPercent + " [" + triggers + "](Eur) " + nominal.asPercent +
-      " x Min([" + variables.mkString(",") + "] / [" + strikes + "])"
-  }
+  override def toString = s"${nominal.asPercent} [${triggers}](Eur) ${nominal.asPercent} x ${leverage.asPercent} x Min([${variables.mkString(",")}] / [${strikes}])"
 
   override def jsonMapImpl = Map(
     "type" -> "putdiamerican",
     "variable" -> (triggers.keySet ++ strikes.keySet).toArray,
     "trigger" -> triggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
     "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+    "leverage" -> leverage,
     "description" -> description
   )
 
@@ -99,6 +99,7 @@ class PutDIPayoff(
     initKnockedIn = initKnockedIn,
     physical = physical,
     reverse = reverse,
+    leverage = leverage,
     minPayoff = minPayoff,
     maxPayoff = maxPayoff,
     knockInOnEqual = knockInOnEqual,
@@ -124,6 +125,7 @@ object PutDIPayoff {
     val description:String = formula.parseJsonString("description").orNull
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
+    val leverage:Double = fixed.parseJsonDouble("leverage").getOrElse(1.0)
     val minPayoff:Double = fixed.parseJsonDouble("min").getOrElse(0.0)
     val maxPayoff:Option[Double] = fixed.parseJsonDouble("max")
     val knockInOnEqual:Boolean = formula.parseJsonString("ki_on_equal").getOrElse("1") == "1"
@@ -135,6 +137,7 @@ object PutDIPayoff {
       initKnockedIn = knockedIn,
       physical = physical,
       reverse = reverse,
+      leverage = leverage,
       minPayoff = minPayoff,
       maxPayoff = maxPayoff,
       knockInOnEqual = knockInOnEqual,
