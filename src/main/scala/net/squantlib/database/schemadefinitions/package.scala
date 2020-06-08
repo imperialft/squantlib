@@ -43,7 +43,8 @@ package object schemadefinitions {
   def multipleReplace(v:String, replacements:Map[String, Any]):String = {
     if (v == null) {return null}
     var result = v
-    replacements.foreach{case (k, d) => result = result.replace(k, d.toString)}
+//    replacements.foreach{case (k, d) => result = result.replace(k, d.toString)}
+    replacements.toList.sortBy(-_._1.size).foreach{case (k, d) => result = result.replace(k, d.toString)}
     result
   }
 

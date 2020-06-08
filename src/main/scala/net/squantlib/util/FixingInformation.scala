@@ -44,12 +44,14 @@ case class FixingInformation(
   }
   
   def updateInitial(p:String):String = multipleReplace(p, initialFixing.getDecimalValue.map{case (k, v) => ("@" + k, v)})
-  
-  @tailrec private def multipleReplace[T:Numeric](s:String, replacements:Map[String, T]):String =
+
+  private def multipleReplace[T:Numeric](s:String, replacements:Map[String, T]):String = multipleReplace(s, replacements.toList.sortBy(-_._1.size))
+
+  @tailrec private def multipleReplace[T:Numeric](s:String, replacements:List[(String, T)]):String =
     if (s == null) null
-    else replacements.headOption match {
-      case None => s
-      case Some((k, v)) => multipleReplace(s.replace(k, v.toString), replacements - k)
+    else replacements match {
+      case Nil => s
+      case (k, v) :: xs => multipleReplace(s.replace(k, v.toString), xs)//replacements - k)
     }
   
   def updateCompute(p:String):Option[Double] = {
