@@ -484,7 +484,7 @@ class Bond(
   }
   
   implicit def fixingInformation = fixingInformationObj
-  
+
   def accrualPrice(vd:Date):Double = {
     if (isMatured(vd)) 0.0
     else if (issueDate ge vd) issueprice.collect { case p => p.toDouble / 100.0 }.getOrElse(1.0)

@@ -92,6 +92,10 @@ case class FixingInformation(
 
     val underlyingId = pageInfo.getOrElse("underlying", "missingUnderlying")
 
+    val precision:Int = pageInfo.get("precision").collect{case s => s.toInt}.getOrElse(DB.getUnderlyingDefaultPrecision(underlyingId))
+
+    val roundType:String = pageInfo.get("rounding").getOrElse("rounded")
+
     (
       underlyingId,
       FixingPage(
@@ -102,8 +106,11 @@ case class FixingInformation(
         country = pageInfo.get("country"),
         priceType = pageInfo.get("price_type").getOrElse("close"),
         initialPriceType = pageInfo.get("initial_price_type").getOrElse("close"),
-        precision = pageInfo.get("precision").collect{case s => s.toInt}.getOrElse(DB.getUnderlyingDefaultPrecision(underlyingId)),
-        roundType = pageInfo.get("rounding").getOrElse("rounded")      )
+        fixingPrecision = precision,
+        initialPrecision = pageInfo.get("initial_precision").collect{case s => s.toInt}.getOrElse(precision),
+        fixingRoundType = roundType,
+        initialRoundType = pageInfo.get("initial_rounding").getOrElse(roundType)
+      )
     )
   }).toMap
 
@@ -197,9 +204,21 @@ case class FixingPage(
   country:Option[String],
   priceType:String,
   initialPriceType:String,
-  precision:Int,
-  roundType:String
+  fixingPrecision:Int,
+  initialPrecision:Int,
+  fixingRoundType:String,
+  initialRoundType:String
 ) {
+
+  def precision(initial:Boolean):Int = {
+    if (initial) initialPrecision
+    else fixingPrecision
+  }
+
+  def roundType(initial:Boolean):String = {
+    if (initial) initialRoundType
+    else fixingRoundType
+  }
 
   val pageFull:List[String] = (page, Set(time, country).exists(_.isDefined), bidOffer) match {
     case (Some(p), true, Some("mid")) =>
