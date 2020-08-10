@@ -268,8 +268,13 @@ case class FixingPage(
     case _ => List.empty
   }
 
+  def isCloseFixing = (priceType == "close")
+
   def pageWithPriceType(isInitialFixing:Boolean):Option[String] = {
-    val refPriceType = (if (isInitialFixing) initialPriceType else priceType)
+    val refPriceType = {
+      if (isInitialFixing) initialPriceType
+      else priceType
+    }
 
     if (refPriceType == "close") None
     else Some(underlying + ":" + refPriceType.toUpperCase)

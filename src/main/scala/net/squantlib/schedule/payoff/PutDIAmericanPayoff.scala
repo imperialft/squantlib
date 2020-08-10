@@ -264,26 +264,61 @@ case class PutDIAmericanPayoff(
   }
 
   def checkKnockIn:Unit = {
-    knockedIn = {
-      if (refstart == null || refend == null) false
-      else {
-        val historicalPrices:Map[Date, UnderlyingFixing] = {
-          if (closeOnly) DB.getHistoricalUnderlyingFixings(triggers.keySet, refstart, refend)
-          else if (reverse) DB.getHistoricalUnderlyingFixings(triggers.keySet, refstart, refend) ++ DB.getHistoricalHighUnderlyingFixings(triggers.keySet, refstart, refend)
-          else DB.getHistoricalUnderlyingFixings(triggers.keySet, refstart, refend) ++ DB.getHistoricalLowUnderlyingFixings(triggers.keySet, refstart, refend)
-        }
+    knockedIn = checkKnockInFromDb
+//      {
+//      if (refstart == null || refend == null) false
+//      else {
+//        val historicalPrices:Map[Date, UnderlyingFixing] = historicalPriceForKnockin
+//
+//        (historicalPrices, historicalPrices.get(refend)) match {
+//          case (hs, _) if hs.isEmpty => false
+//
+//          case (hs, Some(hsLast)) =>
+//            hs.values.exists(hp => isKnockedInPrice(hp, triggers)) &&
+//            (
+//              forward || isKnockedInPrice(hsLast, strikeOrFinalTriggers)
+//            )
+//
+//          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(x, triggers)}
+//        }
+//      }
+//    }
+  }
 
-        (historicalPrices, historicalPrices.get(refend)) match {
-          case (hs, _) if hs.isEmpty => false
+  def historicalPriceForKnockin:Map[Date, UnderlyingFixing] = {
+    val triggerUnderlyingIds = triggers.keySet
+    val closeFixings:Map[Date, UnderlyingFixing] = DB.getHistoricalUnderlyingFixings(triggerUnderlyingIds, refstart, refend)
 
-          case (hs, Some(hsLast)) =>
-            hs.values.exists(hp => isKnockedInPrice(hp, triggers)) &&
+    val nonCloseFixings:Set[String] = fixingInfo.underlyingFixingPage.filter{case (k, v) => !v.isCloseFixing}.keySet & triggerUnderlyingIds
+
+    val finalFixings:Map[Date, UnderlyingFixing] = {
+      if (!nonCloseFixings.isEmpty && closeFixings.contains(refend)) {
+        val newFixings = closeFixings(refend).getDecimalValue ++ getFixings.getDecimalValue.filter{case (k, v) => nonCloseFixings.contains(k)}
+        Map(refend -> UnderlyingFixing(newFixings))
+      }
+      else Map.empty
+    }
+
+    if (closeOnly) closeFixings ++ finalFixings
+    else if (reverse) closeFixings ++ DB.getHistoricalHighUnderlyingFixings(triggerUnderlyingIds, refstart, refend) ++ finalFixings
+    else closeFixings ++ DB.getHistoricalLowUnderlyingFixings(triggerUnderlyingIds, refstart, refend) ++ finalFixings
+  }
+
+  def checkKnockInFromDb:Boolean = {
+    if (refstart == null || refend == null) false
+    else {
+      val historicalPrices:Map[Date, UnderlyingFixing] = historicalPriceForKnockin
+
+      (historicalPrices, historicalPrices.get(refend)) match {
+        case (hs, _) if hs.isEmpty => false
+
+        case (hs, Some(hsLast)) =>
+          hs.values.exists(hp => isKnockedInPrice(hp, triggers)) &&
             (
               forward || isKnockedInPrice(hsLast, strikeOrFinalTriggers)
-            )
+              )
 
-          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(x, triggers)}
-        }
+        case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(x, triggers)}
       }
     }
   }
