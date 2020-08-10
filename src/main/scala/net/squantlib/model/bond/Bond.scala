@@ -83,7 +83,10 @@ object Bond {
     val schedule = db.schedule.orNull
     if (schedule == null) {return None}
     
-    implicit val fixingInfo:FixingInformation = if (customFixings == null) db.fixingInformation else customFixings
+    implicit val fixingInfo:FixingInformation = {
+      if (customFixings == null) db.fixingInformation
+      else customFixings
+    }
 
     val coupon:Payoffs = Payoffs(db.coupon, schedule.size - 1).orNull
     if (coupon == null || coupon.size + 1 != schedule.size) {

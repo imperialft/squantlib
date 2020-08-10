@@ -258,20 +258,21 @@ object Payoff {
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):Option[Payoff] = {
     if (inputString == null || inputString.trim.isEmpty) Some(NullPayoff(""))
     else {
+      val initialFixingInfo = fixingInfo.getInitialFixingInformation
       val po = payoffType(inputString) match {
-        case "fixed" => FixedPayoff(inputString)
-        case "leps1d" => LEPS1dPayoff(inputString)
+        case "fixed" => FixedPayoff(inputString)(initialFixingInfo)
+        case "leps1d" => LEPS1dPayoff(inputString)(initialFixingInfo)
 //        case "linear1d" => Linear1dPayoff(inputString)
-        case "putdi" => PutDIPayoff(inputString)
-        case "putdiamerican" => PutDIAmericanPayoff(inputString)
-        case "callui" => CallUIPayoff(inputString)
-        case "forward" => ForwardPayoff(inputString)
-        case "rangeforward" => RangeForwardPayoff(inputString)
-        case "null" => NullPayoff(inputString)
-        case "binary" => BinaryPayoff(inputString)
-        case "rangeaccrual" => RangeAccrualPayoff(inputString)
-        case "general" => GeneralPayoff(inputString)
-        case _ => GeneralPayoff(inputString)
+        case "putdi" => PutDIPayoff(inputString)(initialFixingInfo)
+        case "putdiamerican" => PutDIAmericanPayoff(inputString)(initialFixingInfo)
+        case "callui" => CallUIPayoff(inputString)(initialFixingInfo)
+        case "forward" => ForwardPayoff(inputString)(initialFixingInfo)
+        case "rangeforward" => RangeForwardPayoff(inputString)(initialFixingInfo)
+        case "null" => NullPayoff(inputString)(initialFixingInfo)
+        case "binary" => BinaryPayoff(inputString)(initialFixingInfo)
+        case "rangeaccrual" => RangeAccrualPayoff(inputString)(initialFixingInfo)
+        case "general" => GeneralPayoff(inputString)(initialFixingInfo)
+        case _ => GeneralPayoff(inputString)(initialFixingInfo)
       }
 
       if (isAbsolute(inputString)) {po.isAbsolute = true}

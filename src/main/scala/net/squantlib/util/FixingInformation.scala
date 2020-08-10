@@ -11,10 +11,43 @@ case class FixingInformation(
   var tbd:Option[BigDecimal],
   var minRange:Option[BigDecimal],
   var maxRange:Option[BigDecimal],
-  fixingPageInformation: List[Map[String, String]]
+  fixingPageInformation: List[Map[String, String]],
+  isInitial:Boolean = false,
+  initialUnderlyingFixings:Option[UnderlyingFixing] = None
 ) {
 
-  var initialFixing:UnderlyingFixing = UnderlyingFixing.empty
+  lazy val initialFixingInformation:Option[FixingInformation] = {
+    if (isInitial) None
+    else {
+      var newFixingPageInfo = fixingPageInformation.map(pageInfo => {
+        var newPageInfo = pageInfo
+        if (pageInfo.contains("initial_rounding")) {
+          newPageInfo = newPageInfo.updated("rounding", newPageInfo("initial_rounding"))
+        }
+        if (pageInfo.contains("initial_precision")) {
+          newPageInfo = newPageInfo.updated("precision", newPageInfo("initial_precision"))
+        }
+        newPageInfo
+      })
+  
+      Some(
+        FixingInformation(
+          currencyId,
+          paymentCurrencyId,
+          tbd,
+          minRange,
+          maxRange,
+          newFixingPageInfo,
+          true,
+          Some(initialFixing)
+        )
+      )
+    }
+  }
+
+   def getInitialFixingInformation:FixingInformation = initialFixingInformation.getOrElse(this)
+
+  var initialFixing:UnderlyingFixing = initialUnderlyingFixings.getOrElse(UnderlyingFixing.empty)
 
   def setInitialFixingDouble(vs:Map[String, Double]) = {
     initialFixing = UnderlyingFixing(vs)(this)
@@ -106,19 +139,19 @@ case class FixingInformation(
         country = pageInfo.get("country"),
         priceType = pageInfo.get("price_type").getOrElse("close"),
         initialPriceType = pageInfo.get("initial_price_type").getOrElse("close"),
-        fixingPrecision = precision,
-        initialPrecision = pageInfo.get("initial_precision").collect{case s => s.toInt}.getOrElse(precision),
-        fixingRoundType = roundType,
-        initialRoundType = pageInfo.get("initial_rounding").getOrElse(roundType)
+        precision = precision,
+        roundType = roundType
       )
     )
   }).toMap
+
 
   val underlyingPrecisions:Map[String, Int] = {
     val basePrecision = underlyingFixingPage.map{case (ul, fixingPage) => (ul, fixingPage.precision)}
     val inversePrecision = (underlyingFixingPage.keySet.filter(ul => Currencies.isForex(ul) && !underlyingFixingPage.contains(ul.takeRight(3) + ul.take(3)))).map(ul => (ul.takeRight(3) + ul.take(3), 25)).toMap
     inversePrecision ++ basePrecision
   }
+
 
   def getUnderlyingPrecision(underlyingId:String):Int = underlyingPrecisions.get(underlyingId) match {
     case Some(fp) => fp
@@ -204,21 +237,10 @@ case class FixingPage(
   country:Option[String],
   priceType:String,
   initialPriceType:String,
-  fixingPrecision:Int,
-  initialPrecision:Int,
-  fixingRoundType:String,
-  initialRoundType:String
+  precision:Int,
+  roundType:String
 ) {
 
-  def precision(initial:Boolean):Int = {
-    if (initial) initialPrecision
-    else fixingPrecision
-  }
-
-  def roundType(initial:Boolean):String = {
-    if (initial) initialRoundType
-    else fixingRoundType
-  }
 
   val pageFull:List[String] = (page, Set(time, country).exists(_.isDefined), bidOffer) match {
     case (Some(p), true, Some("mid")) =>

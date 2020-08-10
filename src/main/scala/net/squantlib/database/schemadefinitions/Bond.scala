@@ -419,8 +419,8 @@ class Bond(
       (customFixingPrices.isEmpty, missingFixings.isEmpty) match {
         case (true, true) => UnderlyingFixing.empty
         case (false, true) => UnderlyingFixing(customFixingPrices)
-        case (true, false) => UnderlyingFixing(missingFixings)(fixingInformation)
-        case (false, false) => UnderlyingFixing(UnderlyingFixing(missingFixings)(fixingInformation).getDecimalValue ++ customFixingPrices)
+        case (true, false) => UnderlyingFixing(missingFixings)(fixingInformation.getInitialFixingInformation)
+        case (false, false) => UnderlyingFixing(UnderlyingFixing(missingFixings)(fixingInformation.getInitialFixingInformation).getDecimalValue ++ customFixingPrices)
       }
 
     //      UnderlyingFixing(missingFixings ++ customFixings.filter{case (k, v) => ids.contains(k)})(fixingInformation)

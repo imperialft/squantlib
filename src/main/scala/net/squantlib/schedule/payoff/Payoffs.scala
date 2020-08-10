@@ -214,11 +214,14 @@ object Payoffs {
 		formula:String,
 		legs:Int = 1
 	)(implicit fixingInfo:FixingInformation):Option[Payoffs] =	{
+
 	  if (legs == 0) Some(Payoffs(List.empty))
+			
 	  else if (formula == null || formula.trim.isEmpty) {
 	    def getNullPayoff = new NullPayoff()
 	    Some(Payoffs(List.fill(legs)(getNullPayoff)))
 	  }
+			
 	  else {
 	    val payofflist:List[Payoff] = formula.jsonNode match {
 	      case Some(n) if n.isArray && n.size > 0 => n.elements.asScala.toList.map(f => getPayoff(toJsonString(f)))
@@ -235,6 +238,7 @@ object Payoffs {
 				else if (payofflist.size > legs) payofflist.take(legs)
 				else payofflist
 			}
+			
 	  	Some(Payoffs(fullpayoff))
 	}}
 
