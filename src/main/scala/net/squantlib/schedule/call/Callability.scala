@@ -242,7 +242,7 @@ object Callability {
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:UnderlyingFixing
-  )(implicit fixingInfo:FixingInformation):Callability = 
+  )(implicit fixingInfo:FixingInformation):Callability =
     Callability(
       bermudanCondition = BermudanCondition(bermudan),
       triggerCondition = TriggerCondition.initialize(
@@ -294,6 +294,6 @@ object Callability {
       accumulatedPayments = accumulatedPayments,
       simulatedFrontier
     )
-  
+
   
 }

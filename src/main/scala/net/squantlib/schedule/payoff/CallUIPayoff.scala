@@ -183,7 +183,7 @@ object CallUIPayoff {
     val callVariables = formula.parseJsonStringList("variable").map(_.orNull)
 //    val strikeList:List[Double] = fixed.parseJsonDoubleList("strike").map(_.getOrElse(Double.NaN))
 //    val strikes = (callVariables, strikeList).zipped.toMap.getOptionalDecimal
-    val strikes:UnderlyingFixing = UnderlyingFixing(fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", callVariables)}.getOrElse(Map.empty))
+    val strikes:UnderlyingFixing = UnderlyingFixing(fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", callVariables)}.getOrElse(Map.empty))(fixingInfo.getInitialFixingInformation)
 
 
     CallUIPayoff(

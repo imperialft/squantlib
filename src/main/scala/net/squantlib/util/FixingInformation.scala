@@ -45,7 +45,7 @@ case class FixingInformation(
     }
   }
 
-   def getInitialFixingInformation:FixingInformation = initialFixingInformation.getOrElse(this)
+  def getInitialFixingInformation:FixingInformation = initialFixingInformation.getOrElse(this)
 
   var initialFixing:UnderlyingFixing = initialUnderlyingFixings.getOrElse(UnderlyingFixing.empty)
 
@@ -71,7 +71,7 @@ case class FixingInformation(
     case Some(c) => UnderlyingFixing(initialFixingFull.getDecimal.updated("tbd", Some(c)))
     case None => initialFixingFull
   }
-    
+
   def update(p:String):String = {
     multipleReplace(p, all.getDecimalValue.map{case (k, v) => ("@" + k, v)})
   }
