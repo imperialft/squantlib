@@ -130,8 +130,8 @@ object BinaryPayoff {
   	  case Some(subnode) if subnode.isArray =>
         subnode.asScala.map(n => {
           val amount = n.parseDecimal("amount").getOrElse(BigDecimal(0.0))
-          val strikes:UnderlyingFixing = UnderlyingFixing(Payoff.nodeToComputedMap(n, (if (reverse) "strike_low" else "strike"), variable))(fixingInfo.getInitialFixingInformation)
-          val strikeHighs:UnderlyingFixing = UnderlyingFixing(Payoff.nodeToComputedMap(n, (if (reverse) "strike" else "strike_high"), variable))(fixingInfo.getInitialFixingInformation)
+          val strikes:UnderlyingFixing = UnderlyingFixing(Payoff.nodeToComputedMap(n, (if (reverse) "strike_low" else "strike"), variable))(fixingInfo.getStrikeFixingInformation)
+          val strikeHighs:UnderlyingFixing = UnderlyingFixing(Payoff.nodeToComputedMap(n, (if (reverse) "strike" else "strike_high"), variable))(fixingInfo.getStrikeFixingInformation)
           (amount, strikes, strikeHighs)
         }) (collection.breakOut)
 	    case _ => Set.empty

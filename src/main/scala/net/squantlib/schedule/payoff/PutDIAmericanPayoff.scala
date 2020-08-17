@@ -355,13 +355,13 @@ object PutDIAmericanPayoff {
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val triggers = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getOptionalDecimal()(fixingInfo.getInitialFixingInformation)}.getOrElse(Map.empty)
+    val triggers = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getOptionalDecimal()(fixingInfo.getStrikeFixingInformation)}.getOrElse(Map.empty)
 
-    val strikes = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal()(fixingInfo.getInitialFixingInformation)}.getOrElse(Map.empty)
+    val strikes = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal()(fixingInfo.getStrikeFixingInformation)}.getOrElse(Map.empty)
 
     val finalTriggers =
       fixedNode.collect{case n =>
-        if (n.has("final_trigger")) strikes ++ Payoff.nodeToComputedMap(n, "final_trigger", variables).getOptionalDecimal()(fixingInfo.getInitialFixingInformation)
+        if (n.has("final_trigger")) strikes ++ Payoff.nodeToComputedMap(n, "final_trigger", variables).getOptionalDecimal()(fixingInfo.getStrikeFixingInformation)
         else strikes
       }.getOrElse(Map.empty)
 

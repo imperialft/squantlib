@@ -92,8 +92,8 @@ object LEPS1dPayoff {
           underlyingId,
           coeff,
           const,
-          minrange.flatMap{case v => v.getDecimal(underlyingId)(fixingInfo.getInitialFixingInformation)},
-          maxrange.flatMap{case v => v.getDecimal(underlyingId)(fixingInfo.getInitialFixingInformation)}
+          minrange.flatMap{case v => v.getDecimal(underlyingId)(fixingInfo.getStrikeFixingInformation)},
+          maxrange.flatMap{case v => v.getDecimal(underlyingId)(fixingInfo.getStrikeFixingInformation)}
         )
       }}
 
@@ -185,8 +185,8 @@ object LEPS1dComponent {
       underlyingId,
       coeff,
       constant,
-      minRange.collect{case v => v.scaled(underlyingId)(fixingInfo.getInitialFixingInformation)},
-      maxRange.collect{case v => v.scaled(underlyingId)(fixingInfo.getInitialFixingInformation)}
+      minRange.collect{case v => v.scaled(underlyingId)(fixingInfo.getStrikeFixingInformation)},
+      maxRange.collect{case v => v.scaled(underlyingId)(fixingInfo.getStrikeFixingInformation)}
     )
   }
 }

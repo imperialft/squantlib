@@ -13,6 +13,7 @@ case class FixingInformation(
   var maxRange:Option[BigDecimal],
   fixingPageInformation: List[Map[String, String]],
   isInitial:Boolean = false,
+  isStrike:Boolean = false,
   initialUnderlyingFixings:Option[UnderlyingFixing] = None
 ) {
 
@@ -39,13 +40,47 @@ case class FixingInformation(
           maxRange,
           newFixingPageInfo,
           true,
+          isStrike,
+          Some(initialFixing)
+        )
+      )
+    }
+ }
+
+  lazy val strikeFixingInformation:Option[FixingInformation] = {
+    if (isStrike) None
+    else {
+      var newFixingPageInfo = fixingPageInformation.map(pageInfo => {
+        var newPageInfo = pageInfo
+        if (pageInfo.contains("strike_rounding")) {
+          newPageInfo = newPageInfo.updated("rounding", newPageInfo("strike_rounding"))
+        }
+        if (pageInfo.contains("strike_precision")) {
+          newPageInfo = newPageInfo.updated("precision", newPageInfo("strike_precision"))
+        }
+        newPageInfo
+      })
+
+      Some(
+        FixingInformation(
+          currencyId,
+          paymentCurrencyId,
+          tbd,
+          minRange,
+          maxRange,
+          newFixingPageInfo,
+          isInitial,
+          true,
           Some(initialFixing)
         )
       )
     }
   }
 
+
   def getInitialFixingInformation:FixingInformation = initialFixingInformation.getOrElse(this)
+
+  def getStrikeFixingInformation:FixingInformation = strikeFixingInformation.getOrElse(this)
 
   var initialFixing:UnderlyingFixing = initialUnderlyingFixings.getOrElse(UnderlyingFixing.empty)
 

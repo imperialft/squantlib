@@ -118,8 +118,8 @@ object PutDIPayoff {
     val fixedNode = fixed.jsonNode
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
-    val triggers:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getOptionalDecimal()(fixingInfo.getInitialFixingInformation)}.getOrElse(Map.empty)
-    val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal()(fixingInfo.getInitialFixingInformation)}.getOrElse(Map.empty)
+    val triggers:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "trigger", variables).getOptionalDecimal()(fixingInfo.getStrikeFixingInformation)}.getOrElse(Map.empty)
+    val strikes:Map[String, Option[BigDecimal]] = fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables).getOptionalDecimal()(fixingInfo.getStrikeFixingInformation)}.getOrElse(Map.empty)
 
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val description:String = formula.parseJsonString("description").orNull
