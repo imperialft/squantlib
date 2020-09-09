@@ -142,7 +142,7 @@ case class PutDIAmericanPayoff(
   def priceList(fixings:UnderlyingFixing, priceResult:PriceResult):Double = {
     if (physical) {
       if (isFixed) {
-        if (knockedIn) assignPhysicalInfo(priceResult)
+        if (isKnockIn(getFixings)) assignPhysicalInfo(priceResult)
         priceList(fixings, knockedIn, priceResult)
       }
       else Double.NaN
@@ -156,8 +156,9 @@ case class PutDIAmericanPayoff(
         if (physical) {
           val fixingSize = fixings.length
           if (isFixed) {
-            if (knockedIn) assignPhysicalInfo(priceResult)
-            priceList(lastFixing, knockedIn, priceResult)
+            val ki = knockInDuringObservation(fixings.dropRight(1)) && knockInAtRedemption(getFixings)
+            if (ki) assignPhysicalInfo(priceResult)
+            priceList(lastFixing, ki, priceResult)
           }
           else if (fixingSize >= 2) {
             val ki = isKnockIn(fixings.dropRight(1))
@@ -171,20 +172,30 @@ case class PutDIAmericanPayoff(
     }
   }
 
-  def isKnockIn(fixings:List[UnderlyingFixing]):Boolean = {
-    if (fixings.isEmpty) knockedIn
-    else (knockedIn || fixings.exists(isKnockIn(_))) && (forward || knockInAtRedemption(fixings.last))
+  def isKnockIn(fixingList:List[UnderlyingFixing]):Boolean = {
+    fixingList.lastOption match {
+      case None => knockedIn
+      case Some(lastFixings) => knockInDuringObservation(fixingList) && knockInAtRedemption(lastFixings)
+    }
   }
 
   def isKnockIn(fixings:UnderlyingFixing):Boolean = {
-    knockedIn || triggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), triggers.getDecimalValue.get(ul)) match {
+    isKnockIn(List(fixings))
+//    knockedIn || triggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), triggers.getDecimalValue.get(ul)) match {
+//      case (Some(v), Some(trig)) => isKnockedInPrice(v, trig)
+//      case _ => false
+//    })
+  }
+
+  def knockInDuringObservation(fixingList:List[UnderlyingFixing]):Boolean = {
+    knockedIn || fixingList.exists(fixings => triggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), triggers.getDecimalValue.get(ul)) match {
       case (Some(v), Some(trig)) => isKnockedInPrice(v, trig)
       case _ => false
-    })
+    }))
   }
 
   def knockInAtRedemption(fixings:UnderlyingFixing):Boolean = {
-    strikeOrFinalTriggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), strikeOrFinalTriggers.getDecimalValue.get(ul)) match {
+    forward || strikeOrFinalTriggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), strikeOrFinalTriggers.getDecimalValue.get(ul)) match {
       case (Some(v), Some(stk)) => isKnockedInPrice(v, stk)
       case _ => false
     })
