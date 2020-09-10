@@ -128,25 +128,43 @@ case class PutDIAmericanPayoff(
   }
 
   def priceSingle(priceResult:PriceResult):Double = {
-    if (isFixed) {
-      if (physical && knockedIn) {
+    getFixedKnockIn match {
+      case Some(true) if physical =>
         assignPhysicalInfo(priceResult)
         Double.NaN
-      } else if (!knockedIn) {
-        1.0
-      } else Double.NaN
+
+      case Some(false) => 1.0
+
+      case _ => Double.NaN
+
     }
-    else Double.NaN
+//    if (isFixed) {
+//      val ki = isKnockIn(getFixings)
+//      if (physical && ki) {
+//        assignPhysicalInfo(priceResult)
+//        Double.NaN
+//      } else if (!ki) {
+//        1.0
+//      } else Double.NaN
+//    }
+//    else Double.NaN
   }
 
   def priceList(fixings:UnderlyingFixing, priceResult:PriceResult):Double = {
     if (physical) {
-      if (isFixed) {
-        val ki = isKnockIn(getFixings)
-        if (ki) assignPhysicalInfo(priceResult)
-        priceList(fixings, ki, priceResult)
+      getFixedKnockIn match {
+        case Some(ki) =>
+          if (ki) assignPhysicalInfo(priceResult)
+          priceList(fixings, ki, priceResult)
+
+        case None => Double.NaN
       }
-      else Double.NaN
+//      if (isFixed) {
+//        val ki = isKnockIn(getFixings)
+//        if (ki) assignPhysicalInfo(priceResult)
+//        priceList(fixings, ki, priceResult)
+//      }
+//      else Double.NaN
     }
     else priceList(fixings, isKnockIn(fixings), priceResult)
   }
@@ -156,21 +174,41 @@ case class PutDIAmericanPayoff(
       case Some(lastFixing) =>
         if (physical) {
           val fixingSize = fixings.length
-          if (isFixed) {
-            val ki = knockInDuringObservation(fixings.dropRight(1)) && knockInAtRedemption(getFixings)
-            if (ki) assignPhysicalInfo(priceResult)
-            priceList(lastFixing, ki, priceResult)
+
+          getFixedKnockIn match {
+            case Some(ki) =>
+              if (ki) assignPhysicalInfo(priceResult)
+              priceList(lastFixing, ki, priceResult)
+
+            case None if fixingSize >= 2 =>
+              val obsKi = isKnockIn(fixings.dropRight(1))
+              if (priceResult != null && obsKi) assignPhysicalInfo(fixings.last, priceResult)
+              priceList(lastFixing, obsKi, priceResult)
+
+            case _ => Double.NaN
+
           }
-          else if (fixingSize >= 2) {
-            val ki = isKnockIn(fixings.dropRight(1))
-            if (priceResult != null && ki) assignPhysicalInfo(fixings.last, priceResult)
-            priceList(lastFixing, ki, priceResult)
-          }
-          else Double.NaN
+
+//          if (isFixed) {
+//            val ki = knockInDuringObservation(fixings.dropRight(1)) && knockInAtRedemption(getFixings)
+//            if (ki) assignPhysicalInfo(priceResult)
+//            priceList(lastFixing, ki, priceResult)
+//          }
+//          else if (fixingSize >= 2) {
+//            val ki = isKnockIn(fixings.dropRight(1))
+//            if (priceResult != null && ki) assignPhysicalInfo(fixings.last, priceResult)
+//            priceList(lastFixing, ki, priceResult)
+//          }
+//          else Double.NaN
         }
         else priceList(lastFixing, isKnockIn(fixings), priceResult)
       case None => Double.NaN
     }
+  }
+
+  private def getFixedKnockIn:Option[Boolean] = {
+    if (isFixed) Some(isKnockIn(getFixings))
+    else None
   }
 
   def isKnockIn(fixingList:List[UnderlyingFixing]):Boolean = {
