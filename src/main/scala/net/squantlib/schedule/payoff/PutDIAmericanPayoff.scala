@@ -142,8 +142,9 @@ case class PutDIAmericanPayoff(
   def priceList(fixings:UnderlyingFixing, priceResult:PriceResult):Double = {
     if (physical) {
       if (isFixed) {
-        if (isKnockIn(getFixings)) assignPhysicalInfo(priceResult)
-        priceList(fixings, knockedIn, priceResult)
+        val ki = isKnockIn(getFixings)
+        if (ki) assignPhysicalInfo(priceResult)
+        priceList(fixings, ki, priceResult)
       }
       else Double.NaN
     }
