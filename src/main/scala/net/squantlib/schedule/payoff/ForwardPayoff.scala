@@ -133,7 +133,7 @@ object ForwardPayoff {
 
     val variables:List[String] = formula.parseJsonStringList("variable").map(_.orNull)
 
-    val strikes:UnderlyingFixing = UnderlyingFixing(fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables)}.getOrElse(Map.empty))
+    val strikes:UnderlyingFixing = UnderlyingFixing(fixedNode.collect{case n => Payoff.nodeToComputedMap(n, "strike", variables)}.getOrElse(Map.empty))(fixingInfo.getStrikeFixingInformation)
 
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
 //    val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"

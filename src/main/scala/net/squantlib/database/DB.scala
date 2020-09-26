@@ -50,11 +50,12 @@ object DB {
   def getPriceOn(id:String, vd:JavaDate):Option[(Date, Double)] = getPriceOn(id, Date(vd))
 	
   def getPriceOn(id:String, vd:Date):Option[(Date, Double)] = repository.flatMap{case repo => 
-	if (vd gt repo.latestParamDate) None 
-	else getHistorical(id).filterKeys(d => d le vd) match {
+    if (vd gt repo.latestParamDate) None
+    else getHistorical(id).filterKeys(d => d le vd) match {
       case mp if mp.isEmpty => None
       case mp => Some(mp.maxBy(_._1))
-  }}
+    }
+  }
   
   def getLatestPrice(id:String):Option[(Date, Double)] = getHistorical(id) match {
     case p if p.isEmpty => None
@@ -65,8 +66,8 @@ object DB {
 	
   def pastFixing(id:String, dates:List[Date], paramType:String = null):List[Option[Double]] = {
     if (dates.isEmpty) {return List.empty}
-    val allhistory = getHistorical(id, dates.min, dates.max, paramType)
-    dates.map(d => allhistory.get(d))
+    val allHistory = getHistorical(id, dates.min, dates.max, paramType)
+    dates.map(d => allHistory.get(d))
   }
 
   def pastFixings(ids:Set[String], dates:List[Date]):List[Map[String, Option[Double]]] = pastFixings(ids, dates, null)
@@ -82,20 +83,32 @@ object DB {
 
     if (dates.isEmpty) {return List.empty}
 
-    val allhistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min.sub(30), dates.max, paramType).toMap)) (collection.breakOut)
+    val allHistory:Map[String, Map[Date, Double]] = ids.map(p => (p, getHistorical(p, dates.min.sub(30), dates.max, paramType).toMap)) (collection.breakOut)
 
     if (fillBlank){
       dates.map(d => ids.map(p => (p, 
         if (d gt latestParamDate.getOrElse(Date.currentDate)) None
         else {
-          val minv = allhistory(p).filterKeys(v => v le d)
+          val minv = allHistory(p).filterKeys(v => v le d)
           if (minv.isEmpty) None else Some(minv.maxBy(_._1)._2)
         })).toMap)
     }
     else {
-      dates.map(d => ids.map(p => (p, allhistory(p).get(d))).toMap)
+      dates.map(d => ids.map(p => (p, allHistory(p).get(d))).toMap)
     }
   }
+
+//  def getFixing(
+//    ids: Set[String],
+//    date: Date,
+//    isInitialFixing:Boolean
+//  )(implicit fixingInfo: FixingInformation):Map[String, Double] = getFixings(ids, List(date), isInitialFixing).get(date).getOrElse(Map.empty)
+//
+//  def getFixings(
+//    ids: Set[String],
+//    date: List[Date],
+//    isInitialFixing:Boolean
+//  )(implicit fixingInfo: FixingInformation):List[Map[String, Double]] = getFixings(ids, date, fixingInfo, isInitialFixing)
 
   def getFixings(
     ids: Set[String],
@@ -110,12 +123,12 @@ object DB {
       !infos.fixingPages.isEmpty
     }.toMap
 
-    val allFixingPages:Set[String] =
-      ids ++
-      underlyingFixingInfos.map{case (ul, infos) =>
+    val allFixingPages:Set[String] = {
+      val customFixingPages = underlyingFixingInfos.map{case (ul, infos) =>
         infos.fixingPages.map(p => p.pageList(isInitialFixing)).flatten
       }.flatten
-
+      ids ++ customFixingPages
+    }
 
     val allPastFixings:List[Map[String, Option[Double]]] = pastFixings(allFixingPages, dates)
 
@@ -125,22 +138,7 @@ object DB {
       underlyingFixingInfos.map{case (ul, infos) => (ul, infos.getPriceFromFixings(fixingMap, isInitialFixing))}.collect{case (ul, Some(v)) => (ul, v)}
     })
 
-//    println(s"isInitialFixing ${isInitialFixing}")
-//    println(s"All Fixing Pages ${allFixingPages}")
-//    println(s"baseFixings ${baseFixings}")
-//    println(s"customFixings ${customFixings}")
-
     baseFixings.zip(customFixings).map{case (b, c) => b ++ c}
-
-//    allPastFixings.zip(customFixings).map{case (bMap, cMap) =>
-//      bMap.map{case (ul, v) =>
-//        cMap.get(ul) match {
-//          case Some(vv) => (ul -> vv)
-//          case None if !ul.contains(":") => (ul -> v)
-//          case _ => (ul -> null)
-//        }
-//      }.filter{case (ul, v) => v != null}
-//    }
   }
 
 
@@ -225,7 +223,10 @@ object DB {
   )(implicit fixingInfo:FixingInformation):Map[Date, UnderlyingFixing] = {
     val priceSeries:Map[String, TimeSeries] = underlyingIds.map(ul => (ul, priceFunction(ul, startDate, endDate, assetId))).toMap
     val dates:Set[Date] = priceSeries.values.map(_.keySet).flatten.toSet
-    dates.map(d => (d, UnderlyingFixing(priceSeries.map{case (ul, ps) => (ul, ps.get(d).getOrElse(Double.NaN))}))).toMap
+    dates.map(d => {
+      val priceForDate = priceSeries.map{case (ul, ps) => (ul, ps.get(d).getOrElse(Double.NaN))}
+      (d, UnderlyingFixing(priceForDate))
+    }).toMap
   }
 
 

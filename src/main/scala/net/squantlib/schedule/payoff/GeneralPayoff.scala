@@ -71,16 +71,22 @@ object GeneralPayoff {
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):Payoff = {
     val fixedString = fixingInfo.update(inputString)
 
-    val formula = if (inputString.startsWith("{") && inputString.parseJsonString("type") == Some("general")) {
-      var payoffString = fixedString.parseJsonString("payoff") match { case None => ""; case Some(n) => n}
-      fixedString.jsonNode match {
-        case Some(node) => 
-          val fieldnames = node.fieldNames.asScala.filter(n => !List("type", "description", "payoff", "variable").contains(n))
-          fieldnames.foreach(n => payoffString = payoffString.replace(n, node.get(n).parseDouble.getOrElse(Double.NaN).toString))
-        case None => {}
-      }
-      payoffString
-    } else fixedString
+    val formula = {
+      if (inputString.startsWith("{") && inputString.parseJsonString("type") == Some("general")) {
+        var payoffString = fixedString.parseJsonString("payoff") match {
+          case None => ""
+          case Some(n) => n
+        }
+
+        fixedString.jsonNode match {
+          case Some(node) =>
+            val fieldnames = node.fieldNames.asScala.filter(n => !List("type", "description", "payoff", "variable").contains(n))
+            fieldnames.foreach(n => payoffString = payoffString.replace(n, node.get(n).parseDouble.getOrElse(Double.NaN).toString))
+          case None => {}
+        }
+        payoffString
+      } else fixedString
+    }
     
     val description =  if (fixedString.startsWith("{")) fixedString.parseJsonString("description").orNull else null
     

@@ -253,27 +253,27 @@ object Callabilities {
     underlyings:List[String], 
     legs:Int
   )(implicit fixingInfo:FixingInformation):Callabilities = {
-    
+
     val bermudans = bermudan(formula, legs)
 
     val trigFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "trigger")
 
-    val callOptions:List[CallOption] = callOptionList(formula, legs)
+    val callOptions:List[CallOption] = callOptionList(formula, legs)(fixingInfo.getStrikeFixingInformation)
 
     val invertedTriggerList:List[Boolean] = callOptions.map(c => c.invertedTrigger)
 
-    val trigMap:List[UnderlyingFixing] = triggerToAssignedTrigger(trigFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
+    val trigMap:List[UnderlyingFixing] = triggerToAssignedTrigger(trigFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
 
     val targets:List[Option[BigDecimal]] = targetList(formula, legs).map(vs => vs.flatMap{case v => v.getRoundedDecimal})
 
     val baseFormulas:List[Map[String, Any]] = mapList(formula, legs)
 
     val resetNewTriggerFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "reset_new_trigger")
-    val resetNewTriggerMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetNewTriggerFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
+    val resetNewTriggerMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetNewTriggerFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
 
     val resetKnockInConditions:List[KnockInCondition] = {
       val resetStrikeFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "reset_strike")
-      val resetStrikeMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetStrikeFormulas, invertedTriggerList).map(vs => UnderlyingFixing(vs))
+      val resetStrikeMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetStrikeFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
 
       formula.jsonNode match {
         case Some(bs) if bs.isArray =>
