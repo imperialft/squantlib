@@ -80,6 +80,8 @@ object CalculationPeriod {
     inArrears:Boolean,
     daycounter:DayCounter,
     fixingCalendar:Calendar,
+    fixingAdjustmentCalendar:Option[Calendar],
+    fixingAdjustmentConvention:BusinessDayConvention,
     paymentCalendar:Calendar,
     paymentConvention:BusinessDayConvention,
     isRedemption: Boolean,
@@ -112,16 +114,29 @@ object CalculationPeriod {
       case None => calculationDate
   	}
 
-    val couponEventDate = baseDate.advance(fixingCalendar, -couponNotice, TimeUnit.Days)
+    val couponEventDate = {
+      val d = baseDate.advance(fixingCalendar, -couponNotice, TimeUnit.Days)
+      fixingAdjustmentCalendar match {
+        case Some(cals) => d.adjust(cals, fixingAdjustmentConvention)
+        case _ => d
+      }
+    }
 
-    val callEventDate = callNotice match {
-      case None => couponEventDate
-      case Some(d) =>
-        val callBaseDate = {
-          if (fixingOnCalculationEndDate) endDate
-          else paymentDate
-        }
-        callBaseDate.advance(fixingCalendar, -d, TimeUnit.Days)
+    val callEventDate = {
+      val d = callNotice match {
+        case None => couponEventDate
+        case Some(d) =>
+          val callBaseDate = {
+            if (fixingOnCalculationEndDate) endDate
+            else paymentDate
+          }
+          callBaseDate.advance(fixingCalendar, -d, TimeUnit.Days)
+      }
+  
+      fixingAdjustmentCalendar match {
+        case Some(cals) => d.adjust(cals, fixingAdjustmentConvention)
+        case _ => d
+      }
     }
 
     new CalculationPeriod(
@@ -151,6 +166,8 @@ object CalculationPeriod {
       inArrears = false,
       daycounter = new Absolute,
       fixingCalendar = paymentCalendar,
+      fixingAdjustmentCalendar = None,
+      fixingAdjustmentConvention = BusinessDayConvention.Following,
       paymentCalendar = paymentCalendar,
       paymentConvention = paymentConvention,
       isRedemption = isRedemption,

@@ -352,6 +352,8 @@ class Bond(
         terminationDate = maturityDate,
         tenor = period,
         fixingCalendar = fixingCalendar,
+        fixingAdjustmentCalendar = getFixingAdjustmentCalendar,
+        fixingAdjustmentConvention = getFixingAdjustmentConvention,
         paymentCalendar = paymentCalendar,
         calendarConvention = calendarAdjust,
         paymentConvention = paymentAdjust,
@@ -427,7 +429,29 @@ class Bond(
 
     case _ => UnderlyingFixing.empty
   }
-
+  
+  @Transient
+  lazy val fixingAdjustmentCountryIds:Set[String] = {
+    settingsJson.get("fixing_readjust_calendar") match {
+      case null => Set.empty
+      case ns => ns.parseStringList.flatMap{case s => s}.toSet //jsonArray.map(j => j.asText).toSet
+    }
+  }
+  
+  def getFixingAdjustmentCalendar:Option[DbCalendar] = {
+    if (fixingAdjustmentCountryIds.isEmpty) None
+    else {
+      Calendars(fixingAdjustmentCountryIds)
+    }
+  }
+  
+  def getFixingAdjustmentConvention:BusinessDayConvention = {
+    settingMap.get("fixing_readjust_convention") match {
+      case Some(c) => DayAdjustments.getOrElse(c, BusinessDayConvention.Following)
+      case _ => BusinessDayConvention.Following
+    }
+  }
+  
   def getFixingPrices(dates:List[Date]):List[UnderlyingFixing] = getFixingPrices(underlyingList.toSet, dates)
 
   def getFixingPrices(ids:Set[String], dates:List[Date]):List[UnderlyingFixing] = {
@@ -443,7 +467,7 @@ class Bond(
   def modelOutputObject:ObjectNode = try {
     if (model_output != null && !model_output.isEmpty) model_output.objectNode.getOrElse(JsonUtils.newObjectNode)
     else JsonUtils.newObjectNode
-  } catch {case _ => JsonUtils.newObjectNode}
+  } catch {case _:Throwable => JsonUtils.newObjectNode}
 
 
   def modelOutputMap:Map[String, List[Any]] = modelOutputJson.collect{case j => j.parseAllFieldMap}.getOrElse(Map.empty)
