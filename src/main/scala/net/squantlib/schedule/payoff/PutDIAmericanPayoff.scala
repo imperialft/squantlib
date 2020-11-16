@@ -122,9 +122,6 @@ case class PutDIAmericanPayoff(
 
   def getPerformance(p:Double, stk:Double):Double = {
     withMinMax(1.0 - leverage * (stk - p) / stk)
-
-//    if (reverse) withMinMax(2.0 - p / stk)
-//    else withMinMax(p / stk)
   }
 
   def priceSingle(priceResult:PriceResult):Double = {
@@ -138,16 +135,6 @@ case class PutDIAmericanPayoff(
       case _ => Double.NaN
 
     }
-//    if (isFixed) {
-//      val ki = isKnockIn(getFixings)
-//      if (physical && ki) {
-//        assignPhysicalInfo(priceResult)
-//        Double.NaN
-//      } else if (!ki) {
-//        1.0
-//      } else Double.NaN
-//    }
-//    else Double.NaN
   }
 
   def priceList(fixings:UnderlyingFixing, priceResult:PriceResult):Double = {
@@ -159,12 +146,6 @@ case class PutDIAmericanPayoff(
 
         case None => Double.NaN
       }
-//      if (isFixed) {
-//        val ki = isKnockIn(getFixings)
-//        if (ki) assignPhysicalInfo(priceResult)
-//        priceList(fixings, ki, priceResult)
-//      }
-//      else Double.NaN
     }
     else priceList(fixings, isKnockIn(fixings), priceResult)
   }
@@ -186,20 +167,7 @@ case class PutDIAmericanPayoff(
               priceList(lastFixing, obsKi, priceResult)
 
             case _ => Double.NaN
-
           }
-
-//          if (isFixed) {
-//            val ki = knockInDuringObservation(fixings.dropRight(1)) && knockInAtRedemption(getFixings)
-//            if (ki) assignPhysicalInfo(priceResult)
-//            priceList(lastFixing, ki, priceResult)
-//          }
-//          else if (fixingSize >= 2) {
-//            val ki = isKnockIn(fixings.dropRight(1))
-//            if (priceResult != null && ki) assignPhysicalInfo(fixings.last, priceResult)
-//            priceList(lastFixing, ki, priceResult)
-//          }
-//          else Double.NaN
         }
         else priceList(lastFixing, isKnockIn(fixings), priceResult)
       case None => Double.NaN
@@ -220,10 +188,6 @@ case class PutDIAmericanPayoff(
 
   def isKnockIn(fixings:UnderlyingFixing):Boolean = {
     isKnockIn(List(fixings))
-//    knockedIn || triggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), triggers.getDecimalValue.get(ul)) match {
-//      case (Some(v), Some(trig)) => isKnockedInPrice(v, trig)
-//      case _ => false
-//    })
   }
 
   def knockInDuringObservation(fixingList:List[UnderlyingFixing]):Boolean = {
@@ -270,10 +234,6 @@ case class PutDIAmericanPayoff(
     }
   }
 
-//  }
-
-//  def priceList[A:FixingInterpreter](fixings:List[A], priceResult:PriceResult):Double = implicitly[FixingInterpreter[A]] price(fixings, priceResult)
-
   override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = priceList(fixings, priceResult)
 
   override def priceImpl(priceResult:PriceResult) = priceSingle(priceResult) //implicitly[FixingInterpreter[Map[String, Double]]] priceSingle(priceResult)
@@ -315,24 +275,6 @@ case class PutDIAmericanPayoff(
 
   def checkKnockIn:Unit = {
     knockedIn = checkKnockInFromDb
-//      {
-//      if (refstart == null || refend == null) false
-//      else {
-//        val historicalPrices:Map[Date, UnderlyingFixing] = historicalPriceForKnockin
-//
-//        (historicalPrices, historicalPrices.get(refend)) match {
-//          case (hs, _) if hs.isEmpty => false
-//
-//          case (hs, Some(hsLast)) =>
-//            hs.values.exists(hp => isKnockedInPrice(hp, triggers)) &&
-//            (
-//              forward || isKnockedInPrice(hsLast, strikeOrFinalTriggers)
-//            )
-//
-//          case (hs, _) => hs.exists { case (_, x) => isKnockedInPrice(x, triggers)}
-//        }
-//      }
-//    }
   }
 
   def historicalPriceForKnockin:Map[Date, UnderlyingFixing] = {

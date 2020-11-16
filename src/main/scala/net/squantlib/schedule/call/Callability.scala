@@ -202,8 +202,7 @@ case class Callability(
     )
   }
 
-
-  override def toString:String =
+  override def toString:String = {
     List(
 	    if (isBermuda) "call " else "",
 	    if (isTrigger) triggers else "",
@@ -213,9 +212,8 @@ case class Callability(
 	    if (forward.isEmpty) "" else "forward " + forward,
 	    if (isEmpty) "no call" else "",
       if (triggerCondition.removeSatisfiedTriggers) "memory" else ""
-	    ).mkString(" ") 
-
-
+	    ).mkString(" ")
+  }
 }
 
 object Callability {
@@ -250,7 +248,10 @@ object Callability {
         triggerUp = callOption.triggerUp,
         removeSatisfiedTriggers = callOption.removeSatisfiedTriggers,
         resetCondition = resetCondition,
-        resetStrikes = resetStrikes
+        resetStrikes = resetStrikes,
+        dailyFixing = callOption.dailyFixing,
+        dailyCloseOnly = callOption.dailyCloseOnly,
+        redemptionAfter = callOption.redemptionAfter
       ),
       targetRedemptionCondition = TargetRedemptionCondition(targetRedemption),
       forward = callOption.forward,
@@ -273,6 +274,9 @@ object Callability {
     removeSatisfiedTriggers: Boolean,
     resetCondition: KnockInCondition,
     resetStrikes: UnderlyingFixing,
+    dailyFixing:Boolean,
+    dailyCloseOnly: Boolean,
+    redemptionAfter: Option[Int],
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:UnderlyingFixing
@@ -284,7 +288,10 @@ object Callability {
         triggerUp = triggerUp,
         removeSatisfiedTriggers = removeSatisfiedTriggers,
         resetCondition = resetCondition,
-        resetStrikes = resetStrikes
+        resetStrikes = resetStrikes,
+        dailyFixing = dailyFixing,
+        dailyCloseOnly = dailyCloseOnly,
+        redemptionAfter = redemptionAfter,
       ),
       targetRedemptionCondition = TargetRedemptionCondition(targetRedemption.flatMap{case v => v.getRoundedDecimal}),
       forward = forward,

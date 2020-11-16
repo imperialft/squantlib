@@ -9,7 +9,10 @@ case class TriggerCondition(
   removeSatisfiedTriggers: Boolean,
   resetCondition: KnockInCondition,
   resetStrikes: UnderlyingFixing,
-  var isReset:Boolean
+  var isReset:Boolean,
+  dailyFixing: Boolean,
+  dailyCloseOnly: Boolean,
+  redemptionAfter: Option[Int]
 ){
 
   def getStrikes:UnderlyingFixing = if (isReset) resetStrikes else strikes
@@ -30,7 +33,10 @@ case class TriggerCondition(
     removeSatisfiedTriggers = removeSatisfiedTriggers,
     resetCondition = resetCondition,
     resetStrikes = resetStrikes,
-    isReset = isReset
+    isReset = isReset,
+    dailyFixing = dailyFixing,
+    dailyCloseOnly = dailyCloseOnly,
+    redemptionAfter = redemptionAfter
   )
 
 }
@@ -43,7 +49,10 @@ object TriggerCondition {
     removeSatisfiedTriggers = false,
     resetCondition = KnockInCondition.empty,
     resetStrikes = UnderlyingFixing.empty,
-    isReset = false
+    isReset = false,
+    dailyFixing = false,
+    dailyCloseOnly = true,
+    redemptionAfter = None
   )
 
   def initialize(
@@ -51,7 +60,10 @@ object TriggerCondition {
     triggerUp: Boolean,
     removeSatisfiedTriggers: Boolean,
     resetCondition: KnockInCondition,
-    resetStrikes: UnderlyingFixing
+    resetStrikes: UnderlyingFixing,
+    dailyFixing: Boolean,
+    dailyCloseOnly: Boolean,
+    redemptionAfter: Option[Int]
   )(implicit fixingInformation:FixingInformation):TriggerCondition = {
     val isReset:Boolean = {
       if (resetCondition.isEmpty) false
@@ -64,7 +76,10 @@ object TriggerCondition {
       removeSatisfiedTriggers = removeSatisfiedTriggers,
       resetCondition = resetCondition,
       resetStrikes = resetStrikes,
-      isReset = isReset
+      isReset = isReset,
+      dailyFixing = dailyFixing,
+      dailyCloseOnly = dailyCloseOnly,
+      redemptionAfter = redemptionAfter
     )
   }
 

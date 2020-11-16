@@ -7,6 +7,9 @@ import net.squantlib.util.FixingInformation
 
 case class CallOption(
   triggerUp: Boolean,
+  dailyFixing:Boolean,
+  dailyCloseOnly: Boolean,
+  redemptionAfter: Option[Int],
   forward: UnderlyingFixing,
   forwardInputString: Map[String, String],
   bonus: Double,
@@ -23,6 +26,9 @@ object CallOption {
 
   def empty = CallOption(
     triggerUp = true,
+    dailyFixing = false,
+    dailyCloseOnly = true,
+    redemptionAfter = None,
     forward = UnderlyingFixing.empty,
     forwardInputString = Map.empty,
     bonus = 0.0,

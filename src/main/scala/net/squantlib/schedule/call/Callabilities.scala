@@ -137,6 +137,13 @@ object Callabilities {
         val invertedTrigger:Boolean = (invertedStrike || b.parseInt("inverted_trigger").getOrElse(0) == 1)
         val invertedForward:Boolean = (invertedStrike || b.parseInt("inverted_forward").getOrElse(0) == 1)
 
+        val dailyFixing = b.parseString("ref_period").getOrElse("fixing") == "daily"
+        val dailyCloseOnly = b.parseString("ref_price").getOrElse("close") != "high"
+        val redemptionAfter = b.parseInt("redemption_after") match {
+          case Some(0) => None
+          case v => v
+        }
+
         val triggerUp = b.parseString("trigger_type").getOrElse("up") == "up"
         val forwardMap = b.getOption("forward").collect{case k => k.parseStringFields}.getOrElse(Map.empty)
         val forward = assignFixings(forwardMap)
@@ -150,6 +157,9 @@ object Callabilities {
 
         CallOption(
           triggerUp = if (invertedTrigger) !triggerUp else triggerUp,
+          dailyFixing = dailyFixing,
+          dailyCloseOnly = dailyCloseOnly,
+          redemptionAfter = redemptionAfter,
           forward = UnderlyingFixing(forwardStrikes),
           forwardInputString = forwardMap,
           bonus = bonus,
