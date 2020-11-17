@@ -224,6 +224,14 @@ case class FixingInformation(
     }
   }
 
+  def computeStrike(ul:String, f:String):Option[BigDecimal]= {
+    updateCompute(f).flatMap{case v => v.getDecimal(ul)(this)}
+  }
+
+  def computeStrikes(underlyingFormulas:Map[String, String]):UnderlyingFixing = {
+    UnderlyingFixing(underlyingFormulas.map{case (ul, v) => (ul, computeStrike(ul, v))})
+  }
+
 
 }
   

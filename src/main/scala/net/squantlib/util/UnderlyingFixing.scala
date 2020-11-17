@@ -21,6 +21,8 @@ case class UnderlyingFixing(
 
   def keySet = fixings.keySet
 
+  def keys = fixings.keys
+
   val isAllValid:Boolean = fixings.values.forall(_.isDefined)
 
   lazy val isPositive:Boolean = !fixings.isEmpty && fixings.values.forall(v => v.collect{case vv => vv >= 0.0000000000001}.getOrElse(false))

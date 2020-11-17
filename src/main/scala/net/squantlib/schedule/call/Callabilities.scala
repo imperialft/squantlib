@@ -132,49 +132,41 @@ object Callabilities {
     nbLegs:Int
   )(implicit fixingInfo:FixingInformation):List[CallOption] = formula.jsonNode match {
     case Some(bb) if bb isArray => 
-      val optlist = bb.asScala.map{case b =>
-        val invertedStrike:Boolean = b.parseInt("inverted_strike").getOrElse(0) == 1
-        val invertedTrigger:Boolean = (invertedStrike || b.parseInt("inverted_trigger").getOrElse(0) == 1)
-        val invertedForward:Boolean = (invertedStrike || b.parseInt("inverted_forward").getOrElse(0) == 1)
-
-        val dailyFixing = b.parseString("ref_period").getOrElse("fixing") == "daily"
-        val dailyCloseOnly = b.parseString("ref_price").getOrElse("close") != "high"
-        val redemptionAfter = b.parseInt("redemption_after") match {
-          case Some(0) => None
-          case v => v
-        }
-
-        val triggerUp = b.parseString("trigger_type").getOrElse("up") == "up"
-        val forwardMap = b.getOption("forward").collect{case k => k.parseStringFields}.getOrElse(Map.empty)
-        val forward = assignFixings(forwardMap)
-        val bonus = b.parseDouble("bonus").getOrElse(0.0)
-        val removeSatisfiedTriggers = b.parseInt("memory").getOrElse(0) == 1
-        val issuerExercised:Option[Boolean] = b.parseInt("exercised").collect{case v => v == 1}
-        val forwardStrikes = {
-          if (invertedForward && forward.keys.forall(_.size == 6)) forward.map{case (k, v) => ((k takeRight 3) + (k take 3), if(v != 0.0) 1.0 / v else 0.0)}.toMap
-          else forward
-        }
-
-        CallOption(
-          triggerUp = if (invertedTrigger) !triggerUp else triggerUp,
-          dailyFixing = dailyFixing,
-          dailyCloseOnly = dailyCloseOnly,
-          redemptionAfter = redemptionAfter,
-          forward = UnderlyingFixing(forwardStrikes),
-          forwardInputString = forwardMap,
-          bonus = bonus,
-          invertedTrigger = invertedTrigger,
-          invertedForward = invertedForward,
-          removeSatisfiedTriggers = removeSatisfiedTriggers,
-          exercised = issuerExercised
-        )
-
-      }.toList
-        
-      List.fill(nbLegs - 2 - bb.size)(CallOption.empty) ++ optlist ++ List(CallOption.empty, CallOption.empty)
+      val itemList = bb.asScala.map{case b => CallOption.parseJson(b)}.toList
+      List.fill(nbLegs - 2 - bb.size)(CallOption.empty) ++ itemList  ++ List(CallOption.empty, CallOption.empty)
     
     case _ => List.fill(nbLegs)(CallOption.empty)
   }
+//
+//  def barrierConditionList(
+//    formula: String,
+//    nbLegs: Int
+//  )(implicit fixingInfo:FixingInformation):List[KnockInCondition] = formula.jsonNode match {
+//    case Some(bb) if bb isArray =>
+//      val itemList = bb.asScala.map{case b => CallOption.parseJson(b)}.toList
+//      List.fill(nbLegs - 2 - bb.size)(CallOption.empty) ++ itemList  ++ List(CallOption.empty, CallOption.empty)
+//
+//    case _ => List.fill(nbLegs)(CallOption.empty)
+//  }
+
+  //    val barrierCondition = (jsonNode.parseDate("refstart"), jsonNode.parseDate("refend")) match {
+  //      case (Some(refstart), Some(refend)) =>
+  //        Some(KnockInCondition(
+  //          trigger: UnderlyingFixing,
+  //          refStart: refstart,
+  //          refEnd: refend,
+  //          finalTrigger: UnderlyingFixing.empty,
+  //          closeOnly: (jsonNode.parseString("ref_price").getOrElse("closing") != "continuous"),
+  //    triggerDown: (if (invertedTrigger) triggerUp else !triggerUp),
+  //    triggerOnEqual: Boolean
+  //    ))
+  //    }
+  //
+  //    if (barrierStartDate.)
+  //    val dailyCloseOnly =
+
+
+
 
   def underlyingStrikeList(
     formula:String,
@@ -269,6 +261,8 @@ object Callabilities {
     val trigFormulas:List[Map[String, String]] = underlyingStrikeList(formula, legs, underlyings, "trigger")
 
     val callOptions:List[CallOption] = callOptionList(formula, legs)(fixingInfo.getStrikeFixingInformation)
+
+//    val barrierConditions = List[Option[KnockInCondition]] = barrierConditionList(formula, legs)
 
     val invertedTriggerList:List[Boolean] = callOptions.map(c => c.invertedTrigger)
 
