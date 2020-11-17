@@ -2,6 +2,7 @@ package net.squantlib.util
 
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.database.DB
+import net.squantlib.util.JsonUtils
 
 case class UnderlyingFixing(
   fixings:Map[String, Option[BigDecimal]]
@@ -37,6 +38,8 @@ case class UnderlyingFixing(
       (invertedUl, v.collect{case vv => (1.0 / vv).setScale(DB.getUnderlyingDefaultPrecision(invertedUl), BigDecimal.RoundingMode.HALF_UP)})
     case (ul, v) => (ul, v)
   }
+
+  def toJsonString:String = JsonUtils.jsonString(this)
 
   override def toString = {
     if (fixings.isEmpty) "(empty)"

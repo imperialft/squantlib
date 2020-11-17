@@ -10,8 +10,7 @@ case class TriggerCondition(
   resetCondition: KnockInCondition,
   resetStrikes: UnderlyingFixing,
   var isReset:Boolean,
-  dailyFixing: Boolean,
-  dailyCloseOnly: Boolean,
+  barrierCondition: KnockInCondition,
   redemptionAfter: Option[Int]
 ){
 
@@ -34,8 +33,7 @@ case class TriggerCondition(
     resetCondition = resetCondition,
     resetStrikes = resetStrikes,
     isReset = isReset,
-    dailyFixing = dailyFixing,
-    dailyCloseOnly = dailyCloseOnly,
+    barrierCondition = barrierCondition,
     redemptionAfter = redemptionAfter
   )
 
@@ -50,8 +48,7 @@ object TriggerCondition {
     resetCondition = KnockInCondition.empty,
     resetStrikes = UnderlyingFixing.empty,
     isReset = false,
-    dailyFixing = false,
-    dailyCloseOnly = true,
+    barrierCondition = KnockInCondition.empty,
     redemptionAfter = None
   )
 
@@ -61,8 +58,7 @@ object TriggerCondition {
     removeSatisfiedTriggers: Boolean,
     resetCondition: KnockInCondition,
     resetStrikes: UnderlyingFixing,
-    dailyFixing: Boolean,
-    dailyCloseOnly: Boolean,
+    barrierCondition: KnockInCondition,
     redemptionAfter: Option[Int]
   )(implicit fixingInformation:FixingInformation):TriggerCondition = {
     val isReset:Boolean = {
@@ -77,8 +73,7 @@ object TriggerCondition {
       resetCondition = resetCondition,
       resetStrikes = resetStrikes,
       isReset = isReset,
-      dailyFixing = dailyFixing,
-      dailyCloseOnly = dailyCloseOnly,
+      barrierCondition = barrierCondition,
       redemptionAfter = redemptionAfter
     )
   }

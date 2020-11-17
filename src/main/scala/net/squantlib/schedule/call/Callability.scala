@@ -23,12 +23,15 @@ case class Callability(
 
   val forwardVariables:Set[String] = forward.keySet
 
-//  var issuerCalled:Option[Boolean] = exercised //None
-
   def isIssuerCalled:Boolean = (bermudanCondition.isActive && exercised == Some(true))
 
   def setIssuerCalled(setTrue:Boolean = true) = {
     exercised = Some(setTrue)
+  }
+
+  lazy val isBarrierTriggered:Boolean = {
+    if (triggerCondition.barrierCondition.isEmpty) false
+    else triggerCondition.barrierCondition.isKnockedIn
   }
 
   def optionalTriggers:Option[UnderlyingFixing] = {
@@ -54,7 +57,6 @@ case class Callability(
     }
     case _ => Map.empty
   }
-  
 
   def underlyings:Set[String] = variables
   
@@ -68,9 +70,9 @@ case class Callability(
   
   def isTargetRedemption:Boolean = targetRedemptionCondition.isActive
   
-  override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty || isIssuerCalled
+  override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty || isIssuerCalled || isBarrierTriggered
   
-  def isFixedTrigger:Boolean = isTrigger && (variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing))
+  def isFixedTrigger:Boolean = isBarrierTriggered || (isTrigger && (variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing)))
   
   def isFixedTargetRedemption:Boolean = isTargetRedemption && accumulatedPayments.isDefined && !isFutureFixing
   
@@ -79,10 +81,13 @@ case class Callability(
   def isEmpty:Boolean = !bermudanCondition.isActive && !triggerCondition.isActive && !targetRedemptionCondition.isActive
   
   def fixedTriggerByTrigger:Option[Boolean] = {
-    if (isFixed && isTrigger)
+    if (isBarrierTriggered) {
+      Some(true)
+    } else if (isFixed && isTrigger) {
       Some(triggerCondition.isTriggered(getFixings))
-    else
+    } else {
       None
+    }
   }
 
   def fixedTriggerByTargetRedemption:Option[Boolean] = {
@@ -105,10 +110,11 @@ case class Callability(
 
   def isTriggered(f:Map[String, Double]):Boolean = isTriggered(UnderlyingFixing(f))
 
-  def isTriggered(f:UnderlyingFixing):Boolean = triggerCondition.isTriggered(if (isFixed) getFixings else f)
+  def isTriggered(f:UnderlyingFixing):Boolean = isBarrierTriggered || triggerCondition.isTriggered(if (isFixed) getFixings else f)
 
   def isTriggered:Boolean = {
-    if (isFixed) isTriggered(getFixings)
+    if (isBarrierTriggered) true
+    else if (isFixed) isTriggered(getFixings)
     else false
   }
 
@@ -233,6 +239,7 @@ object Callability {
   def apply(
     bermudan:Boolean,
     triggers: UnderlyingFixing,
+    barrierCondition: KnockInCondition,
     targetRedemption:Option[BigDecimal],
     callOption: CallOption,
     resetCondition: KnockInCondition,
@@ -249,9 +256,8 @@ object Callability {
         removeSatisfiedTriggers = callOption.removeSatisfiedTriggers,
         resetCondition = resetCondition,
         resetStrikes = resetStrikes,
-        dailyFixing = callOption.dailyFixing,
-        dailyCloseOnly = callOption.dailyCloseOnly,
-        redemptionAfter = callOption.redemptionAfter
+        barrierCondition = barrierCondition,
+        redemptionAfter = callOption.barrierRedemptionAfter
       ),
       targetRedemptionCondition = TargetRedemptionCondition(targetRedemption),
       forward = callOption.forward,
@@ -274,8 +280,7 @@ object Callability {
     removeSatisfiedTriggers: Boolean,
     resetCondition: KnockInCondition,
     resetStrikes: UnderlyingFixing,
-    dailyFixing:Boolean,
-    dailyCloseOnly: Boolean,
+    barrierCondition: KnockInCondition,
     redemptionAfter: Option[Int],
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
@@ -289,9 +294,8 @@ object Callability {
         removeSatisfiedTriggers = removeSatisfiedTriggers,
         resetCondition = resetCondition,
         resetStrikes = resetStrikes,
-        dailyFixing = dailyFixing,
-        dailyCloseOnly = dailyCloseOnly,
-        redemptionAfter = redemptionAfter,
+        barrierCondition = barrierCondition,
+        redemptionAfter = redemptionAfter
       ),
       targetRedemptionCondition = TargetRedemptionCondition(targetRedemption.flatMap{case v => v.getRoundedDecimal}),
       forward = forward,

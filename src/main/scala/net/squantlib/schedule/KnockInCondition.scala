@@ -14,7 +14,16 @@ case class KnockInCondition(
 ){
   val isEmpty = trigger.isEmpty
 
-  def isKnockedIn()(implicit fixingInformation:FixingInformation):Boolean = {
+  private var knockInDateFixing:Option[(Date, UnderlyingFixing)] = null //getKnockInDateFixing
+
+  def getKnockInDate()(implicit fixingInformation:FixingInformation):Option[Date] = getKnockInDateFixing.collect{case (d, f) => d}
+
+  def getKnockInDateFixing()(implicit fixingInformation:FixingInformation):Option[(Date, UnderlyingFixing)] = {
+    if (knockInDateFixing == null) knockInDateFixing = computeKnockInDateFixing
+    knockInDateFixing
+  }
+
+  def computeKnockInDateFixing()(implicit fixingInformation:FixingInformation):Option[(Date, UnderlyingFixing)] = {
     val historicalPrices:Map[Date, UnderlyingFixing] = {
       val closeFixings = DB.getHistoricalUnderlyingFixings(trigger.keySet, refStart, refEnd)
 
@@ -23,14 +32,43 @@ case class KnockInCondition(
       else closeFixings ++ DB.getHistoricalHighUnderlyingFixings(trigger.keySet, refStart, refEnd)
     }
 
-    if (historicalPrices.isEmpty) false
-    else historicalPrices.get(refEnd) match {
-      case Some(hsLast) =>
-        historicalPrices.values.exists(hp => isKnockedInPrice(hp, trigger)) && (finalTrigger.isEmpty || isKnockedInPrice(hsLast, finalTrigger))
-      case None =>
-        historicalPrices.values.exists(hp => isKnockedInPrice(hp, trigger))
+    if (historicalPrices.isEmpty) None
+    else {
+      val firstTriggeredDate:Option[(Date, UnderlyingFixing)] = historicalPrices.filter{case (d, hp) => isKnockedInPrice(hp, trigger)} match {
+        case dhp if dhp.isEmpty => None
+        case dhp => Some(dhp.minBy(_._1))
+      }
+
+      (firstTriggeredDate, historicalPrices.get(refEnd)) match {
+        case (Some(r), Some(hsLast)) =>
+          if (finalTrigger.isEmpty || isKnockedInPrice(hsLast, finalTrigger)) Some(r)
+          else None
+        case (Some(r), None) => Some(r)
+        case _ => None
+      }
     }
   }
+
+    def isKnockedIn()(implicit fixingInformation:FixingInformation):Boolean = getKnockInDateFixing.isDefined
+
+
+//  def isKnockedIn()(implicit fixingInformation:FixingInformation):Boolean = {
+//    val historicalPrices:Map[Date, UnderlyingFixing] = {
+//      val closeFixings = DB.getHistoricalUnderlyingFixings(trigger.keySet, refStart, refEnd)
+//
+//      if (closeOnly) closeFixings
+//      else if (triggerDown) closeFixings ++ DB.getHistoricalLowUnderlyingFixings(trigger.keySet, refStart, refEnd)
+//      else closeFixings ++ DB.getHistoricalHighUnderlyingFixings(trigger.keySet, refStart, refEnd)
+//    }
+//
+//    if (historicalPrices.isEmpty) false
+//    else historicalPrices.get(refEnd) match {
+//      case Some(hsLast) =>
+//        historicalPrices.values.exists(hp => isKnockedInPrice(hp, trigger)) && (finalTrigger.isEmpty || isKnockedInPrice(hsLast, finalTrigger))
+//      case None =>
+//        historicalPrices.values.exists(hp => isKnockedInPrice(hp, trigger))
+//    }
+//  }
 
   private def isKnockedInPrice(p:BigDecimal, trig:BigDecimal):Boolean = {
     (triggerOnEqual, triggerDown) match {
