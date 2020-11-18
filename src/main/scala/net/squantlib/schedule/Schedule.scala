@@ -51,7 +51,7 @@ class Schedule(
   val effectiveDate:Option[Date] = if (isEmpty) None else Some(dates.minBy(_.startDate).startDate)
   
   val terminationDate:Option[Date] = if (isEmpty) None else Some(dates.maxBy(_.endDate).endDate)
-  
+
   var defaultDaycounter = new Actual365Fixed
   
   def startDate(i:Int):Date = dates(i).startDate

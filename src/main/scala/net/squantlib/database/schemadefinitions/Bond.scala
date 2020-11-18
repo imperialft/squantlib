@@ -499,7 +499,8 @@ class Bond(
       tbd = getDecimalSetting("tbd"),
       minRange = getDecimalSetting("tbd_min"),
       maxRange = getDecimalSetting("tbd_max"),
-      fixingPageInformation = fixingPageInformation
+      fixingPageInformation = fixingPageInformation,
+      paymentCalendar = paymentCalendar
     )
 
     info.setInitialFixingDecimal(getInitialFixingsDecimal)

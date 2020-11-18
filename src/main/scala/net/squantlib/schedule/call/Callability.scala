@@ -4,6 +4,7 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.{CalculationPeriod, FixingLeg, KnockInCondition}
 import net.squantlib.util.{Date, FixingInformation, JsonUtils, UnderlyingFixing}
 import net.squantlib.schedule.payoff._
+import org.jquantlib.time.Calendar
 
 case class Callability(
   bermudanCondition: BermudanCondition,
@@ -29,10 +30,44 @@ case class Callability(
     exercised = Some(setTrue)
   }
 
-  lazy val isBarrierTriggered:Boolean = {
-    if (triggerCondition.barrierCondition.isEmpty) false
-    else triggerCondition.barrierCondition.isKnockedIn
+  def isBarrierTriggered:Boolean = triggerCondition.barrierCondition.isKnockedIn
+
+  def barrierTriggeredFixing:Option[UnderlyingFixing] = triggerCondition.barrierCondition.getKnockInFixing
+
+  def barrierTriggeredDate:Option[Date] = triggerCondition.barrierCondition.getKnockInDate
+
+  def adjustedEventDate:Option[Date] = barrierTriggeredDate
+
+  def adjustedPaymentDate:Option[Date] = {
+    barrierTriggeredDate.flatMap {
+      case d => triggerCondition.redemptionAfter.collect{
+        case s => d.advance(fixingInfo.paymentCalendar, s)
+      }
+    }
   }
+
+  def setAdjustedSchedule(cp: CalculationPeriod):Boolean = {
+    adjustedPaymentDate match {
+      case Some(d) =>
+        cp.setAdjustedPaymentDate(d)
+        if (!triggerCondition.fullCouponOnBarrier) {
+          cp.setAdjustedEndDate(d)
+        }
+      case _ =>
+        cp.clearAdjustedPaymentDate
+        cp.clearAdjustedEndDate
+    }
+
+    adjustedEventDate match {
+      case Some(d) =>
+        cp.setAdjustedEventDate(d)
+        true
+      case _ =>
+        cp.clearAdjustedEventDate
+        false
+    }
+  }
+
 
   def optionalTriggers:Option[UnderlyingFixing] = {
     if (isFixed) {
@@ -208,6 +243,11 @@ case class Callability(
     )
   }
 
+  override def assignFixings(f:UnderlyingFixing):Unit = {
+    super.assignFixings(f)
+    isBarrierTriggered
+  }
+
   override def toString:String = {
     List(
 	    if (isBermuda) "call " else "",
@@ -257,7 +297,8 @@ object Callability {
         resetCondition = resetCondition,
         resetStrikes = resetStrikes,
         barrierCondition = barrierCondition,
-        redemptionAfter = callOption.barrierRedemptionAfter
+        redemptionAfter = callOption.barrierRedemptionAfter,
+        fullCouponOnBarrier = callOption.fullCouponOnBarrier
       ),
       targetRedemptionCondition = TargetRedemptionCondition(targetRedemption),
       forward = callOption.forward,
@@ -282,6 +323,7 @@ object Callability {
     resetStrikes: UnderlyingFixing,
     barrierCondition: KnockInCondition,
     redemptionAfter: Option[Int],
+    fullCouponOnBarrier: Boolean,
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
     simulatedFrontier:UnderlyingFixing
@@ -295,7 +337,8 @@ object Callability {
         resetCondition = resetCondition,
         resetStrikes = resetStrikes,
         barrierCondition = barrierCondition,
-        redemptionAfter = redemptionAfter
+        redemptionAfter = redemptionAfter,
+        fullCouponOnBarrier = fullCouponOnBarrier
       ),
       targetRedemptionCondition = TargetRedemptionCondition(targetRedemption.flatMap{case v => v.getRoundedDecimal}),
       forward = forward,

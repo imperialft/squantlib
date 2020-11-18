@@ -316,8 +316,8 @@ case class ScheduledPayoffs(
 
     val scheduleDescription = scheduledPayoffs.map{case (d, p, c) =>
       List(
-        d.eventDate.toString,
-        d.paymentDate.toString,
+        d.getEventDate.toString,
+        d.getPaymentDate.toString,
         p.toString,
         c.toString,
         if (underlyings.isEmpty || (p.variables.isEmpty && c.variables.isEmpty)) "fixed"
@@ -386,6 +386,7 @@ case class ScheduledPayoffs(
     payoffs.assignFixings(schedule.eventDates.map(fixingMap))
     calls.assignFixings(schedule.callEventDates.map(fixingMap))
     calls.assignAccumulatedPayments(schedule, payoffs)
+    calls.setAdjustedSchedule(schedule)
 
     if (payoffs.exists(p => p.physical)) {
       val settlementFixingMap:Map[Date, UnderlyingFixing] = ScheduledPayoffs.getFixings(
@@ -432,6 +433,7 @@ object ScheduledPayoffs {
     payoffs.assignFixings(schedule.eventDates.map(fixingMap))
     calls.assignFixings(schedule.callEventDates.map(fixingMap))
     calls.assignAccumulatedPayments(schedule, payoffs)
+    calls.setAdjustedSchedule(schedule)
 
     if (payoffs.exists(p => p.physical)) {
       val settlementFixingMap = getFixings(
@@ -464,6 +466,7 @@ object ScheduledPayoffs {
     payoffs.assignFixings(schedule.eventDates.map(fixingMap))
     calls.assignFixings(schedule.callEventDates.map(fixingMap))
     calls.assignAccumulatedPayments(schedule, payoffs)
+    calls.setAdjustedSchedule(schedule)
 
     if (payoffs.exists(p => p.physical)) {
       val settlementFixingMap = getFixings(
@@ -536,7 +539,8 @@ object ScheduledPayoffs {
     payoffs.assignFixings(schedule.eventDates.map(fixingMap))
     calls.assignFixings(schedule.callEventDates.map(fixingMap))
     calls.assignAccumulatedPayments(schedule, payoffs)
-    
+    calls.setAdjustedSchedule(schedule)
+
     if (payoffs.exists(p => p.physical)) {
       val (paymentDatesBefore, paymentDatesAfter) = schedule.paymentDates.toSet.span(_ le valuedate)
 

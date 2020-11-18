@@ -42,6 +42,8 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
   def isTriggeredByTarget:Boolean = calls.exists(c => c.fixedTriggerByTargetRedemption == Some(true))
 
 	def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
+
+  def barrierTriggeredDate:Option[Date] = calls.find(c => c.barrierTriggeredDate.isDefined).collect{case c => c.barrierTriggeredDate.get}
   
 	val isPriceable:Boolean = calls.forall(_.isPriceable)
 	
@@ -91,6 +93,21 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
       c.accumulatedPayments = Some(payments.filter{case (d, p) => d <= s.paymentDate}.map{case (d, p) => p}.sum)
     }
 	}
+
+  def setAdjustedSchedule(schedule:Schedule):Boolean = {
+    var barrierAssigned = false
+
+    (schedule, this).zipped.foreach { case (cp, c) =>
+      if (barrierAssigned) {
+        cp.clearAdjustedSchedule
+      }
+      else {
+        barrierAssigned = c.setAdjustedSchedule(cp)
+      }
+    }
+
+    barrierAssigned
+  }
 	
 }
 
@@ -137,36 +154,6 @@ object Callabilities {
     
     case _ => List.fill(nbLegs)(CallOption.empty)
   }
-//
-//  def barrierConditionList(
-//    formula: String,
-//    nbLegs: Int
-//  )(implicit fixingInfo:FixingInformation):List[KnockInCondition] = formula.jsonNode match {
-//    case Some(bb) if bb isArray =>
-//      val itemList = bb.asScala.map{case b => CallOption.parseJson(b)}.toList
-//      List.fill(nbLegs - 2 - bb.size)(CallOption.empty) ++ itemList  ++ List(CallOption.empty, CallOption.empty)
-//
-//    case _ => List.fill(nbLegs)(CallOption.empty)
-//  }
-
-  //    val barrierCondition = (jsonNode.parseDate("refstart"), jsonNode.parseDate("refend")) match {
-  //      case (Some(refstart), Some(refend)) =>
-  //        Some(KnockInCondition(
-  //          trigger: UnderlyingFixing,
-  //          refStart: refstart,
-  //          refEnd: refend,
-  //          finalTrigger: UnderlyingFixing.empty,
-  //          closeOnly: (jsonNode.parseString("ref_price").getOrElse("closing") != "continuous"),
-  //    triggerDown: (if (invertedTrigger) triggerUp else !triggerUp),
-  //    triggerOnEqual: Boolean
-  //    ))
-  //    }
-  //
-  //    if (barrierStartDate.)
-  //    val dailyCloseOnly =
-
-
-
 
   def underlyingStrikeList(
     formulaJson:Option[JsonNode],

@@ -17,8 +17,72 @@ case class CalculationPeriod(
   isRedemption: Boolean,
   var nominal:Double
 ) {
-  
-  def dayCount:Double = Date.daycount(startDate, endDate, daycounter)
+
+  private var adjustedEventDate:Option[Date] = None
+
+  def getEventDate:Date = getAdjustedEventDate.getOrElse(eventDate)
+
+  def getAdjustedEventDate:Option[Date] = adjustedEventDate
+
+  def setAdjustedEventDate(d:Date) = {
+    adjustedEventDate = Some(d)
+  }
+
+  def clearAdjustedEventDate = {
+    adjustedEventDate = None
+  }
+
+  private var adjustedStartDate:Option[Date] = None
+
+  def getStartDate:Date = getAdjustedStartDate.getOrElse(startDate)
+
+  def getAdjustedStartDate:Option[Date] = adjustedStartDate
+
+  def setAdjustedStartDate(d:Date) = {
+    adjustedStartDate = Some(d)
+  }
+
+  def clearAdjustedStartDate = {
+    adjustedStartDate = None
+  }
+
+  private var adjustedEndDate:Option[Date] = None
+
+  def getEndDate:Date = getAdjustedEndDate.getOrElse(endDate)
+
+  def getAdjustedEndDate:Option[Date] = adjustedEndDate
+
+  def setAdjustedEndDate(d:Date) = {
+    adjustedEndDate = Some(d)
+  }
+
+  def clearAdjustedEndDate = {
+    adjustedEndDate = None
+  }
+
+  private var adjustedPaymentDate:Option[Date] = None
+
+  def getPaymentDate:Date = getAdjustedPaymentDate.getOrElse(paymentDate)
+
+  def getAdjustedPaymentDate:Option[Date] = adjustedPaymentDate
+
+  def setAdjustedPaymentDate(d:Date) = {
+    adjustedPaymentDate = Some(d)
+  }
+
+  def clearAdjustedPaymentDate = {
+    adjustedPaymentDate = None
+  }
+
+  def clearAdjustedSchedule:Unit = {
+    clearAdjustedEventDate
+    clearAdjustedStartDate
+    clearAdjustedEndDate
+    clearAdjustedPaymentDate
+  }
+
+
+  def dayCount:Double = Date.daycount(getStartDate, getEndDate, daycounter)
 	
   def isCurrentPeriod(ref:Date):Boolean = (ref ge startDate) && (ref lt endDate)
   
@@ -50,18 +114,18 @@ case class CalculationPeriod(
       nominal = nominal
     )
   }
-  
+
   override def toString = {
-    eventDate.toString + " " + startDate.toString + " " + endDate.toString + " " + paymentDate.toString + " " + daycounter.toString
+    getEventDate.toString + " " + getStartDate.toString + " " + getEndDate.toString + " " + getPaymentDate.toString + " " + daycounter.toString
   }
 
   def getRedemptionLeg(nom:Double):CalculationPeriod = {
     CalculationPeriod(
-      eventDate = eventDate,
+      eventDate = getEventDate,
       callEventDate = callEventDate,
-      startDate = endDate,
-      endDate = endDate,
-      paymentDate = paymentDate,
+      startDate = getEndDate,
+      endDate = getEndDate,
+      paymentDate = getPaymentDate,
       daycounter = new Absolute,
       isRedemption = true,
       nominal = nom

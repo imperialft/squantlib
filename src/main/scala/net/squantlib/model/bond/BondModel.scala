@@ -72,8 +72,8 @@ trait BondModel {
   def redemption:Payoff = {
     val abslegs = scheduledPayoffs.filter{case (s, p, t) => s.isRedemption}
     val finalleg = 
-      if (abslegs.size > 0) abslegs.maxBy{case (s, p, t) => s.paymentDate}
-      else scheduledPayoffs.maxBy{case (s, p, t) => s.paymentDate}
+      if (abslegs.size > 0) abslegs.maxBy{case (s, p, t) => s.getPaymentDate}
+      else scheduledPayoffs.maxBy{case (s, p, t) => s.getPaymentDate}
     finalleg._2
   }
   
@@ -107,7 +107,7 @@ trait BondModel {
     earlyTerminationAmountFixed = v2
   }
   
-  lazy val earlyTerminationDate:Option[Date] = earlyTerminationPeriod.collect{case p => p.paymentDate}
+  lazy val earlyTerminationDate:Option[Date] = earlyTerminationPeriod.collect{case p => p.getPaymentDate}
   
   def isEarlyTerminatedOn(d:Date):Boolean = earlyTerminationDate.collect{case dd => d ge dd}.getOrElse(false)
     

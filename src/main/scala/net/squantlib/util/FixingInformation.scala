@@ -4,6 +4,7 @@ import scala.annotation.tailrec
 import DisplayUtils._
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
+import net.squantlib.util.DbCalendar
 
 case class FixingInformation(
   currencyId:String,
@@ -12,9 +13,10 @@ case class FixingInformation(
   var minRange:Option[BigDecimal],
   var maxRange:Option[BigDecimal],
   fixingPageInformation: List[Map[String, String]],
+  paymentCalendar: DbCalendar,
   isInitial:Boolean = false,
   isStrike:Boolean = false,
-  initialUnderlyingFixings:Option[UnderlyingFixing] = None
+  initialUnderlyingFixings:Option[UnderlyingFixing] = None,
 ) {
 
   lazy val initialFixingInformation:Option[FixingInformation] = {
@@ -39,6 +41,7 @@ case class FixingInformation(
           minRange,
           maxRange,
           newFixingPageInfo,
+          paymentCalendar,
           true,
           isStrike,
           Some(initialFixing)
@@ -69,6 +72,7 @@ case class FixingInformation(
           minRange,
           maxRange,
           newFixingPageInfo,
+          paymentCalendar,
           isInitial,
           true,
           Some(initialFixing)
@@ -240,7 +244,7 @@ object FixingInformation {
   def empty(
     currencyId:String,
     paymentCurrencyId:String
-  ) = FixingInformation(currencyId, paymentCurrencyId, None, None, None, List.empty)
+  ) = FixingInformation(currencyId, paymentCurrencyId, None, None, None, List.empty, DbCalendar(Set.empty))
   
 }
 

@@ -11,7 +11,8 @@ case class TriggerCondition(
   resetStrikes: UnderlyingFixing,
   var isReset:Boolean,
   barrierCondition: KnockInCondition,
-  redemptionAfter: Option[Int]
+  redemptionAfter: Option[Int],
+  fullCouponOnBarrier: Boolean
 ){
 
   def getStrikes:UnderlyingFixing = if (isReset) resetStrikes else strikes
@@ -34,7 +35,8 @@ case class TriggerCondition(
     resetStrikes = resetStrikes,
     isReset = isReset,
     barrierCondition = barrierCondition,
-    redemptionAfter = redemptionAfter
+    redemptionAfter = redemptionAfter,
+    fullCouponOnBarrier = fullCouponOnBarrier
   )
 
 }
@@ -49,7 +51,8 @@ object TriggerCondition {
     resetStrikes = UnderlyingFixing.empty,
     isReset = false,
     barrierCondition = KnockInCondition.empty,
-    redemptionAfter = None
+    redemptionAfter = None,
+    fullCouponOnBarrier = true
   )
 
   def initialize(
@@ -59,7 +62,8 @@ object TriggerCondition {
     resetCondition: KnockInCondition,
     resetStrikes: UnderlyingFixing,
     barrierCondition: KnockInCondition,
-    redemptionAfter: Option[Int]
+    redemptionAfter: Option[Int],
+    fullCouponOnBarrier: Boolean
   )(implicit fixingInformation:FixingInformation):TriggerCondition = {
     val isReset:Boolean = {
       if (resetCondition.isEmpty) false
@@ -74,7 +78,8 @@ object TriggerCondition {
       resetStrikes = resetStrikes,
       isReset = isReset,
       barrierCondition = barrierCondition,
-      redemptionAfter = redemptionAfter
+      redemptionAfter = redemptionAfter,
+      fullCouponOnBarrier = fullCouponOnBarrier
     )
   }
 

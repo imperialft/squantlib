@@ -11,19 +11,26 @@ case class KnockInCondition(
   closeOnly: Boolean,
   triggerDown:Boolean,
   triggerOnEqual: Boolean,
-){
+)(implicit val fixingInformation:FixingInformation){
   val isEmpty = trigger.isEmpty
 
   private var knockInDateFixing:Option[(Date, UnderlyingFixing)] = null //getKnockInDateFixing
 
-  def getKnockInDate()(implicit fixingInformation:FixingInformation):Option[Date] = getKnockInDateFixing.collect{case (d, f) => d}
+  def getKnockInDate:Option[Date] = getKnockInDateFixing.collect{case (d, f) => d}
 
-  def getKnockInDateFixing()(implicit fixingInformation:FixingInformation):Option[(Date, UnderlyingFixing)] = {
-    if (knockInDateFixing == null) knockInDateFixing = computeKnockInDateFixing
+  def getKnockInFixing:Option[UnderlyingFixing] = getKnockInDateFixing.collect{case (d, f) => f}
+
+  def getKnockInDateFixing:Option[(Date, UnderlyingFixing)] = {
+    if (knockInDateFixing == null) {
+      knockInDateFixing = {
+        if (isEmpty) None
+        else computeKnockInDateFixing
+      }
+    }
     knockInDateFixing
   }
 
-  def computeKnockInDateFixing()(implicit fixingInformation:FixingInformation):Option[(Date, UnderlyingFixing)] = {
+  def computeKnockInDateFixing():Option[(Date, UnderlyingFixing)] = {
     val historicalPrices:Map[Date, UnderlyingFixing] = {
       val closeFixings = DB.getHistoricalUnderlyingFixings(trigger.keySet, refStart, refEnd)
 
@@ -49,10 +56,10 @@ case class KnockInCondition(
     }
   }
 
-    def isKnockedIn()(implicit fixingInformation:FixingInformation):Boolean = getKnockInDateFixing.isDefined
+    def isKnockedIn():Boolean = getKnockInDateFixing.isDefined
 
 
-//  def isKnockedIn()(implicit fixingInformation:FixingInformation):Boolean = {
+//  def isKnockedIn():Boolean = {
 //    val historicalPrices:Map[Date, UnderlyingFixing] = {
 //      val closeFixings = DB.getHistoricalUnderlyingFixings(trigger.keySet, refStart, refEnd)
 //
@@ -95,7 +102,7 @@ object KnockInCondition {
     closeOnly = false,
     triggerDown = true,
     triggerOnEqual = true
-  )
+  )(FixingInformation.empty("JPY", "JPY"))
 
 
 }

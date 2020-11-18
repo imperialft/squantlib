@@ -14,6 +14,7 @@ case class CallOption(
   invertedTrigger:Boolean,
   invertedForward:Boolean,
   barrierRedemptionAfter: Option[Int],
+  fullCouponOnBarrier: Boolean,
   removeSatisfiedTriggers:Boolean,
   exercised:Option[Boolean]
 ) {
@@ -31,6 +32,7 @@ object CallOption {
     invertedTrigger = false,
     invertedForward = false,
     barrierRedemptionAfter = None,
+    fullCouponOnBarrier = true,
     removeSatisfiedTriggers = false,
     exercised = None
   )
@@ -59,6 +61,8 @@ object CallOption {
       else forward
     }
 
+    val fullCouponOnBarrier:Boolean = jsonNode.get("final_coupon").parseString.collect{case i => i != "accrued"}.getOrElse(true)
+
     CallOption(
       triggerUp = if (invertedTrigger) !triggerUp else triggerUp,
       forward = forwardStrikes,
@@ -67,6 +71,7 @@ object CallOption {
       invertedTrigger = invertedTrigger,
       invertedForward = invertedForward,
       barrierRedemptionAfter = barrierRedemptionAfter,
+      fullCouponOnBarrier = fullCouponOnBarrier,
       removeSatisfiedTriggers = removeSatisfiedTriggers,
       exercised = issuerExercised
     )
