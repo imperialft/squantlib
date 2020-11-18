@@ -46,7 +46,7 @@ case class Callability(
     }
   }
 
-  def setAdjustedSchedule(cp: CalculationPeriod):Boolean = {
+  def setAdjustedSchedule(cp: CalculationPeriod, p:Payoff):Boolean = {
     adjustedPaymentDate match {
       case Some(d) =>
         cp.setAdjustedPaymentDate(d)
@@ -61,6 +61,7 @@ case class Callability(
     adjustedEventDate match {
       case Some(d) =>
         cp.setAdjustedEventDate(d)
+        barrierTriggeredFixing.collect{case f => p.assignFixings(f)}
         true
       case _ =>
         cp.clearAdjustedEventDate

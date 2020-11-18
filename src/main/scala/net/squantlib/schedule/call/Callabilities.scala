@@ -94,15 +94,15 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
     }
 	}
 
-  def setAdjustedSchedule(schedule:Schedule):Boolean = {
+  def setAdjustedSchedule(schedule:Schedule, payoffs:Payoffs):Boolean = {
     var barrierAssigned = false
 
-    (schedule, this).zipped.foreach { case (cp, c) =>
+    (schedule, payoffs, this).zipped.foreach { case (cp, p, c) =>
       if (barrierAssigned) {
         cp.clearAdjustedSchedule
       }
       else {
-        barrierAssigned = c.setAdjustedSchedule(cp)
+        barrierAssigned = c.setAdjustedSchedule(cp, p)
       }
     }
 
