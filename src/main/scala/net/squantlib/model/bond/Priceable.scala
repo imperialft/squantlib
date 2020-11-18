@@ -142,8 +142,15 @@ trait Priceable extends ExtendedSchedule with Cloneable {
       case (Some(td), Some(vd)) if td le vd => standardOutput(id, "terminated on " + td); None
       case _ => (model, discountCurve) match {
         case (Some(m), Some(c)) => m.price(c)
-        case (Some(m), None) => errorOutput(id, "missing discount curve"); m.price
-        case _ => errorOutput(id, "missing model"); None
+
+        case (Some(m), None) =>
+          errorOutput(id, "missing discount curve")
+          m.price
+
+        case _ =>
+          errorOutput(id, "missing model")
+          throw new RuntimeException
+          None
   }}
   
   def dirtyPriceWithPaths(nbPath:Int):Option[Double] = 
@@ -160,7 +167,11 @@ trait Priceable extends ExtendedSchedule with Cloneable {
           }
           m.mcPaths = originalPaths
           result
-        case _ => errorOutput(id, "missing model"); None
+
+        case _ =>
+          errorOutput(id, "missing model")
+          throw new RuntimeException
+          None
   }}
   
   /*  

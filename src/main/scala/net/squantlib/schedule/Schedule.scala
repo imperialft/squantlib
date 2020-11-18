@@ -145,6 +145,7 @@ object Schedule{
     def getCalculationPeriod(
       startDate:Date,
       endDate:Date,
+      isFinalCoupon: Boolean,
       isRedemption: Boolean
     ):CalculationPeriod = {
       CalculationPeriod(
@@ -159,6 +160,7 @@ object Schedule{
         fixingAdjustmentConvention = fixingAdjustmentConvention,
         paymentCalendar = paymentCalendar,
         paymentConvention = if (endDate == terminationDate) terminationDateConvention else paymentConvention,
+        isFinalCoupon = isFinalCoupon,
         isRedemption = isRedemption,
         nominal = 1.0,
         fixedDayOfMonth = fixedDayOfMonth,
@@ -179,6 +181,7 @@ object Schedule{
         fixingAdjustmentConvention = fixingAdjustmentConvention,
         paymentCalendar = paymentCalendar,
         paymentConvention = terminationDateConvention,
+        isFinalCoupon = false,
         isRedemption = true,
         nominal = 1.0,
         fixedDayOfMonth = redemptionNotice match {
@@ -194,14 +197,16 @@ object Schedule{
       if (tenor.length == 0) List.empty
       else rule match {
         
-        case Zero => List(getCalculationPeriod(effectiveDate, terminationDate, false))
+        case Zero => List(getCalculationPeriod(effectiveDate, terminationDate, true, false))
   
         case Backward => 
           var tempDates:MutableList[CalculationPeriod] = MutableList.empty
+          var isFinalCoupon = true
             
           val initialDate = nextToLastDate match {
             case Some(d) if d lt terminationDate => 
-              tempDates += getCalculationPeriod(d, terminationDate, false)
+              tempDates += getCalculationPeriod(d, terminationDate, isFinalCoupon, false)
+              isFinalCoupon = false
               d
             case None => terminationDate
           }
@@ -229,7 +234,8 @@ object Schedule{
               startDate = effectiveDate
             }
 
-            tempDates += getCalculationPeriod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate, false)
+            tempDates += getCalculationPeriod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate, isFinalCoupon, false)
+            isFinalCoupon = false
 
             periods = periods + 1
           } while (startDate gt effectiveDate)
@@ -238,9 +244,11 @@ object Schedule{
   
         case Forward =>
           var tempDates:MutableList[CalculationPeriod] = MutableList.empty
-            
+
           val initialDate = firstDate match {
-            case Some(d) => tempDates += getCalculationPeriod(effectiveDate, d, false); d
+            case Some(d) =>
+              tempDates += getCalculationPeriod(effectiveDate, d, false, false)
+              d
             case None => effectiveDate
           }
           
@@ -251,8 +259,28 @@ object Schedule{
           do {
             startDate = endDate
             endDate = initialDate.advance(nullCalendar, tenor.mul(periods), calendarConvention)
-            if (Math.abs(terminationDate.sub(endDate)) < 14) {endDate = terminationDate}
-            tempDates += getCalculationPeriod(startDate, if (endDate ge terminationDate) terminationDate else endDate, false)
+
+            if (Math.abs(terminationDate.sub(endDate)) < 14) {
+              endDate = terminationDate
+            }
+
+            tempDates += {
+              if (endDate ge terminationDate) {
+                getCalculationPeriod(
+                  startDate,
+                  terminationDate,
+                  true,
+                  false
+                )
+              } else {
+                getCalculationPeriod(
+                  startDate,
+                  endDate,
+                  false,
+                  false
+                )
+              }
+            }
             periods = periods + 1
           } while (endDate lt terminationDate)
             

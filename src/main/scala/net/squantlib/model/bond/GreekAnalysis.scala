@@ -336,7 +336,7 @@ trait GreekAnalysis {
   }
   
   def nextTriggerBinarySize:Option[Double] = (market, livePayoffs.headOption) match {
-    case (Some(mkt), Some((s, p, c))) if c.isTrigger => 
+    case (Some(mkt), Some((s, p, c))) if c.isTrigger && !s.isFinalCoupon =>
       val dateshifted = this.dateShifted(mkt.valuedate.sub(s.paymentDate).toInt)
       val shifts:Map[String, Double] = c.triggers.getDouble.map{case (k, v) => mkt.getUnderlying(k) match {
         case Some(ul) if ul.spot > 0.0 => (k, v / ul.spot)

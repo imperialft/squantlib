@@ -244,8 +244,8 @@ case class Callability(
   }
 
   override def assignFixings(f:UnderlyingFixing):Unit = {
-    super.assignFixings(f)
-    isBarrierTriggered
+    super.assignFixings(barrierTriggeredFixing.getOrElse(f))
+//    isBarrierTriggered
   }
 
   override def toString:String = {

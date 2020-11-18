@@ -258,11 +258,9 @@ object Payoff {
   def apply(inputString:String)(implicit fixingInfo:FixingInformation):Option[Payoff] = {
     if (inputString == null || inputString.trim.isEmpty) Some(NullPayoff(""))
     else {
-//      val initialFixingInfo = fixingInfo.getInitialFixingInformation
       val po = payoffType(inputString) match {
         case "fixed" => FixedPayoff(inputString)
         case "leps1d" => LEPS1dPayoff(inputString)
-//        case "linear1d" => Linear1dPayoff(inputString)
         case "putdi" => PutDIPayoff(inputString)
         case "putdiamerican" => PutDIAmericanPayoff(inputString)
         case "callui" => CallUIPayoff(inputString)
@@ -290,7 +288,7 @@ object Payoff {
 
   def payoffType(formula:String):String = formula match {
     case f if f.parseDouble.isDefined => "fixed"
-    case f if f.startsWith("leps") => "leps1d"
+//    case f if f.startsWith("leps") => "leps1d"
     case f => formula.parseJsonString("type").orNull
   }
 

@@ -14,6 +14,7 @@ case class CalculationPeriod(
   endDate:Date,
   paymentDate:Date,
   var daycounter:DayCounter,
+  isFinalCoupon:Boolean,
   isRedemption: Boolean,
   var nominal:Double
 ) {
@@ -110,6 +111,7 @@ case class CalculationPeriod(
       endDate = endDate.add(shift),
       paymentDate = paymentDate.add(shift),
       daycounter = daycounter,
+      isFinalCoupon = isFinalCoupon,
       isRedemption = isRedemption,
       nominal = nominal
     )
@@ -127,6 +129,7 @@ case class CalculationPeriod(
       endDate = getEndDate,
       paymentDate = getPaymentDate,
       daycounter = new Absolute,
+      isFinalCoupon = false,
       isRedemption = true,
       nominal = nom
     )
@@ -148,6 +151,7 @@ object CalculationPeriod {
     fixingAdjustmentConvention:BusinessDayConvention,
     paymentCalendar:Calendar,
     paymentConvention:BusinessDayConvention,
+    isFinalCoupon: Boolean,
     isRedemption: Boolean,
     nominal:Double = 1.0,
     fixedDayOfMonth:Option[Int] = None,
@@ -210,6 +214,7 @@ object CalculationPeriod {
       endDate = endDate,
       paymentDate = paymentDate,
       daycounter = daycounter,
+      isFinalCoupon = isFinalCoupon,
       isRedemption = isRedemption,
       nominal = nominal
     )
@@ -234,6 +239,7 @@ object CalculationPeriod {
       fixingAdjustmentConvention = BusinessDayConvention.Following,
       paymentCalendar = paymentCalendar,
       paymentConvention = paymentConvention,
+      isFinalCoupon = false,
       isRedemption = isRedemption,
       nominal = 1.0,
       fixedDayOfMonth = None,

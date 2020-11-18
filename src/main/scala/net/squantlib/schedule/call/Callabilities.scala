@@ -114,80 +114,65 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 
 object Callabilities {
 	
-	def empty:Callabilities = new Callabilities(List.empty)
-	
+	def empty():Callabilities = new Callabilities(List.empty)
+
+  def empty(legs:Int):Callabilities = Callabilities(List.fill(legs)(Callability.empty))
+
 	def apply(calls:LinearSeq[Callability]):Callabilities = new Callabilities(calls.toList)
 	
-	def bermudan(formulaJson:Option[JsonNode], legs:Int):List[Boolean] = bermudanList(formulaJson, legs) match {
+	def bermudan(formulaJson:JsonNode, legs:Int):List[Boolean] = bermudanList(formulaJson, legs) match {
 	  case berms if !berms.isEmpty && berms.takeRight(1).head => berms.dropRight(1) :+ false
 	  case berms => berms
 	}
 	
-  def bermudanList(formulaJson:Option[JsonNode], nbLegs:Int):List[Boolean] = formulaJson match {
-    case Some(b) if b isArray =>
-      val bermList = b.asScala.map(_ match {
-        case s if s.isTextual => s.parseString == Some("berm")
-        case s if s.isObject => s.parseString("type") == Some("berm")
-        case _ => false
-      }).toList
-      
-      List.fill(nbLegs - 2 - b.size)(false) ++ bermList ++ List(false, false)
+  def bermudanList(formulaJson:JsonNode, nbLegs:Int):List[Boolean] = {
+    val bermList = formulaJson.asScala.map(_ match {
+      case s if s.isTextual => s.parseString == Some("berm")
+      case s if s.isObject => s.parseString("type") == Some("berm")
+      case _ => false
+    }).toList
 
-    case _ => List.fill(nbLegs)(false)
+    List.fill(nbLegs - 2 - formulaJson.size)(false) ++ bermList ++ List(false, false)
   }
   
-  def targetList(formulaJson:Option[JsonNode], nbLegs:Int):List[Option[Double]] = formulaJson match {
-    case Some(bs) if bs isArray =>
-      val targetList = bs.asScala.map(_.get("target").parseDouble).toList
-      List.fill(nbLegs - 2 - bs.size)(None) ++ targetList ++ List(None, None)
-
-    case _ => List.fill(nbLegs)(None)
+  def targetList(formulaJson:JsonNode, nbLegs:Int):List[Option[Double]] = {
+    val targetList = formulaJson.asScala.map(_.get("target").parseDouble).toList
+    List.fill(nbLegs - 2 - formulaJson.size)(None) ++ targetList ++ List(None, None)
   }
 
-  def callOptionList(
-    formulaJson:Option[JsonNode],
-    nbLegs:Int
-  )(implicit fixingInfo:FixingInformation):List[CallOption] = formulaJson match {
-    case Some(bb) if bb isArray => 
-      val itemList = bb.asScala.map{case b => CallOption.parseJson(b)}.toList
-      List.fill(nbLegs - 2 - bb.size)(CallOption.empty) ++ itemList  ++ List(CallOption.empty, CallOption.empty)
-    
-    case _ => List.fill(nbLegs)(CallOption.empty)
+  def callOptionList(formulaJson: JsonNode, finalCall:Option[JsonNode], nbLegs:Int)(implicit fixingInfo:FixingInformation):List[CallOption] = {
+    val itemList = (formulaJson.asScala.toList :+ finalCall.getOrElse(newObjectNode)).map{case b => CallOption.parseJson(b)}.toList
+    List.fill(nbLegs - 2 - formulaJson.size)(CallOption.empty) ++ itemList  ++ List(CallOption.empty)
   }
 
   def underlyingStrikeList(
-    formulaJson:Option[JsonNode],
+    formulaJson:JsonNode,
+    finalCall:Option[JsonNode],
     nbLegs:Int,
     underlyings:List[String],
     keyword: String
   ):List[Map[String, String]] = {
 
-    formulaJson match {
-      case Some(bs) if bs isArray =>
-        val trigList:List[Map[String, String]] = bs.asScala.map(_ match {
-          case n if (n isArray) =>
-            (underlyings, n.asScala.map(_.parseString.getOrElse("")).toList).zipped.toMap
+    val trigList:List[Map[String, String]] = (formulaJson.asScala.toList :+ finalCall.getOrElse(newObjectNode)).map(_ match {
+      case n if (n isArray) =>
+        (underlyings, n.asScala.map(_.parseString.getOrElse("")).toList).zipped.toMap
 
-          case n if (n.isObject) =>
-            n.getOption(keyword) match {
-              case Some(trigs) if trigs.isArray =>
-                (underlyings, trigs.asScala.map(_.parseString.getOrElse(""))).zipped.toMap
-              case Some(trigs) if trigs.isObject =>
-                trigs.parseStringFields
-              case _ => Map.empty[String, String]
-            }
+      case n if (n.isObject) =>
+        n.getOption(keyword) match {
+          case Some(trigs) if trigs.isArray =>
+            (underlyings, trigs.asScala.map(_.parseString.getOrElse(""))).zipped.toMap
+          case Some(trigs) if trigs.isObject =>
+            trigs.parseStringFields
+          case _ => Map.empty[String, String]
+        }
 
-          case _ =>
-            Map.empty[String, String]
+      case _ =>
+        Map.empty[String, String]
 
-        }).toList
+    }).toList
 
-        List.fill(nbLegs - bs.size - 2)(Map.empty[String, String]) ++ trigList ++ List.fill(2)(Map.empty[String, String])
-
-      case _ => List.fill(nbLegs)(Map.empty)
-    }
+    List.fill(nbLegs - formulaJson.size - 2)(Map.empty[String, String]) ++ trigList ++ List.fill(1)(Map.empty[String, String])
   }
-
 
   def triggerToAssignedTrigger(
     trigs:List[Map[String, String]],
@@ -225,31 +210,20 @@ object Callabilities {
     })
   }
 
-  private def mapList(formulaJson:Option[JsonNode], legs:Int):List[Map[String, Any]] = formulaJson match {
-    case Some(bs) if bs.isArray =>
-      val formulaList:List[Map[String, Any]] = bs.asScala.map(_ match {
-        case n if (n.isObject) => n.parseMap
-        case _ => Map.empty[String, Any]
-      }).toList
-
-      List.fill(legs - bs.size - 2)(Map.empty[String, String]) ++ formulaList ++ List.fill(2)(Map.empty[String, Any])
-
-    case _ => List.fill(legs)(Map.empty)
-  }
-
   def apply(
-	  formula:String, 
-    underlyings:List[String], 
+    formulaJson:JsonNode,
+    finalCall:Option[JsonNode],
+    underlyings:List[String],
     legs:Int
   )(implicit fixingInfo:FixingInformation):Callabilities = {
 
-    val formulaJson:Option[JsonNode] = formula.jsonNode
+//    val formulaJson:Option[JsonNode] = formula.jsonNode
 
     val bermudans = bermudan(formulaJson, legs)
 
-    val trigFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, legs, underlyings, "trigger")
+    val trigFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, finalCall, legs, underlyings, "trigger")
 
-    val callOptions:List[CallOption] = callOptionList(formulaJson, legs)(fixingInfo.getStrikeFixingInformation)
+    val callOptions:List[CallOption] = callOptionList(formulaJson, finalCall, legs)(fixingInfo.getStrikeFixingInformation)
 
     val invertedTriggerList:List[Boolean] = callOptions.map(c => c.invertedTrigger)
 
@@ -257,14 +231,20 @@ object Callabilities {
 
     val targets:List[Option[BigDecimal]] = targetList(formulaJson, legs).map(vs => vs.flatMap{case v => v.getRoundedDecimal})
 
-    val baseFormulas:List[Map[String, Any]] = mapList(formulaJson, legs)
+    val baseFormulas:List[Map[String, Any]] = {
+      val formulaList:List[Map[String, Any]] = (formulaJson.asScala.toList :+ finalCall.getOrElse(newObjectNode)).map(_ match {
+        case n if (n.isObject) => n.parseMap
+        case _ => Map.empty[String, Any]
+      }).toList
 
-    val resetNewTriggerFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, legs, underlyings, "reset_new_trigger")
+      List.fill(legs - formulaJson.size - 2)(Map.empty[String, String]) ++ formulaList ++ List(Map.empty[String, Any])
+    }
+
+    val resetNewTriggerFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, finalCall, legs, underlyings, "reset_new_trigger")
     val resetNewTriggerMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetNewTriggerFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
 
-    val jsonLegs:List[Option[JsonNode]] = formulaJson match {
-      case Some(bs) if bs.isArray => List.fill(legs - 2 - bs.size)(None) ++ bs.asScala.map(s => Some(s)) ++ List(None, None)
-      case _ => List.fill(legs)(None)
+    val jsonLegs:List[Option[JsonNode]] = {
+      List.fill(legs - 2 - formulaJson.size)(None) ++ (formulaJson.asScala.toList :+ finalCall.getOrElse(newObjectNode)).map(s => Some(s)) ++ List(None)
     }
 
     val barrierConditions:List[KnockInCondition] = {
@@ -281,7 +261,8 @@ object Callabilities {
                 finalTrigger = UnderlyingFixing.empty,
                 closeOnly = knockOutOnClose,
                 triggerDown = !callOption.triggerUp,
-                triggerOnEqual = true
+                triggerOnEqual = true,
+                triggerOnAny = false
               )
             case _ => KnockInCondition.empty
           }
@@ -291,7 +272,7 @@ object Callabilities {
     }
 
     val resetKnockInConditions:List[KnockInCondition] = {
-      val resetStrikeFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, legs, underlyings, "reset_strike")
+      val resetStrikeFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, finalCall, legs, underlyings, "reset_strike")
       val resetStrikeMap:List[UnderlyingFixing] = triggerToAssignedTrigger(resetStrikeFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
 
       (jsonLegs, resetStrikeMap).zipped.map{
@@ -308,7 +289,8 @@ object Callabilities {
                 finalTrigger = UnderlyingFixing.empty,
                 closeOnly = knockInOnClose,
                 triggerDown = aleg.get("reset_down").parseInt.collect{case i => i != 0}.getOrElse(true),
-                triggerOnEqual = knockInOnEqual
+                triggerOnEqual = knockInOnEqual,
+                triggerOnAny = true
               )
             case _ => KnockInCondition.empty
           }

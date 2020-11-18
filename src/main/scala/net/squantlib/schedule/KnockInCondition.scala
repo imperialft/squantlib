@@ -11,6 +11,7 @@ case class KnockInCondition(
   closeOnly: Boolean,
   triggerDown:Boolean,
   triggerOnEqual: Boolean,
+  triggerOnAny:Boolean
 )(implicit val fixingInformation:FixingInformation){
   val isEmpty = trigger.isEmpty
 
@@ -87,7 +88,11 @@ case class KnockInCondition(
   }
 
   private def isKnockedInPrice(p:UnderlyingFixing, trig:UnderlyingFixing):Boolean = {
-    trig.getDecimalValue.exists{case (ul, t) => p.getDecimalValue.get(ul).collect{case f => isKnockedInPrice(f, t)}.getOrElse(false)}
+    if (triggerOnAny) {
+      trig.getDecimalValue.exists{case (ul, t) => p.getDecimalValue.get(ul).collect{case f => isKnockedInPrice(f, t)}.getOrElse(false)}
+    } else {
+      trig.getDecimalValue.forall{case (ul, t) => p.getDecimalValue.get(ul).collect{case f => isKnockedInPrice(f, t)}.getOrElse(false)}
+    }
   }
 
 }
@@ -101,7 +106,8 @@ object KnockInCondition {
     finalTrigger = UnderlyingFixing.empty,
     closeOnly = false,
     triggerDown = true,
-    triggerOnEqual = true
+    triggerOnEqual = true,
+    triggerOnAny = true
   )(FixingInformation.empty("JPY", "JPY"))
 
 

@@ -16,6 +16,8 @@ import org.jquantlib.currencies.Currency
 import net.squantlib.util.FixingInformation
 import net.squantlib.util.DisplayUtils._
 import scala.collection.LinearSeq
+import net.squantlib.util.JsonUtils._
+import com.fasterxml.jackson.databind.JsonNode
 
 
 trait AnalyzableBond 
@@ -100,7 +102,21 @@ object Bond {
 
     val underlyings:List[String] = db.underlyingList
       
-    val calls = Callabilities(db.call, underlyings, schedule.size)
+//    val calls = Callabilities(db.call, underlyings, schedule.size)
+
+
+    val calls = db.call.jsonNode match {
+      case Some(formulaJson) if formulaJson.isArray =>
+
+        val finalCall:Option[JsonNode] = db.redemprice.jsonNode match {
+          case Some(r) if r.isObject => r.getOption("callability")
+          case _ => None
+        }
+
+        Callabilities(formulaJson, finalCall, underlyings, schedule.size)
+      case _ => Callabilities.empty(schedule.size)
+    }
+
     if (calls == null) {errorOutput(db.id, "cannot initialize calls"); return None}
 
     var scheduledPayoffs = valuedate match {
