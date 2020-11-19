@@ -149,7 +149,6 @@ trait Priceable extends ExtendedSchedule with Cloneable {
 
         case _ =>
           errorOutput(id, "missing model")
-          throw new RuntimeException
           None
   }}
   
@@ -170,7 +169,6 @@ trait Priceable extends ExtendedSchedule with Cloneable {
 
         case _ =>
           errorOutput(id, "missing model")
-          throw new RuntimeException
           None
   }}
   
