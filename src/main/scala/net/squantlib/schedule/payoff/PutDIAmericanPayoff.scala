@@ -24,6 +24,7 @@ case class PutDIAmericanPayoff(
   finalTriggers: UnderlyingFixing,
   refstart:Date,
   refend:Date,
+  refDates: Set[Date],
   var knockedIn:Boolean,
   override val physical:Boolean,
   forward:Boolean,
@@ -300,8 +301,12 @@ case class PutDIAmericanPayoff(
     if (refstart == null || refend == null) false
     else {
       val historicalPrices:Map[Date, UnderlyingFixing] = historicalPriceForKnockin
+      val refPrices:Map[Date, UnderlyingFixing] = {
+        if (refDates.isEmpty) historicalPrices
+        else historicalPrices.filter{case (d, _) => refDates.contains(d)}
+      }
 
-      (historicalPrices, historicalPrices.get(refend)) match {
+      (refPrices, historicalPrices.get(refend)) match {
         case (hs, _) if hs.isEmpty => false
 
         case (hs, Some(hsLast)) =>
@@ -322,6 +327,7 @@ case class PutDIAmericanPayoff(
     finalTriggers = finalTriggers,
     refstart = (if (refstart == null) null else refstart.add(shift)),
     refend = (if (refend == null) null else refend.add(shift)),
+    refDates = refDates.map(d => d.add(shift)),
     knockedIn = knockedIn,
     physical = physical,
     forward = forward,
@@ -360,6 +366,7 @@ object PutDIAmericanPayoff {
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val refstart:Date = formula.parseJsonDate("refstart").orNull
     val refend:Date = formula.parseJsonDate("refend").orNull
+    val refDates:Set[Date] = formula.parseJsonDateList("refdates").flatMap(d => d).toSet
     val physical:Boolean = formula.parseJsonString("physical").getOrElse("0") == "1"
     val forward:Boolean = formula.parseJsonString("forward").getOrElse("0") == "1"
     val reverse:Boolean = formula.parseJsonString("reverse").getOrElse("0") == "1"
@@ -378,6 +385,7 @@ object PutDIAmericanPayoff {
       finalTriggers = UnderlyingFixing(finalTriggers),
       refstart = refstart,
       refend = refend,
+      refDates = refDates,
       knockedIn = knockedIn,
       physical = physical,
       forward = forward,
