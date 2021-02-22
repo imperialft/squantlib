@@ -10,6 +10,7 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.Schedule
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
+import net.squantlib.util.RoundingInfo
 import org.jquantlib.time.{BusinessDayConvention, DateGeneration, TimeUnit, Period => qlPeriod}
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
@@ -302,10 +303,7 @@ class Bond(
     if (roundInfo != null) {
       RoundingInfo(roundInfo)
     } else {
-      paymentCurrencyId match {
-        case "JPY" | "IDR" | "KRW" | "VND" | "CLP" => RoundingInfo (0, "rounded")
-        case _ => RoundingInfo (2, "rounded")
-      }
+      RoundingInfo.defaultRounding(paymentCurrencyId)
     }
   }
 
@@ -461,6 +459,8 @@ class Bond(
   }
 
   def getFixingPriceFromDb(ids:Set[String], dates:List[Date], isInitialFixing:Boolean) = DB.getFixings(ids, dates, fixingInformation, isInitialFixing)
+
+  def getSingleFixingPriceFromDb(id:String, date:Date, isInitialFixing:Boolean):Option[Double] = getFixingPriceFromDb(Set(id), List(maturityDate), false).head.get(id)
 
   def settingsJson:ObjectNode = settings.objectNode.getOrElse((new ObjectMapper).createObjectNode)
 
@@ -665,15 +665,3 @@ class Bond(
   
 }
 
-case class RoundingInfo(precision:Int, roundType:String) {
-  def round(v:BigDecimal):BigDecimal = DisplayUtils.ExtendedDecimal.scaled(v, precision, roundType)
-
-  def roundOption(v:Double):Option[BigDecimal] = DisplayUtils.ExtendedDouble.getDecimal(v, precision, roundType)
-}
-
-object RoundingInfo {
-  def apply(roundPrecision:JsonNode, precisionAdjust:Int = 0):RoundingInfo   = RoundingInfo(
-    precision = roundPrecision.parseInt("precision").collect{case r => r + precisionAdjust}.getOrElse(10),
-    roundType = roundPrecision.parseString("round_type").getOrElse("rounded")
-  )
-}
