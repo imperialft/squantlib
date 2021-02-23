@@ -15,10 +15,10 @@ object RoundingInfo {
     roundType = roundPrecision.parseString("round_type").getOrElse("rounded")
   )
 
-  def defaultRounding(ccy:String):RoundingInfo = {
+  def defaultRounding(ccy:String, roundType:String = "rounded"):RoundingInfo = {
     ccy match {
-      case "JPY" | "IDR" | "KRW" | "VND" | "CLP" => RoundingInfo (0, "rounded")
-      case _ => RoundingInfo (2, "rounded")
+      case "JPY" | "IDR" | "KRW" | "VND" | "CLP" => RoundingInfo (0, roundType)
+      case _ => RoundingInfo (2, roundType)
     }
   }
 }

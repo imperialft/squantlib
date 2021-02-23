@@ -303,7 +303,7 @@ class Bond(
     if (roundInfo != null) {
       RoundingInfo(roundInfo)
     } else {
-      RoundingInfo.defaultRounding(paymentCurrencyId)
+      RoundingInfo.defaultRounding(currencyid)
     }
   }
 
@@ -314,11 +314,12 @@ class Bond(
     if (roundInfo != null) {
       RoundingInfo(roundInfo)
     } else {
-      paymentCurrencyId match {
-        case "JPY" | "IDR" | "KRW" | "VND" | "CLP" => RoundingInfo (0, "rounded")
-        case _ => RoundingInfo (2, "rounded")
-      }
+      RoundingInfo.defaultRounding(paymentCurrencyId, paymentRounding.roundType)
     }
+  }
+
+  def defaultPaymentRounding(ccy:String):RoundingInfo = {
+    RoundingInfo.defaultRounding(ccy, paymentRounding.roundType)
   }
 
   @Transient
@@ -540,7 +541,7 @@ class Bond(
   
   protected def setJsonObject(name:String, newnode:JsonNode)(implicit getter:() => String, setter:String => Unit):Unit = {
     val currentjson = getJsonObject(getter)
-    currentjson.put(name, newnode)
+    currentjson.set(name, newnode)
     setter(currentjson.toJsonString)
   }
   
@@ -552,7 +553,7 @@ class Bond(
   
   protected def setJsonObject(nodes:Map[String, JsonNode])(implicit getter:() => String, setter:String => Unit):Unit = {
     val currentjson = getJsonObject(getter)
-    nodes.foreach{case (k, v) => currentjson.put(k, v)}
+    nodes.foreach{case (k, v) => currentjson.set(k, v)}
     setter(currentjson.toJsonString)
   }
 
