@@ -128,20 +128,41 @@ object JsonUtils {
     }
 
 
-    def parseDate(name:String):Option[Date] = 
+    def parseDate(name:String):Option[Date] = {
       if (name == null) None
       else node.parseString(name) match {
-        case Some(s) if s.size >= 8 && s.contains("/") => ignoreErr {
-           try{ Some(Date(jsonDateFormat.parse(s)))} 
+        case Some(d) if d != null => parseDateString(d)
+        case _  => None
+      }
+
+//      else node.parseString(name) match {
+//        case Some(s) if s.size >= 8 && s.contains("/") => ignoreErr {
+//           try{ Some(Date(jsonDateFormat.parse(s)))}
+//          catch { case e:Throwable => errorOutput(s + " could not be parsed"); e.printStackTrace; None}
+//        }
+//        case Some(s) if s.size >= 8 && s.contains("-") => ignoreErr {
+//          try{ Some(Date(jsonDateFormat2.parse(s)))}
+//          catch { case e:Throwable => errorOutput(s + " could not be parsed"); e.printStackTrace; None}
+//        }
+//        case _ => None
+//      }
+    }
+
+    def parseDateString(dateString:String):Option[Date] = {
+      dateString match {
+        case null => None
+        case s if s.size >= 8 && s.contains("/") => ignoreErr {
+          try{ Some(Date(jsonDateFormat.parse(s)))}
           catch { case e:Throwable => errorOutput(s + " could not be parsed"); e.printStackTrace; None}
         }
-        case Some(s) if s.size >= 8 && s.contains("-") => ignoreErr {
+        case s if s.size >= 8 && s.contains("-") => ignoreErr {
           try{ Some(Date(jsonDateFormat2.parse(s)))}
           catch { case e:Throwable => errorOutput(s + " could not be parsed"); e.printStackTrace; None}
         }
         case _ => None
       }
-    
+    }
+
     def parseObject[T](constructor:Map[String, Any] => T):Option[T] = Some(constructor(node.parseValueFields))
     def parseObject[T](name:String, constructor:Map[String, Any] => T):Option[T] = if (hasName(name)) Some(constructor(node.get(name).parseValueFields)) else None
     
@@ -164,7 +185,10 @@ object JsonUtils {
 
     def parseStringList:List[Option[String]] = parseList.map(_.parseString)
     def parseStringList(name:String):List[Option[String]] = if (hasName(name)) node.get(name).parseStringList else List.empty
-    
+
+    def parseDateList:List[Option[Date]] = parseList.map(_.parseDate)
+    def parseDateList(name:String):List[Option[Date]] = if (hasName(name)) node.get(name).parseDateList else List.empty
+
     def parseValueFields:Map[String, Any] = if (node == null) Map.empty
       else node.fieldNames.asScala.map(f => (f, node.get(f) match {
         case n if n.isContainerNode => None
@@ -322,6 +346,9 @@ object JsonUtils {
 
     def parseJsonStringList:List[Option[String]] = jsonParserOrElse(_.parseStringList, List.empty)
     def parseJsonStringList(name:String):List[Option[String]] = jsonParserOrElse(_.parseStringList(name), List.empty)
+
+    def parseJsonDateList:List[Option[Date]] = jsonParserOrElse(_.parseDateList, List.empty)
+    def parseJsonDateList(name:String):List[Option[Date]] = jsonParserOrElse(_.parseDateList(name), List.empty)
 
     def parseJsonDoubleFields:Map[String, Double] = jsonParserOrElse(_.parseDoubleFields, Map.empty)
     def parseJsonDoubleFields(name:String):Map[String, Double] = jsonParserOrElse(_.parseDoubleFields(name), Map.empty)

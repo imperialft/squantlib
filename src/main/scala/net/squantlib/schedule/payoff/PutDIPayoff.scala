@@ -27,6 +27,7 @@ class PutDIPayoff(
   finalTriggers = triggers,
   refstart = null,
   refend = null,
+  refDates = Set.empty,
   knockedIn = initKnockedIn,
   physical = physical,
   forward = false,

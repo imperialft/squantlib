@@ -10,6 +10,7 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.Schedule
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
+import net.squantlib.util.RoundingInfo
 import org.jquantlib.time.{BusinessDayConvention, DateGeneration, TimeUnit, Period => qlPeriod}
 import org.jquantlib.daycounters._
 import org.jquantlib.currencies.Currency
@@ -182,25 +183,18 @@ class Bond(
   
   def isJpyPayment:Boolean = jpypayment == 1
 
-//  def paymentCurrencyId:String = if (isJpyPayment) settingMap.getOrElse("payment_currency", "JPY") else currencyid
-  
   def underlyingList:List[String] = stringList(underlying)
 
   def underlyingSet:Set[String] = underlyingList.toSet
 
   def fixingMap:UnderlyingFixing = UnderlyingFixing(fixingMapDecimal) //UnderlyingFixing(fixingMapDouble)(fixingInformation)
 
-//  def fixingMapDouble:Map[String, Double] = fixings.parseJsonDoubleFields
   def fixingMapDecimal:Map[String, BigDecimal] = fixings.parseJsonDoubleFields.map{case (k, v) => (k, BigDecimal(v))}
 
   def settingMap:Map[String, String] = settings.parseJsonStringFields
 
   def tbdValue:Option[Double] = try{Some(settingMap("tbd").toDouble)} catch {case e:Throwable => None}
   
-  def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
-  
-  def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
-
   def isAutoId:Boolean = try {
     settingMap.get("auto_id").collect{case d => d.toInt == 1}.getOrElse(false)
   } catch { case _:Throwable => false}
@@ -213,6 +207,10 @@ class Bond(
 //    settingMap.get("call_fixing_on_coupon").collect{case v => v.toInt == 1}.getOrElse(true)
 //  } catch { case _:Throwable => true}
 
+  def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
+
+  def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
+
   def getUniqueIds:Map[String, String] = {
     settings.jsonNode match {
       case Some(s) => s.getOption("uniq_ids") match {
@@ -222,10 +220,6 @@ class Bond(
       case _ => Map.empty
     }
   }
-
-//  def settingsDistributorIds:List[String] = {
-//    settings.jsonArray("distributor_ids").map(_.parseString).flatMap{case s => s}
-//  }
 
   def updateRefNumber(refId:Int) = {
     id = s"${issuerid}-${refId}"
@@ -241,8 +235,8 @@ class Bond(
   def maturityAdjust = {
     val maturityAdjust:String = settingMap.getOrElse("maturity_adj", payment_adj)
     DayAdjustments.getOrElse(maturityAdjust, BusinessDayConvention.ModifiedFollowing)
-  } //DayAdjustments.getOrElse(daycount_adj, BusinessDayConvention.ModifiedFollowing)
-  
+  }
+
   def period = (coupon_freq collect { case f => new qlPeriod(f, TimeUnit.Months)}).orNull
 
   def issueDate = Date(issuedate)
@@ -252,19 +246,6 @@ class Bond(
   def maturityDate = Date(maturity)
   
   def fixingDate = fixingdate.collect{case d => Date(d)}
-
-//  def manualTerminationDate:Option[Date] = settingMap.get("terminated_on") match {
-//    case Some(d) => Date.getDate(d)
-//    case _ => None
-//  }
-
-//  def getTerminationDate:Option[Date] = (manualTerminationDate, terminationdate.collect{case d => Date(d)}) match {
-//    case (Some(d1), Some(d2)) if d1 le d2 => Some(d1)
-//    case (Some(d1), Some(d2)) if d1 ge d2 => Some(d2)
-//    case (Some(d1), _) => Some(d1)
-//    case (_, Some(d2)) => Some(d2)
-//    case _ => None
-//  }
 
   def endDate:Date = terminationdate match {
     case Some(d) if maturity after d => Date(d)
@@ -306,26 +287,46 @@ class Bond(
   @Transient
   lazy val calculationStartDate:Date = Date(coupon_start)
 
-//  {
-//    val bondSettings = settingMap
-//    val defaultStartDate = if (settlementDate == null) issueDate else settlementDate
-//
-//    bondSettings.get("calculation_start") match {
-//      case Some(d) if d.startsWith("issue") => issueDate
-//      case Some(d) => Date.getDate(d) match {
-//        case Some(dd) => dd
-//        case _ => defaultStartDate
-//      }
-//      case _ => defaultStartDate
-//    }
-//  }
-
   @Transient
   lazy val firstPaymentDateAfter:Option[Date] = {
     val bondSettings = settingMap
     bondSettings.get("first_payment_after") match {
       case Some(d) => Date.getDate(d)
       case _ => None
+    }
+  }
+
+  @Transient
+  lazy val paymentRounding:RoundingInfo = {
+    val roundInfo = settingsJson.get("payment_rounding")
+
+    if (roundInfo != null) {
+      RoundingInfo(roundInfo)
+    } else {
+      RoundingInfo.defaultRounding(currencyid)
+    }
+  }
+
+  @Transient
+  lazy val localPaymentRounding:RoundingInfo = {
+    val roundInfo = settingsJson.get("local_payment_rounding")
+
+    if (roundInfo != null) {
+      RoundingInfo(roundInfo)
+    } else {
+      RoundingInfo.defaultRounding(paymentCurrencyId, paymentRounding.roundType)
+    }
+  }
+
+  def defaultPaymentRounding(ccy:String):RoundingInfo = {
+    RoundingInfo.defaultRounding(ccy, paymentRounding.roundType)
+  }
+
+  @Transient
+  lazy val couponRateRounding:RoundingInfo = {
+    settingsJson.get("coupon_rate_rounding") match {
+      case roundInfo if roundInfo != null => RoundingInfo(roundInfo, 2)
+      case _ => RoundingInfo(10, "rounded")
     }
   }
 
@@ -342,6 +343,8 @@ class Bond(
   def isFixingOnCalculationEndDate:Boolean = try {
     settingMap.get("fixing_on_enddate").collect { case d => d.toInt == 1 }.getOrElse(false)
   } catch { case _:Throwable => false}
+
+
 
   def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
 
@@ -425,8 +428,6 @@ class Bond(
         case (false, false) => UnderlyingFixing(UnderlyingFixing(missingFixings)(fixingInformation.getInitialFixingInformation).getDecimalValue ++ customFixingPrices)
       }
 
-    //      UnderlyingFixing(missingFixings ++ customFixings.filter{case (k, v) => ids.contains(k)})(fixingInformation)
-
     case _ => UnderlyingFixing.empty
   }
   
@@ -437,7 +438,7 @@ class Bond(
       case ns => ns.parseStringList.flatMap{case s => s}.toSet //jsonArray.map(j => j.asText).toSet
     }
   }
-  
+
   def getFixingAdjustmentCalendar:Option[DbCalendar] = {
     if (fixingAdjustmentCountryIds.isEmpty) None
     else {
@@ -460,6 +461,8 @@ class Bond(
 
   def getFixingPriceFromDb(ids:Set[String], dates:List[Date], isInitialFixing:Boolean) = DB.getFixings(ids, dates, fixingInformation, isInitialFixing)
 
+  def getSingleFixingPriceFromDb(id:String, date:Date, isInitialFixing:Boolean):Option[Double] = getFixingPriceFromDb(Set(id), List(maturityDate), false).head.get(id)
+
   def settingsJson:ObjectNode = settings.objectNode.getOrElse((new ObjectMapper).createObjectNode)
 
   def modelOutputJson:Option[JsonNode] = try {Some(model_output.jsonNode.get)} catch {case e:Throwable => None}
@@ -480,12 +483,6 @@ class Bond(
   lazy val fixingInformationObj = {
 
     val currentSetting = settingMap
-
-//    def getDblSetting(key:String):Option[Double] = currentSetting.get(key)
-//      .flatMap{case v =>
-//        try {Some(v.toDouble)}
-//        catch {case e:Throwable => None}
-//      }
 
     def getDecimalSetting(key:String):Option[BigDecimal] = currentSetting.get(key)
       .flatMap{case v =>
@@ -544,7 +541,7 @@ class Bond(
   
   protected def setJsonObject(name:String, newnode:JsonNode)(implicit getter:() => String, setter:String => Unit):Unit = {
     val currentjson = getJsonObject(getter)
-    currentjson.put(name, newnode)
+    currentjson.set(name, newnode)
     setter(currentjson.toJsonString)
   }
   
@@ -556,7 +553,7 @@ class Bond(
   
   protected def setJsonObject(nodes:Map[String, JsonNode])(implicit getter:() => String, setter:String => Unit):Unit = {
     val currentjson = getJsonObject(getter)
-    nodes.foreach{case (k, v) => currentjson.put(k, v)}
+    nodes.foreach{case (k, v) => currentjson.set(k, v)}
     setter(currentjson.toJsonString)
   }
 

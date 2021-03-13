@@ -191,19 +191,24 @@ object CalculationPeriod {
     }
 
     val callEventDate = {
-      val d = callNotice match {
+      val callDate = callNotice match {
         case None => couponEventDate
-        case Some(d) =>
-          val callBaseDate = {
-            if (fixingOnCalculationEndDate) endDate
-            else paymentDate
-          }
-          callBaseDate.advance(fixingCalendar, -d, TimeUnit.Days)
+        case Some(notice) if inArrears || fixedDayOfMonth.isDefined || fixingOnCalculationEndDate =>
+          baseDate.advance(fixingCalendar, -notice, TimeUnit.Days)
+        case Some(notice) =>
+          paymentDate.advance(fixingCalendar, -notice, TimeUnit.Days)
+
+        //        case Some(notice) =>
+//          val callBaseDate = {
+//            if (fixingOnCalculationEndDate) endDate
+//            else paymentDate
+//          }
+//          callBaseDate.advance(fixingCalendar, -notice, TimeUnit.Days)
       }
   
       fixingAdjustmentCalendar match {
-        case Some(cals) => d.adjust(cals, fixingAdjustmentConvention)
-        case _ => d
+        case Some(cals) => callDate.adjust(cals, fixingAdjustmentConvention)
+        case _ => callDate
       }
     }
 
