@@ -461,7 +461,7 @@ class Bond(
 
   def getFixingPriceFromDb(ids:Set[String], dates:List[Date], isInitialFixing:Boolean) = DB.getFixings(ids, dates, fixingInformation, isInitialFixing)
 
-  def getSingleFixingPriceFromDb(id:String, date:Date, isInitialFixing:Boolean):Option[Double] = getFixingPriceFromDb(Set(id), List(maturityDate), false).head.get(id)
+  def getSingleFixingPriceFromDb(id:String, date:Date, isInitialFixing:Boolean):Option[Double] = getFixingPriceFromDb(Set(id), List(date), false).head.get(id)
 
   def settingsJson:ObjectNode = settings.objectNode.getOrElse((new ObjectMapper).createObjectNode)
 
