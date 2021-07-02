@@ -199,13 +199,13 @@ class Bond(
     settingMap.get("auto_id").collect{case d => d.toInt == 1}.getOrElse(false)
   } catch { case _:Throwable => false}
 
-  def redemptionFixingOnCoupon:Boolean = try {
-    settingMap.get("redemption_fixing_on_coupon").collect{case v => v.toInt == 1}.getOrElse(true)
-  } catch { case _:Throwable => true}
-
-  def callFixingOnCoupon:Boolean = try {
-    settingMap.get("call_fixing_on_coupon").collect{case v => v.toInt == 1}.getOrElse(true)
-  } catch { case _:Throwable => true}
+//  def redemptionFixingOnCoupon:Boolean = try {
+//    settingMap.get("redemption_fixing_on_coupon").collect{case v => v.toInt == 1}.getOrElse(true)
+//  } catch { case _:Throwable => true}
+//
+//  def callFixingOnCoupon:Boolean = try {
+//    settingMap.get("call_fixing_on_coupon").collect{case v => v.toInt == 1}.getOrElse(true)
+//  } catch { case _:Throwable => true}
 
   def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
 
@@ -364,8 +364,8 @@ class Bond(
         rule = DateGeneration.Rule.Backward,
         fixingInArrears = isFixingInArrears,
         couponNotice = couponNotice,
-        redemptionNotice = (if (redemptionFixingOnCoupon) None else Some(redemptionNotice)),
-        callNotice = (if (callFixingOnCoupon) None else Some(callNotice)),
+        redemptionNotice = Some(redemptionNotice), //(if (redemptionFixingOnCoupon) None else Some(redemptionNotice)),
+        callNotice = Some(callNotice), //(if (callFixingOnCoupon) None else Some(callNotice)),
         daycounter = daycounter,
         firstDate = firstPaymentDateAfter,
         nextToLastDate = lastRollDate,
