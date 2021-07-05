@@ -49,7 +49,7 @@ initialCommands := "import net.squantlib._"
 
 retrieveManaged := false
 
-lazy val jquantlib = RootProject(file("../jquantlib"))
+lazy val jquantlib = RootProject(file(sys.env.get("JQUANTLIB_HOME").getOrElse("../jquantlib")))
 
 lazy val squantlib = Project(id = "squantlib", base = file(".")).dependsOn(jquantlib)
 
