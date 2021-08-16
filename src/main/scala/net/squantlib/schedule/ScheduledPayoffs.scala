@@ -33,7 +33,12 @@ case class ScheduledPayoffs(
     s.nominal = p.nominal
   }
 
-  def isPriceable = payoffs.isPriceable && calls.isPriceable
+  lazy val isMaturityTooLong = {
+    val maxPriceableTo = Date.currentDate.addMonths(12 * 30)
+    scheduledPayoffs.exists{case (s, _, _) => s.eventDate >= maxPriceableTo}
+  }
+
+  def isPriceable = !isMaturityTooLong && payoffs.isPriceable && calls.isPriceable
 
   def trigCheckPayoff:ScheduledPayoffs = {
     val newcalls = calls.map(c => {

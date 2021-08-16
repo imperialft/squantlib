@@ -244,7 +244,9 @@ class Bond(
   def settlementDate = Date(settlement)
 
   def maturityDate = Date(maturity)
-  
+
+  def isPerpetual:Boolean = maturityDate.year >= 2500
+
   def fixingDate = fixingdate.collect{case d => Date(d)}
 
   def endDate:Date = terminationdate match {
