@@ -140,6 +140,12 @@ case class Callability(
     }
   }
 
+  def fixedCalled:Boolean = {
+    fixedTrigger == Some(true) ||
+    isIssuerCalled ||
+    fixedTriggerByTargetRedemption == Some(true)
+  }
+
   def eventDate(d:CalculationPeriod):List[Date] = {
     List(d.callEventDate)
   }

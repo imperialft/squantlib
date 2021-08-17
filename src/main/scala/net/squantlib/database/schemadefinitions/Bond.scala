@@ -257,7 +257,19 @@ class Bond(
   def isFixingInArrears = inarrears != Some(0)
   
   def couponNotice:Int = cpnnotice.getOrElse(5)
-  
+
+  def getJsonDateArray(s:String, fieldName:String):List[Option[Date]] = try {
+    val arr = s.jsonNode.collect{case node => node.asScala.toList.map(n => n.parseString(fieldName).flatMap{case s => Date.getDate(s)})}.getOrElse(List.empty)
+    if (arr.exists(_.isDefined)) arr
+    else List.empty
+  } catch {case e => List.empty}
+
+  def couponFixingDates:List[Option[Date]] = getJsonDateArray(coupon, "fixed_on")
+
+  def callFixingDates:List[Option[Date]] = getJsonDateArray(call, "fixed_on")
+
+  def callValueDates:List[Option[Date]] = getJsonDateArray(call, "value_on")
+
   def redemptionNotice:Int = redemnotice.getOrElse(couponNotice)
 
   def callNotice:Int = callnotice
@@ -346,8 +358,6 @@ class Bond(
     settingMap.get("fixing_on_enddate").collect { case d => d.toInt == 1 }.getOrElse(false)
   } catch { case _:Throwable => false}
 
-
-
   def fixingPageInformation:List[Map[String, String]] = fixing_page.jsonArray.map(jj => ExtendedJson(jj).parseStringFields)
 
   def schedule:Option[Schedule] = {
@@ -374,7 +384,10 @@ class Bond(
         addRedemption = true,
         fixedDayOfMonth = customFixingDayOfMonth,
         fixingOnCalculationEndDate = isFixingOnCalculationEndDate,
-        rollMonthEnd = isRollMonthEnd
+        rollMonthEnd = isRollMonthEnd,
+        couponFixingDates = couponFixingDates,
+        callFixingDates = callFixingDates,
+        callValueDates = callValueDates
       )
       if (schedule == null) None else Some(schedule)
     }

@@ -107,7 +107,7 @@ trait BondModel {
     earlyTerminationAmountFixed = v2
   }
   
-  lazy val earlyTerminationDate:Option[Date] = earlyTerminationPeriod.collect{case p => p.getPaymentDate}
+  lazy val earlyTerminationDate:Option[Date] = earlyTerminationPeriod.collect{case p => p.getCallValueDate}
   
   def isEarlyTerminatedOn(d:Date):Boolean = earlyTerminationDate.collect{case dd => d ge dd}.getOrElse(false)
     

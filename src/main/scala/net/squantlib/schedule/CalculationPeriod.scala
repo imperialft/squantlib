@@ -13,6 +13,7 @@ case class CalculationPeriod(
   startDate:Date,
   endDate:Date,
   paymentDate:Date,
+  callValueDate:Date,
   var daycounter:DayCounter,
   isFinalCoupon:Boolean,
   isRedemption: Boolean,
@@ -65,6 +66,10 @@ case class CalculationPeriod(
 
   def getPaymentDate:Date = getAdjustedPaymentDate.getOrElse(paymentDate)
 
+  def getCallValueDate:Date = getAdjustedPaymentDate.getOrElse(callValueDate)
+
+  def irregularCallValueDate:Boolean = callValueDate != paymentDate
+
   def getAdjustedPaymentDate:Option[Date] = adjustedPaymentDate
 
   def setAdjustedPaymentDate(d:Date) = {
@@ -84,7 +89,9 @@ case class CalculationPeriod(
 
 
   def dayCount:Double = Date.daycount(getStartDate, getEndDate, daycounter)
-	
+
+  def dayCountToCallValueDate:Double = Date.daycount(getStartDate, getAdjustedEndDate.getOrElse(callValueDate), daycounter)
+
   def isCurrentPeriod(ref:Date):Boolean = (ref ge startDate) && (ref lt endDate)
   
   def accrued(ref:Date):Double = if (isCurrentPeriod(ref)) Date.daycount(startDate, ref, daycounter) else 0.0
@@ -110,6 +117,7 @@ case class CalculationPeriod(
       startDate = startDate.add(shift),
       endDate = endDate.add(shift),
       paymentDate = paymentDate.add(shift),
+      callValueDate = callValueDate.add(shift),
       daycounter = daycounter,
       isFinalCoupon = isFinalCoupon,
       isRedemption = isRedemption,
@@ -125,9 +133,10 @@ case class CalculationPeriod(
     CalculationPeriod(
       eventDate = getEventDate,
       callEventDate = callEventDate,
-      startDate = getEndDate,
-      endDate = getEndDate,
-      paymentDate = getPaymentDate,
+      startDate = if (irregularCallValueDate) getCallValueDate else getEndDate,
+      endDate = if (irregularCallValueDate) getCallValueDate else getEndDate,
+      paymentDate = if (irregularCallValueDate) getCallValueDate else getPaymentDate,
+      callValueDate = callValueDate,
       daycounter = new Absolute,
       isFinalCoupon = false,
       isRedemption = true,
@@ -145,6 +154,9 @@ object CalculationPeriod {
     couponNotice:Int,
     callNotice:Option[Int],
     inArrears:Boolean,
+    couponFixingDate:Option[Date],
+    callFixingDate:Option[Date],
+    callValueDate:Option[Date],
     daycounter:DayCounter,
     fixingCalendar:Calendar,
     fixingAdjustmentCalendar:Option[Calendar],
@@ -182,35 +194,28 @@ object CalculationPeriod {
       case None => calculationDate
   	}
 
-    val couponEventDate = {
+    val couponEventDate:Date = couponFixingDate.getOrElse({
       val d = baseDate.advance(fixingCalendar, -couponNotice, TimeUnit.Days)
       fixingAdjustmentCalendar match {
         case Some(cals) => d.adjust(cals, fixingAdjustmentConvention)
         case _ => d
       }
-    }
+    })
 
-    val callEventDate = {
+    val callEventDate:Date = callFixingDate.getOrElse({
       val callDate = callNotice match {
         case None => couponEventDate
         case Some(notice) if inArrears || fixedDayOfMonth.isDefined || fixingOnCalculationEndDate =>
-          baseDate.advance(fixingCalendar, -notice, TimeUnit.Days)
+          callValueDate.getOrElse(baseDate).advance(fixingCalendar, -notice, TimeUnit.Days)
         case Some(notice) =>
-          paymentDate.advance(fixingCalendar, -notice, TimeUnit.Days)
-
-        //        case Some(notice) =>
-//          val callBaseDate = {
-//            if (fixingOnCalculationEndDate) endDate
-//            else paymentDate
-//          }
-//          callBaseDate.advance(fixingCalendar, -notice, TimeUnit.Days)
+          callValueDate.getOrElse(paymentDate).advance(fixingCalendar, -notice, TimeUnit.Days)
       }
   
       fixingAdjustmentCalendar match {
         case Some(cals) => callDate.adjust(cals, fixingAdjustmentConvention)
         case _ => callDate
       }
-    }
+    })
 
     new CalculationPeriod(
       eventDate = couponEventDate,
@@ -218,6 +223,7 @@ object CalculationPeriod {
       startDate = startDate,
       endDate = endDate,
       paymentDate = paymentDate,
+      callValueDate = callValueDate.getOrElse(paymentDate),
       daycounter = daycounter,
       isFinalCoupon = isFinalCoupon,
       isRedemption = isRedemption,
@@ -238,6 +244,9 @@ object CalculationPeriod {
       couponNotice = 0,
       callNotice = None,
       inArrears = false,
+      couponFixingDate = None,
+      callFixingDate = None,
+      callValueDate = None,
       daycounter = new Absolute,
       fixingCalendar = paymentCalendar,
       fixingAdjustmentCalendar = None,
