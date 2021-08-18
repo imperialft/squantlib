@@ -102,9 +102,6 @@ object Bond {
 
     val underlyings:List[String] = db.underlyingList
       
-//    val calls = Callabilities(db.call, underlyings, schedule.size)
-
-
     val calls = db.call.jsonNode match {
       case Some(formulaJson) if formulaJson.isArray =>
 

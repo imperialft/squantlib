@@ -19,7 +19,7 @@ class Schedule(
  
   def sort:Schedule = {
     if (isEmpty) this
-    else Schedule(dates.sortBy(_.eventDate))
+    else Schedule(dates.sortBy(_.endDate))
   }
 
   def sortWith[A](obj:LinearSeq[A]):LinearSeq[(CalculationPeriod, A)] = (dates zip obj).sortBy{case (d, _) => (d.paymentDate, d.dayCount)}
@@ -134,14 +134,48 @@ object Schedule{
     addRedemption:Boolean,
     fixedDayOfMonth:Option[Int],
     fixingOnCalculationEndDate:Boolean,
-    rollMonthEnd: Boolean
+    rollMonthEnd: Boolean,
+    couponFixingDates:List[Option[Date]],
+    callFixingDates:List[Option[Date]],
+    callValueDates:List[Option[Date]]
   ):Schedule = {
     
     assert(firstDate.isEmpty || firstDate.get.gt(effectiveDate))
     assert(nextToLastDate.isEmpty || nextToLastDate.get.lt(terminationDate))
     
     val nullCalendar = Calendars.empty
-    
+
+    var couponFixingDatesRec = couponFixingDates
+    var callFixingDatesRec = callFixingDates
+    var callValueDatesRec = callValueDates
+
+    def getCouponFixingDate:Option[Date] = {
+      if (couponFixingDatesRec.isEmpty) None
+      else {
+        val result = (if (rule != Forward) couponFixingDatesRec.last else couponFixingDatesRec.head)
+        couponFixingDatesRec = (if (rule != Forward) couponFixingDatesRec.init else couponFixingDatesRec.tail)
+        result
+      }
+    }
+
+    def getCallFixingDate:Option[Date] = {
+      if (callFixingDatesRec.isEmpty) None
+      else {
+        val result = (if (rule != Forward) callFixingDatesRec.last else callFixingDatesRec.head)
+        callFixingDatesRec = (if (rule != Forward) callFixingDatesRec.init else callFixingDatesRec.tail)
+        result
+      }
+    }
+
+    def getCallValueDate:Option[Date] = {
+      if (callValueDatesRec.isEmpty) None
+      else {
+        val result = (if (rule != Forward) callValueDatesRec.last else callValueDatesRec.head)
+        callValueDatesRec = (if (rule != Forward) callValueDatesRec.init else callValueDatesRec.tail)
+        result
+      }
+    }
+
     def getCalculationPeriod(
       startDate:Date,
       endDate:Date,
@@ -154,6 +188,9 @@ object Schedule{
         couponNotice = couponNotice,
         callNotice = callNotice,
         inArrears = fixingInArrears,
+        couponFixingDate = getCouponFixingDate,
+        callFixingDate = if(isFinalCoupon) None else getCallFixingDate,
+        callValueDate = if(isFinalCoupon) None else getCallValueDate,
         daycounter = daycounter,
         fixingCalendar = fixingCalendar,
         fixingAdjustmentCalendar = fixingAdjustmentCalendar,
@@ -175,6 +212,9 @@ object Schedule{
         couponNotice = redemptionNotice.getOrElse(couponNotice),
         callNotice = callNotice,
         inArrears = true,
+        couponFixingDate = None,
+        callFixingDate = None,
+        callValueDate = None,
         daycounter = new Absolute,
         fixingCalendar = fixingCalendar,
         fixingAdjustmentCalendar = fixingAdjustmentCalendar,
@@ -234,13 +274,19 @@ object Schedule{
               startDate = effectiveDate
             }
 
-            tempDates += getCalculationPeriod(if (startDate lt effectiveDate) effectiveDate else startDate, endDate, isFinalCoupon, false)
+            tempDates += getCalculationPeriod(
+              if (startDate lt effectiveDate) effectiveDate else startDate,
+              endDate,
+              isFinalCoupon,
+              false
+            )
+
             isFinalCoupon = false
 
             periods = periods + 1
           } while (startDate gt effectiveDate)
 
-          tempDates.sortBy(_.eventDate).toList
+          tempDates.sortBy(_.endDate).toList
   
         case Forward =>
           var tempDates:MutableList[CalculationPeriod] = MutableList.empty
@@ -266,25 +312,15 @@ object Schedule{
 
             tempDates += {
               if (endDate ge terminationDate) {
-                getCalculationPeriod(
-                  startDate,
-                  terminationDate,
-                  true,
-                  false
-                )
+                getCalculationPeriod(startDate, terminationDate, true, false)
               } else {
-                getCalculationPeriod(
-                  startDate,
-                  endDate,
-                  false,
-                  false
-                )
+                getCalculationPeriod(startDate, endDate, false, false)
               }
             }
             periods = periods + 1
           } while (endDate lt terminationDate)
             
-          tempDates.sortBy(_.eventDate).toList
+          tempDates.sortBy(_.endDate).toList
   
         case _ => 
           errorOutput("Unknown schedule rule")
@@ -316,7 +352,10 @@ object Schedule{
     addRedemption:Boolean,
     fixedDayOfMonth:Option[Int],
     fixingOnCalculationEndDate:Boolean,
-    rollMonthEnd: Boolean
+    rollMonthEnd: Boolean,
+    couponFixingDates:List[Option[Date]],
+    callFixingDates:List[Option[Date]],
+    callValueDates:List[Option[Date]]
   ):Schedule = {
     apply(
       effectiveDate = Date(effectiveDate),
@@ -340,7 +379,10 @@ object Schedule{
       addRedemption = addRedemption,
       fixedDayOfMonth = fixedDayOfMonth,
       fixingOnCalculationEndDate = fixingOnCalculationEndDate,
-      rollMonthEnd = rollMonthEnd
+      rollMonthEnd = rollMonthEnd,
+      couponFixingDates = couponFixingDates,
+      callFixingDates = callFixingDates,
+      callValueDates = callValueDates
     )
   }
 
