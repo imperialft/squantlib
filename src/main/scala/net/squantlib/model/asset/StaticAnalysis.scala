@@ -6,7 +6,7 @@ import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import net.squantlib.util.initializer.Calendars
-import net.squantlib.util.ql.Calendar
+import net.squantlib.util.ql.time.Calendar
 
 
 trait StaticAnalysis {

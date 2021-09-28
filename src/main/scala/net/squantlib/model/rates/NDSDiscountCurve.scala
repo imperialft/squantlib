@@ -2,7 +2,7 @@ package net.squantlib.model.rates
 
 import scala.collection.immutable.{TreeMap, SortedSet}
 import net.squantlib.model.yieldparameter.{FlatVector, YieldParameter, SplineEExtrapolation, SplineNoExtrapolation, LinearNoExtrapolation}
-import net.squantlib.util.ql.{Period => qlPeriod, TimeUnit}
+import net.squantlib.util.ql.time.{Period => qlPeriod, TimeUnit}
 import net.squantlib.util.ql.daycounters.DayCounter;
 import net.squantlib.model.rates.convention.RateConvention
 import net.squantlib.util.Date

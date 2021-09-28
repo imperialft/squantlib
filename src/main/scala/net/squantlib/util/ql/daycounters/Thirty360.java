@@ -26,7 +26,7 @@ import net.squantlib.util.ql.lang.annotation.QualityAssurance;
 import net.squantlib.util.ql.lang.annotation.QualityAssurance.Quality;
 import net.squantlib.util.ql.lang.annotation.QualityAssurance.Version;
 import net.squantlib.util.ql.lang.exceptions.LibraryException;
-import net.squantlib.util.ql.Date;
+import net.squantlib.util.ql.time.Date;
 
 /**
  * 30/360 day count convention
@@ -48,176 +48,192 @@ import net.squantlib.util.ql.Date;
  * Italian convention: starting dates or ending dates that occur on February and
  * are grater than 27 become equal to 30 for computational sake.
  *
- * @see <a href="http://en.wikipedia.org/wiki/Day_count_convention">Day count convention</a>
- *
  * @author Srinivas Hasti
  * @author Richard Gomes
+ * @see <a href="http://en.wikipedia.org/wiki/Day_count_convention">Day count convention</a>
  */
-@QualityAssurance(quality=Quality.Q4_UNIT, version=Version.V097, reviewers="Richard Gomes")
+@QualityAssurance(quality = Quality.Q4_UNIT, version = Version.V097, reviewers = "Richard Gomes")
 public class Thirty360 extends DayCounter {
 
-    /**
-     * 30/360 Calendar Conventions
-     */
-    public enum Convention {
-        USA, BondBasis,
-        European, EurobondBasis,
-        Italian;
+  /**
+   * 30/360 Calendar Conventions
+   */
+  public enum Convention {
+    USA, BondBasis,
+    European, EurobondBasis,
+    Italian;
+  }
+
+
+  //
+  // public constructors
+  //
+
+  public Thirty360() {
+    this(Convention.BondBasis);
+  }
+
+  public Thirty360(final Thirty360.Convention c) {
+    switch (c) {
+      case USA:
+      case BondBasis:
+        super.impl = new Impl_US();
+        break;
+      case European:
+      case EurobondBasis:
+        super.impl = new Impl_EU();
+        break;
+      case Italian:
+        super.impl = new Impl_IT();
+        break;
+      default:
+        throw new LibraryException("unknown 30/360 convention"); // TODO: message
+    }
+  }
+
+
+  //
+  // private inner classes
+  //
+
+  /**
+   * Implementation of Thirty360 class abstraction according to US convention
+   *
+   * @author Richard Gomes
+   * @see <a href="http://en.wikipedia.org/wiki/Bridge_pattern">Bridge pattern</a>
+   */
+  private final class Impl_US extends DayCounter.Impl {
+
+    @Override
+    public final String name() /* @ReadOnly */ {
+      return "30/360 (Bond Basis)";
     }
 
+    @Override
+    protected long dayCount(
+      final Date d1,
+      final Date d2
+    ) /* @ReadOnly */ {
+      final int dd1 = d1.dayOfMonth();
+      int dd2 = d2.dayOfMonth();
+      final int mm1 = d1.month().value();
+      int mm2 = d2.month().value();
+      final int yy1 = d1.year();
+      final int yy2 = d2.year();
 
-    //
-    // public constructors
-    //
+      if (dd2 == 31 && dd1 < 30) {
+        dd2 = 1;
+        mm2++;
+      }
 
-    public Thirty360() {
-        this(Convention.BondBasis);
+      return 360 * (yy2 - yy1) + 30 * (mm2 - mm1 - 1) + Math.max(0, 30 - dd1) + Math.min(30, dd2);
     }
 
-    public Thirty360(final Thirty360.Convention c) {
-        switch (c) {
-            case USA:
-            case BondBasis:
-                super.impl = new Impl_US();
-                break;
-            case European:
-            case EurobondBasis:
-                super.impl = new Impl_EU();
-                break;
-            case Italian:
-                super.impl = new Impl_IT();
-                break;
-            default:
-                throw new LibraryException("unknown 30/360 convention"); // TODO: message
-        }
+    @Override
+    public /*@Time*/ final double yearFraction(
+      final Date dateStart,
+      final Date dateEnd,
+      final Date refPeriodStart,
+      final Date refPeriodEnd
+    ) /* @ReadOnly */ {
+      return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
     }
 
+  }
 
-    //
-    // private inner classes
-    //
+  //
+  // annual daycount (est)
+  //
 
-    /**
-     * Implementation of Thirty360 class abstraction according to US convention
-     *
-     * @see <a href="http://en.wikipedia.org/wiki/Bridge_pattern">Bridge pattern</a>
-     *
-     * @author Richard Gomes
-     */
-    private final class Impl_US extends DayCounter.Impl {
+  public double annualDayCount() {
+    return 1.00;
+  }
 
-        @Override
-        public final String name() /* @ReadOnly */{
-            return "30/360 (Bond Basis)";
-        }
+  /**
+   * Implementation of Thirty360 class abstraction according to European convention
+   *
+   * @author Richard Gomes
+   * @see <a href="http://en.wikipedia.org/wiki/Bridge_pattern">Bridge pattern</a>
+   */
+  private final class Impl_EU extends DayCounter.Impl {
 
-        @Override
-        protected long dayCount(final Date d1, final Date d2) /* @ReadOnly */ {
-            final int dd1 = d1.dayOfMonth();
-            int dd2 = d2.dayOfMonth();
-            final int mm1 = d1.month().value();
-            int mm2 = d2.month().value();
-            final int yy1 = d1.year();
-            final int yy2 = d2.year();
-
-            if (dd2 == 31 && dd1 < 30) { dd2 = 1; mm2++; }
-
-            return 360*(yy2-yy1) + 30*(mm2-mm1-1) + Math.max(0, 30-dd1) + Math.min(30, dd2);
-        }
-
-        @Override
-        public /*@Time*/ final double yearFraction(
-                final Date dateStart, final Date dateEnd,
-                final Date refPeriodStart, final Date refPeriodEnd) /* @ReadOnly */{
-            return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
-        }
-
+    @Override
+    public final String name() /* @ReadOnly */ {
+      return "30E/360 (Eurobond Basis)";
     }
 
-    //
-    // annual daycount (est)
-    //
-    
-    public double annualDayCount()
-    {
-    	return 1.00;
+    @Override
+    public /*@Time*/ final double yearFraction(
+      final Date dateStart,
+      final Date dateEnd,
+      final Date refPeriodStart,
+      final Date refPeriodEnd
+    ) /* @ReadOnly */ {
+      return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
     }
 
-    /**
-     * Implementation of Thirty360 class abstraction according to European convention
-     *
-     * @see <a href="http://en.wikipedia.org/wiki/Bridge_pattern">Bridge pattern</a>
-     *
-     * @author Richard Gomes
-     */
-    private final class Impl_EU extends DayCounter.Impl {
+    @Override
+    protected long dayCount(
+      final Date d1,
+      final Date d2
+    ) /* @ReadOnly */ {
+      final int dd1 = d1.dayOfMonth();
+      final int dd2 = d2.dayOfMonth();
+      final int mm1 = d1.month().value();
+      final int mm2 = d2.month().value();
+      final int yy1 = d1.year();
+      final int yy2 = d2.year();
 
-        @Override
-        public final String name() /* @ReadOnly */{
-            return "30E/360 (Eurobond Basis)";
-        }
-
-        @Override
-        public /*@Time*/ final double yearFraction(
-                final Date dateStart, final Date dateEnd,
-                final Date refPeriodStart, final Date refPeriodEnd) /* @ReadOnly */{
-            return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
-        }
-
-        @Override
-        protected long dayCount(final Date d1, final Date d2) /* @ReadOnly */ {
-            final int dd1 = d1.dayOfMonth();
-            final int dd2 = d2.dayOfMonth();
-            final int mm1 = d1.month().value();
-            final int mm2 = d2.month().value();
-            final int yy1 = d1.year();
-            final int yy2 = d2.year();
-
-            return 360*(yy2-yy1) + 30*(mm2-mm1-1) + Math.max(0, 30-dd1) + Math.min(30, dd2);
-        }
-
+      return 360 * (yy2 - yy1) + 30 * (mm2 - mm1 - 1) + Math.max(0, 30 - dd1) + Math.min(30, dd2);
     }
 
-    /**
-     * Implementation of Thirty360 class abstraction according to Italian convention
-     *
-     * @see <a href="http://en.wikipedia.org/wiki/Bridge_pattern">Bridge pattern</a>
-     *
-     * @author Richard Gomes
-     */
-    private final class Impl_IT extends DayCounter.Impl {
+  }
 
-        @Override
-        protected final String name() /* @ReadOnly */{
-            return "30/360 (Italian)";
-        }
+  /**
+   * Implementation of Thirty360 class abstraction according to Italian convention
+   *
+   * @author Richard Gomes
+   * @see <a href="http://en.wikipedia.org/wiki/Bridge_pattern">Bridge pattern</a>
+   */
+  private final class Impl_IT extends DayCounter.Impl {
 
-        @Override
-        public /*@Time*/ final double yearFraction(
-                final Date dateStart, final Date dateEnd,
-                final Date refPeriodStart, final Date refPeriodEnd) /* @ReadOnly */{
-            return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
-        }
-
-        @Override
-        protected long dayCount(final Date d1, final Date d2) /* @ReadOnly */ {
-            int dd1 = d1.dayOfMonth();
-            int dd2 = d2.dayOfMonth();
-            final int mm1 = d1.month().value();
-            final int mm2 = d2.month().value();
-            final int yy1 = d1.year();
-            final int yy2 = d2.year();
-
-            if (mm1 == 2 && dd1 > 27) {
-                dd1 = 30;
-            }
-            if (mm2 == 2 && dd2 > 27) {
-                dd2 = 30;
-            }
-
-            return 360*(yy2-yy1) + 30*(mm2-mm1-1) + Math.max(0, 30-dd1) + Math.min(30, dd2);
-        }
-
+    @Override
+    protected final String name() /* @ReadOnly */ {
+      return "30/360 (Italian)";
     }
+
+    @Override
+    public /*@Time*/ final double yearFraction(
+      final Date dateStart,
+      final Date dateEnd,
+      final Date refPeriodStart,
+      final Date refPeriodEnd
+    ) /* @ReadOnly */ {
+      return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
+    }
+
+    @Override
+    protected long dayCount(
+      final Date d1,
+      final Date d2
+    ) /* @ReadOnly */ {
+      int dd1 = d1.dayOfMonth();
+      int dd2 = d2.dayOfMonth();
+      final int mm1 = d1.month().value();
+      final int mm2 = d2.month().value();
+      final int yy1 = d1.year();
+      final int yy2 = d2.year();
+
+      if (mm1 == 2 && dd1 > 27) {
+        dd1 = 30;
+      }
+      if (mm2 == 2 && dd2 > 27) {
+        dd2 = 30;
+      }
+
+      return 360 * (yy2 - yy1) + 30 * (mm2 - mm1 - 1) + Math.max(0, 30 - dd1) + Math.min(30, dd2);
+    }
+
+  }
 
 }

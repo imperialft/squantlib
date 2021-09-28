@@ -44,14 +44,14 @@ import net.squantlib.util.ql.currencies.Europe.EURCurrency;
 import net.squantlib.util.ql.daycounters.DayCounter;
 import net.squantlib.util.ql.indexes.IborIndex;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Calendar;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.TimeUnit;
-import net.squantlib.util.ql.calendars.JointCalendar;
-import net.squantlib.util.ql.calendars.JointCalendar.JointCalendarRule;
-import net.squantlib.util.ql.calendars.Target;
-import net.squantlib.util.ql.calendars.UnitedKingdom;
-import net.squantlib.util.ql.calendars.UnitedKingdom.Market;
+import net.squantlib.util.ql.time.Calendar;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.TimeUnit;
+import net.squantlib.util.ql.time.calendars.JointCalendar;
+import net.squantlib.util.ql.time.calendars.JointCalendar.JointCalendarRule;
+import net.squantlib.util.ql.time.calendars.Target;
+import net.squantlib.util.ql.time.calendars.UnitedKingdom;
+import net.squantlib.util.ql.time.calendars.UnitedKingdom.Market;
 
 /**
  * base class for all BBA LIBOR indexes but the EUR, O/N, and S/N ones

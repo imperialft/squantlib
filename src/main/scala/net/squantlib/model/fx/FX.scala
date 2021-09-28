@@ -6,7 +6,7 @@ import net.squantlib.util.Date
 import net.squantlib.util.initializer.Calendars
 import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.util.ql.daycounters.DayCounter
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 
 /**
  * Basic FX framework providing spot, forward and volatility

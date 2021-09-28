@@ -25,36 +25,38 @@ import net.squantlib.util.ql.QL;
 import net.squantlib.util.ql.currencies.Europe.EURCurrency;
 import net.squantlib.util.ql.daycounters.Actual360;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.TimeUnit;
-import net.squantlib.util.ql.calendars.Target;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.TimeUnit;
+import net.squantlib.util.ql.time.calendars.Target;
 
 /**
  * Euribor index
  * <p>
  * Euribor rate fixed by the ECB.
  *
- * @note This is the rate fixed by the ECB. Use EurLibor if you're interested in the London fixing by BBA.
- *
  * @author Srinivas Hasti
+ * @note This is the rate fixed by the ECB. Use EurLibor if you're interested in the London fixing by BBA.
  */
 public class Euribor extends IborIndex {
 
-    public Euribor(final Period tenor) {
-    	this(tenor, null);
-    }
-	
-    public Euribor(final Period tenor, final YieldTermStructure h) {
-        super("Euribor",
-                tenor,
-                2, // settlement days
-                new EURCurrency(),
-                new Target(),
-                euriborConvention(tenor),
-                euriborEOM(tenor),
-                new Actual360(),
-                h);
-        QL.require(tenor().units() != TimeUnit.Days , "for daily tenors dedicated DailyTenor constructor must be used");
-    }
+  public Euribor(final Period tenor) {
+    this(tenor, null);
+  }
+
+  public Euribor(
+    final Period tenor,
+    final YieldTermStructure h
+  ) {
+    super("Euribor",
+      tenor,
+      2, // settlement days
+      new EURCurrency(),
+      new Target(),
+      euriborConvention(tenor),
+      euriborEOM(tenor),
+      new Actual360(),
+      h);
+    QL.require(tenor().units() != TimeUnit.Days, "for daily tenors dedicated DailyTenor constructor must be used");
+  }
 
 }

@@ -2,7 +2,7 @@ package net.squantlib.model.rates
 
 import net.squantlib.model.yieldparameter.YieldParameter
 import net.squantlib.util.ql.indexes.IborIndex
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.model.yieldparameter._
 import net.squantlib.util.Date
 import net.squantlib.model.rates.convention.RateConvention

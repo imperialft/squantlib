@@ -44,45 +44,48 @@ import net.squantlib.util.ql.daycounters.Actual360;
 import net.squantlib.util.ql.indexes.IborIndex;
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.BusinessDayConvention;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.calendars.Canada;
+import net.squantlib.util.ql.time.BusinessDayConvention;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.calendars.Canada;
 
 /**
  * Canadian Dollar Offered Rate fixed by IDA
  * See <http://www.bba.org.uk/bba/jsp/polopoly.jsp?d=225&a=1414>.
- * This is the rate fixed in Canada by IDA. 
+ * This is the rate fixed in Canada by IDA.
  * Use CADLibor if you're interested in the London fixing by BBA.
- *        
+ * <p>
  * TODO check settlement days, end-of-month adjustment, and day-count convention.
  */
 public class Cdor extends IborIndex {
 
-	public Cdor(final Period tenor) {
-		this(tenor, 
-						new AbstractYieldTermStructure() {
-							@Override
-							protected double discountImpl(final double t) {
-								throw new UnsupportedOperationException();
-							}
-							@Override
-							public Date maxDate() {
-								throw new UnsupportedOperationException();
-							}
-						}
-				);
-	}
+  public Cdor(final Period tenor) {
+    this(tenor,
+      new AbstractYieldTermStructure() {
+        @Override
+        protected double discountImpl(final double t) {
+          throw new UnsupportedOperationException();
+        }
 
-	public Cdor(final Period tenor,
-			final YieldTermStructure h) {
-		super("CDOR", tenor, 2,
-				new CADCurrency(),
-				new Canada(),
-				BusinessDayConvention.ModifiedFollowing,
-				false,
-				new Actual360(), 
-				h);
-	}
+        @Override
+        public Date maxDate() {
+          throw new UnsupportedOperationException();
+        }
+      }
+    );
+  }
+
+  public Cdor(
+    final Period tenor,
+    final YieldTermStructure h
+  ) {
+    super("CDOR", tenor, 2,
+      new CADCurrency(),
+      new Canada(),
+      BusinessDayConvention.ModifiedFollowing,
+      false,
+      new Actual360(),
+      h);
+  }
 
 }

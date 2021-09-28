@@ -1,7 +1,7 @@
 package net.squantlib.model.yieldparameter
 
 import scala.collection.immutable.SortedMap
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import org.apache.commons.math3.analysis.interpolation._
 import org.apache.commons.math3.analysis.function.{Log, Exp}
 import net.squantlib.util.Date

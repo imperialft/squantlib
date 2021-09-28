@@ -1,6 +1,6 @@
 package net.squantlib.model.rates.convention
 
-import net.squantlib.util.ql.Period
+import net.squantlib.util.ql.time.Period
 import net.squantlib.util.ql.daycounters._
 import net.squantlib.util.ql.currencies.America.MXNCurrency
 

@@ -43,9 +43,9 @@ import net.squantlib.util.ql.currencies.Europe.CHFCurrency;
 import net.squantlib.util.ql.daycounters.Actual360;
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.calendars.Switzerland;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.calendars.Switzerland;
 
 /**
  * base class for all BBA LIBOR indexes but the EUR, O/N, and S/N ones
@@ -56,27 +56,30 @@ import net.squantlib.util.ql.calendars.Switzerland;
  */
 public class CHFLibor extends Libor {
 
-	public CHFLibor(final Period tenor) {
-		this(tenor, 
-						new AbstractYieldTermStructure() {
-							@Override
-							protected double discountImpl(final double t) {
-								throw new UnsupportedOperationException();
-							}
-							@Override
-							public Date maxDate() {
-								throw new UnsupportedOperationException();
-							}
-						}
-				);
-	}
+  public CHFLibor(final Period tenor) {
+    this(tenor,
+      new AbstractYieldTermStructure() {
+        @Override
+        protected double discountImpl(final double t) {
+          throw new UnsupportedOperationException();
+        }
 
-	public CHFLibor(final Period tenor,
-			final YieldTermStructure h) {
-		super("CHFLibor", tenor, 2,
-				new CHFCurrency(),
-				new Switzerland(),
-				new Actual360(), h);
-	}
+        @Override
+        public Date maxDate() {
+          throw new UnsupportedOperationException();
+        }
+      }
+    );
+  }
+
+  public CHFLibor(
+    final Period tenor,
+    final YieldTermStructure h
+  ) {
+    super("CHFLibor", tenor, 2,
+      new CHFCurrency(),
+      new Switzerland(),
+      new Actual360(), h);
+  }
 
 }

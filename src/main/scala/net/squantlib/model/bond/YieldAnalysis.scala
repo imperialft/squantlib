@@ -1,6 +1,6 @@
 package net.squantlib.model.bond
 
-import net.squantlib.util.ql.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
+import net.squantlib.util.ql.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
 import net.squantlib.util.ql.termstructures.Compounding
 import net.squantlib.util.ql.daycounters.{Actual365Fixed, DayCounter}
 import net.squantlib.math.financial.{BondYield, Duration}

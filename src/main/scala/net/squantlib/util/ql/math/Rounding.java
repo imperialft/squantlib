@@ -30,185 +30,217 @@ import net.squantlib.util.ql.lang.exceptions.LibraryException;
  */
 public class Rounding {
 
-    private int precision_;
-    public Type type_;
-    private int digit_;
+  private int precision_;
+  public Type type_;
+  private int digit_;
+
+  /**
+   * The rounding methods follow the OMG specification available at ftp://ftp.omg.org/pub/docs/formal/00-06-29.pdf
+   * <p>
+   * Warning the names of the Floor and Ceiling methods might be misleading. Check the provided reference.
+   */
+  public enum Type {
+    /**
+     * Do not round: return the number unmodified
+     */
+    None,
 
     /**
-     * The rounding methods follow the OMG specification available at ftp://ftp.omg.org/pub/docs/formal/00-06-29.pdf
-     *<p>
-     * Warning the names of the Floor and Ceiling methods might be misleading. Check the provided reference.
+     * The first decimal place past the precision will be rounded up. This differs from the OMG rule which rounds up only
+     * if the decimal to be rounded is greater than or equal to the rounding digit
      */
-    public enum Type {
-        /**
-         * Do not round: return the number unmodified
-         */
-        None,
-
-        /**
-         * The first decimal place past the precision will be rounded up. This differs from the OMG rule which rounds up only
-         * if the decimal to be rounded is greater than or equal to the rounding digit
-         */
-        Up,
-
-        /**
-         *  All decimal places past the precision will be truncated
-         */
-        Down,
-
-        /**
-         * The first decimal place past the precision will be rounded up if greater than or equal to the rounding digit;
-         * this corresponds to the OMG round-up rule. When the rounding digit is 5, the result will be the one closest to
-         * the original number, hence the name.
-         */
-        Closest,
-
-        /**
-         * Positive numbers will be rounded up and negative numbers will be rounded down using the OMG round up and round
-         * down rules
-         */
-        Floor,
-
-        /**
-         * Positive numbers will be rounded down and negative numbers will be rounded up using the OMG round up and round down
-         * rules
-         */
-        Ceiling
-    };
-
+    Up,
 
     /**
-     *  Instances built through this constructor don't perform any rounding.
+     * All decimal places past the precision will be truncated
      */
-    public Rounding() {
-        this.type_ = Type.None;
-    }
+    Down,
 
-    public Rounding(final int precision) {
-        this(precision, Type.Closest, 5);
-    }
+    /**
+     * The first decimal place past the precision will be rounded up if greater than or equal to the rounding digit;
+     * this corresponds to the OMG round-up rule. When the rounding digit is 5, the result will be the one closest to
+     * the original number, hence the name.
+     */
+    Closest,
 
-    public Rounding(final int precision, final Type type /* = Closest */, final int digit /* = 5 */) {
+    /**
+     * Positive numbers will be rounded up and negative numbers will be rounded down using the OMG round up and round
+     * down rules
+     */
+    Floor,
 
-        this.precision_ = (precision);
-        this.type_ = (type);
-        this.digit_ = (digit);
-    }
+    /**
+     * Positive numbers will be rounded down and negative numbers will be rounded up using the OMG round up and round down
+     * rules
+     */
+    Ceiling
+  }
 
-    public int precision() {
-        return precision_;
-    }
-
-    public Type type() {
-        return type_;
-    }
-
-    public int roundingDigit() {
-        return digit_;
-    }
+  ;
 
 
-    final public /*Decimal*/ double operator(/*Decimal*/final double value)  {
+  /**
+   * Instances built through this constructor don't perform any rounding.
+   */
+  public Rounding() {
+    this.type_ = Type.None;
+  }
 
-        if (type_ == Rounding.Type.None)
-            return value;
+  public Rounding(final int precision) {
+    this(precision, Type.Closest, 5);
+  }
 
-        /*Real*/ final double mult = Math.pow(10.0,precision_);
-        final boolean neg = (value < 0.0);
-        /*Real*/ double lvalue = Math.abs(value)*mult;
-        /*Real*/ final double integral = ((int)lvalue);
-        /*Real*/ final double modVal = (lvalue-(int)lvalue );
-        lvalue -= modVal;
-        switch (type_) {
-          case Down:
-            break;
-          case Up:
+  public Rounding(
+    final int precision,
+    final Type type /* = Closest */,
+    final int digit /* = 5 */
+  ) {
+
+    this.precision_ = (precision);
+    this.type_ = (type);
+    this.digit_ = (digit);
+  }
+
+  public int precision() {
+    return precision_;
+  }
+
+  public Type type() {
+    return type_;
+  }
+
+  public int roundingDigit() {
+    return digit_;
+  }
+
+
+  final public /*Decimal*/ double operator(/*Decimal*/final double value) {
+
+    if (type_ == Rounding.Type.None)
+      return value;
+
+    /*Real*/
+    final double mult = Math.pow(10.0, precision_);
+    final boolean neg = (value < 0.0);
+    /*Real*/
+    double lvalue = Math.abs(value) * mult;
+    /*Real*/
+    final double integral = ((int) lvalue);
+    /*Real*/
+    final double modVal = (lvalue - (int) lvalue);
+    lvalue -= modVal;
+    switch (type_) {
+      case Down:
+        break;
+      case Up:
+        lvalue += 1.0;
+        break;
+      case Closest:
+        if (modVal >= (digit_ / 10.0)) {
+          lvalue += 1.0;
+        }
+        break;
+      case Floor:
+        if (!neg) {
+          if (modVal >= (digit_ / 10.0)) {
             lvalue += 1.0;
-            break;
-          case Closest:
-            if (modVal >= (digit_/10.0)){
-                lvalue += 1.0;
-            }
-            break;
-          case Floor:
-            if (!neg) {
-                if (modVal >= (digit_/10.0)){
-                    lvalue += 1.0;
-                }
-            }
-            break;
-          case Ceiling:
-            if (neg) {
-                if (modVal >= (digit_/10.0)) {
-                    lvalue += 1.0;
-                }
-            }
-            break;
-          default:
-            throw new LibraryException("unknown rounding method"); // TODO: message
+          }
         }
-        return (neg) ? -(lvalue/mult) : lvalue/mult;
+        break;
+      case Ceiling:
+        if (neg) {
+          if (modVal >= (digit_ / 10.0)) {
+            lvalue += 1.0;
+          }
+        }
+        break;
+      default:
+        throw new LibraryException("unknown rounding method"); // TODO: message
+    }
+    return (neg) ? -(lvalue / mult) : lvalue / mult;
+  }
+
+
+  // Up-rounding.
+  public static class UpRounding extends Rounding {
+    public UpRounding(final int precision) {
+      this(precision, 5);
     }
 
+    public UpRounding(
+      final int precision,
+      final int digit
+    ) {
+      super(precision, Type.Up, digit);
+    }
+  }
+
+  ;
+
+  // Down-rounding.
+  public static class DownRounding extends Rounding {
+    public DownRounding(final int precision) {
+      this(precision, 5);
+    }
+
+    public DownRounding(
+      final int precision,
+      final int digit
+    ) {
+      super(precision, Type.Down, digit);
+    }
+  }
+
+  ;
+
+  // Closest rounding.
+  public static class ClosestRounding extends Rounding {
+    public ClosestRounding(final int precision) {
+      this(precision, 5);
+    }
+
+    public ClosestRounding(
+      final int precision,
+      final int digit
+    ) {
+      super(precision, Type.Closest, digit);
+    }
+  }
+
+  ;
+
+  // Ceiling truncation.
+  public static class CeilingTruncation extends Rounding {
+    public CeilingTruncation(final int precision) {
+      this(precision, 5);
+    }
+
+    public CeilingTruncation(
+      final int precision,
+      final int digit
+    ) {
+      super(precision, Type.Ceiling, digit);
+    }
+  }
+
+  ;
 
 
+  // Floor truncation.
+  public static class FloorTruncation extends Rounding {
+    public FloorTruncation(final int precision) {
+      this(precision, 5);
+    }
 
+    public FloorTruncation(
+      final int precision,
+      final int digit
+    ) {
+      super(precision, Type.Floor, digit);
+    }
+  }
 
-    // Up-rounding.
-    public static class UpRounding extends Rounding {
-        public UpRounding(final int precision) {
-            this(precision, 5);
-        }
-
-        public UpRounding(final int precision, final int digit) {
-            super(precision, Type.Up, digit);
-        }
-    };
-
-    // Down-rounding.
-    public static class DownRounding extends Rounding {
-        public DownRounding(final int precision) {
-            this(precision, 5);
-        }
-
-        public DownRounding(final int precision, final int digit) {
-            super(precision, Type.Down, digit);
-        }
-    };
-
-    // Closest rounding.
-    public static class ClosestRounding extends Rounding {
-        public ClosestRounding(final int precision) {
-            this(precision, 5);
-        }
-
-        public ClosestRounding(final int precision, final int digit) {
-            super(precision, Type.Closest, digit);
-        }
-    };
-
-    // Ceiling truncation.
-    public static class CeilingTruncation extends Rounding {
-        public CeilingTruncation(final int precision) {
-            this(precision, 5);
-        }
-
-        public CeilingTruncation(final int precision, final int digit) {
-            super(precision, Type.Ceiling, digit);
-        }
-    };
-
-
-    // Floor truncation.
-    public static class FloorTruncation extends Rounding {
-        public FloorTruncation(final int precision) {
-            this(precision, 5);
-        }
-
-        public FloorTruncation(final int precision, final int digit) {
-            super(precision, Type.Floor, digit);
-        }
-    };
+  ;
 
 }
 

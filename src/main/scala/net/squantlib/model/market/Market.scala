@@ -10,7 +10,7 @@ import net.squantlib.model.equity._
 import net.squantlib.util.Date
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.ql.currencies.Currency
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.model.index.IndexInitializer
 import net.squantlib.util.{UnderlyingParser, UnderlyingParsers}
 import net.squantlib.model.asset.Underlying

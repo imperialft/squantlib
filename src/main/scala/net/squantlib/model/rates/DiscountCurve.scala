@@ -9,7 +9,7 @@ import net.squantlib.model.rates.convention.RateConvention
 //import org.jquantlib.instruments
 import net.squantlib.util.ql.daycounters.{DayCounter, Thirty360, Actual365Fixed}
 import net.squantlib.util.ql.currencies.Currency
-import net.squantlib.util.ql.{Calendar, Period => qlPeriod, Frequency, BusinessDayConvention}
+import net.squantlib.util.ql.time.{Calendar, Period => qlPeriod, Frequency, BusinessDayConvention}
 import java.lang.UnsupportedOperationException
 
 /**

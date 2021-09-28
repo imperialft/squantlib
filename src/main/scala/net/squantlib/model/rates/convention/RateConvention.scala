@@ -5,7 +5,7 @@ import net.squantlib.util.ql.currencies.America.USDCurrency
 import net.squantlib.util.ql.indexes.IborIndex
 import net.squantlib.util.ql.indexes.ibor.USDLibor
 import net.squantlib.util.ql.daycounters.DayCounter
-import net.squantlib.util.ql.{Period => qlPeriod, TimeUnit, Frequency}
+import net.squantlib.util.ql.time.{Period => qlPeriod, TimeUnit, Frequency}
 
 /**
  * Currency specific discount curve calibration.

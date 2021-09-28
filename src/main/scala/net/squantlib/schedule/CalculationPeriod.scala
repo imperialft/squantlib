@@ -4,8 +4,8 @@ import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.util.ql.daycounters._
 import net.squantlib.util.Date
 import net.squantlib.util.ql.daycounters.DayCounter
-import net.squantlib.util.ql.{Calendar, BusinessDayConvention, TimeUnit}
-import net.squantlib.util.ql.calendars.NullCalendar
+import net.squantlib.util.ql.time.{Calendar, BusinessDayConvention, TimeUnit}
+import net.squantlib.util.ql.time.calendars.NullCalendar
 
 case class CalculationPeriod(
   eventDate:Date,

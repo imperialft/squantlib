@@ -5,43 +5,46 @@ import net.squantlib.util.ql.daycounters.Actual365Fixed;
 import net.squantlib.util.ql.indexes.IborIndex;
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.BusinessDayConvention;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.calendars.NewZealand;
+import net.squantlib.util.ql.time.BusinessDayConvention;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.calendars.NewZealand;
 
 /**
  * New Zealand Dollar bank bill rate published by NZFMA.
  * See <http://www.nzfma.org>.
- *        
+ * <p>
  * TODO check settlement days, end-of-month adjustment, and day-count convention.
  */
 public class BKBM extends IborIndex {
 
-	public BKBM(final Period tenor) {
-		this(tenor, 
-						new AbstractYieldTermStructure() {
-							@Override
-							protected double discountImpl(final double t) {
-								throw new UnsupportedOperationException();
-							}
-							@Override
-							public Date maxDate() {
-								throw new UnsupportedOperationException();
-							}
-						}
-				);
-	}
+  public BKBM(final Period tenor) {
+    this(tenor,
+      new AbstractYieldTermStructure() {
+        @Override
+        protected double discountImpl(final double t) {
+          throw new UnsupportedOperationException();
+        }
 
-	public BKBM(final Period tenor,
-			final YieldTermStructure h) {
-		super("BKBM", tenor, 2,
-				new NZDCurrency(),
-				new NewZealand(),
-				BusinessDayConvention.ModifiedFollowing,
-				false,
-				new Actual365Fixed(), 
-				h);
-	}
+        @Override
+        public Date maxDate() {
+          throw new UnsupportedOperationException();
+        }
+      }
+    );
+  }
+
+  public BKBM(
+    final Period tenor,
+    final YieldTermStructure h
+  ) {
+    super("BKBM", tenor, 2,
+      new NZDCurrency(),
+      new NewZealand(),
+      BusinessDayConvention.ModifiedFollowing,
+      false,
+      new Actual365Fixed(),
+      h);
+  }
 
 }

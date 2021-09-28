@@ -1,6 +1,6 @@
 package net.squantlib.model.rates.convention
 
-import net.squantlib.util.ql.{Period, Frequency}
+import net.squantlib.util.ql.time.{Period, Frequency}
 import net.squantlib.util.ql.daycounters.Actual360
 import net.squantlib.util.ql.indexes.ibor.USDLibor
 import net.squantlib.util.ql.currencies.Europe.TRYCurrency

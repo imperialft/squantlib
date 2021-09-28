@@ -1,6 +1,6 @@
 package net.squantlib.model.rates.convention
 
-import net.squantlib.util.ql.Period
+import net.squantlib.util.ql.time.Period
 import net.squantlib.util.ql.daycounters.Actual365Fixed
 import net.squantlib.util.ql.currencies.Europe.RUBCurrency
 

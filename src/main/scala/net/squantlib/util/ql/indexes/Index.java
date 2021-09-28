@@ -26,9 +26,9 @@ import net.squantlib.util.ql.QL;
 import net.squantlib.util.ql.lang.iterators.Iterables;
 import net.squantlib.util.ql.math.Closeness;
 import net.squantlib.util.ql.math.Constants;
-import net.squantlib.util.ql.Calendar;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.TimeSeries;
+import net.squantlib.util.ql.time.Calendar;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.TimeSeries;
 import net.squantlib.util.ql.util.DefaultObservable;
 import net.squantlib.util.ql.util.Observable;
 import net.squantlib.util.ql.util.Observer;
@@ -44,182 +44,195 @@ import java.util.List;
 //TODO: Code review and comments
 public abstract class Index implements Observable {
 
-	//
-    // public abstract methods
-    //
+  //
+  // public abstract methods
+  //
 
-    /**
-	 * @return name of the Index
-	 */
-	public abstract String name();
+  /**
+   * @return name of the Index
+   */
+  public abstract String name();
 
-	/**
-	 * @return the calendar defining valid fixing dates
-	 */
-	public abstract Calendar fixingCalendar();
+  /**
+   * @return the calendar defining valid fixing dates
+   */
+  public abstract Calendar fixingCalendar();
 
-	/**
-	 *  @return TRUE if the fixing date is a valid one
-	 */
-	public abstract boolean isValidFixingDate(Date fixingDate);
+  /**
+   * @return TRUE if the fixing date is a valid one
+   */
+  public abstract boolean isValidFixingDate(Date fixingDate);
 
-	/**
-	 * @return the fixing at the given date. The date passed as arguments must be the actual calendar date of the
-	 * fixing; no settlement days must be used.
-	 */
-	public abstract double fixing(Date fixingDate, boolean forecastTodaysFixing);
-
-
-	//
-	// public methods
-	//
-
-	/**
-	 * @return the fixing TimeSeries
-	 */
-	public TimeSeries<Double> timeSeries() {
-		return IndexManager.getInstance().getHistory(name());
-	}
-
-	/**
-	 * Stores the historical fixing at the given date
-	 * <p>
-	 * The date passed as arguments must be the actual calendar date of the
-	 * fixing; no settlement days must be used.
-	 */
-	public void addFixing(final Date date, final double value) {
-		addFixing(date, value, false);
-	}
-	
-	/**
-	 * Stores the historical fixing at the given date
-	 * <p>
-	 * The date passed as arguments must be the actual calendar date of the
-	 * fixing; no settlement days must be used.
-	 */
-	public void addFixing(final Date date, final double value, final boolean forceOverwrite) {
-		final String tag = name();
-		boolean missingFixing;
-		boolean validFixing;
-		boolean noInvalidFixing = true;
-		boolean noDuplicatedFixing = true;
-		final TimeSeries<Double> h = IndexManager.getInstance().getHistory(tag);
-
-        validFixing = isValidFixingDate(date);
-        final Double currentValue = h.get(date);
-        missingFixing = forceOverwrite || Closeness.isClose(currentValue, Constants.NULL_REAL);
-        if (validFixing) {
-            if (missingFixing) {
-                h.put(date, value);
-            } else if (Closeness.isClose(currentValue, value)) {
-                // Do nothing
-            } else {
-                noDuplicatedFixing = false;
-            }
-        } else {
-            noInvalidFixing = false;
-        }
-
-		IndexManager.getInstance().setHistory(tag, h);
-
-		QL.ensure(noInvalidFixing , "at least one invalid fixing provided");  // TODO: message
-		QL.ensure(noDuplicatedFixing , "at least one duplicated fixing provided");  // TODO: message
-	}
-	
-	/**
-	 * Stores historical fixings at the given dates
-	 * <p>
-	 * The dates passed as arguments must be the actual calendar dates of the
-	 * fixings; no settlement days must be used.
-	 */
-	public final void addFixings(final Iterator<Date> dates, final Iterator<Double> values, final boolean forceOverwrite) {
-		final String tag = name();
-		boolean missingFixing;
-		boolean validFixing;
-		boolean noInvalidFixing = true;
-		boolean noDuplicatedFixing = true;
-		final TimeSeries<Double> h = IndexManager.getInstance().getHistory(tag);
-
-		for (final Date date : Iterables.unmodifiableIterable(dates)) {
-            final double value = values.next();
-            validFixing = isValidFixingDate(date);
-            final double currentValue = h.get(date);
-            missingFixing = forceOverwrite || Closeness.isClose(currentValue, Constants.NULL_REAL);
-            if (validFixing) {
-                if (missingFixing) {
-                    h.put(date, value);
-                } else if (Closeness.isClose(currentValue, value)) {
-                    // Do nothing
-                } else {
-                    noDuplicatedFixing = false;
-                }
-            } else {
-                noInvalidFixing = false;
-            }
-		}
-
-		IndexManager.getInstance().setHistory(tag, h);
-
-		QL.ensure(noInvalidFixing , "at least one invalid fixing provided");  // TODO: message
-		QL.ensure(noDuplicatedFixing , "at least one duplicated fixing provided");  // TODO: message
-	}
+  /**
+   * @return the fixing at the given date. The date passed as arguments must be the actual calendar date of the
+   * fixing; no settlement days must be used.
+   */
+  public abstract double fixing(
+    Date fixingDate,
+    boolean forecastTodaysFixing
+  );
 
 
-	/**
-	 * Clear the fixings stored for the index
-	 */
-	public final void clearFixings() {
-		IndexManager.getInstance().clearHistory(name());
-	}
+  //
+  // public methods
+  //
 
-	public double fixing(final Date fixingDate){
-        return fixing(fixingDate, false);
+  /**
+   * @return the fixing TimeSeries
+   */
+  public TimeSeries<Double> timeSeries() {
+    return IndexManager.getInstance().getHistory(name());
+  }
+
+  /**
+   * Stores the historical fixing at the given date
+   * <p>
+   * The date passed as arguments must be the actual calendar date of the
+   * fixing; no settlement days must be used.
+   */
+  public void addFixing(
+    final Date date,
+    final double value
+  ) {
+    addFixing(date, value, false);
+  }
+
+  /**
+   * Stores the historical fixing at the given date
+   * <p>
+   * The date passed as arguments must be the actual calendar date of the
+   * fixing; no settlement days must be used.
+   */
+  public void addFixing(
+    final Date date,
+    final double value,
+    final boolean forceOverwrite
+  ) {
+    final String tag = name();
+    boolean missingFixing;
+    boolean validFixing;
+    boolean noInvalidFixing = true;
+    boolean noDuplicatedFixing = true;
+    final TimeSeries<Double> h = IndexManager.getInstance().getHistory(tag);
+
+    validFixing = isValidFixingDate(date);
+    final Double currentValue = h.get(date);
+    missingFixing = forceOverwrite || Closeness.isClose(currentValue, Constants.NULL_REAL);
+    if (validFixing) {
+      if (missingFixing) {
+        h.put(date, value);
+      } else if (Closeness.isClose(currentValue, value)) {
+        // Do nothing
+      } else {
+        noDuplicatedFixing = false;
+      }
+    } else {
+      noInvalidFixing = false;
     }
 
+    IndexManager.getInstance().setHistory(tag, h);
 
-	//
-	// implements Observable
-	//
+    QL.ensure(noInvalidFixing, "at least one invalid fixing provided");  // TODO: message
+    QL.ensure(noDuplicatedFixing, "at least one duplicated fixing provided");  // TODO: message
+  }
 
-	/**
-	 * Implements multiple inheritance via delegate pattern to an inner class
-	 *
-	 */
-	private final Observable delegatedObservable = new DefaultObservable(this);
+  /**
+   * Stores historical fixings at the given dates
+   * <p>
+   * The dates passed as arguments must be the actual calendar dates of the
+   * fixings; no settlement days must be used.
+   */
+  public final void addFixings(
+    final Iterator<Date> dates,
+    final Iterator<Double> values,
+    final boolean forceOverwrite
+  ) {
+    final String tag = name();
+    boolean missingFixing;
+    boolean validFixing;
+    boolean noInvalidFixing = true;
+    boolean noDuplicatedFixing = true;
+    final TimeSeries<Double> h = IndexManager.getInstance().getHistory(tag);
 
-	@Override
-	public void addObserver(final Observer observer) {
-		delegatedObservable.addObserver(observer);
-	}
+    for (final Date date : Iterables.unmodifiableIterable(dates)) {
+      final double value = values.next();
+      validFixing = isValidFixingDate(date);
+      final double currentValue = h.get(date);
+      missingFixing = forceOverwrite || Closeness.isClose(currentValue, Constants.NULL_REAL);
+      if (validFixing) {
+        if (missingFixing) {
+          h.put(date, value);
+        } else if (Closeness.isClose(currentValue, value)) {
+          // Do nothing
+        } else {
+          noDuplicatedFixing = false;
+        }
+      } else {
+        noInvalidFixing = false;
+      }
+    }
 
-    @Override
-	public int countObservers() {
-		return delegatedObservable.countObservers();
-	}
+    IndexManager.getInstance().setHistory(tag, h);
 
-    @Override
-	public void deleteObserver(final Observer observer) {
-		delegatedObservable.deleteObserver(observer);
-	}
+    QL.ensure(noInvalidFixing, "at least one invalid fixing provided");  // TODO: message
+    QL.ensure(noDuplicatedFixing, "at least one duplicated fixing provided");  // TODO: message
+  }
 
-    @Override
-	public void notifyObservers() {
-		delegatedObservable.notifyObservers();
-	}
 
-    @Override
-	public void notifyObservers(final Object arg) {
-		delegatedObservable.notifyObservers(arg);
-	}
+  /**
+   * Clear the fixings stored for the index
+   */
+  public final void clearFixings() {
+    IndexManager.getInstance().clearHistory(name());
+  }
 
-    @Override
-	public void deleteObservers() {
-		delegatedObservable.deleteObservers();
-	}
+  public double fixing(final Date fixingDate) {
+    return fixing(fixingDate, false);
+  }
 
-    @Override
-	public List<Observer> getObservers() {
-		return delegatedObservable.getObservers();
-	}
+
+  //
+  // implements Observable
+  //
+
+  /**
+   * Implements multiple inheritance via delegate pattern to an inner class
+   */
+  private final Observable delegatedObservable = new DefaultObservable(this);
+
+  @Override
+  public void addObserver(final Observer observer) {
+    delegatedObservable.addObserver(observer);
+  }
+
+  @Override
+  public int countObservers() {
+    return delegatedObservable.countObservers();
+  }
+
+  @Override
+  public void deleteObserver(final Observer observer) {
+    delegatedObservable.deleteObserver(observer);
+  }
+
+  @Override
+  public void notifyObservers() {
+    delegatedObservable.notifyObservers();
+  }
+
+  @Override
+  public void notifyObservers(final Object arg) {
+    delegatedObservable.notifyObservers(arg);
+  }
+
+  @Override
+  public void deleteObservers() {
+    delegatedObservable.deleteObservers();
+  }
+
+  @Override
+  public List<Observer> getObservers() {
+    return delegatedObservable.getObservers();
+  }
 
 }

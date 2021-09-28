@@ -49,341 +49,358 @@ package net.squantlib.util.ql.currencies;
 import net.squantlib.util.ql.math.Rounding;
 
 public class Asia {
-    
-    /**
-     * Bangladesh taka
-     * <p> 
-     * The ISO three-letter code is BDT; the numeric code is 50. It is divided in 100 paisa.
-     * 
-     * @category currencies
-     */
-	 public static class BDTCurrency extends  Currency {
-      public
-        BDTCurrency() {
-            Data bdtData =
-                                        new Data("Bangladesh taka", "BDT", 50,
-                                                 "Bt", "", 100,
-                                                 new Rounding(),
-                                                 "%3% %1$.2f");
-            data = bdtData;
-        }
-    };
+
+  /**
+   * Bangladesh taka
+   * <p>
+   * The ISO three-letter code is BDT; the numeric code is 50. It is divided in 100 paisa.
+   *
+   * @category currencies
+   */
+  public static class BDTCurrency extends Currency {
+    public BDTCurrency() {
+      Data bdtData =
+        new Data("Bangladesh taka", "BDT", 50,
+          "Bt", "", 100,
+          new Rounding(),
+          "%3% %1$.2f");
+      data = bdtData;
+    }
+  }
+
+  ;
 
 
-    /**
-     * Chinese yuan
-     * <p> 
-     * The ISO three-letter code is CNY; the numeric code is 156. It is divided in 100 fen.
-     * 
-     * @category currencies
-     */
-    public static class CNYCurrency extends Currency {
-      public
-        CNYCurrency() {
-            Data cnyData 
-                                          =new Data("Chinese yuan", "CNY", 156,
-                                                   "Y", "", 100,
-                                                   new Rounding(),
-                                                   "%3% %1$.2f");
-            data = cnyData;
-        }
-    };
+  /**
+   * Chinese yuan
+   * <p>
+   * The ISO three-letter code is CNY; the numeric code is 156. It is divided in 100 fen.
+   *
+   * @category currencies
+   */
+  public static class CNYCurrency extends Currency {
+    public CNYCurrency() {
+      Data cnyData
+        = new Data("Chinese yuan", "CNY", 156,
+        "Y", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = cnyData;
+    }
+  }
 
-    
-    /**
-     * Honk Kong dollar 
-     * <p> 
-     * The ISO three-letter code is HKD; the numeric code is 344. It is divided in 100 cents.
-     * 
-     * @category currencies
-     */
-    public static class HKDCurrency extends Currency {
-      public
-        HKDCurrency() {
-            Data hkdData 
-                                      =new Data("Honk Kong dollar", "HKD", 344,
-                                               "HK$", "", 100,
-                                               new Rounding(),
-                                               "%3% %1$.2f");
-            data = hkdData;
-        }
-    };
-    
-    /**
-     * Indonesian rupiah
-     * <p> 
-     * The ISO three-letter code is IDR; the numeric code is 360. It is divided in 100 sen.
-     * 
-     * @category currencies
-     */
-    public static class IDRCurrency extends Currency {
-      public
-      	IDRCurrency() {
-            Data idrData 
-                                          =new Data("Indonesian rupiah", "IDR", 360,
-                                                   "Rp", "", 100,
-                                                   new Rounding(),
-                                                   "%3% %1$.2f");
-            data = idrData;
-        }
-    };
-
-    /**
-     * Israeli shekel 
-     * <p> 
-     * The ISO three-letter code is ILS; the numeric code is 376. It is divided in 100 agorot.
-     * 
-     * @category currencies
-     */
-    public static class ILSCurrency extends Currency {
-      public
-        ILSCurrency() {
-            Data ilsData 
-                                        =new Data("Israeli shekel", "ILS", 376,
-                                                 "NIS", "", 100,
-                                                 new Rounding(),
-                                                 "%1$.2f %3%");
-            data = ilsData;
-        }
-    };
+  ;
 
 
-    /**
-     * Indian rupee 
-     * <p> 
-     * The ISO three-letter code is INR; the numeric code is 356. It is divided in 100 paise.
-     * 
-     * @category currencies
-     */
-    public static class INRCurrency extends Currency {
-      public
-        INRCurrency() {
-            Data inrData 
-                                          =new Data("Indian rupee", "INR", 356,
-                                                   "Rs", "", 100,
-                                                   new Rounding(),
-                                                   "%3% %1$.2f");
-            data = inrData;
-        }
-    };
-    
+  /**
+   * Honk Kong dollar
+   * <p>
+   * The ISO three-letter code is HKD; the numeric code is 344. It is divided in 100 cents.
+   *
+   * @category currencies
+   */
+  public static class HKDCurrency extends Currency {
+    public HKDCurrency() {
+      Data hkdData
+        = new Data("Honk Kong dollar", "HKD", 344,
+        "HK$", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = hkdData;
+    }
+  }
 
-    /**
-     *  Iraqi dinar 
-     * <p> 
-     * The ISO three-letter code is IQD; the numeric code is 368. It is divided in 100 fils.
-     * 
-     * @category currencies
-     */
-    public static class IQDCurrency extends Currency {
-      public
-        IQDCurrency() {
-            Data iqdData 
-                                           =new Data("Iraqi dinar", "IQD", 368,
-                                                    "ID", "", 1000,
-                                                    new Rounding(),
-                                                    "%2% %1$.3f");
-            data = iqdData;
-        }
-    };
+  ;
 
+  /**
+   * Indonesian rupiah
+   * <p>
+   * The ISO three-letter code is IDR; the numeric code is 360. It is divided in 100 sen.
+   *
+   * @category currencies
+   */
+  public static class IDRCurrency extends Currency {
+    public IDRCurrency() {
+      Data idrData
+        = new Data("Indonesian rupiah", "IDR", 360,
+        "Rp", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = idrData;
+    }
+  }
 
-    /**
-     * Iranian rial 
-     * <p> 
-     * The ISO three-letter code is IRR; the numeric code is 364. It has no subdivisions.
-     * 
-     * @category currencies
-     */
-    public static class IRRCurrency extends Currency {
-      public
-        IRRCurrency() {
-            Data irrData 
-                                          =new Data("Iranian rial", "IRR", 364,
-                                                   "Rls", "", 1,
-                                                   new Rounding(),
-                                                   "%3% %1$.2f");
-            data = irrData;
-        }
-    };
-    
+  ;
 
-    /**
-     * Japanese yen 
-     * <p> 
-     * The ISO three-letter code is JPY; the numeric code is 392. It is divided in 100 sen.
-     * 
-     * @category currencies
-     */
-    public static class JPYCurrency extends Currency {
-      public
-        JPYCurrency() {
-            Data jpyData 
-                                          =new Data("Japanese yen", "JPY", 392,
-                                                   "\\xA5", "", 100,
-                                                   new Rounding(),
-                                                   "%3% %1$.0f");
-            data = jpyData;
-        }
-    };
+  /**
+   * Israeli shekel
+   * <p>
+   * The ISO three-letter code is ILS; the numeric code is 376. It is divided in 100 agorot.
+   *
+   * @category currencies
+   */
+  public static class ILSCurrency extends Currency {
+    public ILSCurrency() {
+      Data ilsData
+        = new Data("Israeli shekel", "ILS", 376,
+        "NIS", "", 100,
+        new Rounding(),
+        "%1$.2f %3%");
+      data = ilsData;
+    }
+  }
+
+  ;
 
 
-    /**
-     * South-Korean won 
-     * <p> 
-     * The ISO three-letter code is KRW; the numeric code is 410. It is divided in 100 chon.
-     * 
-     * @category currencies
-     */
-    public static class KRWCurrency extends Currency {
-      public
-        KRWCurrency() {
-            Data krwData 
-                                      =new Data("South-Korean won", "KRW", 410,
-                                               "W", "", 100,
-                                               new Rounding(),
-                                               "%3% %1$.0f");
-            data = krwData;
-        }
-    };
+  /**
+   * Indian rupee
+   * <p>
+   * The ISO three-letter code is INR; the numeric code is 356. It is divided in 100 paise.
+   *
+   * @category currencies
+   */
+  public static class INRCurrency extends Currency {
+    public INRCurrency() {
+      Data inrData
+        = new Data("Indian rupee", "INR", 356,
+        "Rs", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = inrData;
+    }
+  }
+
+  ;
 
 
-    /**
-     * Kuwaiti dinar 
-     * <p> 
-     * The ISO three-letter code is KWD; the numeric code is 414. It is divided in 100 fils.
-     * 
-     * @category currencies
-     */
-    public static class KWDCurrency extends Currency {
-      public
-        KWDCurrency() {
-            Data kwdData 
-                                         =new Data("Kuwaiti dinar", "KWD", 414,
-                                                  "KD", "", 1000,
-                                                  new Rounding(),
-                                                  "%3% %1$.3f");
-            data = kwdData;
-        }
-    };
+  /**
+   * Iraqi dinar
+   * <p>
+   * The ISO three-letter code is IQD; the numeric code is 368. It is divided in 100 fils.
+   *
+   * @category currencies
+   */
+  public static class IQDCurrency extends Currency {
+    public IQDCurrency() {
+      Data iqdData
+        = new Data("Iraqi dinar", "IQD", 368,
+        "ID", "", 1000,
+        new Rounding(),
+        "%2% %1$.3f");
+      data = iqdData;
+    }
+  }
+
+  ;
 
 
-    /**
-     * Nepal rupee
-     * <p> 
-     * The ISO three-letter code is NPR; the numeric code is 524. It is divided in 100 paise.
-     * 
-     * @category currencies
-     */
-    public static class NPRCurrency extends Currency {
-      public
-        NPRCurrency() {
-            Data nprData 
-                                           =new Data("Nepal rupee", "NPR", 524,
-                                                    "NRs", "", 100,
-                                                    new Rounding(),
-                                                    "%3% %1$.2f");
-            data = nprData;
-        }
-    };
+  /**
+   * Iranian rial
+   * <p>
+   * The ISO three-letter code is IRR; the numeric code is 364. It has no subdivisions.
+   *
+   * @category currencies
+   */
+  public static class IRRCurrency extends Currency {
+    public IRRCurrency() {
+      Data irrData
+        = new Data("Iranian rial", "IRR", 364,
+        "Rls", "", 1,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = irrData;
+    }
+  }
+
+  ;
 
 
-    /**
-     * Pakistani rupee
-     * <p> 
-     * The ISO three-letter code is PKR; the numeric code is 586. It is divided in 100 paisa.
-     * 
-     * @category currencies
-     */
-    public static class PKRCurrency extends Currency {
-      public
-        PKRCurrency() {
-            Data pkrData 
-                                       =new Data("Pakistani rupee", "PKR", 586,
-                                                "Rs", "", 100,
-                                                new Rounding(),
-                                                "%3% %1$.2f");
-            data = pkrData;
-        }
-    };
+  /**
+   * Japanese yen
+   * <p>
+   * The ISO three-letter code is JPY; the numeric code is 392. It is divided in 100 sen.
+   *
+   * @category currencies
+   */
+  public static class JPYCurrency extends Currency {
+    public JPYCurrency() {
+      Data jpyData
+        = new Data("Japanese yen", "JPY", 392,
+        "\\xA5", "", 100,
+        new Rounding(),
+        "%3% %1$.0f");
+      data = jpyData;
+    }
+  }
+
+  ;
 
 
-    /**
-     * Saudi riyal
-     * <p> 
-     * The ISO three-letter code is SAR; the numeric code is 682. It is divided in 100 halalat.
-     * 
-     * @category currencies
-     */
-    public static class SARCurrency extends Currency {
-      public
-        SARCurrency() {
-            Data sarData 
-                                           =new Data("Saudi riyal", "SAR", 682,
-                                                    "SRls", "", 100,
-                                                    new Rounding(),
-                                                    "%3% %1$.2f");
-            data = sarData;
-        }
-    };
+  /**
+   * South-Korean won
+   * <p>
+   * The ISO three-letter code is KRW; the numeric code is 410. It is divided in 100 chon.
+   *
+   * @category currencies
+   */
+  public static class KRWCurrency extends Currency {
+    public KRWCurrency() {
+      Data krwData
+        = new Data("South-Korean won", "KRW", 410,
+        "W", "", 100,
+        new Rounding(),
+        "%3% %1$.0f");
+      data = krwData;
+    }
+  }
+
+  ;
 
 
-    /**
-     * Singapore dollar
-     * <p> 
-     * The ISO three-letter code is SGD; the numeric code is 702. It is divided in 100 cents.
-     * 
-     * @category currencies
-     */
-    public static class SGDCurrency extends Currency {
-      public
-        SGDCurrency() {
-            Data sgdData 
-                                      =new Data("Singapore dollar", "SGD", 702,
-                                               "S$", "", 100,
-                                               new Rounding(),
-                                               "%3% %1$.2f");
-            data = sgdData;
-        }
-    };
+  /**
+   * Kuwaiti dinar
+   * <p>
+   * The ISO three-letter code is KWD; the numeric code is 414. It is divided in 100 fils.
+   *
+   * @category currencies
+   */
+  public static class KWDCurrency extends Currency {
+    public KWDCurrency() {
+      Data kwdData
+        = new Data("Kuwaiti dinar", "KWD", 414,
+        "KD", "", 1000,
+        new Rounding(),
+        "%3% %1$.3f");
+      data = kwdData;
+    }
+  }
 
-    
-    /**
-     * Thai baht
-     * <p> 
-     * The ISO three-letter code is THB; the numeric code is 764. It is divided in 100 stang.
-     * 
-     * @category currencies
-     */
-    public static class THBCurrency extends Currency {
-      public
-        THBCurrency() {
-            Data thbData 
-                                             =new Data("Thai baht", "THB", 764,
-                                                      "Bht", "", 100,
-                                                      new Rounding(),
-                                                      "%1$.2f %3%");
-            data = thbData;
-        }
-    };
+  ;
 
 
-    /**
-     * Taiwan dollar
-     * <p> 
-     * The ISO three-letter code is TWD; the numeric code is 901. It is divided in 100 cents.
-     * 
-     * @category currencies
-     */
-    public static class TWDCurrency extends Currency {
-      public
-        TWDCurrency() {
-            Data twdData 
-                                         =new Data("Taiwan dollar", "TWD", 901,
-                                                  "NT$", "", 100,
-                                                  new Rounding(),
-                                                  "%3% %1$.2f");
-            data = twdData;
-        }
-    };
+  /**
+   * Nepal rupee
+   * <p>
+   * The ISO three-letter code is NPR; the numeric code is 524. It is divided in 100 paise.
+   *
+   * @category currencies
+   */
+  public static class NPRCurrency extends Currency {
+    public NPRCurrency() {
+      Data nprData
+        = new Data("Nepal rupee", "NPR", 524,
+        "NRs", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = nprData;
+    }
+  }
+
+  ;
+
+
+  /**
+   * Pakistani rupee
+   * <p>
+   * The ISO three-letter code is PKR; the numeric code is 586. It is divided in 100 paisa.
+   *
+   * @category currencies
+   */
+  public static class PKRCurrency extends Currency {
+    public PKRCurrency() {
+      Data pkrData
+        = new Data("Pakistani rupee", "PKR", 586,
+        "Rs", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = pkrData;
+    }
+  }
+
+  ;
+
+
+  /**
+   * Saudi riyal
+   * <p>
+   * The ISO three-letter code is SAR; the numeric code is 682. It is divided in 100 halalat.
+   *
+   * @category currencies
+   */
+  public static class SARCurrency extends Currency {
+    public SARCurrency() {
+      Data sarData
+        = new Data("Saudi riyal", "SAR", 682,
+        "SRls", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = sarData;
+    }
+  }
+
+  ;
+
+
+  /**
+   * Singapore dollar
+   * <p>
+   * The ISO three-letter code is SGD; the numeric code is 702. It is divided in 100 cents.
+   *
+   * @category currencies
+   */
+  public static class SGDCurrency extends Currency {
+    public SGDCurrency() {
+      Data sgdData
+        = new Data("Singapore dollar", "SGD", 702,
+        "S$", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = sgdData;
+    }
+  }
+
+  ;
+
+
+  /**
+   * Thai baht
+   * <p>
+   * The ISO three-letter code is THB; the numeric code is 764. It is divided in 100 stang.
+   *
+   * @category currencies
+   */
+  public static class THBCurrency extends Currency {
+    public THBCurrency() {
+      Data thbData
+        = new Data("Thai baht", "THB", 764,
+        "Bht", "", 100,
+        new Rounding(),
+        "%1$.2f %3%");
+      data = thbData;
+    }
+  }
+
+  ;
+
+
+  /**
+   * Taiwan dollar
+   * <p>
+   * The ISO three-letter code is TWD; the numeric code is 901. It is divided in 100 cents.
+   *
+   * @category currencies
+   */
+  public static class TWDCurrency extends Currency {
+    public TWDCurrency() {
+      Data twdData
+        = new Data("Taiwan dollar", "TWD", 901,
+        "NT$", "", 100,
+        new Rounding(),
+        "%3% %1$.2f");
+      data = twdData;
+    }
+  }
+
+  ;
 }

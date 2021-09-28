@@ -3,12 +3,12 @@ package net.squantlib.util
 import java.util.{Date => JavaDate, Calendar => JavaCalendar}
 import java.text.SimpleDateFormat
 import java.sql.Timestamp
-import net.squantlib.util.ql.{Date => qlDate, Period => qlPeriod}
-import net.squantlib.util.ql.Weekday
+import net.squantlib.util.ql.time.{Date => qlDate, Period => qlPeriod}
+import net.squantlib.util.ql.time.Weekday
 import net.squantlib.util.ql.daycounters.DayCounter
-import net.squantlib.util.ql.Calendar
-import net.squantlib.util.ql.TimeUnit
-import net.squantlib.util.ql.BusinessDayConvention
+import net.squantlib.util.ql.time.Calendar
+import net.squantlib.util.ql.time.TimeUnit
+import net.squantlib.util.ql.time.BusinessDayConvention
 import scala.collection.LinearSeq
 import scala.annotation.tailrec
 

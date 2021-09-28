@@ -1,6 +1,6 @@
 package net.squantlib.model.yieldparameter
 
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.util.Date
 import scala.collection.Map
 

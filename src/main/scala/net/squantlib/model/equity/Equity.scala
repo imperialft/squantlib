@@ -5,7 +5,7 @@ import net.squantlib.model.yieldparameter.YieldParameter
 import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.util.ql.daycounters.DayCounter
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.util.Date
 
 /**

@@ -22,7 +22,7 @@
 
 package net.squantlib.util.ql.indexes;
 
-import net.squantlib.util.ql.TimeSeries;
+import net.squantlib.util.ql.time.TimeSeries;
 import net.squantlib.util.ql.util.Observable;
 import net.squantlib.util.ql.util.ObservableValue;
 
@@ -32,59 +32,62 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class IndexManager {
 
-    private static final long serialVersionUID = -9204254124065694863L;
-    
-    private static Map<String, TimeSeries<Double>> data;
-    private static volatile IndexManager instance;
+  private static final long serialVersionUID = -9204254124065694863L;
 
-    
-	//
-    // static public methods
-    //
-    
-    public static IndexManager getInstance() {
-		if (instance == null) {
-			synchronized (IndexManager.class) {
-				if (instance == null) {
-					instance = new IndexManager();
-				}
-			}
-		}
-		return instance;
-	}
+  private static Map<String, TimeSeries<Double>> data;
+  private static volatile IndexManager instance;
 
 
-    //
-    // private constructors
-    //
-    
-    private IndexManager() {
-	    this.data = new ConcurrentHashMap<String, TimeSeries<Double>>();
-	}
+  //
+  // static public methods
+  //
 
-	public TimeSeries<Double> getHistory(final String name) {
-		return data.get(name);
-	}
+  public static IndexManager getInstance() {
+    if (instance == null) {
+      synchronized (IndexManager.class) {
+        if (instance == null) {
+          instance = new IndexManager();
+        }
+      }
+    }
+    return instance;
+  }
 
-	public void setHistory(final String name, final TimeSeries<Double> history) {
-		data.put(name, history);
-	}
 
-	public void clearHistory(final String name) {
-		data.remove(name);
-	}
+  //
+  // private constructors
+  //
 
-	public void clearHistories() {
-		data.clear();
-	}
+  private IndexManager() {
+    this.data = new ConcurrentHashMap<String, TimeSeries<Double>>();
+  }
 
-	public Observable notifier(final String name) {
-	    TimeSeries<Double> value = data.get(name);
-		if (value == null){
-			value = new TimeSeries<Double>(Double.class);
-			data.put(name, value);
-		}
-		return new ObservableValue<TimeSeries<Double>>(value);
-	}
+  public TimeSeries<Double> getHistory(final String name) {
+    return data.get(name);
+  }
+
+  public void setHistory(
+    final String name,
+    final TimeSeries<Double> history
+  ) {
+    data.put(name, history);
+  }
+
+  public void clearHistory(final String name) {
+    data.remove(name);
+  }
+
+  public void clearHistories() {
+    data.clear();
+  }
+
+  public Observable notifier(final String name) {
+    TimeSeries<Double> value = data.get(name);
+    if (value == null) {
+      value = new TimeSeries<Double>(Double.class);
+      data.put(name, value);
+    }
+    return new ObservableValue<TimeSeries<Double>>(value);
+  }
 
 }

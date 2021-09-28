@@ -6,7 +6,7 @@ import net.squantlib.util.ql.currencies.America.USDCurrency
 import net.squantlib.util.ql.indexes.IborIndex
 import net.squantlib.util.ql.indexes.ibor.USDLibor
 import net.squantlib.util.Date
-import net.squantlib.util.ql.{TimeUnit, Period => qlPeriod}
+import net.squantlib.util.ql.time.{TimeUnit, Period => qlPeriod}
 import net.squantlib.model.yieldparameter._
 import net.squantlib.model.rates.convention.RateConvention
 

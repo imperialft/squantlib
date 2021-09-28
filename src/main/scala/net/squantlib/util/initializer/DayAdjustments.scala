@@ -1,6 +1,6 @@
 package net.squantlib.util.initializer
 
-import net.squantlib.util.ql.BusinessDayConvention
+import net.squantlib.util.ql.time.BusinessDayConvention
 import BusinessDayConvention._ 
 
 object DayAdjustments extends Initializer[BusinessDayConvention] {

@@ -1,7 +1,7 @@
 package net.squantlib.util.initializer
 
 import net.squantlib.util.ql.daycounters._
-import net.squantlib.util.ql._
+import net.squantlib.util.ql.time._
 
 object Daycounters extends Initializer[DayCounter] {
   

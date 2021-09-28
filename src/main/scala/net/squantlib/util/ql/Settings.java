@@ -24,6 +24,7 @@ package net.squantlib.util.ql;
 
 import java.util.Map;
 import java.util.TreeMap;
+import net.squantlib.util.ql.time.Date;
 
 /**
  * Settings for the application.

@@ -2,7 +2,7 @@ package net.squantlib.model.equity
 
 import net.squantlib.model.yieldparameter.YieldParameter
 import net.squantlib.util.Date
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.model.yieldparameter._
 
 

@@ -46,10 +46,10 @@ import net.squantlib.util.ql.currencies.Currency;
 import net.squantlib.util.ql.daycounters.DayCounter;
 import net.squantlib.util.ql.lang.exceptions.LibraryException;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.BusinessDayConvention;
-import net.squantlib.util.ql.Calendar;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
+import net.squantlib.util.ql.time.BusinessDayConvention;
+import net.squantlib.util.ql.time.Calendar;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
 
 /**
  * Base class for Inter-Bank-Offered-Rate indexes (e.g. %Libor, etc.)
@@ -60,196 +60,198 @@ import net.squantlib.util.ql.Period;
 // TODO: code review :: license, class comments, comments for access modifiers, comments for @Override
 public class IborIndex extends InterestRateIndex {
 
-    private final BusinessDayConvention convention;
-    private final YieldTermStructure termStructure;
-    private final boolean endOfMonth;
+  private final BusinessDayConvention convention;
+  private final YieldTermStructure termStructure;
+  private final boolean endOfMonth;
 
-    public IborIndex(
-            final String familyName,
-            final Period tenor,
-            final /*@Natural*/ int fixingDays,
-            final Currency currency,
-            final Calendar fixingCalendar,
-            final BusinessDayConvention convention,
-            final boolean endOfMonth,
-            final DayCounter dayCounter,
-            final YieldTermStructure h) {
-        super(familyName, tenor, fixingDays, currency, fixingCalendar, dayCounter);
+  public IborIndex(
+    final String familyName,
+    final Period tenor,
+    final /*@Natural*/ int fixingDays,
+    final Currency currency,
+    final Calendar fixingCalendar,
+    final BusinessDayConvention convention,
+    final boolean endOfMonth,
+    final DayCounter dayCounter,
+    final YieldTermStructure h
+  ) {
+    super(familyName, tenor, fixingDays, currency, fixingCalendar, dayCounter);
 
-        this.convention = convention;
-        this.termStructure = h;
-        this.endOfMonth = endOfMonth;
-        if (termStructure != null) {
-        	termStructure.addObserver(this);
-        }
+    this.convention = convention;
+    this.termStructure = h;
+    this.endOfMonth = endOfMonth;
+    if (termStructure != null) {
+      termStructure.addObserver(this);
     }
+  }
 
-    public IborIndex(
-            final String familyName,
-            final Period tenor,
-            final /*@Natural*/ int fixingDays,
-            final Currency currency,
-            final Calendar fixingCalendar,
-            final BusinessDayConvention convention,
-            final boolean endOfMonth,
-            final DayCounter dayCounter) {
-    	this(familyName, tenor, fixingDays, currency, fixingCalendar, 
-    		convention, endOfMonth, dayCounter, null);
+  public IborIndex(
+    final String familyName,
+    final Period tenor,
+    final /*@Natural*/ int fixingDays,
+    final Currency currency,
+    final Calendar fixingCalendar,
+    final BusinessDayConvention convention,
+    final boolean endOfMonth,
+    final DayCounter dayCounter
+  ) {
+    this(familyName, tenor, fixingDays, currency, fixingCalendar,
+      convention, endOfMonth, dayCounter, null);
+  }
+
+
+  public IborIndex clone(final YieldTermStructure h) {
+    final IborIndex clone = new IborIndex(
+      this.familyName(),
+      this.tenor(),
+      this.fixingDays(),
+      this.currency(),
+      this.fixingCalendar(),
+      this.businessDayConvention(),
+      this.endOfMonth(),
+      this.dayCounter(),
+      h);
+    return clone;
+  }
+
+
+  //
+  // protected methods
+  //
+
+  /**
+   * This is the fixing established by ECB.
+   * Use eurliborConvention if you're interested in the London rate fixed by the BBA.
+   */
+  protected static BusinessDayConvention euriborConvention(final Period p) {
+    switch (p.units()) {
+      case Days:
+      case Weeks:
+        return BusinessDayConvention.Following;
+      case Months:
+      case Years:
+        return BusinessDayConvention.ModifiedFollowing;
+      default:
+        throw new LibraryException("invalid time units"); // TODO: message
     }
+  }
 
-
-    public IborIndex clone(final YieldTermStructure h) {
-        final IborIndex clone = new IborIndex(
-                					this.familyName(),
-                					this.tenor(),
-                					this.fixingDays(),
-                					this.currency(),
-                					this.fixingCalendar(),
-                					this.businessDayConvention(),
-                					this.endOfMonth(),
-                					this.dayCounter(),
-                					h);
-        return clone ;
+  /**
+   * This is the London fixing by BBA.
+   * Use euriborConvention if you're interested in the rate fixed by the ECB.
+   */
+  protected static BusinessDayConvention eurliborConvention(final Period p) {
+    switch (p.units()) {
+      case Days:
+      case Weeks:
+        return BusinessDayConvention.Following;
+      case Months:
+      case Years:
+        return BusinessDayConvention.ModifiedFollowing;
+      default:
+        throw new LibraryException("invalid time units"); // TODO: message
     }
+  }
 
 
-    //
-    // protected methods
-    //
-    
-    /**
-     * This is the fixing established by ECB.
-     * Use eurliborConvention if you're interested in the London rate fixed by the BBA.
-     */
-    protected static BusinessDayConvention euriborConvention(final Period p) {
-        switch (p.units()) {
-        case Days:
-        case Weeks:
-            return BusinessDayConvention.Following;
-        case Months:
-        case Years:
-            return BusinessDayConvention.ModifiedFollowing;
-        default:
-            throw new LibraryException("invalid time units"); // TODO: message
-        }
+  /**
+   * This is the fixing established by ECB.
+   * Use eurliborEOM if you're interested in the London rate fixed by the BBA.
+   */
+  protected static boolean euriborEOM(final Period p) {
+    switch (p.units()) {
+      case Days:
+      case Weeks:
+        return false;
+      case Months:
+      case Years:
+        return true;
+      default:
+        throw new LibraryException("invalid time units");  // TODO: message
     }
+  }
 
-    /**
-     * This is the London fixing by BBA.
-     * Use euriborConvention if you're interested in the rate fixed by the ECB.
-     */
-    protected static BusinessDayConvention eurliborConvention(final Period p) {
-        switch (p.units()) {
-        case Days:
-        case Weeks:
-            return BusinessDayConvention.Following;
-        case Months:
-        case Years:
-            return BusinessDayConvention.ModifiedFollowing;
-        default:
-            throw new LibraryException("invalid time units"); // TODO: message
-        }
+  /**
+   * This is the London fixing by BBA.
+   * Use euriborConvention if you're interested in the rate fixed by the ECB.
+   */
+  protected static boolean eurliborEOM(final Period p) {
+    switch (p.units()) {
+      case Days:
+      case Weeks:
+        return false;
+      case Months:
+      case Years:
+        return true;
+      default:
+        throw new LibraryException("invalid time units");  // TODO: message
     }
-    
+  }
 
-    /**
-     * This is the fixing established by ECB.
-     * Use eurliborEOM if you're interested in the London rate fixed by the BBA.
-     */
-    protected static boolean euriborEOM(final Period p) {
-        switch (p.units()) {
-        case Days:
-        case Weeks:
-            return false;
-        case Months:
-        case Years:
-            return true;
-        default:
-            throw new LibraryException("invalid time units");  // TODO: message
-        }
+
+  protected static BusinessDayConvention liborConvention(final Period p) {
+    switch (p.units()) {
+      case Days:
+      case Weeks:
+        return BusinessDayConvention.Following;
+      case Months:
+      case Years:
+        return BusinessDayConvention.ModifiedFollowing;
+      default:
+        throw new LibraryException("invalid time units"); // TODO: message
     }
+  }
 
-    /**
-     * This is the London fixing by BBA.
-     * Use euriborConvention if you're interested in the rate fixed by the ECB.
-     */
-    protected static boolean eurliborEOM(final Period p) {
-        switch (p.units()) {
-        case Days:
-        case Weeks:
-            return false;
-        case Months:
-        case Years:
-            return true;
-        default:
-            throw new LibraryException("invalid time units");  // TODO: message
-        }
+  protected static boolean liborEOM(final Period p) {
+    switch (p.units()) {
+      case Days:
+      case Weeks:
+        return false;
+      case Months:
+      case Years:
+        return true;
+      default:
+        throw new LibraryException("invalid time units"); // TODO: message
     }
+  }
 
 
-    protected static BusinessDayConvention liborConvention(final Period p) {
-        switch (p.units()) {
-	        case Days:
-	        case Weeks:
-	            return BusinessDayConvention.Following;
-	        case Months:
-	        case Years:
-	            return BusinessDayConvention.ModifiedFollowing;
-	        default:
-	            throw new LibraryException("invalid time units"); // TODO: message
-        }
-    }
+  //
+  // public methods
+  //
 
-    protected static boolean liborEOM(final Period p) {
-        switch (p.units()) {
-	        case Days:
-	        case Weeks:
-	            return false;
-	        case Months:
-	        case Years:
-	            return true;
-	        default:
-	            throw new LibraryException("invalid time units"); // TODO: message
-        }
-    }
+  public BusinessDayConvention businessDayConvention() {
+    return convention;
+  }
 
-    
-    //
-    // public methods
-    //
-    
-    public BusinessDayConvention businessDayConvention() {
-        return convention;
-    }
-
-    public boolean endOfMonth() {
-        return endOfMonth;
-    }
+  public boolean endOfMonth() {
+    return endOfMonth;
+  }
 
 
-    //
-    // overrides InterestRateIndex
-    //
-    
-    @Override
-    protected double forecastFixing(final Date fixingDate) {
-        QL.require(termStructure != null , "no forecasting term structure set to " + name());  // TODO: message
-        final Date fixingValueDate = valueDate(fixingDate);
-        final Date endValueDate = maturityDate(fixingValueDate);
-        final double fixingDiscount = termStructure.discount(fixingValueDate);
-        final double endDiscount = termStructure.discount(endValueDate);
-        final double fixingPeriod = dayCounter().yearFraction(fixingValueDate, endValueDate);
-        return (fixingDiscount / endDiscount - 1.0) / fixingPeriod;
-    }
+  //
+  // overrides InterestRateIndex
+  //
 
-    @Override
-    public YieldTermStructure termStructure() {
-        return termStructure;
-    }
+  @Override
+  protected double forecastFixing(final Date fixingDate) {
+    QL.require(termStructure != null, "no forecasting term structure set to " + name());  // TODO: message
+    final Date fixingValueDate = valueDate(fixingDate);
+    final Date endValueDate = maturityDate(fixingValueDate);
+    final double fixingDiscount = termStructure.discount(fixingValueDate);
+    final double endDiscount = termStructure.discount(endValueDate);
+    final double fixingPeriod = dayCounter().yearFraction(fixingValueDate, endValueDate);
+    return (fixingDiscount / endDiscount - 1.0) / fixingPeriod;
+  }
 
-    @Override
-    public Date maturityDate(final Date valueDate) {
-        return fixingCalendar().advance(valueDate, tenor, convention, endOfMonth);
-    }
+  @Override
+  public YieldTermStructure termStructure() {
+    return termStructure;
+  }
+
+  @Override
+  public Date maturityDate(final Date valueDate) {
+    return fixingCalendar().advance(valueDate, tenor, convention, endOfMonth);
+  }
 
 }

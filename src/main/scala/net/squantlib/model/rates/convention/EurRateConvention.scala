@@ -1,6 +1,6 @@
 package net.squantlib.model.rates.convention
 
-import net.squantlib.util.ql.{Frequency, Period, TimeUnit}
+import net.squantlib.util.ql.time.{Frequency, Period, TimeUnit}
 import net.squantlib.util.ql.daycounters._
 import net.squantlib.util.ql.currencies.Europe.EURCurrency
 import net.squantlib.util.ql.indexes.Euribor

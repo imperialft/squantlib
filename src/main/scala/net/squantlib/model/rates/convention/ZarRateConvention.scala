@@ -1,7 +1,7 @@
 package net.squantlib.model.rates.convention
 
 
-import net.squantlib.util.ql.{Period, Frequency, TimeUnit}
+import net.squantlib.util.ql.time.{Period, Frequency, TimeUnit}
 import net.squantlib.util.ql.daycounters._
 import net.squantlib.util.ql.currencies.Africa.ZARCurrency
 import net.squantlib.util.ql.indexes.ibor.Jibar

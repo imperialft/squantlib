@@ -41,8 +41,8 @@ package net.squantlib.util.ql.termstructures;
 
 import net.squantlib.util.ql.daycounters.DayCounter;
 import net.squantlib.util.ql.math.interpolations.Extrapolator;
-import net.squantlib.util.ql.Calendar;
-import net.squantlib.util.ql.Date;
+import net.squantlib.util.ql.time.Calendar;
+import net.squantlib.util.ql.time.Date;
 import net.squantlib.util.ql.util.Observable;
 import net.squantlib.util.ql.util.Observer;
 

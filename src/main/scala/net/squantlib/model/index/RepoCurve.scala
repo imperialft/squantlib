@@ -3,7 +3,7 @@ package net.squantlib.model.index
 import net.squantlib.model.yieldparameter.YieldParameter
 import net.squantlib.util.initializer.Currencies
 import net.squantlib.util.Date
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.model.yieldparameter._
 

@@ -4,9 +4,9 @@ import net.squantlib.util.ql.currencies.Europe.HUFCurrency;
 import net.squantlib.util.ql.daycounters.Actual360;
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.calendars.Hungary;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.calendars.Hungary;
 
 /**
  * base class for all BBA LIBOR indexes but the EUR, O/N, and S/N ones

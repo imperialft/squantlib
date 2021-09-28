@@ -4,7 +4,7 @@ import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
 import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.util.ql.daycounters.DayCounter
-import net.squantlib.util.ql.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.util.Date
 import scala.annotation.tailrec
 

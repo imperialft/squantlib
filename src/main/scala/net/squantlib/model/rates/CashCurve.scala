@@ -4,7 +4,7 @@ import net.squantlib.model.yieldparameter.YieldParameter
 import net.squantlib.util.ql.daycounters.DayCounter
 import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.util.ql.indexes.IborIndex
-import net.squantlib.util.ql.{TimeUnit, Period => qlPeriod, Frequency}
+import net.squantlib.util.ql.time.{TimeUnit, Period => qlPeriod, Frequency}
 import net.squantlib.util.Date
 import net.squantlib.model.yieldparameter._
 import net.squantlib.model.rates.convention.RateConvention

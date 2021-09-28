@@ -2,7 +2,7 @@ package net.squantlib.model.bond
 
 import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.util.{Date, DbCalendar}
-import net.squantlib.util.ql.{Period => qlPeriod, TimeUnit}
+import net.squantlib.util.ql.time.{Period => qlPeriod, TimeUnit}
 import net.squantlib.database.schemadefinitions.{Bond => dbBond}
 import net.squantlib.util.FixingInformation
 import net.squantlib.util.initializer.Currencies

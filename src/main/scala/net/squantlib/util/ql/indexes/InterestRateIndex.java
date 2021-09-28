@@ -28,189 +28,192 @@ import net.squantlib.util.ql.currencies.Currency;
 import net.squantlib.util.ql.daycounters.DayCounter;
 import net.squantlib.util.ql.math.Constants;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Calendar;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.TimeUnit;
+import net.squantlib.util.ql.time.Calendar;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.TimeUnit;
 import net.squantlib.util.ql.util.Observer;
 
 /**
- *
  * @author Srinivas Hasti
  * @author Zahid Hussain
- *
  */
 // TODO: code review :: please verify against QL/C++ code
 // TODO: code review :: license, class comments, comments for access modifiers, comments for @Override
 public abstract class InterestRateIndex extends Index implements Observer {
 
-    protected String familyName;
-    protected Period tenor;
-    protected /*Natural*/ int fixingDays;
-    protected Calendar fixingCalendar;
-    protected Currency currency;
-    protected DayCounter dayCounter;
-    
-    public InterestRateIndex(final String familyName,
-                             final Period tenor,
-                             final int fixingDays,
-                             final Currency currency,
-                             final Calendar fixingCalendar,
-                             final DayCounter dayCounter) {
-        this.familyName = familyName;
-        this.tenor = tenor;
-        this.fixingDays = fixingDays;
-        this.fixingCalendar = fixingCalendar;
-        this.currency = currency;
-        this.dayCounter = dayCounter;
-        
-        this.tenor.normalize();
+  protected String familyName;
+  protected Period tenor;
+  protected /*Natural*/ int fixingDays;
+  protected Calendar fixingCalendar;
+  protected Currency currency;
+  protected DayCounter dayCounter;
+
+  public InterestRateIndex(
+    final String familyName,
+    final Period tenor,
+    final int fixingDays,
+    final Currency currency,
+    final Calendar fixingCalendar,
+    final DayCounter dayCounter
+  ) {
+    this.familyName = familyName;
+    this.tenor = tenor;
+    this.fixingDays = fixingDays;
+    this.fixingCalendar = fixingCalendar;
+    this.currency = currency;
+    this.dayCounter = dayCounter;
+
+    this.tenor.normalize();
 
 //        new Settings().evaluationDate().addObserver(this);
-        IndexManager.getInstance().notifier(name()).addObserver(this);
+    IndexManager.getInstance().notifier(name()).addObserver(this);
+  }
+
+  @Override
+  public String name() {
+    final StringBuilder builder = new StringBuilder(familyName);
+    if (tenor.equals(new Period(1, TimeUnit.Days))) {
+      if (fixingDays == 0) {
+        builder.append("ON");
+      } else if (fixingDays == 1) {
+        builder.append("TN");
+      } else if (fixingDays == 2) {
+        builder.append("SN");
+      } else {
+        builder.append(tenor.getShortFormat());
+      }
+    } else {
+      builder.append(tenor.getShortFormat());
     }
-    
-    @Override
-    public String name() {
-        final StringBuilder builder = new StringBuilder(familyName);
-        if (tenor.equals(new Period(1,TimeUnit.Days))) {
-            if (fixingDays == 0) {
-                builder.append("ON");
-            } else if (fixingDays == 1) {
-                builder.append("TN");
-            } else if (fixingDays == 2) {
-                builder.append("SN");
-            } else {
-                builder.append(tenor.getShortFormat());
-            }
-        } else {
-            builder.append(tenor.getShortFormat());
-        }
-        builder.append(' ').append(dayCounter.name());
-        return builder.toString();
-    }
-    
-    @Override
-    public Calendar fixingCalendar() {
-        return fixingCalendar;
-    }
+    builder.append(' ').append(dayCounter.name());
+    return builder.toString();
+  }
 
-    @Override
-    public boolean isValidFixingDate(final Date fixingDate) {
-        return fixingCalendar.isBusinessDay(fixingDate);
-    }
+  @Override
+  public Calendar fixingCalendar() {
+    return fixingCalendar;
+  }
 
-    public String familyName() {
-        return familyName;
-    }
+  @Override
+  public boolean isValidFixingDate(final Date fixingDate) {
+    return fixingCalendar.isBusinessDay(fixingDate);
+  }
 
-    public Period tenor() {
-        return tenor;
-    }
+  public String familyName() {
+    return familyName;
+  }
 
-    public int fixingDays() {
-        return fixingDays;
-    }
+  public Period tenor() {
+    return tenor;
+  }
+
+  public int fixingDays() {
+    return fixingDays;
+  }
 
 
-    public Currency currency() {
-        return currency;
-    }
+  public Currency currency() {
+    return currency;
+  }
 
-    public DayCounter dayCounter() {
-        return dayCounter;
-    }
-
-
-    //
-    // protected abstract methods
-    //
-
-    protected abstract double forecastFixing(Date fixingDate);
+  public DayCounter dayCounter() {
+    return dayCounter;
+  }
 
 
-    //
-    // public abstract methods
-    //
+  //
+  // protected abstract methods
+  //
 
-    public abstract YieldTermStructure termStructure();
-    public abstract Date maturityDate(Date valueDate);
+  protected abstract double forecastFixing(Date fixingDate);
 
 
-    //
-    // public methods
-    //
-    @Override
-    public double fixing(final Date fixingDate, 
-    					 final boolean forecastTodaysFixing) {
-        QL.require(isValidFixingDate(fixingDate) , "Fixing date " + fixingDate.toString() + " is not valid"); // QA:[RG]::verified 
-        final Date today = new Settings().evaluationDate();
-        final boolean enforceTodaysHistoricFixings = new Settings().isEnforcesTodaysHistoricFixings();
+  //
+  // public abstract methods
+  //
 
-        if (fixingDate.lt(today) || (fixingDate.equals(today) && enforceTodaysHistoricFixings && !forecastTodaysFixing)) {
-            // must have been fixed
-             double /*Rate*/ pastFixing =
-                    IndexManager.getInstance().getHistory(name()).get(fixingDate);
-             QL.require(pastFixing != Constants.NULL_REAL,
-                          "Missing " + name() + " fixing for " + fixingDate);
-            return pastFixing;
-        }
+  public abstract YieldTermStructure termStructure();
 
-        if ((fixingDate.equals(today)) && !forecastTodaysFixing) {
-            // might have been fixed
-            try {
-                double /*Rate*/ pastFixing =
-                	IndexManager.getInstance().getHistory(name()).get(fixingDate);
-                if (pastFixing != Constants.NULL_REAL)
-                    return pastFixing;
-                else
-                    ;   // fall through and forecast
-            } catch (final Exception e) {
-                ; // fall through and forecast
-            }
-        }
-        // forecast
-        return forecastFixing(fixingDate);
+  public abstract Date maturityDate(Date valueDate);
+
+
+  //
+  // public methods
+  //
+  @Override
+  public double fixing(
+    final Date fixingDate,
+    final boolean forecastTodaysFixing
+  ) {
+    QL.require(isValidFixingDate(fixingDate), "Fixing date " + fixingDate.toString() + " is not valid"); // QA:[RG]::verified
+    final Date today = new Settings().evaluationDate();
+    final boolean enforceTodaysHistoricFixings = new Settings().isEnforcesTodaysHistoricFixings();
+
+    if (fixingDate.lt(today) || (fixingDate.equals(today) && enforceTodaysHistoricFixings && !forecastTodaysFixing)) {
+      // must have been fixed
+      double /*Rate*/ pastFixing =
+        IndexManager.getInstance().getHistory(name()).get(fixingDate);
+      QL.require(pastFixing != Constants.NULL_REAL,
+        "Missing " + name() + " fixing for " + fixingDate);
+      return pastFixing;
     }
 
-    @Override
-    public double fixing(final Date fixingDate) {
-        return fixing(fixingDate, false);
+    if ((fixingDate.equals(today)) && !forecastTodaysFixing) {
+      // might have been fixed
+      try {
+        double /*Rate*/ pastFixing =
+          IndexManager.getInstance().getHistory(name()).get(fixingDate);
+        if (pastFixing != Constants.NULL_REAL)
+          return pastFixing;
+        else
+          ;   // fall through and forecast
+      } catch (final Exception e) {
+        ; // fall through and forecast
+      }
     }
+    // forecast
+    return forecastFixing(fixingDate);
+  }
 
-    public Date fixingDate(final Date valueDate) {
-        final Date fixingDate = fixingCalendar().advance(valueDate, fixingDays, TimeUnit.Days);
-        QL.ensure(isValidFixingDate(fixingDate) , "fixing date " + fixingDate + " is not valid"); 
-        return fixingDate;
-    }
+  @Override
+  public double fixing(final Date fixingDate) {
+    return fixing(fixingDate, false);
+  }
 
-    public Date valueDate(final Date fixingDate) {
-        QL.require(isValidFixingDate(fixingDate) , "Fixing date is not valid"); // TODO: message
-        return fixingCalendar().advance(fixingDate, fixingDays, TimeUnit.Days);
-    }
+  public Date fixingDate(final Date valueDate) {
+    final Date fixingDate = fixingCalendar().advance(valueDate, fixingDays, TimeUnit.Days);
+    QL.ensure(isValidFixingDate(fixingDate), "fixing date " + fixingDate + " is not valid");
+    return fixingDate;
+  }
+
+  public Date valueDate(final Date fixingDate) {
+    QL.require(isValidFixingDate(fixingDate), "Fixing date is not valid"); // TODO: message
+    return fixingCalendar().advance(fixingDate, fixingDays, TimeUnit.Days);
+  }
 
 
-    //
-    // implements Observer
-    //
+  //
+  // implements Observer
+  //
 
-    //XXX:registerWith
-    //    @Override
-    //    public void registerWith(final Observable o) {
-    //        o.addObserver(this);
-    //    }
-    //
-    //    @Override
-    //    public void unregisterWith(final Observable o) {
-    //        o.deleteObserver(this);
-    //    }
+  //XXX:registerWith
+  //    @Override
+  //    public void registerWith(final Observable o) {
+  //        o.addObserver(this);
+  //    }
+  //
+  //    @Override
+  //    public void unregisterWith(final Observable o) {
+  //        o.deleteObserver(this);
+  //    }
 
-    @Override
-    //XXX::OBS public void update(final Observable o, final Object arg) {
-    public void update() {
-        //XXX::OBS notifyObservers(arg);
-        notifyObservers();
-    }
+  @Override
+  //XXX::OBS public void update(final Observable o, final Object arg) {
+  public void update() {
+    //XXX::OBS notifyObservers(arg);
+    notifyObservers();
+  }
 
 
 }

@@ -40,21 +40,30 @@ package net.squantlib.util.ql.currencies;
 import net.squantlib.util.ql.math.Rounding;
 
 public class Africa {
-    /**
-     * South-African rand
-     * 
-     * The ISO three-letter code is ZAR; the numeric code is 710
-     * It is divided in 100 cents.
-     * 
-     * @category currencies
-     */
-    public static class ZARCurrency extends Currency {
-    	public ZARCurrency() {
-            Data zarData= new Data("South-African rand", "ZAR", 710,
-                                             "R", "", 100,
-                                             new Rounding(),
-                                             "%3% %1$.2f");
-            data = zarData;
-        }
-    };
+  /**
+   * South-African rand
+   * <p>
+   * The ISO three-letter code is ZAR; the numeric code is 710
+   * It is divided in 100 cents.
+   *
+   * @category currencies
+   */
+  public static class ZARCurrency extends Currency {
+    public ZARCurrency() {
+      Data zarData = new Data(
+        "South-African rand",
+        "ZAR",
+        710,
+        "R",
+        "",
+        100,
+        new Rounding(),
+        "%3% %1$.2f"
+      );
+      
+      data = zarData;
+    }
+  }
+
+  ;
 }

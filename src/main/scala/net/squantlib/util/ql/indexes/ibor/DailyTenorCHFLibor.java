@@ -43,8 +43,8 @@ import net.squantlib.util.ql.currencies.Europe.CHFCurrency;
 import net.squantlib.util.ql.daycounters.Actual360;
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.calendars.Switzerland;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.calendars.Switzerland;
 
 /**
  * base class for all BBA LIBOR indexes but the EUR, O/N, and S/N ones

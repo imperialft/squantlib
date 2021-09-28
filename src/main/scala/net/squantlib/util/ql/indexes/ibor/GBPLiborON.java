@@ -42,7 +42,7 @@ package net.squantlib.util.ql.indexes.ibor;
 
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Date;
+import net.squantlib.util.ql.time.Date;
 
 /**
  * base class for all BBA LIBOR indexes but the EUR, O/N, and S/N ones

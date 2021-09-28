@@ -43,9 +43,9 @@ import net.squantlib.util.ql.currencies.Oceania.AUDCurrency;
 import net.squantlib.util.ql.daycounters.Actual360;
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.calendars.Australia;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.calendars.Australia;
 
 /**
  * Australian Dollar LIBOR fixed by BBA
@@ -54,27 +54,30 @@ import net.squantlib.util.ql.calendars.Australia;
  */
 public class AUDLibor extends Libor {
 
-	public AUDLibor(final Period tenor) {
-		this(tenor, 
-						new AbstractYieldTermStructure() {
-							@Override
-							protected double discountImpl(final double t) {
-								throw new UnsupportedOperationException();
-							}
-							@Override
-							public Date maxDate() {
-								throw new UnsupportedOperationException();
-							}
-						}
-				);
-	}
+  public AUDLibor(final Period tenor) {
+    this(tenor,
+      new AbstractYieldTermStructure() {
+        @Override
+        protected double discountImpl(final double t) {
+          throw new UnsupportedOperationException();
+        }
 
-	public AUDLibor(final Period tenor,
-			final YieldTermStructure h) {
-		super("AUDLibor", tenor, 2,
-				new AUDCurrency(),
-				new Australia(),
-				new Actual360(), h);
-	}
+        @Override
+        public Date maxDate() {
+          throw new UnsupportedOperationException();
+        }
+      }
+    );
+  }
+
+  public AUDLibor(
+    final Period tenor,
+    final YieldTermStructure h
+  ) {
+    super("AUDLibor", tenor, 2,
+      new AUDCurrency(),
+      new Australia(),
+      new Actual360(), h);
+  }
 
 }

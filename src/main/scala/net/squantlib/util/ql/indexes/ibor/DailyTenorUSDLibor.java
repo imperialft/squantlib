@@ -43,8 +43,8 @@ import net.squantlib.util.ql.currencies.America.USDCurrency;
 import net.squantlib.util.ql.daycounters.Actual360;
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.calendars.UnitedStates;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.calendars.UnitedStates;
 
 /**
  * base class for all BBA LIBOR indexes but the EUR, O/N, and S/N ones

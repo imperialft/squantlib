@@ -43,122 +43,129 @@ package net.squantlib.util.ql.daycounters;
 import net.squantlib.util.ql.lang.annotation.QualityAssurance;
 import net.squantlib.util.ql.lang.annotation.QualityAssurance.Quality;
 import net.squantlib.util.ql.lang.annotation.QualityAssurance.Version;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.TimeUnit;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.TimeUnit;
 
 /**
  * "Actual/365 (Fixed)" day count convention, also know as
  * "Act/365 (Fixed)", "A/365 (Fixed)", or "A/365F".
  *
+ * @author Srinivas Hasti
+ * @author Richard Gomes
  * @note According to ISDA, "Actual/365" (without "Fixed") is
  * an alias for "Actual/Actual (ISDA)"DayCounter (see
  * ActualActual.)  If Actual/365 is not explicitly
  * specified as fixed in an instrument specification,
  * you might want to double-check its meaning.
- *
- * @author Srinivas Hasti
- * @author Richard Gomes
  */
-@QualityAssurance(quality=Quality.Q4_UNIT, version=Version.V097, reviewers="Richard Gomes")
+@QualityAssurance(quality = Quality.Q4_UNIT, version = Version.V097, reviewers = "Richard Gomes")
 public class Actual365Fixed extends DayCounter {
 
-    public enum Convention {
-        Fixed, Adjusted
+  public enum Convention {
+    Fixed, Adjusted
+  }
+
+
+  //
+  // public constructors
+  //
+
+  public Actual365Fixed() {
+    this(Convention.Fixed, null);
+  }
+
+  public Actual365Fixed(
+    final Actual365Fixed.Convention c,
+    Period paymentPeriod
+  ) {
+    switch (c) {
+      case Adjusted:
+        super.impl = new ImplAdjusted(paymentPeriod);
+        break;
+      default:
+        super.impl = new Impl();
+        break;
     }
-
-
-    //
-    // public constructors
-    //
-
-    public Actual365Fixed() {
-        this(Convention.Fixed, null);
-    }
-
-    public Actual365Fixed(final Actual365Fixed.Convention c, Period paymentPeriod) {
-        switch (c) {
-            case Adjusted:
-                super.impl = new ImplAdjusted(paymentPeriod);
-                break;
-            default:
-                super.impl = new Impl();
-                break;
-        }
-    }
+  }
 
 
 //    public Actual365Fixed() {
 //        super.impl = new Impl();
 //    }
 
-    
+
+  //
+  // annual daycount (est)
+  //
+
+  public double annualDayCount() {
+    return 1.00;
+  }
+
+  //
+  // private inner classes
+  //
+
+  final private class Impl extends DayCounter.Impl {
+
     //
-    // annual daycount (est)
-    //
-    
-    public double annualDayCount()
-    {
-    	return 1.00;
-    }
-    
-    //
-    // private inner classes
+    // implements DayCounter
     //
 
-    final private class Impl extends DayCounter.Impl {
-
-        //
-        // implements DayCounter
-        //
-
-        @Override
-        public final String name() /* @ReadOnly */{
-            return "Actual/365 (fixed)";
-        }
-
-        @Override
-        public /*@Time*/ final double yearFraction(
-                final Date dateStart, final Date dateEnd,
-                final Date refPeriodStart, final Date refPeriodEnd) /* @ReadOnly */{
-            return /*@Time*/ dayCount(dateStart, dateEnd)/365.0;
-        }
+    @Override
+    public final String name() /* @ReadOnly */ {
+      return "Actual/365 (fixed)";
     }
 
-    final private class ImplAdjusted extends DayCounter.Impl {
+    @Override
+    public /*@Time*/ final double yearFraction(
+      final Date dateStart,
+      final Date dateEnd,
+      final Date refPeriodStart,
+      final Date refPeriodEnd
+    ) /* @ReadOnly */ {
+      return /*@Time*/ dayCount(dateStart, dateEnd) / 365.0;
+    }
+  }
 
-        public Period paymentPeriod;
-        public int months;
+  final private class ImplAdjusted extends DayCounter.Impl {
 
-        public ImplAdjusted(Period p) {
-            paymentPeriod = p;
-            months = (paymentPeriod.units() == TimeUnit.Years) ? paymentPeriod.length() * 12 : paymentPeriod.length();
-        }
+    public Period paymentPeriod;
+    public int months;
 
-        //
-        // implements DayCounter
-        //
+    public ImplAdjusted(Period p) {
+      paymentPeriod = p;
+      months = (paymentPeriod.units() == TimeUnit.Years) ? paymentPeriod.length() * 12 : paymentPeriod.length();
+    }
 
-        @Override
+    //
+    // implements DayCounter
+    //
+
+    @Override
 //        public final String name() /* @ReadOnly */{
 //            return "Actual/365 (adjusted)";
 //        }
-        public final String name() /* @ReadOnly */{
-            return "Actual/365 (Adj " + months + "M)";
-        }
-
-        @Override
-        public /*@Time*/ final double yearFraction(
-                final Date dateStart, final Date dateEnd,
-                final Date refPeriodStart, final Date refPeriodEnd) /* @ReadOnly */{
-
-            Date testEnd = dateStart.add(paymentPeriod);
-            if (testEnd.eq(dateEnd) || (Date.isEndOfMonth(dateStart) && Date.isEndOfMonth(dateEnd) && Math.abs(testEnd.sub(dateEnd)) < 4)) {
-                return months / 12.0;
-            } else {
-                return /*@Time*/ dayCount(dateStart, dateEnd) / 365.0;
-            }
-        }
+    public final String name() /* @ReadOnly */ {
+      return "Actual/365 (Adj " + months + "M)";
     }
+
+    @Override
+    public /*@Time*/ final double yearFraction(
+      final Date dateStart,
+      final Date dateEnd,
+      final Date refPeriodStart,
+      final Date refPeriodEnd
+    ) /* @ReadOnly */ {
+
+      Date testEnd = dateStart.add(paymentPeriod);
+      if (testEnd.eq(dateEnd) || (Date.isEndOfMonth(dateStart) && Date.isEndOfMonth(dateEnd) && Math.abs(testEnd.sub(dateEnd)) < 4)) {
+        return months / 12.0;
+      } else {
+        return /*@Time*/ dayCount(dateStart, dateEnd) / 365.0;
+      }
+    }
+  }
 
 }

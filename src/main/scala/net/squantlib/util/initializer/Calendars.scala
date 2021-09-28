@@ -1,7 +1,7 @@
 package net.squantlib.util.initializer
 
-import net.squantlib.util.ql.calendars._
-import net.squantlib.util.ql.Calendar
+import net.squantlib.util.ql.time.calendars._
+import net.squantlib.util.ql.time.Calendar
 import net.squantlib.util.ql.currencies.{Currency => qlCurrency}
 import net.squantlib.util.{DbCalendar, EmptyCalendar}
 import net.squantlib.database.DB

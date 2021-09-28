@@ -43,9 +43,9 @@ import net.squantlib.util.ql.currencies.America.CADCurrency;
 import net.squantlib.util.ql.daycounters.Actual360;
 import net.squantlib.util.ql.termstructures.AbstractYieldTermStructure;
 import net.squantlib.util.ql.termstructures.YieldTermStructure;
-import net.squantlib.util.ql.Date;
-import net.squantlib.util.ql.Period;
-import net.squantlib.util.ql.calendars.Canada;
+import net.squantlib.util.ql.time.Date;
+import net.squantlib.util.ql.time.Period;
+import net.squantlib.util.ql.time.calendars.Canada;
 
 /**
  * Overnight Canadian Dollar LIBOR index
@@ -55,27 +55,30 @@ import net.squantlib.util.ql.calendars.Canada;
  */
 public class CADLiborON extends DailyTenorLibor {
 
-	public CADLiborON(final Period tenor) {
-		this(tenor, 
-						new AbstractYieldTermStructure() {
-							@Override
-							protected double discountImpl(final double t) {
-								throw new UnsupportedOperationException();
-							}
-							@Override
-							public Date maxDate() {
-								throw new UnsupportedOperationException();
-							}
-						}
-				);
-	}
+  public CADLiborON(final Period tenor) {
+    this(tenor,
+      new AbstractYieldTermStructure() {
+        @Override
+        protected double discountImpl(final double t) {
+          throw new UnsupportedOperationException();
+        }
 
-	public CADLiborON(final Period tenor,
-			final YieldTermStructure h) {
-		super("CADLibor", 0,
-				new CADCurrency(),
-				new Canada(),
-				new Actual360(), h);
-	}
+        @Override
+        public Date maxDate() {
+          throw new UnsupportedOperationException();
+        }
+      }
+    );
+  }
+
+  public CADLiborON(
+    final Period tenor,
+    final YieldTermStructure h
+  ) {
+    super("CADLibor", 0,
+      new CADCurrency(),
+      new Canada(),
+      new Actual360(), h);
+  }
 
 }
