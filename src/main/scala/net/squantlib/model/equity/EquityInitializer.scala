@@ -6,7 +6,7 @@ import net.squantlib.database.DB
 import net.squantlib.database.schemadefinitions.{Equity => EquityInfo}
 import net.squantlib.util.Date
 import net.squantlib.model.rates.DiscountCurve
-import org.jquantlib.time.{Period => qlPeriod}
+import net.squantlib.util.ql.{Period => qlPeriod}
 import scala.collection.mutable.{Map => MutableMap}
 import scala.annotation.tailrec
 

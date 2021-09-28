@@ -1,13 +1,13 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.Europe.GBPCurrency
-import org.jquantlib.indexes.ibor.GBPLibor
+import net.squantlib.util.ql.{Period, Frequency, TimeUnit}
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.Europe.GBPCurrency
+import net.squantlib.util.ql.indexes.ibor.GBPLibor
 
 class GbpRateConvention extends RateConvention{
-  import org.jquantlib.indexes.ibor.GBPLibor
-  import org.jquantlib.currencies.Europe.GBPCurrency
+  import net.squantlib.util.ql.indexes.ibor.GBPLibor
+  import net.squantlib.util.ql.currencies.Europe.GBPCurrency
   
   	val currency = new GBPCurrency
   

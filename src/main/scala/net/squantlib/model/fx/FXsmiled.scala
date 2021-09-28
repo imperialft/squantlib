@@ -5,7 +5,7 @@ import net.squantlib.model.yieldparameter._
 import net.squantlib.math.volatility.FxBlackOption
 import net.squantlib.util.Date
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
+import net.squantlib.util.ql.{Period => qlPeriod, Date => qlDate}
 import net.squantlib.math.volatility.DupireLocalVolatility
 
 /**

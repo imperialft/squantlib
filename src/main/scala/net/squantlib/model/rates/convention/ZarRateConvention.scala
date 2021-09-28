@@ -1,14 +1,14 @@
 package net.squantlib.model.rates.convention
 
 
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.Africa.ZARCurrency
-import org.jquantlib.indexes.ibor.Jibar
+import net.squantlib.util.ql.{Period, Frequency, TimeUnit}
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.Africa.ZARCurrency
+import net.squantlib.util.ql.indexes.ibor.Jibar
 
 class ZarRateConvention extends RateConvention{
-  import org.jquantlib.indexes.ibor.Jibar
-  import org.jquantlib.currencies.Africa.ZARCurrency
+  import net.squantlib.util.ql.indexes.ibor.Jibar
+  import net.squantlib.util.ql.currencies.Africa.ZARCurrency
   
   	val currency = new ZARCurrency
   

@@ -1,9 +1,9 @@
 package net.squantlib.model.asset
 
 import net.squantlib.util.DisplayUtils._
-import org.jquantlib.currencies.Currency
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Period => qlPeriod}
+import net.squantlib.util.ql.currencies.Currency
+import net.squantlib.util.ql.daycounters.DayCounter
+import net.squantlib.util.ql.{Period => qlPeriod}
 import net.squantlib.model.market.Market
 import net.squantlib.util.UnderlyingParsers
 import net.squantlib.database.DB

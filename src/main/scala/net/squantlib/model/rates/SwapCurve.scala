@@ -2,10 +2,10 @@ package net.squantlib.model.rates
 
 import net.squantlib.model.yieldparameter._
 import net.squantlib.util.Date
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.currencies.Currency
-import org.jquantlib.indexes.IborIndex
-import org.jquantlib.time.{TimeUnit, Period => qlPeriod, Frequency}
+import net.squantlib.util.ql.daycounters.DayCounter
+import net.squantlib.util.ql.currencies.Currency
+import net.squantlib.util.ql.indexes.IborIndex
+import net.squantlib.util.ql.{TimeUnit, Period => qlPeriod, Frequency}
 import net.squantlib.model.rates.convention.RateConvention
 
 /**

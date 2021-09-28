@@ -6,10 +6,10 @@ import net.squantlib.util.Date
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.util.initializer.Calendars
 import net.squantlib.model.rates.DiscountCurve
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.DateGeneration.Rule._
-import org.jquantlib.time.{Period, Calendar, BusinessDayConvention, DateGeneration}
-import org.jquantlib.daycounters._
+import net.squantlib.util.ql.daycounters.DayCounter
+import net.squantlib.util.ql.DateGeneration.Rule._
+import net.squantlib.util.ql.{Period, Calendar, BusinessDayConvention, DateGeneration}
+import net.squantlib.util.ql.daycounters._
 import java.util.{Date => JavaDate}
 import Ordering.Tuple2
 

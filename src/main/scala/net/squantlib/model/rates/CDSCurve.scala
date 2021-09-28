@@ -2,7 +2,7 @@ package net.squantlib.model.rates
 
 import net.squantlib.model.yieldparameter.YieldParameter
 import net.squantlib.util.initializer.Currencies
-import org.jquantlib.currencies.Currency
+import net.squantlib.util.ql.currencies.Currency
 
 
 /**

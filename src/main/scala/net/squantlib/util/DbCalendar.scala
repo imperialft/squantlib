@@ -1,10 +1,10 @@
 package net.squantlib.util
 
-import org.jquantlib.time.Calendar
+import net.squantlib.util.ql.Calendar
 import net.squantlib.database.DB
-import org.jquantlib.time.Weekday
-import org.jquantlib.time.Weekday._
-import org.jquantlib.time.{Date => qlDate}
+import net.squantlib.util.ql.Weekday
+import net.squantlib.util.ql.Weekday._
+import net.squantlib.util.ql.{Date => qlDate}
 
 class DbCalendar(val countryIds:Set[String], val holidayList:Set[qlDate]) extends Calendar {
 

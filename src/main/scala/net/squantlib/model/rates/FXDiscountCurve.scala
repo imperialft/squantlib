@@ -3,8 +3,8 @@ package net.squantlib.model.rates
 import net.squantlib.util.Date
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.model.yieldparameter.{YieldParameter, SplineEExtrapolation, FlatVector}
-import org.jquantlib.time.{Period => qlPeriod, TimeUnit}
-import org.jquantlib.daycounters.Thirty360
+import net.squantlib.util.ql.{Period => qlPeriod, TimeUnit}
+import net.squantlib.util.ql.daycounters.Thirty360
 import net.squantlib.model.rates.convention.RateConvention
 import scala.annotation.tailrec
 import scala.collection.breakOut

@@ -1,7 +1,7 @@
 package net.squantlib.model.bond
 
 import net.squantlib.util.Date
-import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
+import net.squantlib.util.ql.daycounters.{Actual365Fixed, DayCounter}
 import net.squantlib.util.SimpleCache
 import net.squantlib.pricing.model.PricingModel
 import net.squantlib.schedule.call.{Callability, Callabilities}

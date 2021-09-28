@@ -1,13 +1,13 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.Europe.PLNCurrency
-import org.jquantlib.indexes.ibor.Wibor
+import net.squantlib.util.ql.{Period, Frequency, TimeUnit}
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.Europe.PLNCurrency
+import net.squantlib.util.ql.indexes.ibor.Wibor
 
 class PlnRateConvention extends RateConvention{
-  import org.jquantlib.indexes.ibor.Wibor
-  import org.jquantlib.currencies.Europe.PLNCurrency
+  import net.squantlib.util.ql.indexes.ibor.Wibor
+  import net.squantlib.util.ql.currencies.Europe.PLNCurrency
   
   	val currency = new PLNCurrency
   

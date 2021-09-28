@@ -1,11 +1,11 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.Period
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.Europe.RONCurrency
+import net.squantlib.util.ql.Period
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.Europe.RONCurrency
 
 class RonRateConvention extends RateConvention{
-  import org.jquantlib.currencies.Europe.RONCurrency
+  import net.squantlib.util.ql.currencies.Europe.RONCurrency
   
   	val currency = new RONCurrency
 

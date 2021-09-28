@@ -5,8 +5,8 @@ import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import net.squantlib.util.initializer.Calendars
-import org.jquantlib.time.Calendar
-import org.jquantlib.currencies.Currency
+import net.squantlib.util.ql.Calendar
+import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.util.{FixingInformation, Date, DbCalendar}
 import java.util.{Collections, WeakHashMap => JavaWeakHashMap}
 import scala.collection.JavaConverters._

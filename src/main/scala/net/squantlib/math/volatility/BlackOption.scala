@@ -2,7 +2,7 @@ package net.squantlib.math.volatility
 
 import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import org.jquantlib.time.{Date => qlDate, Period => qlPeriod}
+import net.squantlib.util.ql.{Date => qlDate, Period => qlPeriod}
 import net.squantlib.math.statistical.NormSInv
 import net.squantlib.math.solver._
 import org.apache.commons.math3.distribution._

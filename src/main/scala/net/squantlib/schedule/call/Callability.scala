@@ -4,7 +4,7 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.{CalculationPeriod, FixingLeg, KnockInCondition}
 import net.squantlib.util.{Date, FixingInformation, JsonUtils, UnderlyingFixing}
 import net.squantlib.schedule.payoff._
-import org.jquantlib.time.Calendar
+import net.squantlib.util.ql.Calendar
 
 case class Callability(
   bermudanCondition: BermudanCondition,

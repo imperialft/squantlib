@@ -1,13 +1,13 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.Period
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.America.BRLCurrency
-import org.jquantlib.daycounters.Actual360
+import net.squantlib.util.ql.Period
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.America.BRLCurrency
+import net.squantlib.util.ql.daycounters.Actual360
   
 class BrlRateConvention extends RateConvention{
   
-  	val currency = new BRLCurrency
+  val currency = new BRLCurrency
   	
 	val useRateDiscount = false
 	def iborindex(p:Period) = null

@@ -2,8 +2,8 @@ package net.squantlib.model.rates
 
 import net.squantlib.util.Date
 import net.squantlib.model.yieldparameter.YieldParameter
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.currencies.Currency
+import net.squantlib.util.ql.daycounters.DayCounter
+import net.squantlib.util.ql.currencies.Currency
 
 /**
  * Encapsulates a curve to be used for cash flow discounting.

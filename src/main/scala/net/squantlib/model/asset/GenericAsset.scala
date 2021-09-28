@@ -1,6 +1,6 @@
 package net.squantlib.model.asset
 
-import org.jquantlib.currencies.Currency
+import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.math.timeseries.TimeSeries
 import net.squantlib.util.initializer.Currencies
 import net.squantlib.util.{FixingInformation, Date, DbCalendar}

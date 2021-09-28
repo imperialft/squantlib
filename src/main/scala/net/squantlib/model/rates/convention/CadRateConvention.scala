@@ -1,11 +1,11 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
-import org.jquantlib.daycounters._
+import net.squantlib.util.ql.{Period, Frequency, TimeUnit}
+import net.squantlib.util.ql.daycounters._
 
 class CadRateConvention extends RateConvention{
-  import org.jquantlib.indexes.ibor.Cdor
-  import org.jquantlib.currencies.America.CADCurrency
+  import net.squantlib.util.ql.indexes.ibor.Cdor
+  import net.squantlib.util.ql.currencies.America.CADCurrency
   
 	val currency = new CADCurrency
   

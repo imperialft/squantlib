@@ -1,12 +1,12 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.{Period, Frequency}
-import org.jquantlib.daycounters.Actual360
-import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.currencies.Europe.TRYCurrency
+import net.squantlib.util.ql.{Period, Frequency}
+import net.squantlib.util.ql.daycounters.Actual360
+import net.squantlib.util.ql.indexes.ibor.USDLibor
+import net.squantlib.util.ql.currencies.Europe.TRYCurrency
 
 class TryRateConvention extends RateConvention{
-  import org.jquantlib.currencies.Europe.TRYCurrency
+  import net.squantlib.util.ql.currencies.Europe.TRYCurrency
   
   	val currency = new TRYCurrency
   	
