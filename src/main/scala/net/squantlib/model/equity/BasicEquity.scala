@@ -2,9 +2,9 @@ package net.squantlib.model.equity
 
 import net.squantlib.model.rates.DiscountCurve
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import org.jquantlib.currencies.Currency
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Period => qlPeriod}
+import net.squantlib.util.ql.currencies.Currency
+import net.squantlib.util.ql.daycounters.DayCounter
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.util.Date
 import scala.annotation.tailrec
 

@@ -1,11 +1,11 @@
 package net.squantlib.util.initializer
 
-import org.jquantlib.currencies.Africa._
-import org.jquantlib.currencies.Asia._
-import org.jquantlib.currencies.America._
-import org.jquantlib.currencies.Europe._
-import org.jquantlib.currencies.Oceania._
-import org.jquantlib.currencies.Currency
+import net.squantlib.util.ql.currencies.Africa._
+import net.squantlib.util.ql.currencies.Asia._
+import net.squantlib.util.ql.currencies.America._
+import net.squantlib.util.ql.currencies.Europe._
+import net.squantlib.util.ql.currencies.Oceania._
+import net.squantlib.util.ql.currencies.Currency
 
 object Currencies extends Initializer[Currency]{
   

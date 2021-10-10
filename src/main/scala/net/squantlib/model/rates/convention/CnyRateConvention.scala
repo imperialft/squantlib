@@ -1,10 +1,10 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.Period
-import org.jquantlib.daycounters.Actual365Fixed
+import net.squantlib.util.ql.time.Period
+import net.squantlib.util.ql.daycounters.Actual365Fixed
 
 class CnyRateConvention extends RateConvention{
-  import org.jquantlib.currencies.Asia.CNYCurrency
+  import net.squantlib.util.ql.currencies.Asia.CNYCurrency
   
   	val currency = new CNYCurrency
 

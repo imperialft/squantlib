@@ -3,7 +3,7 @@ package net.squantlib.math.timeseries
 import scala.collection.JavaConversions._
 import scala.collection.SortedMap
 import net.squantlib.util.Date
-import org.jquantlib.time.{Period => qlPeriod }
+import net.squantlib.util.ql.time.{Period => qlPeriod }
 
 
 object Volatility {

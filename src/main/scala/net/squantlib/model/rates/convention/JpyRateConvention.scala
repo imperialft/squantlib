@@ -1,13 +1,13 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.Asia.JPYCurrency
-import org.jquantlib.indexes.ibor.JPYLibor
+import net.squantlib.util.ql.time.{Period, Frequency, TimeUnit}
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.Asia.JPYCurrency
+import net.squantlib.util.ql.indexes.ibor.JPYLibor
 
 class JpyRateConvention extends RateConvention{
-  import org.jquantlib.indexes.ibor.JPYLibor
-  import org.jquantlib.currencies.Asia.JPYCurrency
+  import net.squantlib.util.ql.indexes.ibor.JPYLibor
+  import net.squantlib.util.ql.currencies.Asia.JPYCurrency
   
   	val currency = new JPYCurrency
   

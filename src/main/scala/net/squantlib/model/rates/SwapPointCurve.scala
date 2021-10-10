@@ -1,9 +1,9 @@
 package net.squantlib.model.rates
 
 import net.squantlib.model.yieldparameter._
-import org.jquantlib.currencies.Currency
-import org.jquantlib.currencies.America.USDCurrency
-import org.jquantlib.time.{Period => qlPeriod }
+import net.squantlib.util.ql.currencies.Currency
+import net.squantlib.util.ql.currencies.America.USDCurrency
+import net.squantlib.util.ql.time.{Period => qlPeriod }
 import net.squantlib.model.rates.convention.RateConvention
 import net.squantlib.util.Date
 

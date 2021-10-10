@@ -1,8 +1,8 @@
 package net.squantlib.model.bond
 
-import org.jquantlib.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
-import org.jquantlib.termstructures.Compounding
-import org.jquantlib.daycounters.{Actual365Fixed, DayCounter}
+import net.squantlib.util.ql.time.{Period => qlPeriod, TimeUnit, Calendar, Frequency}
+import net.squantlib.util.ql.termstructures.Compounding
+import net.squantlib.util.ql.daycounters.{Actual365Fixed, DayCounter}
 import net.squantlib.math.financial.{BondYield, Duration}
 import scala.language.postfixOps
 

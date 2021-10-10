@@ -1,14 +1,14 @@
 package net.squantlib.model.rates.convention
 
 
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.America.USDCurrency
-import org.jquantlib.indexes.ibor.USDLibor
+import net.squantlib.util.ql.time.{Period, Frequency, TimeUnit}
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.America.USDCurrency
+import net.squantlib.util.ql.indexes.ibor.USDLibor
 
 class UsdRateConvention extends RateConvention{
-  import org.jquantlib.indexes.ibor.USDLibor
-  import org.jquantlib.currencies.America.USDCurrency
+  import net.squantlib.util.ql.indexes.ibor.USDLibor
+  import net.squantlib.util.ql.currencies.America.USDCurrency
   
   	val currency = new USDCurrency
   	

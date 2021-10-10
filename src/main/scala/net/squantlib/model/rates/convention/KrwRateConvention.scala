@@ -1,11 +1,11 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.Period
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.Asia.KRWCurrency
+import net.squantlib.util.ql.time.Period
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.Asia.KRWCurrency
 
 class KrwRateConvention extends RateConvention{
-  import org.jquantlib.currencies.Asia.KRWCurrency
+  import net.squantlib.util.ql.currencies.Asia.KRWCurrency
   
   	val currency = new KRWCurrency
 

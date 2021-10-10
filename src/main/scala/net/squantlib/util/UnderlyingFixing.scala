@@ -2,7 +2,6 @@ package net.squantlib.util
 
 import net.squantlib.util.DisplayUtils._
 import net.squantlib.database.DB
-import net.squantlib.util.JsonUtils
 
 case class UnderlyingFixing(
   fixings:Map[String, Option[BigDecimal]]

@@ -8,7 +8,7 @@ import net.squantlib.schedule.payoff._
 import net.squantlib.schedule.{CalculationPeriod, ScheduledPayoffs}
 import net.squantlib.model.market.Market
 import net.squantlib.pricing.model.NoModel
-import org.jquantlib.currencies.Currency
+import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.util.DisplayUtils._
 
 

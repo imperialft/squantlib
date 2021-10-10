@@ -3,8 +3,8 @@ package net.squantlib.math.timeseries
 import scala.language.implicitConversions
 import java.util.{Date => JavaDate}
 
-import org.jquantlib.time.{Period => qlPeriod}
-import org.jquantlib.time.Calendar
+import net.squantlib.util.ql.time.{Period => qlPeriod}
+import net.squantlib.util.ql.time.Calendar
 
 import scala.collection.{SortedMap, SortedSet}
 import net.squantlib.util.{Date, FixingInformation}

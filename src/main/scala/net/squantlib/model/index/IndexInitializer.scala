@@ -2,7 +2,7 @@ package net.squantlib.model.index
 
 import net.squantlib.model.market.Market
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import org.jquantlib.time.{Period => qlPeriod, Date => qlDate}
+import net.squantlib.util.ql.time.{Period => qlPeriod, Date => qlDate}
 import net.squantlib.math.volatility.DupireLocalVolatility
 
 /**

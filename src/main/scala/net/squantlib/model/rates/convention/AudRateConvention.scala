@@ -1,9 +1,9 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
-import org.jquantlib.daycounters._
-import org.jquantlib.indexes.ibor.BBSW
-import org.jquantlib.currencies.Oceania.AUDCurrency
+import net.squantlib.util.ql.time.{Period, Frequency, TimeUnit}
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.indexes.ibor.BBSW
+import net.squantlib.util.ql.currencies.Oceania.AUDCurrency
 
 class AudRateConvention extends RateConvention{
   

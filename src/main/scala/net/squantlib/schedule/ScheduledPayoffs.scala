@@ -9,9 +9,9 @@ import net.squantlib.schedule.payoff.{FixedPayoff, Payoff, Payoffs}
 
 import scala.collection.JavaConversions._
 import net.squantlib.util.{Date, FixingInformation, UnderlyingFixing}
-import org.jquantlib.time.{BusinessDayConvention, Calendar}
-import org.jquantlib.daycounters.Actual365Fixed
-import org.jquantlib.daycounters._
+import net.squantlib.util.ql.time.{BusinessDayConvention, Calendar}
+import net.squantlib.util.ql.daycounters.Actual365Fixed
+import net.squantlib.util.ql.daycounters._
 
 import scala.runtime.ZippedTraversable3.zippedTraversable3ToTraversable
 

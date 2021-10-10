@@ -1,7 +1,7 @@
 package net.squantlib.model.yieldparameter
 
 import net.squantlib.model.yieldparameter._
-import org.jquantlib.time.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.util.Date
 import scala.language.implicitConversions
 

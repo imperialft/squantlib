@@ -12,7 +12,7 @@ import net.squantlib.schedule.payoff.{Payoff, Payoffs}
 import net.squantlib.schedule.{ScheduledPayoffs, CalculationPeriod}
 import net.squantlib.model.market.Market
 import net.squantlib.pricing.model.NoModel
-import org.jquantlib.currencies.Currency
+import net.squantlib.util.ql.currencies.Currency
 import net.squantlib.util.FixingInformation
 import net.squantlib.util.DisplayUtils._
 import scala.collection.LinearSeq

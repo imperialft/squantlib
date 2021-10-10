@@ -11,9 +11,9 @@ import net.squantlib.schedule.Schedule
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
 import net.squantlib.util.RoundingInfo
-import org.jquantlib.time.{BusinessDayConvention, DateGeneration, TimeUnit, Period => qlPeriod}
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.Currency
+import net.squantlib.util.ql.time.{BusinessDayConvention, DateGeneration, TimeUnit, Period => qlPeriod}
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.Currency
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.ObjectMapper

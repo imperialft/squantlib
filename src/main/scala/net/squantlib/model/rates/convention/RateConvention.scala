@@ -1,11 +1,11 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.currencies.Currency
-import org.jquantlib.currencies.America.USDCurrency
-import org.jquantlib.indexes.IborIndex
-import org.jquantlib.indexes.ibor.USDLibor
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Period => qlPeriod, TimeUnit, Frequency}
+import net.squantlib.util.ql.currencies.Currency
+import net.squantlib.util.ql.currencies.America.USDCurrency
+import net.squantlib.util.ql.indexes.IborIndex
+import net.squantlib.util.ql.indexes.ibor.USDLibor
+import net.squantlib.util.ql.daycounters.DayCounter
+import net.squantlib.util.ql.time.{Period => qlPeriod, TimeUnit, Frequency}
 
 /**
  * Currency specific discount curve calibration.

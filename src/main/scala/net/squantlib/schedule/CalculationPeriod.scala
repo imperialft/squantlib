@@ -1,11 +1,11 @@
 package net.squantlib.schedule
 
 import net.squantlib.model.rates.DiscountCurve
-import org.jquantlib.daycounters._
+import net.squantlib.util.ql.daycounters._
 import net.squantlib.util.Date
-import org.jquantlib.daycounters.DayCounter
-import org.jquantlib.time.{Calendar, BusinessDayConvention, TimeUnit}
-import org.jquantlib.time.calendars.NullCalendar
+import net.squantlib.util.ql.daycounters.DayCounter
+import net.squantlib.util.ql.time.{Calendar, BusinessDayConvention, TimeUnit}
+import net.squantlib.util.ql.time.calendars.NullCalendar
 
 case class CalculationPeriod(
   eventDate:Date,

@@ -2,8 +2,8 @@ package net.squantlib.model.rates
 
 import net.squantlib.model.yieldparameter._
 import net.squantlib.util.Date
-import org.jquantlib.time.{Period => qlPeriod, TimeUnit}
-import org.jquantlib.daycounters.DayCounter;
+import net.squantlib.util.ql.time.{Period => qlPeriod, TimeUnit}
+import net.squantlib.util.ql.daycounters.DayCounter;
 import net.squantlib.model.rates.convention.RateConvention
 import scala.annotation.tailrec
 import scala.collection.breakOut

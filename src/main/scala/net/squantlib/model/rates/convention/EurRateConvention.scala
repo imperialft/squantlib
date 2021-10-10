@@ -1,13 +1,13 @@
 package net.squantlib.model.rates.convention
 
-import org.jquantlib.time.{Period, Frequency, TimeUnit}
-import org.jquantlib.daycounters._
-import org.jquantlib.currencies.Europe.EURCurrency
-import org.jquantlib.indexes.Euribor
+import net.squantlib.util.ql.time.{Frequency, Period, TimeUnit}
+import net.squantlib.util.ql.daycounters._
+import net.squantlib.util.ql.currencies.Europe.EURCurrency
+import net.squantlib.util.ql.indexes.Euribor
 
 class EurRateConvention extends RateConvention{
-  import org.jquantlib.indexes.Euribor
-  import org.jquantlib.currencies.Europe.EURCurrency
+  import net.squantlib.util.ql.indexes.Euribor
+  import net.squantlib.util.ql.currencies.Europe.EURCurrency
   
   	val currency = new EURCurrency
   

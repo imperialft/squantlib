@@ -1,8 +1,8 @@
 package net.squantlib.util.initializer
 
-import org.jquantlib.time.calendars._
-import org.jquantlib.time.Calendar
-import org.jquantlib.currencies.{Currency => qlCurrency}
+import net.squantlib.util.ql.time.calendars._
+import net.squantlib.util.ql.time.Calendar
+import net.squantlib.util.ql.currencies.{Currency => qlCurrency}
 import net.squantlib.util.{DbCalendar, EmptyCalendar}
 import net.squantlib.database.DB
 

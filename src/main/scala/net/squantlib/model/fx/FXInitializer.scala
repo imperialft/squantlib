@@ -1,7 +1,7 @@
 package net.squantlib.model.fx
 
 import net.squantlib.model.rates.DiscountCurve
-import org.jquantlib.time.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 
 /**
  * Encapsulates FX volatility parameterization.

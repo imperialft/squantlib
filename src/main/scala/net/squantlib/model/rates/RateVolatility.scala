@@ -1,7 +1,7 @@
 package net.squantlib.model.rates
 
 import net.squantlib.model.yieldparameter.{YieldParameter, YieldParameter3D}
-import org.jquantlib.time.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import net.squantlib.util.Date
 
 /**

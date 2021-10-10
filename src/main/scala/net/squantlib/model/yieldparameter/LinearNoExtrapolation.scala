@@ -3,7 +3,7 @@ package net.squantlib.model.yieldparameter
 import scala.collection.SortedMap
 import scala.collection.Map
 import net.squantlib.util.Date
-import org.jquantlib.time.{Period => qlPeriod}
+import net.squantlib.util.ql.time.{Period => qlPeriod}
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator
 

@@ -5,11 +5,11 @@ import net.squantlib.schedule.Schedule
 import net.squantlib.util.Date
 import net.squantlib.util.initializer.Calendars
 import net.squantlib.model.rates.convention.RateConvention
-import org.jquantlib.pricingengines.bond.DiscountingBondEngine
-import org.jquantlib.instruments
-import org.jquantlib.daycounters.{DayCounter, Thirty360, Actual365Fixed}
-import org.jquantlib.currencies.Currency
-import org.jquantlib.time.{Calendar, Period => qlPeriod, Frequency, BusinessDayConvention}
+//import org.jquantlib.pricingengines.bond.DiscountingBondEngine
+//import org.jquantlib.instruments
+import net.squantlib.util.ql.daycounters.{DayCounter, Thirty360, Actual365Fixed}
+import net.squantlib.util.ql.currencies.Currency
+import net.squantlib.util.ql.time.{Calendar, Period => qlPeriod, Frequency, BusinessDayConvention}
 import java.lang.UnsupportedOperationException
 
 /**
