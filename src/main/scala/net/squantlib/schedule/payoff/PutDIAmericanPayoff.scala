@@ -5,10 +5,8 @@ import net.squantlib.util.JsonUtils._
 import net.squantlib.database.DB
 import net.squantlib.util.{Date, FixingInformation, UnderlyingFixing}
 import net.squantlib.schedule.CalculationPeriod
-
-import scala.reflect.ClassTag
+import net.squantlib.schedule.baskettypes._
 import net.squantlib.model.market.Market
-
 import scala.collection.JavaConverters._
 
 
@@ -22,6 +20,7 @@ case class PutDIAmericanPayoff(
   triggers: UnderlyingFixing,
   strikes: UnderlyingFixing,
   finalTriggers: UnderlyingFixing,
+  finalTriggerBasketType: BasketType,
   refstart:Date,
   refend:Date,
   refDates: Set[Date],
@@ -98,15 +97,6 @@ case class PutDIAmericanPayoff(
       if (dates.head == refstart) dates else refstart :: dates
     }
   }
-
-//  def isKnockedInPrice(ul:String, p:Double, trig:BigDecimal):Boolean = {
-//    (knockInOnEqual, reverse) match {
-//      case (true, true) => p ~>= (trig, ul)
-//      case (false, true) => p ~> (trig, ul)
-//      case (true, false) => p ~<= (trig, ul)
-//      case (false, false) => p ~< (trig, ul)
-//    }
-//  }
 
   def isKnockedInPrice(p:BigDecimal, trig:BigDecimal):Boolean = {
     (knockInOnEqual, reverse) match {
@@ -199,10 +189,11 @@ case class PutDIAmericanPayoff(
   }
 
   def knockInAtRedemption(fixings:UnderlyingFixing):Boolean = {
-    forward || strikeOrFinalTriggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), strikeOrFinalTriggers.getDecimalValue.get(ul)) match {
-      case (Some(v), Some(stk)) => isKnockedInPrice(v, stk)
-      case _ => false
-    })
+//    forward || strikeOrFinalTriggerVariables.exists(ul => (fixings.getDecimalValue.get(ul), strikeOrFinalTriggers.getDecimalValue.get(ul)) match {
+//      case (Some(v), Some(stk)) => isKnockedInPrice(v, stk)
+//      case _ => false
+//    })
+    forward || finalTriggerBasketType.isKnockedInPrice(fixings, strikeOrFinalTriggers, (v:BigDecimal, stk:BigDecimal) => isKnockedInPrice(v, stk))
   }
 
 
@@ -249,6 +240,7 @@ case class PutDIAmericanPayoff(
     "trigger" -> triggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
     "strike" -> strikes.getDouble.map{case (ul, v) => (ul, v)}.asJava,
     "final_trigger" -> finalTriggers.getDouble.map{case (ul, v) => (ul, v)}.asJava,
+    "final_trigger_ref" -> finalTriggerBasketType.toString,
     "leverage" -> leverage,
     "refstart" -> (if (refstart == null) null else refstart.toString),
     "refend" -> (if (refend == null) null else refend.toString),
@@ -325,6 +317,7 @@ case class PutDIAmericanPayoff(
     triggers = triggers,
     strikes = strikes,
     finalTriggers = finalTriggers,
+    finalTriggerBasketType = finalTriggerBasketType,
     refstart = (if (refstart == null) null else refstart.add(shift)),
     refend = (if (refend == null) null else refend.add(shift)),
     refDates = refDates.map(d => d.add(shift)),
@@ -363,6 +356,8 @@ object PutDIAmericanPayoff {
         else strikes
       }.getOrElse(Map.empty)
 
+    val finalTriggerBasketType:BasketType= formula.parseJsonString("final_trigger_basket").collect{case s => BasketType.parseString(s)}.getOrElse(WorstOf)
+
     val amount:Double = fixed.parseJsonDouble("amount").getOrElse(1.0)
     val refstart:Date = formula.parseJsonDate("refstart").orNull
     val refend:Date = formula.parseJsonDate("refend").orNull
@@ -383,6 +378,7 @@ object PutDIAmericanPayoff {
       triggers = UnderlyingFixing(triggers),
       strikes = UnderlyingFixing(strikes),
       finalTriggers = UnderlyingFixing(finalTriggers),
+      finalTriggerBasketType = finalTriggerBasketType,
       refstart = refstart,
       refend = refend,
       refDates = refDates,

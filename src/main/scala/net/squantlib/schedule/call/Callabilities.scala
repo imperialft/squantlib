@@ -9,6 +9,7 @@ import net.squantlib.schedule.FixingLegs
 import net.squantlib.util.{FixingInformation, UnderlyingFixing, Date}
 import net.squantlib.schedule.{Schedule, KnockInCondition}
 import net.squantlib.schedule.payoff.Payoffs
+import net.squantlib.schedule.baskettypes._
 import com.fasterxml.jackson.databind.JsonNode
 
 case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability] with FixingLegs[Callability]{
@@ -262,7 +263,7 @@ object Callabilities {
                 closeOnly = knockOutOnClose,
                 triggerDown = !callOption.triggerUp,
                 triggerOnEqual = true,
-                triggerOnAny = false
+                basketType = BestOf //triggerOnAny = false
               )
             case _ => KnockInCondition.empty
           }
@@ -290,7 +291,7 @@ object Callabilities {
                 closeOnly = knockInOnClose,
                 triggerDown = aleg.get("reset_down").parseInt.collect{case i => i != 0}.getOrElse(true),
                 triggerOnEqual = knockInOnEqual,
-                triggerOnAny = true
+                basketType = WorstOf //triggerOnAny = true
               )
             case _ => KnockInCondition.empty
           }
