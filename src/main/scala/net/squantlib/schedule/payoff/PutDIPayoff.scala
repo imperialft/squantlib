@@ -7,6 +7,7 @@ import net.squantlib.util.{Date, UnderlyingFixing}
 import net.squantlib.schedule.CalculationPeriod
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
+import net.squantlib.schedule.baskettypes._
 
 class PutDIPayoff(
   override val triggers:UnderlyingFixing,
@@ -25,6 +26,7 @@ class PutDIPayoff(
   triggers = triggers,
   strikes = strikes,
   finalTriggers = triggers,
+  finalTriggerBasketType = WorstOf,
   refstart = null,
   refend = null,
   refDates = Set.empty,

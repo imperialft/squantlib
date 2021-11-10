@@ -1,7 +1,10 @@
 package net.squantlib.schedule
 
+//import java.math.BigDecimal
+
 import net.squantlib.database.DB
 import net.squantlib.util.{Date, FixingInformation, UnderlyingFixing}
+import net.squantlib.schedule.baskettypes._
 
 case class KnockInCondition(
   trigger: UnderlyingFixing,
@@ -11,7 +14,7 @@ case class KnockInCondition(
   closeOnly: Boolean,
   triggerDown:Boolean,
   triggerOnEqual: Boolean,
-  triggerOnAny:Boolean
+  basketType: BasketType, //triggerOnAny:Boolean
 )(implicit val fixingInformation:FixingInformation){
   val isEmpty = trigger.isEmpty
 
@@ -88,11 +91,12 @@ case class KnockInCondition(
   }
 
   private def isKnockedInPrice(p:UnderlyingFixing, trig:UnderlyingFixing):Boolean = {
-    if (triggerOnAny) {
-      trig.getDecimalValue.exists{case (ul, t) => p.getDecimalValue.get(ul).collect{case f => isKnockedInPrice(f, t)}.getOrElse(false)}
-    } else {
-      trig.getDecimalValue.forall{case (ul, t) => p.getDecimalValue.get(ul).collect{case f => isKnockedInPrice(f, t)}.getOrElse(false)}
-    }
+    basketType.isKnockedInPrice(p, trig, (v:BigDecimal, k:BigDecimal) => isKnockedInPrice(v, k))
+//    if (triggerOnAny) {
+//      trig.getDecimalValue.exists{case (ul, t) => p.getDecimalValue.get(ul).collect{case f => isKnockedInPrice(f, t)}.getOrElse(false)}
+//    } else {
+//      trig.getDecimalValue.forall{case (ul, t) => p.getDecimalValue.get(ul).collect{case f => isKnockedInPrice(f, t)}.getOrElse(false)}
+//    }
   }
 
 }
@@ -107,7 +111,7 @@ object KnockInCondition {
     closeOnly = false,
     triggerDown = true,
     triggerOnEqual = true,
-    triggerOnAny = true
+    basketType = WorstOf //triggerOnAny = true
   )(FixingInformation.empty("JPY", "JPY"))
 
 
