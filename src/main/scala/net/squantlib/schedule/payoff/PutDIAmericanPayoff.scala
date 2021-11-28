@@ -92,10 +92,24 @@ case class PutDIAmericanPayoff(
     }
 
     if (physical) {
-      if (dates.head == refstart) dates :+ period.paymentDate else (refstart :: dates) :+ period.paymentDate
+      dates.headOption match {
+        case Some(d) if d == refstart => dates :+ period.paymentDate
+        case Some(_) => (refstart :: dates) :+ period.paymentDate
+        case None => List.empty
+      }
     } else {
-      if (dates.head == refstart) dates else refstart :: dates
+      dates.headOption match {
+        case Some(d) if d == refstart => dates
+        case Some(_) => refstart :: dates
+        case None => List.empty
+      }
     }
+
+//    if (physical) {
+//      if (dates.head == refstart) dates :+ period.paymentDate else (refstart :: dates) :+ period.paymentDate
+//    } else {
+//      if (dates.head == refstart) dates else refstart :: dates
+//    }
   }
 
   def isKnockedInPrice(p:BigDecimal, trig:BigDecimal):Boolean = {
