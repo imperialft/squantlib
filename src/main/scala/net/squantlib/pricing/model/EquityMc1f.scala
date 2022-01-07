@@ -203,7 +203,7 @@ object EquityQtoMc1f {
 	  val fx = market.getFX(bond.currency.code, equity.currency.code, true).orNull
 
 	  if (fx == null) {
-	    errorOutput(bond.id, "invalid fx underlying for quanto model - " + fx.id + " in market " + market.paramset)
+	    errorOutput(bond.id, "invalid fx underlying for quanto model - " + bond.currency.code + equity.currency.code + " in market " + market.paramset)
 	    return None}
 	  
 	  val mcmodel = mcengine(equity, fx).orNull
