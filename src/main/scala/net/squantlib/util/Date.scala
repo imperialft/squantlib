@@ -160,7 +160,9 @@ object Date {
   def currentTimeString(datetimeFormat:String = "%tY/%<tm/%<td %<tH:%<tM:%<tS") = datetimeFormat.format(currentTime)
   
   def currentTimestamp:Timestamp = new Timestamp(currentTime.getTime)
-  
+
+  def currentTimestampUtc:Timestamp = new Timestamp(System.currentTimeMillis() - 3600 * 9000)
+
   def daycount(d1:Date, d2:Date, daycounter:DayCounter):Double = daycounter.yearFraction(d1.ql, d2.ql)
   
   def daysBetween(fromDate:Date, toDate:Date):Set[Date] = (fromDate.serialNumber to toDate.serialNumber).map(apply)(collection.breakOut)
