@@ -81,6 +81,19 @@ case class GeneralPayoffFormula(
 
   //  val constant:Double = formula.get(Set.empty).collect{case v => v.toDouble}.getOrElse(0.0)
 
+  def addFixed(v:Double):GeneralPayoffFormula = GeneralPayoffFormula(
+    if (formula.contains(Set.empty)) {
+      formula.map{case (vars, coeff) =>
+        if (vars.isEmpty) (vars, coeff + v)
+        else (vars, coeff)
+      }.toMap
+    } else {
+      formula + (Set.empty -> v)
+    },
+    minPayoff,
+    maxPayoff.collect{case c => c + v}
+  )
+
   def price(fixings:UnderlyingFixing) = {
     val r = formula.map {
       case (vs, c) if vs.isEmpty => c
