@@ -4,6 +4,7 @@ import scala.annotation.tailrec
 import DisplayUtils._
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
+import net.squantlib.util.RoundingInfo
 
 case class FixingInformation(
   currencyId:String,
@@ -78,6 +79,19 @@ case class FixingInformation(
         )
       )
     }
+  }
+
+  lazy val partialAssetRounding:Map[String, RoundingInfo] = {
+    fixingPageInformation.map(pageInfo => {
+      val underlyingId = pageInfo.get("underlying")
+      val rounding = pageInfo.get("partial_asset_rounding")
+      val precision = pageInfo.get("partial_asset_precision").flatMap{case s => s.parseInt}
+
+      (underlyingId, rounding, precision) match {
+        case (Some(uid), Some(r), Some(p)) => Some((uid, new RoundingInfo(p, r)))
+        case _ => None
+      }
+    }).collect{case Some(v) => v}.toMap
   }
 
 
