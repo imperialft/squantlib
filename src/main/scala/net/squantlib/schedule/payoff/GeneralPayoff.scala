@@ -81,7 +81,7 @@ case class GeneralPayoffFormula(
 
   //  val constant:Double = formula.get(Set.empty).collect{case v => v.toDouble}.getOrElse(0.0)
 
-  def addFixed(v:Double):GeneralPayoffFormula = GeneralPayoffFormula(
+  def addConstant(v:Double):GeneralPayoffFormula = GeneralPayoffFormula(
     if (formula.contains(Set.empty)) {
       formula.map{case (vars, coeff) =>
         if (vars.isEmpty) (vars, coeff + v)
