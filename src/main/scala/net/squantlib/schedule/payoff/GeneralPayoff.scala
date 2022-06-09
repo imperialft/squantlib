@@ -79,6 +79,8 @@ case class GeneralPayoffFormula(
   def leverage(index:String):Double = leverage(Set(index))
   def leverage(index:Set[String]):Double = formula.getOrElse(index, 0.0)
 
+  def isEmpty:Boolean = formula.isEmpty || formula.forall{case (k, v) => v * v < 0.00001}
+
   //  val constant:Double = formula.get(Set.empty).collect{case v => v.toDouble}.getOrElse(0.0)
 
   def addConstant(v:Double):GeneralPayoffFormula = GeneralPayoffFormula(
@@ -120,15 +122,14 @@ object GeneralPayoff {
     val description:String = fixedString.parseJsonString("description").orNull
 
     val basket:String = fixedString.parseJsonString("basket") match {
-      case Some("max") => "max"
+      case Some("max") | Some("best") => "max"
       case Some("average") => "average"
       case _ => "min"
     }
 
     val payoffs:List[GeneralPayoffFormula] = payoffColumns.map{case col =>
       fixedString.parseJsonString(col) match {
-        case None => None
-        case Some(f) =>
+        case Some(f) if f.replace(" ", "") != "" =>
           var payoffString = f
           fixedString.jsonNode match {
             case Some(node) =>
@@ -138,8 +139,10 @@ object GeneralPayoff {
           }
           val parsedFormula = FormulaParser.parse(payoffString)
           Some(GeneralPayoffFormula(parsedFormula._1, parsedFormula._2.getOrElse(0.0), parsedFormula._3))
+
+        case _ => None
       }
-    }.flatMap{case s => s}
+    }.flatMap{case s => s}.filter(po => !po.isEmpty)
 
     val variables = payoffs.map(po => po.variables).flatten
 
