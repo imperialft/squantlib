@@ -344,6 +344,11 @@ class Bond(
     }
   }
 
+  @Transient
+  lazy val partialAssetRoundings:Map[String, RoundingInfo] = {
+    fixingInformation.partialAssetRounding
+  }
+
   def isRollMonthEnd:Boolean = try {
     settingMap.get("month_end_roll").collect { case d => d.toInt == 1 }.getOrElse(false)
   } catch { case _:Throwable => false}
