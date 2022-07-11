@@ -205,9 +205,16 @@ case class FixingInformation(
   }
 
 
-  def getUnderlyingPrecision(underlyingId:String):Int = underlyingPrecisions.get(underlyingId) match {
-    case Some(fp) => fp
-    case _ => DB.getUnderlyingDefaultPrecision(underlyingId)
+  def getUnderlyingPrecision(underlyingId:String):Int = {
+    val uid = {
+      if (underlyingId.contains(":")) underlyingId.split(":").head
+      else underlyingId
+    }
+
+    underlyingPrecisions.get(uid) match {
+      case Some(fp) => fp
+      case _ => DB.getUnderlyingDefaultPrecision(uid)
+    }
   }
 
   def getUnderlyingRoundType(underlyingId:String):String = underlyingFixingPage.get(underlyingId) match {
