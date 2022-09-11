@@ -348,7 +348,7 @@ class Bond(
   lazy val partialAssetRoundings:Map[String, RoundingInfo] = {
     fixingInformation.partialAssetRounding
   }
-
+ 
   @Transient
   lazy val assetTradedUnit:Map[String, Int] = {
     fixingInformation.assetTradedUnit
