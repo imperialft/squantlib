@@ -94,6 +94,17 @@ case class FixingInformation(
     }).collect{case Some(v) => v}.toMap
   }
 
+  lazy val assetTradedUnit:Map[String, Int] = {
+    fixingPageInformation.map(pageInfo => {
+      val underlyingId = pageInfo.get("underlying")
+      val tradedUnit = pageInfo.get("traded_unit").flatMap{case s => s.parseInt}
+
+      (underlyingId, tradedUnit) match {
+        case (Some(uid), Some(r)) => Some((uid, r))
+        case _ => None
+      }
+    }).collect{case Some(v) => v}.toMap
+  }
 
   def getInitialFixingInformation:FixingInformation = initialFixingInformation.getOrElse(this)
 
