@@ -127,7 +127,7 @@ object DB {
       val customFixingPages = underlyingFixingInfos.map{case (ul, infos) =>
         infos.fixingPages.map(p => p.pageList(isInitialFixing)).flatten
       }.flatten
-      ids ++ customFixingPages
+      ids.filter(id => fixingInfo.isFallbackToSystem(id)) ++ customFixingPages
     }
 
     val allPastFixings:List[Map[String, Option[Double]]] = pastFixings(allFixingPages, dates)

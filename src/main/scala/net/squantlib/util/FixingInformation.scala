@@ -19,6 +19,10 @@ case class FixingInformation(
   initialUnderlyingFixings:Option[UnderlyingFixing] = None,
 ) {
 
+  lazy val noFallbackUnderlyingIds:List[String] = fixingPageInformation.filter(pageInfo => pageInfo.get("no_fallback") == Some("1")).map(pageInfo => pageInfo.get("underlying")).flatMap(s => s)
+
+  def isFallbackToSystem(underlyingId:String) = !noFallbackUnderlyingIds.contains(underlyingId)
+
   lazy val initialFixingInformation:Option[FixingInformation] = {
     if (isInitial) None
     else {
@@ -203,7 +207,8 @@ case class FixingInformation(
         priceType = pageInfo.get("price_type").getOrElse("close"),
         initialPriceType = pageInfo.get("initial_price_type").getOrElse("close"),
         precision = precision,
-        roundType = roundType
+        roundType = roundType,
+        fallbackToSystem = isFallbackToSystem(underlyingId)
       )
     )
   }).toMap
@@ -235,7 +240,6 @@ case class FixingInformation(
 
   def getUnderlyingFixing(ul: String):UnderlyingFixingInfo = {
     underlyingFixingPage.get(ul) match {
-      case Some(v) => UnderlyingFixingInfo(Set(v), (vs) => vs.get(v))
       case _  if Currencies.isForex(ul) =>
         val ccy1 = ul.take(3)
         val ccy2 = ul.takeRight(3)
@@ -255,6 +259,9 @@ case class FixingInformation(
 
           case _ => UnderlyingFixingInfo(Set.empty, (vs) => None)
         }
+
+      case Some(v) => UnderlyingFixingInfo(Set(v), (vs) => vs.get(v))
+
       case _ => UnderlyingFixingInfo(Set.empty, (vs) => None)
     }
   }
@@ -316,7 +323,8 @@ case class FixingPage(
   priceType:String,
   initialPriceType:String,
   precision:Int,
-  roundType:String
+  roundType:String,
+  fallbackToSystem:Boolean
 ) {
 
 
@@ -360,7 +368,10 @@ case class FixingPage(
 
 //  val pageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly).flatMap(s => s)
 
-  val basePageList:List[String] = List(pageFull, pageWithBidoffer, pageOnly, timeOnly).flatten
+  val basePageList:List[String] = {
+    if (fallbackToSystem) List(pageFull, pageWithBidoffer, pageOnly, timeOnly).flatten
+    else List(pageFull, pageWithBidoffer, pageOnly).flatten
+  }
 
   def pageList(isInitialFixing:Boolean):List[String] = pageWithPriceType(isInitialFixing) match {
     case Some(p) => p :: basePageList
