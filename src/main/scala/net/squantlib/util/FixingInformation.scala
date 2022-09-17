@@ -239,30 +239,44 @@ case class FixingInformation(
   }
 
   def getUnderlyingFixing(ul: String):UnderlyingFixingInfo = {
-    underlyingFixingPage.get(ul) match {
-      case _  if Currencies.isForex(ul) =>
-        val ccy1 = ul.take(3)
-        val ccy2 = ul.takeRight(3)
-        (underlyingFixingPage.find{case (k, v) => k.contains(ccy1)}, underlyingFixingPage.find{case (k, v) => k.contains(ccy2)}) match {
+    if (Currencies.isForex(ul)) {
+      val ccy1 = ul.take(3)
+      val ccy2 = ul.takeRight(3)
 
-          case (Some((fxul1, p1)), Some((fxul2, p2))) if fxul1 == fxul2 =>
-            UnderlyingFixingInfo(Set(p1), ulFixings => (ulFixings.get(p1).collect{case v => 1.0 / v}))
+      (underlyingFixingPage.get(ul), underlyingFixingPage.get(ccy2 + ccy1)) match {
+        case (Some(v), _) if !v.isEmpty => UnderlyingFixingInfo(Set(v), (vs) => vs.get(v))
 
-          case (Some((fxul1, p1)), Some((fxul2, p2))) if fxul1.replace(ccy1, "") == fxul2.replace(ccy2, "") =>
-            UnderlyingFixingInfo(Set(p1, p2), ulFixings => (ulFixings.get(p1), ulFixings.get(p2)) match {
-              case (Some(fx1), Some(fx2)) =>
-                val v1 = if (fxul1.take(3) == ccy1) fx1 else 1.0 / fx1
-                val v2 = if (fxul2.take(3) == ccy2) fx2 else 1.0 / fx2
-                Some(v1 / v2)
-              case _ => None
-            })
+        case (None, Some(v)) if !v.isEmpty => UnderlyingFixingInfo(Set(v), (vs) => (vs.get(v).collect{case v => 1.0 / v}))
 
-          case _ => UnderlyingFixingInfo(Set.empty, (vs) => None)
-        }
+        case (p, _) =>
+          println(s"p ${p}")
 
-      case Some(v) => UnderlyingFixingInfo(Set(v), (vs) => vs.get(v))
+          (
+            underlyingFixingPage.find{case (k, v) => k.contains(ccy1)}, 
+            underlyingFixingPage.find{case (k, v) => k.contains(ccy2)},
+            p
+          ) match {
 
-      case _ => UnderlyingFixingInfo(Set.empty, (vs) => None)
+            case (Some((fxul1, p1)), Some((fxul2, p2)), _) if fxul1.replace(ccy1, "") == fxul2.replace(ccy2, "") && !p1.isEmpty && !p2.isEmpty =>
+              UnderlyingFixingInfo(Set(p1, p2), ulFixings => (ulFixings.get(p1), ulFixings.get(p2)) match {
+                case (Some(fx1), Some(fx2)) =>
+                  val v1 = if (fxul1.take(3) == ccy1) fx1 else 1.0 / fx1
+                  val v2 = if (fxul2.take(3) == ccy2) fx2 else 1.0 / fx2
+                  Some(v1 / v2)
+                case _ => None
+              })
+            
+            case (_, _, Some(v)) => UnderlyingFixingInfo(Set(v), (vs) => vs.get(v))
+
+            case _ => UnderlyingFixingInfo(Set.empty, (vs) => None)
+          }
+      }
+
+    } else {
+      underlyingFixingPage.get(ul) match {
+        case Some(v) => UnderlyingFixingInfo(Set(v), (vs) => vs.get(v))
+        case _ => UnderlyingFixingInfo(Set.empty, (vs) => None)
+      }
     }
   }
 
@@ -327,6 +341,7 @@ case class FixingPage(
   fallbackToSystem:Boolean
 ) {
 
+  def isEmpty:Boolean = !page.isDefined
 
   val pageFull:List[String] = (page, Set(time, country).exists(_.isDefined), bidOffer) match {
     case (Some(p), true, Some("mid")) =>
