@@ -4,7 +4,6 @@ import scala.annotation.tailrec
 import DisplayUtils._
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
-import net.squantlib.util.RoundingInfo
 
 case class FixingInformation(
   currencyId:String,

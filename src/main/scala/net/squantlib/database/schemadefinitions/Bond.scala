@@ -262,7 +262,7 @@ class Bond(
     val arr = s.jsonNode.collect{case node => node.asScala.toList.map(n => n.parseString(fieldName).flatMap{case s => Date.getDate(s)})}.getOrElse(List.empty)
     if (arr.exists(_.isDefined)) arr
     else List.empty
-  } catch {case e => List.empty}
+  } catch {case e : Throwable => List.empty}
 
   def couponFixingDates:List[Option[Date]] = getJsonDateArray(coupon, "fixed_on")
 

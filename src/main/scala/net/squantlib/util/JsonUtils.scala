@@ -256,10 +256,10 @@ object JsonUtils {
     def merge(key:String, n:ObjectNode):Unit = {
       node.getOption(key) match {
         case Some(knode:ObjectNode) =>
-          val adjustedNode = knode.putAll(n)
-          node.put(key, adjustedNode)
+          val adjustedNode = knode.setAll(n) //knode.putAll(n)
+          node.set(key, adjustedNode) //node.put(key, adjustedNode)
         case _ =>
-          node.put(key, n)
+          node.set(key, n) //node.put(key, n)
       }
     }
 
