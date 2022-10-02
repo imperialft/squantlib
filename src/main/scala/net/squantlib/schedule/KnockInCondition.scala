@@ -5,6 +5,8 @@ package net.squantlib.schedule
 import net.squantlib.database.DB
 import net.squantlib.util.{Date, FixingInformation, UnderlyingFixing}
 import net.squantlib.schedule.baskettypes._
+import com.fasterxml.jackson.databind.JsonNode
+import net.squantlib.util.JsonUtils._
 
 case class KnockInCondition(
   trigger: UnderlyingFixing,
@@ -113,6 +115,5 @@ object KnockInCondition {
     triggerOnEqual = true,
     basketType = WorstOf //triggerOnAny = true
   )(FixingInformation.empty("JPY", "JPY"))
-
 
 }

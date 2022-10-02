@@ -4,7 +4,7 @@ import scala.annotation.tailrec
 import DisplayUtils._
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
-import net.squantlib.util.RoundingInfo
+// import net.squantlib.util.RoundingInfo
 
 case class FixingInformation(
   currencyId:String,
@@ -156,6 +156,10 @@ case class FixingInformation(
   
   def updateCompute(p:String):Option[Double] = {
     FormulaParser.calculate(update(p))
+  }
+
+  def updateCompute(p:String, underlyingId:String):Option[Double] = {
+    updateCompute(p).collect{case v => v.getRoundedDouble(underlyingId)(this)}
   }
   
   /*

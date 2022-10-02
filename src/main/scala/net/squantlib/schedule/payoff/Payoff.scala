@@ -9,8 +9,8 @@ import net.squantlib.database.DB
 import net.squantlib.model.market.Market
 
 import scala.Option.option2Iterable
-import net.squantlib.schedule.CalculationPeriod
-import net.squantlib.schedule.FixingLeg
+import net.squantlib.schedule.{CalculationPeriod, FixingLeg, KnockInCondition}
+import net.squantlib.schedule.baskettypes._
 import com.fasterxml.jackson.databind.JsonNode
 
 import scala.reflect.ClassTag
@@ -288,7 +288,6 @@ object Payoff {
 
   def payoffType(formula:String):String = formula match {
     case f if f.parseDouble.isDefined => "fixed"
-//    case f if f.startsWith("leps") => "leps1d"
     case f => formula.parseJsonString("type").orNull
   }
 
@@ -341,6 +340,30 @@ object Payoff {
           .collect { case (k, v) => (k, v.getOrElse(Double.NaN)) }
           .toMap
       case _ => Map.empty
+    }
+  }
+
+  def initializeCouponReset(node:JsonNode)(implicit strikeFixingInfo:FixingInformation):KnockInCondition = {
+    val strikeFormula:Map[String, String] = node.get("reset_strike").parseStringFields
+    val computedStrikeFormula:Map[String, Double] = strikeFormula.map{case (uid, s) => (uid, strikeFixingInfo.updateCompute(s, uid).getOrElse(Double.NaN))}
+    val strikeValues:UnderlyingFixing = UnderlyingFixing(computedStrikeFormula)(strikeFixingInfo)
+
+    if (strikeValues.isEmpty) KnockInCondition.empty
+    else {
+      (node.get("reset_refstart").parseDate, node.get("reset_refend").parseDate) match {
+        case (Some(dStart), Some(dEnd)) =>
+          KnockInCondition(
+            trigger = strikeValues,
+            refStart = dStart,
+            refEnd = dEnd,
+            finalTrigger = UnderlyingFixing.empty,
+            closeOnly = node.get("reset_reftype").parseString.collect{case i => i == "closing"}.getOrElse(true),
+            triggerDown = node.get("reset_down").parseInt.collect{case i => i != 0}.getOrElse(true),
+            triggerOnEqual = node.get("reset_on_equal").parseInt.collect{case i => i == 1}.getOrElse(true),
+            basketType = WorstOf
+          )
+        case _ => KnockInCondition.empty
+      }
     }
   }
 
