@@ -32,7 +32,8 @@ class Market(
     val fxInitializers:Map[String, FXInitializer] = Map.empty,
     val indexInitializers:Map[String, IndexInitializer] = Map.empty,
     val equityInitializers:Map[String, EquityInitializer] = Map.empty,
-    val fixings:Map[String, Double]  = Map.empty) {
+    val fixings:Map[String, Double]  = Map.empty
+  ) {
 
   /** 
    * Market value date

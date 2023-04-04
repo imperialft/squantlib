@@ -253,7 +253,7 @@ case class FixingInformation(
         case (None, Some(v)) if !v.isEmpty => UnderlyingFixingInfo(Set(v), (vs) => (vs.get(v).collect{case v => 1.0 / v}))
 
         case (p, _) =>
-          println(s"p ${p}")
+          // println(s"p ${p}")
 
           (
             underlyingFixingPage.find{case (k, v) => k.contains(ccy1)}, 
