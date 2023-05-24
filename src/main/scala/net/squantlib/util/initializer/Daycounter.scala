@@ -11,7 +11,7 @@ object Daycounters extends Initializer[DayCounter] {
 			("30/360" -> new Thirty360),
 			("30/360 (Bond Basis)" -> new Thirty360),
 			("30E/360" -> new Thirty360(Thirty360.Convention.EurobondBasis)),
-			("30E/360ISDA" -> new Thirty360),
+			("30E/360ISDA" -> new Thirty360(Thirty360.Convention.EurobondBasisISDA)),
 
 			("ACT/360" -> new Actual360),
 			("Actual/360" -> new Actual360),

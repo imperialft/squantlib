@@ -165,7 +165,7 @@ public class Thirty360 extends DayCounter {
 
     @Override
     public final String name() /* @ReadOnly */ {
-      return "30E/360 (Eurobond Basis)";
+      return "30E/360";
     }
 
     @Override
@@ -206,7 +206,7 @@ public class Thirty360 extends DayCounter {
 
     @Override
     public final String name() /* @ReadOnly */ {
-      return "30E/360 (Eurobond ISDA Basis)";
+      return "30E/360 ISDA";
     }
 
     @Override
