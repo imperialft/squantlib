@@ -123,7 +123,7 @@ public class DayCounter {
     final Date dateStart,
     final Date dateEnd
   ) /* @ReadOnly */ {
-    return yearFraction(dateStart, dateEnd, null, null);
+    return yearFraction(dateStart, dateEnd, null, null, false);
   }
 
 
@@ -134,16 +134,18 @@ public class DayCounter {
    * @param dateEnd
    * @param refPeriodStart
    * @param refPeriodEnd
+   * @param isTerminationDate
    * @return the period between two dates as a fraction of year, considering referencing dates for both.
    */
   public /*@Time*/ double yearFraction(
     final Date dateStart,
     final Date dateEnd,
     final Date refPeriodStart,
-    final Date refPeriodEnd
+    final Date refPeriodEnd,
+    final Boolean isTerminationDate
   ) /* @ReadOnly */ {
     QL.require(impl != null, NO_IMPLEMENTATION_PROVIDED);
-    return impl.yearFraction(dateStart, dateEnd, refPeriodStart, refPeriodEnd);
+    return impl.yearFraction(dateStart, dateEnd, refPeriodStart, refPeriodEnd, isTerminationDate);
   }
 
   /**
@@ -248,7 +250,8 @@ public class DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */;
 
 

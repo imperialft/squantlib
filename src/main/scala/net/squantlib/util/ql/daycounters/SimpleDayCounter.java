@@ -87,7 +87,8 @@ public class SimpleDayCounter extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       final int dm1 = dateStart.dayOfMonth();
       final int dm2 = dateEnd.dayOfMonth();
@@ -103,7 +104,7 @@ public class SimpleDayCounter extends DayCounter {
         (dm1 < dm2 && Date.isEndOfMonth(dateStart)))
         return (yy2 - yy1) + (mm2 - mm1) / 12.0;
       else
-        return fallback.yearFraction(dateStart, dateEnd, refPeriodStart, refPeriodEnd);
+        return fallback.yearFraction(dateStart, dateEnd, refPeriodStart, refPeriodEnd, isTerminationDate);
     }
 
   }

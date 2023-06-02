@@ -175,7 +175,7 @@ public class InterestRate {
     final Date refEnd
   ) {
     /* @Time */
-    double t = dc.yearFraction(d1, d2, refStart, refEnd);
+    double t = dc.yearFraction(d1, d2, refStart, refEnd, false);
     return compoundFactor(t);
   }
 
@@ -257,7 +257,7 @@ public class InterestRate {
     final Date refEnd
   ) {
     /* @Time */
-    final double t = this.dc.yearFraction(d1, d2, refStart, refEnd);
+    final double t = this.dc.yearFraction(d1, d2, refStart, refEnd, false);
     return discountFactor(t);
   }
 

@@ -149,14 +149,15 @@ public class ActualActual extends DayCounter {
       final Date d1,
       final Date d2,
       final Date d3,
-      final Date d4
+      final Date d4,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
 
       if (d1.equals(d2))
         return 0.0;
 
       if (d1.gt(d2))
-        return -yearFraction(d2, d1, d3, d4);
+        return -yearFraction(d2, d1, d3, d4, false);
 
       // when the reference period is not specified, try taking
       // it equal to (d1,d2)
@@ -212,13 +213,9 @@ public class ActualActual extends DayCounter {
           final Date previousRef = refPeriodStart.add(new Period(
             -months, TimeUnit.Months));
           if (d2.gt(refPeriodStart))
-            return yearFraction(d1, refPeriodStart, previousRef,
-              refPeriodStart)
-              + yearFraction(refPeriodStart, d2,
-              refPeriodStart, refPeriodEnd);
+            return yearFraction(d1, refPeriodStart, previousRef, refPeriodStart, false) + yearFraction(refPeriodStart, d2, refPeriodStart, refPeriodEnd, false);
           else
-            return yearFraction(d1, d2, previousRef,
-              refPeriodStart);
+            return yearFraction(d1, d2, previousRef, refPeriodStart, false);
         }
       } else {
         // TODO: code review :: please verify against QL/C++ code
@@ -230,7 +227,7 @@ public class ActualActual extends DayCounter {
         // now it is: refPeriodStart <= d1 < refPeriodEnd < d2
 
         // the part from d1 to refPeriodEnd
-        double sum = yearFraction(d1, refPeriodEnd, refPeriodStart, refPeriodEnd);
+        double sum = yearFraction(d1, refPeriodEnd, refPeriodStart, refPeriodEnd, false);
 
         // the part from refPeriodEnd to d2
         // count how many regular periods are in [refPeriodEnd, d2],
@@ -247,7 +244,7 @@ public class ActualActual extends DayCounter {
             i++;
           }
         } while (true);
-        sum += yearFraction(newRefStart, d2, newRefStart, newRefEnd);
+        sum += yearFraction(newRefStart, d2, newRefStart, newRefEnd, false);
         return sum;
       }
     }
@@ -266,12 +263,13 @@ public class ActualActual extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       if (dateStart.equals(dateEnd))
         return 0.0;
       if (dateStart.gt(dateEnd))
-        return -yearFraction(dateEnd, dateStart, new Date(), new Date());
+        return -yearFraction(dateEnd, dateStart, new Date(), new Date(), false);
 
       final int y1 = dateStart.year();
       final int y2 = dateEnd.year();
@@ -302,12 +300,13 @@ public class ActualActual extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       if (dateStart.equals(dateEnd))
         return 0.0;
       if (dateStart.gt(dateEnd))
-        return -1.0 * yearFraction(dateEnd, dateStart, new Date(), new Date());
+        return -1.0 * yearFraction(dateEnd, dateStart, new Date(), new Date(), false);
 
       Date newD2 = dateEnd;
       Date temp = dateEnd;

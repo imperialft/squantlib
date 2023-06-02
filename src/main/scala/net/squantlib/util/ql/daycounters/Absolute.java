@@ -44,7 +44,8 @@ public class Absolute extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       return 1.00;
     }

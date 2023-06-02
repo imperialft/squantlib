@@ -61,6 +61,7 @@ public class Thirty360 extends DayCounter {
   public enum Convention {
     USA, BondBasis,
     European, EurobondBasis,
+    EuropeanISDA, EurobondBasisISDA,
     Italian;
   }
 
@@ -82,6 +83,10 @@ public class Thirty360 extends DayCounter {
       case European:
       case EurobondBasis:
         super.impl = new Impl_EU();
+        break;
+      case EuropeanISDA:
+      case EurobondBasisISDA:
+        super.impl = new Impl_EU_ISDA();
         break;
       case Italian:
         super.impl = new Impl_IT();
@@ -134,7 +139,8 @@ public class Thirty360 extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
     }
@@ -159,7 +165,7 @@ public class Thirty360 extends DayCounter {
 
     @Override
     public final String name() /* @ReadOnly */ {
-      return "30E/360 (Eurobond Basis)";
+      return "30E/360";
     }
 
     @Override
@@ -167,7 +173,8 @@ public class Thirty360 extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
     }
@@ -183,6 +190,69 @@ public class Thirty360 extends DayCounter {
       final int mm2 = d2.month().value();
       final int yy1 = d1.year();
       final int yy2 = d2.year();
+
+      return 360 * (yy2 - yy1) + 30 * (mm2 - mm1 - 1) + Math.max(0, 30 - dd1) + Math.min(30, dd2);
+    }
+
+  }
+
+  /**
+   * Implementation of Thirty360 class abstraction according to European convention
+   *
+   * @author Richard Gomes
+   * @see <a href="http://en.wikipedia.org/wiki/Bridge_pattern">Bridge pattern</a>
+   */
+  private final class Impl_EU_ISDA extends DayCounter.Impl {
+
+    @Override
+    public final String name() /* @ReadOnly */ {
+      return "30E/360 ISDA";
+    }
+
+    @Override
+    public /*@Time*/ final double yearFraction(
+      final Date dateStart,
+      final Date dateEnd,
+      final Date refPeriodStart,
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
+    ) /* @ReadOnly */ {
+      return /*@Time*/ dayCountProper(dateStart, dateEnd, isTerminationDate) / 360.0;
+    }
+
+    @Override
+
+    /**
+     *  Actually require "isTerminationDate", in which case dd2 should not be positively adjusted for February.
+     */
+    protected long dayCount(
+      final Date d1,
+      final Date d2
+    ) /* @ReadOnly */ {
+      return dayCountProper(d1, d2, false);
+    }
+
+    protected long dayCountProper(
+      final Date d1,
+      final Date d2,
+      final Boolean isTerminationDate
+    ) /* @ReadOnly */ {
+      int dd1 = d1.dayOfMonth();
+      int dd2 = d2.dayOfMonth();
+      final int mm1 = d1.month().value();
+      final int mm2 = d2.month().value();
+      final int yy1 = d1.year();
+      final int yy2 = d2.year();
+
+      if (Date.isEndOfMonth(d1)) {
+        dd1 = 30;
+      }
+
+      if (isTerminationDate && mm2 == 2 && Date.isEndOfMonth(d2)) {
+        // Unadjusted
+      } else if (Date.isEndOfMonth(d2)) {
+        dd2 = 30;
+      }
 
       return 360 * (yy2 - yy1) + 30 * (mm2 - mm1 - 1) + Math.max(0, 30 - dd1) + Math.min(30, dd2);
     }
@@ -207,7 +277,8 @@ public class Thirty360 extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
     }

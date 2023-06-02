@@ -123,7 +123,8 @@ public class Actual365Fixed extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       return /*@Time*/ dayCount(dateStart, dateEnd) / 365.0;
     }
@@ -156,7 +157,8 @@ public class Actual365Fixed extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
 
       Date testEnd = dateStart.add(paymentPeriod);

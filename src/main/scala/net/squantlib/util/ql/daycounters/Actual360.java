@@ -90,7 +90,8 @@ public class Actual360 extends DayCounter {
       final Date dateStart,
       final Date dateEnd,
       final Date refPeriodStart,
-      final Date refPeriodEnd
+      final Date refPeriodEnd,
+      final Boolean isTerminationDate
     ) /* @ReadOnly */ {
       return /*@Time*/ dayCount(dateStart, dateEnd) / 360.0;
     }
