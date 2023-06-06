@@ -136,6 +136,7 @@ object Schedule{
     fixingOnCalculationEndDate:Boolean,
     rollMonthEnd: Boolean,
     couponFixingDates:List[Option[Date]],
+    couponPaymentDates:List[Option[Date]],
     callFixingDates:List[Option[Date]],
     callValueDates:List[Option[Date]]
   ):Schedule = {
@@ -146,6 +147,7 @@ object Schedule{
     val nullCalendar = Calendars.empty
 
     var couponFixingDatesRec = couponFixingDates
+    var couponPaymentDatesRec = couponPaymentDates
     var callFixingDatesRec = callFixingDates
     var callValueDatesRec = callValueDates
 
@@ -154,6 +156,15 @@ object Schedule{
       else {
         val result = (if (rule != Forward) couponFixingDatesRec.last else couponFixingDatesRec.head)
         couponFixingDatesRec = (if (rule != Forward) couponFixingDatesRec.init else couponFixingDatesRec.tail)
+        result
+      }
+    }
+
+    def getCouponPaymentDate:Option[Date] = {
+      if (couponPaymentDatesRec.isEmpty) None
+      else {
+        val result = (if (rule != Forward) couponPaymentDatesRec.last else couponPaymentDatesRec.head)
+        couponPaymentDatesRec = (if (rule != Forward) couponPaymentDatesRec.init else couponPaymentDatesRec.tail)
         result
       }
     }
@@ -189,6 +200,7 @@ object Schedule{
         callNotice = callNotice,
         inArrears = fixingInArrears,
         couponFixingDate = getCouponFixingDate,
+        couponPaymentDate = getCouponPaymentDate,
         callFixingDate = if(isFinalCoupon) None else getCallFixingDate,
         callValueDate = if(isFinalCoupon) None else getCallValueDate,
         daycounter = daycounter,
@@ -213,6 +225,7 @@ object Schedule{
         callNotice = callNotice,
         inArrears = true,
         couponFixingDate = None,
+        couponPaymentDate = None,
         callFixingDate = None,
         callValueDate = None,
         daycounter = new Absolute,
@@ -354,6 +367,7 @@ object Schedule{
     fixingOnCalculationEndDate:Boolean,
     rollMonthEnd: Boolean,
     couponFixingDates:List[Option[Date]],
+    couponPaymentDates:List[Option[Date]],
     callFixingDates:List[Option[Date]],
     callValueDates:List[Option[Date]]
   ):Schedule = {
@@ -381,6 +395,7 @@ object Schedule{
       fixingOnCalculationEndDate = fixingOnCalculationEndDate,
       rollMonthEnd = rollMonthEnd,
       couponFixingDates = couponFixingDates,
+      couponPaymentDates = couponPaymentDates,
       callFixingDates = callFixingDates,
       callValueDates = callValueDates
     )

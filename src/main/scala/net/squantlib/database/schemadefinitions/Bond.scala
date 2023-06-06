@@ -266,6 +266,8 @@ class Bond(
 
   def couponFixingDates:List[Option[Date]] = getJsonDateArray(coupon, "fixed_on")
 
+  def couponPaymentDates:List[Option[Date]] = getJsonDateArray(coupon, "payment_on")
+
   def callFixingDates:List[Option[Date]] = getJsonDateArray(call, "fixed_on")
 
   def callValueDates:List[Option[Date]] = getJsonDateArray(call, "value_on")
@@ -396,6 +398,7 @@ class Bond(
         fixingOnCalculationEndDate = isFixingOnCalculationEndDate,
         rollMonthEnd = isRollMonthEnd,
         couponFixingDates = couponFixingDates,
+        couponPaymentDates = couponPaymentDates,
         callFixingDates = callFixingDates,
         callValueDates = callValueDates
       )
