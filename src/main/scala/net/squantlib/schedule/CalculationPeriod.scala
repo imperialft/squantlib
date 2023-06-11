@@ -155,6 +155,7 @@ object CalculationPeriod {
     callNotice:Option[Int],
     inArrears:Boolean,
     couponFixingDate:Option[Date],
+    couponPaymentDate:Option[Date],
     callFixingDate:Option[Date],
     callValueDate:Option[Date],
     daycounter:DayCounter,
@@ -170,7 +171,7 @@ object CalculationPeriod {
     fixingOnCalculationEndDate:Boolean = false
   ):CalculationPeriod = {
 
-    val paymentDate = endDate.adjust(paymentCalendar, paymentConvention)
+    val paymentDate = couponPaymentDate.getOrElse(endDate.adjust(paymentCalendar, paymentConvention))
 
     val calculationDate = {
       if (inArrears) {
@@ -245,6 +246,7 @@ object CalculationPeriod {
       callNotice = None,
       inArrears = false,
       couponFixingDate = None,
+      couponPaymentDate = None,
       callFixingDate = None,
       callValueDate = None,
       daycounter = new Absolute,
