@@ -83,7 +83,8 @@ case class GeneralPayoffFormula(
   def leverage(index:String):Double = leverage(Set(index))
   def leverage(index:Set[String]):Double = formula.getOrElse(index, 0.0)
 
-  def isEmpty:Boolean = formula.isEmpty || formula.forall{case (k, v) => v * v < 0.00001}
+  // def isEmpty:Boolean = formula.isEmpty || formula.forall{case (k, v) => v * v < 0.00001}
+  def isEmpty:Boolean = formula.isEmpty || formula.forall{case (k, v) => Math.abs(v) <  1e-15}
 
   //  val constant:Double = formula.get(Set.empty).collect{case v => v.toDouble}.getOrElse(0.0)
 
