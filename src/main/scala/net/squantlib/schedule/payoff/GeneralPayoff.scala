@@ -17,6 +17,7 @@ case class GeneralPayoff(
 //  override val minPayoff:Double,
 //  override val maxPayoff:Option[Double],
   payoffs: List[GeneralPayoffFormula],
+  variables: Set[String],
   basket: String,
   resetKnockInCondition: KnockInCondition,
   resetPayoff: Option[Payoff],
@@ -25,10 +26,10 @@ case class GeneralPayoff(
   inputString:String = null
 )(implicit val fixingInfo:FixingInformation) extends Payoff {
   
-  override val variables:Set[String] = payoffs.map(po => po.variables).flatten.toSet // formula.keySet.flatten
+  // override val variables:Set[String] = payoffs.map(po => po.variables).flatten.toSet // formula.keySet.flatten
   
-  override val isPriceable = true //formula.values.forall(v => !v.isNaN && !v.isInfinity)
-  
+  override val isPriceable = payoffs.forall(p => (p.variables -- variables).isEmpty) //true
+
   override def isFixed = variables.size == 0 || super.isFixed
 
   override def priceImpl(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = {
@@ -44,7 +45,7 @@ case class GeneralPayoff(
   }
 
   def priceImpl(fixings:UnderlyingFixing, pastPayments:List[Double], priceResult:PriceResult):Double = {
-    if (fixings.isValidFor(variables)) {
+    if (isPriceable && fixings.isValidFor(variables)) {
       val rates = payoffs.map(po => po.price(fixings))
       basketToPrice(rates)
 
@@ -54,7 +55,7 @@ case class GeneralPayoff(
   }
    
   override def priceImpl(priceResult:PriceResult):Double = {
-    if (variables.isEmpty) basketToPrice(payoffs.map(po => po.constant))
+    if (isPriceable && variables.isEmpty) basketToPrice(payoffs.map(po => po.constant))
     else Double.NaN
   }
   
@@ -149,7 +150,8 @@ object GeneralPayoff {
       }
     }.flatMap{case s => s}.filter(po => !po.isEmpty)
 
-    val variables = payoffs.map(po => po.variables).flatten
+    // val variables = payoffs.map(po => po.variables).flatten
+    val variables:List[String] = fixedString.parseJsonStringList("variable").map(_.orNull)
 
     val resetKnockInCondition:KnockInCondition = fixedString.jsonNode.collect{case node => Payoff.initializeCouponReset(node)(fixingInfo.getStrikeFixingInformation)}.getOrElse(KnockInCondition.empty)
 
@@ -183,6 +185,7 @@ object GeneralPayoff {
       case _ =>
         GeneralPayoff(
           payoffs = payoffs,
+          variables = variables.toSet,
           basket = basket,
           resetKnockInCondition = resetKnockInCondition,
           resetPayoff = resetPayoff,
