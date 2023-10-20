@@ -17,6 +17,7 @@ case class FixingInformation(
   isInitial:Boolean = false,
   isStrike:Boolean = false,
   initialUnderlyingFixings:Option[UnderlyingFixing] = None,
+  var legFixings:Map[String, BigDecimal] = Map.empty
 ) {
 
   lazy val noFallbackUnderlyingIds:List[String] = fixingPageInformation.filter(pageInfo => pageInfo.get("no_fallback") == Some("1")).map(pageInfo => pageInfo.get("underlying")).flatMap(s => s)
@@ -48,7 +49,8 @@ case class FixingInformation(
           paymentCalendar,
           true,
           isStrike,
-          Some(initialFixing)
+          Some(initialFixing),
+          legFixings
         )
       )
     }
@@ -79,7 +81,8 @@ case class FixingInformation(
           paymentCalendar,
           isInitial,
           true,
-          Some(initialFixing)
+          Some(initialFixing),
+          legFixings
         )
       )
     }
@@ -124,7 +127,6 @@ case class FixingInformation(
     initialFixing = UnderlyingFixing(vs)
   }
 
-
   def initialFixingFull:UnderlyingFixing = {
     val inv:Map[String, Option[BigDecimal]] = initialFixing.getDecimalValue
       .withFilter{case (k, v) => k.size == 6}
@@ -133,17 +135,43 @@ case class FixingInformation(
 
     if (inv.isEmpty) initialFixing else UnderlyingFixing(initialFixing.getDecimal ++ inv)
   }
+
+  // var legFixings:Map[String, BigDecimal] = Map.empty
+
+  def setLegFixings(fixings:List[UnderlyingFixing]) = {
+
+    // println(s"setLegFixings ${fixings}")
+    legFixings = fixings.filter(fixing => !fixing.isEmpty)
+      .zipWithIndex
+      .map{case (fixing:UnderlyingFixing, i:Int) => fixing.getDecimalValue.map{case (uid, v) => (s"$$${uid}_${i + 1}L", v)}}
+      .flatten.toMap
+  }
     
-  def all:UnderlyingFixing = tbd match {
+  def allSpotReplacements:UnderlyingFixing = tbd match {
     case Some(c) => UnderlyingFixing(initialFixingFull.getDecimal.updated("tbd", Some(c)))
     case None => initialFixingFull
   }
 
   def update(p:String):String = {
-    multipleReplace(p, all.getDecimalValue.map{case (k, v) => ("@" + k, v)})
+    val initialReplaced = multipleReplace(p, allSpotReplacements.getDecimalValue.map{case (k, v) => ("@" + k, v)})
+
+    // println(s"initialFixing ${initialFixing}")
+    // println(s"legFixings ${legFixings}")
+
+    if (legFixings.isEmpty) {
+      initialReplaced
+    } else {
+      // println(s"before ${initialReplaced}")
+      // println(s"after ${multipleReplace(initialReplaced, legFixings)}")
+      multipleReplace(initialReplaced, legFixings)
+    }
   }
+
+
   
-  def updateInitial(p:String):String = multipleReplace(p, initialFixing.getDecimalValue.map{case (k, v) => ("@" + k, v)})
+  // def updateInitial(p:String):String = {
+  //   multipleReplace(p, initialFixing.getDecimalValue.map{case (k, v) => ("@" + k, v)})
+  // }
 
   private def multipleReplace[T:Numeric](s:String, replacements:Map[String, T]):String = multipleReplace(s, replacements.toList.sortBy(-_._1.size))
 

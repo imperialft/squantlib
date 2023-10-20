@@ -230,6 +230,12 @@ object Callabilities {
 
     val trigMap:List[UnderlyingFixing] = triggerToAssignedTrigger(trigFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
 
+    // println(s"trigFormulas ${trigFormulas}")
+    // println(s"triggerToAssignedTrigger(trigFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation) ${triggerToAssignedTrigger(trigFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation)}")
+    // println(s"trigMap ${trigMap}")
+    // println(s"fixingInfo.legFixings ${fixingInfo.legFixings}")
+    // throw new Exception
+
     val targets:List[Option[BigDecimal]] = targetList(formulaJson, legs).map(vs => vs.flatMap{case v => v.getRoundedDecimal})
 
     val baseFormulas:List[Map[String, Any]] = {
