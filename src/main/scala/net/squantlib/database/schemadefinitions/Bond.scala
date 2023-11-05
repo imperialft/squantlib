@@ -7,7 +7,7 @@ import scala.language.postfixOps
 import net.squantlib.util._
 import net.squantlib.util.JsonUtils._
 import net.squantlib.util.DisplayUtils._
-import net.squantlib.schedule.Schedule
+import net.squantlib.schedule.{Schedule, ScheduledPayoffs}
 import net.squantlib.util.initializer._
 import net.squantlib.database.DB
 import net.squantlib.util.RoundingInfo
@@ -160,11 +160,11 @@ class Bond(
   
   protected def replaceFixing(p:String, fixings:Map[String, Any]):String = multipleReplace(p, fixings.map{case (k, v) => ("@" + k, v)})
   						
-  protected def updateFixing(p:String):String = fixingInformation.update(p)
+  // protected def updateFixing(p:String):String = fixingInformation.update(p)
   						
   def fixingCoupon(fixings:Map[String, Any]):String = replaceFixing(if (coupon == null) "" else coupon, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
   
-  def couponList:List[String] = stringList(updateFixing(coupon))
+  // def couponList:List[String] = stringList(updateFixing(coupon))
   
   def fixingRedemprice(fixings:Map[String, Any]):String = replaceFixing(if (redemprice == null) "" else redemprice, fixings + ("tbd" -> tbdValue.getOrElse("tbd")))
   
@@ -178,6 +178,15 @@ class Bond(
   }
 
   def containsTbd:Boolean = tbdParameter.isDefined
+
+  def pastReferenceUnderlyingIds:Set[String] = {
+    underlyingSet.filter{case underlyingId => 
+      val matchPattern = ("\\$" + underlyingId + "_[0-9]+L").r.unanchored
+      (coupon != null && matchPattern.findFirstIn(coupon).isDefined) || (redemprice != null && matchPattern.findFirstIn(redemprice).isDefined) || (call != null && matchPattern.findFirstIn(call).isDefined)
+    }
+  }
+
+  def containsPastReference:Boolean = !pastReferenceUnderlyingIds.isEmpty
   
   def isPhysicalRedemption:Boolean = physicalredemption == 1
   
@@ -458,6 +467,23 @@ class Bond(
 
     case _ => UnderlyingFixing.empty
   }
+
+  def getLegFixingPrices:Option[List[UnderlyingFixing]] = getLegFixingPrices(fixingInformation)
+
+  def getLegFixingPrices(fixingInfo:FixingInformation):Option[List[UnderlyingFixing]] = getLegFixingPrices(underlyingSet, fixingInfo)
+
+  def getLegFixingPrices(underlyingIds:Set[String], fixingInfo: FixingInformation):Option[List[UnderlyingFixing]] = {
+    schedule.collect {case sche =>
+      val fixingMap:Map[Date, UnderlyingFixing] = ScheduledPayoffs.getFixings(
+        underlyingSet, 
+        sche.eventDates.toSet,
+        fixingInfo,
+        false
+      )
+
+      sche.eventDates.map(d => fixingMap.getOrElse(d, UnderlyingFixing.empty))
+    }
+  }
   
   @Transient
   lazy val fixingAdjustmentCountryIds:Set[String] = {
@@ -529,6 +555,13 @@ class Bond(
     )
 
     info.setInitialFixingDecimal(getInitialFixingsDecimal)
+
+    if (containsPastReference) {
+      getLegFixingPrices(info) match {
+        case None => 
+        case Some(fixings) => info.setLegFixings(fixings)
+      }
+    }
 
     info
   }

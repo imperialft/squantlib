@@ -20,7 +20,7 @@ case class TriggerCondition(
   def isActive:Boolean = !getStrikes.isEmpty
 
   def isTriggered(f:UnderlyingFixing):Boolean = {
-    isActive && !getStrikes.isEmpty && f.isValidFor(getStrikes.keySet) &&
+    isActive && !getStrikes.isEmpty && getStrikes.isAllValid && f.isValidFor(getStrikes.keySet) &&
       getStrikes.getDecimal.forall { case (ul, v) =>
         if (triggerUp) v <= f.getDecimal(ul)
         else v >= f.getDecimal(ul)
