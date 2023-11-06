@@ -27,7 +27,8 @@ libraryDependencies ++= Seq(
 "org.jfree" % "jcommon" % "1.0.24" % "provided",
 "org.jfree" % "jfreechart" % "1.0.14" % "provided",
 "mysql" % "mysql-connector-java" % "5.1.30",
-"io.airbrake" % "javabrake" % "0.1.6",
+// "io.airbrake" % "javabrake" % "0.1.6",
+"io.airbrake" % "javabrake" % "0.3.0",
 "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0", // % "provided",
 "ch.qos.logback" % "logback-classic" % "1.2.3" // % "provided"
 )
