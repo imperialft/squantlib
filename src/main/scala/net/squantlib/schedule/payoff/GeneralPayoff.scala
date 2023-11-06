@@ -28,7 +28,7 @@ case class GeneralPayoff(
   
   // override val variables:Set[String] = payoffs.map(po => po.variables).flatten.toSet // formula.keySet.flatten
   
-  override val isPriceable = payoffs.forall(p => (p.variables -- variables).isEmpty) //true
+  override val isPriceable = !payoffs.isEmpty && payoffs.forall(p => (p.variables -- variables).isEmpty) //true
 
   override def isFixed = variables.size == 0 || super.isFixed
 
