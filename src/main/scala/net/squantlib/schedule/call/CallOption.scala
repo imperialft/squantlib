@@ -13,6 +13,7 @@ case class CallOption(
   bonus: Double,
   invertedTrigger:Boolean,
   invertedForward:Boolean,
+  barrierRedemptionFrom: Option[Date],
   barrierRedemptionAfter: Option[Int],
   fullCouponOnBarrier: Boolean,
   removeSatisfiedTriggers:Boolean,
@@ -31,6 +32,7 @@ object CallOption {
     bonus = 0.0,
     invertedTrigger = false,
     invertedForward = false,
+    barrierRedemptionFrom = None,
     barrierRedemptionAfter = None,
     fullCouponOnBarrier = true,
     removeSatisfiedTriggers = false,
@@ -48,6 +50,8 @@ object CallOption {
       case Some(d) if d <= 0 => None
       case v => v
     }
+
+    val barrierRedemptionFrom:Option[Date] = jsonNode.parseDate("redemption_from")
 
     val triggerUp = jsonNode.parseString("trigger_type").getOrElse("up") == "up"
     val forwardMap = jsonNode.getOption("forward").collect{case k => k.parseStringFields}.getOrElse(Map.empty)
@@ -70,6 +74,7 @@ object CallOption {
       bonus = bonus,
       invertedTrigger = invertedTrigger,
       invertedForward = invertedForward,
+      barrierRedemptionFrom = barrierRedemptionFrom,
       barrierRedemptionAfter = barrierRedemptionAfter,
       fullCouponOnBarrier = fullCouponOnBarrier,
       removeSatisfiedTriggers = removeSatisfiedTriggers,

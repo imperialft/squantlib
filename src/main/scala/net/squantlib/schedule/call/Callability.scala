@@ -4,7 +4,7 @@ import net.squantlib.util.DisplayUtils._
 import net.squantlib.schedule.{CalculationPeriod, FixingLeg, KnockInCondition}
 import net.squantlib.util.{Date, FixingInformation, JsonUtils, UnderlyingFixing}
 import net.squantlib.schedule.payoff._
-import net.squantlib.util.ql.time.Calendar
+import net.squantlib.util.ql.time.{Calendar, BusinessDayConvention}
 
 case class Callability(
   bermudanCondition: BermudanCondition,
@@ -41,7 +41,15 @@ case class Callability(
   def adjustedPaymentDate:Option[Date] = {
     barrierTriggeredDate.flatMap {
       case d => triggerCondition.redemptionAfter.collect{
-        case s => d.advance(fixingInfo.paymentCalendar, s)
+        case s => 
+          val adjustedDate = d.advance(fixingInfo.paymentCalendar, s)
+        
+          triggerCondition.redemptionFrom match {
+            case Some(d) if d.gt(adjustedDate) => d.adjust(fixingInfo.paymentCalendar, BusinessDayConvention.Following)
+            case _ => adjustedDate
+          }
+
+        // case s => d.advance(fixingInfo.paymentCalendar, s)
       }
     }
   }
@@ -304,6 +312,7 @@ object Callability {
         resetCondition = resetCondition,
         resetStrikes = resetStrikes,
         barrierCondition = barrierCondition,
+        redemptionFrom = callOption.barrierRedemptionFrom,
         redemptionAfter = callOption.barrierRedemptionAfter,
         fullCouponOnBarrier = callOption.fullCouponOnBarrier
       ),
@@ -329,6 +338,7 @@ object Callability {
     resetCondition: KnockInCondition,
     resetStrikes: UnderlyingFixing,
     barrierCondition: KnockInCondition,
+    redemptionFrom: Option[Date],
     redemptionAfter: Option[Int],
     fullCouponOnBarrier: Boolean,
     inputString:Map[String, Any],
@@ -344,6 +354,7 @@ object Callability {
         resetCondition = resetCondition,
         resetStrikes = resetStrikes,
         barrierCondition = barrierCondition,
+        redemptionFrom = redemptionFrom,
         redemptionAfter = redemptionAfter,
         fullCouponOnBarrier = fullCouponOnBarrier
       ),

@@ -1,7 +1,7 @@
 package net.squantlib.schedule.call
 
 import net.squantlib.schedule.{KnockInCondition}
-import net.squantlib.util.{UnderlyingFixing, FixingInformation}
+import net.squantlib.util.{Date, UnderlyingFixing, FixingInformation}
 
 case class TriggerCondition(
   private val strikes: UnderlyingFixing,
@@ -11,6 +11,7 @@ case class TriggerCondition(
   resetStrikes: UnderlyingFixing,
   var isReset:Boolean,
   barrierCondition: KnockInCondition,
+  redemptionFrom: Option[Date],
   redemptionAfter: Option[Int],
   fullCouponOnBarrier: Boolean
 ){
@@ -35,6 +36,7 @@ case class TriggerCondition(
     resetStrikes = resetStrikes,
     isReset = isReset,
     barrierCondition = barrierCondition,
+    redemptionFrom = redemptionFrom,
     redemptionAfter = redemptionAfter,
     fullCouponOnBarrier = fullCouponOnBarrier
   )
@@ -51,6 +53,7 @@ object TriggerCondition {
     resetStrikes = UnderlyingFixing.empty,
     isReset = false,
     barrierCondition = KnockInCondition.empty,
+    redemptionFrom = None,
     redemptionAfter = None,
     fullCouponOnBarrier = true
   )
@@ -62,6 +65,7 @@ object TriggerCondition {
     resetCondition: KnockInCondition,
     resetStrikes: UnderlyingFixing,
     barrierCondition: KnockInCondition,
+    redemptionFrom: Option[Date],
     redemptionAfter: Option[Int],
     fullCouponOnBarrier: Boolean
   )(implicit fixingInformation:FixingInformation):TriggerCondition = {
@@ -78,6 +82,7 @@ object TriggerCondition {
       resetStrikes = resetStrikes,
       isReset = isReset,
       barrierCondition = barrierCondition,
+      redemptionFrom = redemptionFrom,
       redemptionAfter = redemptionAfter,
       fullCouponOnBarrier = fullCouponOnBarrier
     )
