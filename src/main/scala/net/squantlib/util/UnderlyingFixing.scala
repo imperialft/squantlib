@@ -13,6 +13,11 @@ case class UnderlyingFixing(
 
   lazy val doubleFixings:Map[String, Double] = fixings.map{case (ul, v) => (ul, v.collect{case v => v.toDouble}.getOrElse(Double.NaN))}
 
+  def nonEmptyFixing:UnderlyingFixing = {
+    if (isEmpty) this
+    else UnderlyingFixing(fixings.filter{case (ul, v) => v.isDefined})
+  }
+
   def getDouble:Map[String, Double] = doubleFixings
 
   def isEmpty = fixings.isEmpty
@@ -39,6 +44,16 @@ case class UnderlyingFixing(
   }
 
   def toJsonString:String = JsonUtils.jsonString(this)
+
+  def update(newFixings:Map[String, Option[BigDecimal]]):UnderlyingFixing = {
+    if (newFixings.isEmpty) this
+    else UnderlyingFixing(fixings ++ newFixings)
+  }
+
+  def update(newFixings:UnderlyingFixing):UnderlyingFixing = {
+    if (newFixings.isEmpty) this
+    else UnderlyingFixing(fixings ++ newFixings.fixings)
+  }
 
   override def toString = {
     if (fixings.isEmpty) "(empty)"

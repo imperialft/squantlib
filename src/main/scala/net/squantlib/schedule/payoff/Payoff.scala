@@ -49,6 +49,8 @@ trait Payoff extends FixingLeg {
 
   val maxPayoff:Option[Double] = None
 
+  var overrideFixedRate:Option[BigDecimal] = None
+
   def paymentCurrencyId:String = fixingInfo.paymentCurrencyId
 
   def paymentAssetId:String = fixingInfo.paymentCurrencyId
@@ -282,6 +284,20 @@ object Payoff {
         case _ => {}
       }
 
+      val variableList:List[String] = inputString.parseJsonStringList("variable").map(_.orNull)
+
+      if (!variableList.isEmpty) {
+        inputString.jsonNode.collect{
+          case n => {
+            val overrideUnderlyingFixings = Payoff.nodeToComputedMap(n, "fixings", variableList).getOptionalDecimal()(fixingInfo.getStrikeFixingInformation)
+            println(overrideUnderlyingFixings)
+            if (!overrideUnderlyingFixings.isEmpty) {
+              po.assignOverrideFixings(UnderlyingFixing(overrideUnderlyingFixings))
+            }
+          }
+        }
+      }
+
       Some(po)
     }
   }
@@ -300,6 +316,7 @@ object Payoff {
     case f if f.parseDouble.isDefined => None
     case f => formula.parseJsonDouble("nominal")
   }
+
 
   def simpleCashFlow(currencyId:String, paymentCurrencyId:String, amount:Double) = FixedPayoff(amount)(FixingInformation.empty(currencyId, paymentCurrencyId))
 

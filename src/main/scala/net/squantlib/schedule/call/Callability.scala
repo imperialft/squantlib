@@ -15,7 +15,8 @@ case class Callability(
   var exercised: Option[Boolean],
   inputString: Map[String, Any],
   var accumulatedPayments: Option[Double],
-  var simulatedFrontier: UnderlyingFixing = UnderlyingFixing.empty
+  var simulatedFrontier: UnderlyingFixing = UnderlyingFixing.empty,
+  customOverrideFixings: UnderlyingFixing = UnderlyingFixing.empty
 )(implicit val fixingInfo: FixingInformation) extends FixingLeg {
 
   def triggers:UnderlyingFixing = triggerCondition.getStrikes
@@ -23,6 +24,8 @@ case class Callability(
   val triggerVariables:Set[String] = triggers.keySet
 
   val forwardVariables:Set[String] = forward.keySet
+
+  assignOverrideFixings(customOverrideFixings)
 
   def isIssuerCalled:Boolean = (bermudanCondition.isActive && exercised == Some(true))
 
@@ -254,7 +257,8 @@ case class Callability(
       exercised = exercised,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
-      simulatedFrontier = simulatedFrontier
+      simulatedFrontier = simulatedFrontier,
+      customOverrideFixings = customOverrideFixings
     )
   }
 
@@ -288,7 +292,8 @@ object Callability {
     exercised = None,
     inputString = Map.empty[String, Any],
     accumulatedPayments = None,
-    simulatedFrontier= UnderlyingFixing.empty
+    simulatedFrontier= UnderlyingFixing.empty,
+    customOverrideFixings = UnderlyingFixing.empty
   )(FixingInformation.empty("JPY", "JPY"))
 
   def apply(
@@ -301,7 +306,8 @@ object Callability {
     resetStrikes: UnderlyingFixing,
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
-    simulatedFrontier:UnderlyingFixing
+    simulatedFrontier:UnderlyingFixing,
+    customOverrideFixings:UnderlyingFixing
   )(implicit fixingInfo:FixingInformation):Callability =
     Callability(
       bermudanCondition = BermudanCondition(bermudan),
@@ -322,7 +328,8 @@ object Callability {
       exercised = callOption.exercised,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
-      simulatedFrontier = simulatedFrontier
+      simulatedFrontier = simulatedFrontier,
+      customOverrideFixings = customOverrideFixings
     )
 
   def apply(
@@ -343,7 +350,8 @@ object Callability {
     fullCouponOnBarrier: Boolean,
     inputString:Map[String, Any],
     accumulatedPayments:Option[Double],
-    simulatedFrontier:UnderlyingFixing
+    simulatedFrontier:UnderlyingFixing,
+    customOverrideFixings:UnderlyingFixing
   )(implicit fixingInfo:FixingInformation):Callability =
     Callability(
       bermudanCondition = BermudanCondition(bermudan),
@@ -364,7 +372,8 @@ object Callability {
       exercised = exercised,
       inputString = inputString,
       accumulatedPayments = accumulatedPayments,
-      simulatedFrontier
+      simulatedFrontier = simulatedFrontier,
+      customOverrideFixings = customOverrideFixings
     )
 
   

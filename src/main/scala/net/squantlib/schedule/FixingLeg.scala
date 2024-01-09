@@ -9,6 +9,10 @@ trait FixingLeg {
   
   protected var preFixings:UnderlyingFixing = UnderlyingFixing.empty
 
+  protected var overrideFixings:UnderlyingFixing = UnderlyingFixing.empty
+
+  protected var isFixedByOverrideFixings:Boolean = false
+
   protected var futureFixing:Boolean = false
 
   val fixingInfo:FixingInformation
@@ -16,17 +20,25 @@ trait FixingLeg {
   val variables:Set[String] // to be implemented
 	
   def assignFixings(f:UnderlyingFixing):Unit = {
-    if (f.isValidFor(variables) || f.isEmpty) preFixings = f
+    // if (f.isValidFor(variables) || f.isEmpty) preFixings = f
+    val mergedFixings:UnderlyingFixing = f.update(overrideFixings)
+    // println(s"f ${f}")
+    // println(s"mergedFixings ${mergedFixings}")
+    // println(s"overrideFixings ${overrideFixings}")
+    if (mergedFixings.isValidFor(variables) || mergedFixings.isEmpty) preFixings = mergedFixings
   }
 
-//  def assignFixings(f:Map[String, Double])(implicit fixingInfo:FixingInformation):Unit = assignFixings(f.getDecimal)
-//
-//  def assignFixings(f:Double)(implicit fixingInfo:FixingInformation):Unit = {
-//    if (variables.size == 1) f.getDecimal(variables.head) match {
-//      case Some(ff) => assignFixings(Map(variables.head -> ff))
-//      case _ => {}
-//    }
-//  }
+  def assignOverrideFixings(f:UnderlyingFixing):Unit = {
+    overrideFixings = f.nonEmptyFixing
+    isFixedByOverrideFixings = overrideFixings.isValidFor(variables)
+  }
+
+  // def isFixedByOverrideFixing:Boolean = {
+  //   println(s"overrideFixings ${overrideFixings}")
+  //   println(s"variables ${variables}")
+  //   println(s"overrideFixings.isValidFor(variables) ${overrideFixings.isValidFor(variables)}")
+  //   overrideFixings.isValidFor(variables)
+  // }
 	
   def clearFixings = preFixings = UnderlyingFixing.empty
 
@@ -34,13 +46,15 @@ trait FixingLeg {
 
   def setPastFixing = futureFixing = false
 
-  def getFixings:UnderlyingFixing = preFixings
+  // def getFixings:UnderlyingFixing = preFixings
+  def getFixings:UnderlyingFixing = preFixings.update(overrideFixings)
 
-  //def getDoubleFixings:Map[String, Double] = preFixings.getDouble
+  def getOverrideFixings:UnderlyingFixing = overrideFixings
 
   def isFutureFixing:Boolean = futureFixing
 	
-  def isFixed = variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing)
+  // def isFixed = variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing)
+  def isFixed = variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing) || isFixedByOverrideFixings
 
   protected var settlementFixings:UnderlyingFixing = UnderlyingFixing.empty // used for physical settlement only
   
@@ -50,18 +64,9 @@ trait FixingLeg {
     if (f.isValidFor(variables) || f.isEmpty) settlementFixings = f
   }
 
-//  def assignSettlementFixings(f:UnderlyingFixing)(implicit fixingInfo:FixingInformation):Unit = assignSettlementFixings(f.getDecimal)
-//
-//  def assignSettlementFixings(f:Double)(implicit fixingInfo:FixingInformation):Unit = {
-//    if (variables.size == 1) f.getDecimal(variables.head) match {
-//      case Some(ff) => assignSettlementFixings(Map(variables.head -> ff))
-//      case _ => {}
-//    }
-//  }
-
   def clearSettlementFixings = settlementFixings = UnderlyingFixing.empty
     
-  def getSettlementFixings = settlementFixings
+  def getSettlementFixings = settlementFixings.update(overrideFixings)
   
 }
 
