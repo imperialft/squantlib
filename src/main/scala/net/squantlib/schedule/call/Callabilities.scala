@@ -38,11 +38,13 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 
 	def targetRedemptions:List[Option[BigDecimal]] = calls.map(_.targetRedemptionCondition.target)
 	
-	def isTriggeredByTrigger:Boolean = calls.exists(c => c.isFixed && c.fixedTriggerByTrigger == Some(true))
+	// def isTriggeredByTrigger:Boolean = calls.exists(c => c.isFixed && c.fixedTriggerByTrigger == Some(true))
+	def isTriggeredByTrigger:Boolean = calls.exists(c => c.isPastFixed && c.fixedTriggerByTrigger == Some(true))
 
   def isTriggeredByTarget:Boolean = calls.exists(c => c.fixedTriggerByTargetRedemption == Some(true))
 
-	def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
+	def isTriggered:Boolean = calls.exists(c => c.isPastFixed && c.fixedTrigger == Some(true))
+	// def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
 
   def barrierTriggeredDate:Option[Date] = calls.find(c => c.barrierTriggeredDate.isDefined).collect{case c => c.barrierTriggeredDate.get}
   

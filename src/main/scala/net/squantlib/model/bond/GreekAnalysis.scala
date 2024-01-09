@@ -325,13 +325,13 @@ trait GreekAnalysis {
   /*  
    * Returns delta of 1 yen change in FX on JPY price.
    */
-  def triggerProbabilities:List[Double] = model match {
+  def triggerProbabilities:Map[Date, Double] = model match {
     case Some(m) => m.triggerProbabilities
-    case _ => List.empty
+    case _ => Map.empty
   }
   
-  def updateTriggerProbabilities(legs:Int):Unit = model match {
-    case Some(m) => m.updateTriggerProbabilities(legs)
+  def updateTriggerProbabilities(callValueDates:List[Date]):Unit = model match {
+    case Some(m) => m.updateTriggerProbabilities(callValueDates)
     case _ => List.empty
   }
   

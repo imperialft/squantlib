@@ -47,22 +47,27 @@ trait PricingModel {
   /*  
    * Trigger probability function to be overridden. Result is call probabilities.
    */
-  def triggerProbabilities:List[Double] = List.empty
+  def triggerProbabilities:Map[Date, Double] = Map.empty
+
+  def adjustedTriggerProbabilities:Map[Date, Double] = {
+    val probs = triggerProbabilities
+    if (probs.isEmpty) Map.empty
+    else {
+      val finalDate = probs.keys.max
+      probs.updated(finalDate, Math.max(1.0 - probs.filter{case (d, v) => d != finalDate}.values.sum, 0.0))
+    }
+  }
   
   /*  
    * Store trigger information in the model.
    */
-  def updateTriggerProbabilities(legs:Int):Unit = {
+  def updateTriggerProbabilities(callValueDates:List[Date]):Unit = {
     if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {
       val probs = triggerProbabilities
 
-      val fullProbs = {
-        if (probs.size < legs) probs ++ List.fill(legs - probs.size)(0.0)
-        else probs
-      }
-
       if (probs.isEmpty) modelOutput("exercise_probability", null)
-      else modelOutput("exercise_probability", fullProbs.map(p => (p * 100000.0).round / 100000.0))
+      else modelOutput("exercise_probability", callValueDates.map(d => (probs.getOrElse(d, 0.0) * 100000.0).round / 100000.0))
+      // else modelOutput("exercise_probability", fullProbs.map(p => (p * 100000.0).round / 100000.0))
     }
   }
   

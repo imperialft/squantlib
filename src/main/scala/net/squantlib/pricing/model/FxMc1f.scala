@@ -98,12 +98,14 @@ case class FxMc1f(
 
   def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
 
-  override def triggerProbabilities:List[Double] = triggerProbabilities(mcPaths)
+  override def triggerProbabilities:Map[Date, Double] = triggerProbabilities(mcPaths)
 
-  def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
+  def triggerProbabilities(paths:Int):Map[Date, Double] = getOrUpdateCache("TriggerProb"+paths, {
     val maxdate = scheduledPayoffs.schedule.paymentDates.max
     val prices = FxMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, fx, defaultPaths, trigger, frontierFunction, parameterRepository, bondid).mcPrice(paths)
-    (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
+    (scheduledPayoffs, prices).zipped
+      .map{case ((cp, _, _), price) => (cp.callValueDate, price * cp.dayCount)}
+			.groupBy(_._1).map{case (k, vs) => (k, vs.map(_._2).sum)}
   })
 
 

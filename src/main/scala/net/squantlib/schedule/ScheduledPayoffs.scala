@@ -90,7 +90,7 @@ case class ScheduledPayoffs(
   
   def currentCoupons(vd:Date):List[Payoff] = filter{case (d, p, c) => d.isCurrentPeriod(vd) && !d.isRedemption}.map(_._2) (collection.breakOut)
   
-  def isTriggered:Boolean = calls.isTriggered
+  // def isTriggered:Boolean = calls.isTriggered
   
   def calledDate:Option[(CalculationPeriod, Double)] = {
     val callDays = scheduledPayoffs.filter{case (cp, p, c) => c.isCalled}

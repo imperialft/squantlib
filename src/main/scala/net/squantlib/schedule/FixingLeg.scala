@@ -45,6 +45,8 @@ trait FixingLeg {
   // def isFixed = variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing)
   def isFixed = variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing) || isFixedByOverrideFixings
 
+  def isPastFixed = variables.isEmpty || ((!preFixings.isEmpty || isFixedByOverrideFixings) && !isFutureFixing)
+
   protected var settlementFixings:UnderlyingFixing = UnderlyingFixing.empty // used for physical settlement only
   
   def isSettlementFixed:Boolean = true
