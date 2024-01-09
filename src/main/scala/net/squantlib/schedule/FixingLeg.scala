@@ -20,11 +20,7 @@ trait FixingLeg {
   val variables:Set[String] // to be implemented
 	
   def assignFixings(f:UnderlyingFixing):Unit = {
-    // if (f.isValidFor(variables) || f.isEmpty) preFixings = f
     val mergedFixings:UnderlyingFixing = f.update(overrideFixings)
-    // println(s"f ${f}")
-    // println(s"mergedFixings ${mergedFixings}")
-    // println(s"overrideFixings ${overrideFixings}")
     if (mergedFixings.isValidFor(variables) || mergedFixings.isEmpty) preFixings = mergedFixings
   }
 
@@ -33,13 +29,6 @@ trait FixingLeg {
     isFixedByOverrideFixings = overrideFixings.isValidFor(variables)
   }
 
-  // def isFixedByOverrideFixing:Boolean = {
-  //   println(s"overrideFixings ${overrideFixings}")
-  //   println(s"variables ${variables}")
-  //   println(s"overrideFixings.isValidFor(variables) ${overrideFixings.isValidFor(variables)}")
-  //   overrideFixings.isValidFor(variables)
-  // }
-	
   def clearFixings = preFixings = UnderlyingFixing.empty
 
   def setFutureFixing = futureFixing = true

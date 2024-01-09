@@ -52,11 +52,17 @@ trait PricingModel {
   /*  
    * Store trigger information in the model.
    */
-  def updateTriggerProbabilities:Unit = {
+  def updateTriggerProbabilities(legs:Int):Unit = {
     if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {
       val probs = triggerProbabilities
+
+      val fullProbs = {
+        if (probs.size < legs) probs ++ List.fill(legs - probs.size)(0.0)
+        else probs
+      }
+
       if (probs.isEmpty) modelOutput("exercise_probability", null)
-      else modelOutput("exercise_probability", probs.map(p => (p * 100000.0).round / 100000.0))
+      else modelOutput("exercise_probability", fullProbs.map(p => (p * 100000.0).round / 100000.0))
     }
   }
   

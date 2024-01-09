@@ -25,8 +25,6 @@ case class Callability(
 
   val forwardVariables:Set[String] = forward.keySet
 
-  assignOverrideFixings(customOverrideFixings)
-
   def isIssuerCalled:Boolean = (bermudanCondition.isActive && exercised == Some(true))
 
   def setIssuerCalled(setTrue:Boolean = true) = {
@@ -96,7 +94,9 @@ case class Callability(
   }
 
   override val variables:Set[String] = triggerVariables ++ forwardVariables
-  
+
+  assignOverrideFixings(customOverrideFixings)
+
   def triggerInputString:Map[String, String] = inputString.get("trigger") match {
     case Some(trig:Map[_, _]) => trig.map{
       case (k:String, v:String) => (k, v)
@@ -117,7 +117,7 @@ case class Callability(
   
   def isTargetRedemption:Boolean = targetRedemptionCondition.isActive
   
-  override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty || isIssuerCalled || isBarrierTriggered
+  override def isFixed = isFixedTrigger || isFixedTargetRedemption || isEmpty || isIssuerCalled || isBarrierTriggered || isFixedByOverrideFixings
   
   def isFixedTrigger:Boolean = isBarrierTriggered || (isTrigger && (variables.isEmpty || (!preFixings.isEmpty && !isFutureFixing)))
   

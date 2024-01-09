@@ -330,8 +330,8 @@ trait GreekAnalysis {
     case _ => List.empty
   }
   
-  def updateTriggerProbabilities:Unit = model match {
-    case Some(m) => m.updateTriggerProbabilities
+  def updateTriggerProbabilities(legs:Int):Unit = model match {
+    case Some(m) => m.updateTriggerProbabilities(legs)
     case _ => List.empty
   }
   

@@ -290,7 +290,7 @@ object Payoff {
         inputString.jsonNode.collect{
           case n => {
             val overrideUnderlyingFixings = Payoff.nodeToComputedMap(n, "fixings", variableList).getOptionalDecimal()(fixingInfo.getStrikeFixingInformation)
-            println(overrideUnderlyingFixings)
+            // println(overrideUnderlyingFixings)
             if (!overrideUnderlyingFixings.isEmpty) {
               po.assignOverrideFixings(UnderlyingFixing(overrideUnderlyingFixings))
             }
