@@ -35,7 +35,8 @@ case class FxMc1f(
 //  val bonusAmounts = scheduledPayoffs.bonusAmounts
   val triggerUps = scheduledPayoffs.triggerUps
   val forwardStrikes = scheduledPayoffs.forwardStrikes
-  val underlying:String = scheduledPayoffs.underlyings.headOption.getOrElse("")
+  // val underlying:String = scheduledPayoffs.underlyings.headOption.getOrElse("")
+  val underlying:String = scheduledPayoffs.underlyings.headOption.getOrElse(fx.id)
 
 //  println(redemamt.toString)
 
