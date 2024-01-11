@@ -74,18 +74,21 @@ trait PricingModel {
   /*  
    * Binary estimate function to be overridden. Result is binary size as % of notional.
    */
-  def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = List.empty
+  def binarySize(paths:Int, range:Double, curve:DiscountCurve):Map[Date, Double] = Map.empty
   
   /*  
    * Binary estimate function to be overridden. Result is binary size as % of notional.
    */
   
-  def updateBinarySize(range:Double, curve:DiscountCurve):Unit = updateBinarySize(mcPaths, range, curve)
+  def updateBinarySize(range:Double, curve:DiscountCurve, callValueDates:List[Date]):Unit = updateBinarySize(mcPaths, range, curve, callValueDates)
   
-  def updateBinarySize(paths:Int, range:Double, curve:DiscountCurve):Unit = {
+  def updateBinarySize(paths:Int, range:Double, curve:DiscountCurve, callValueDates:List[Date]):Unit = {
     if (scheduledPayoffs.calls.exists(_.isTrigger)) {
-      val bin = binarySize(paths, range, curve)
-      if (bin.isEmpty) modelOutput("binary_size", null) else modelOutput("binary_size", bin.map(d => (d * 10000.0).round / 10000.0))
+      val binSize = binarySize(paths, range, curve)
+
+      if (binSize.isEmpty) modelOutput("binary_size", null) 
+      else modelOutput("binary_size", callValueDates.map(d => (binSize.getOrElse(d, 0.0) * 10000.0).round / 10000.0))
+      // else modelOutput("binary_size", binSize.map(d => (d * 10000.0).round / 10000.0))
     }
   }
   

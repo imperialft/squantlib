@@ -105,10 +105,16 @@ case class McNf(
     }
   }
   
-  override def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
+  override def binarySize(paths:Int, range:Double, curve:DiscountCurve):Map[Date, Double] = getOrUpdateCache("BinarySize"+paths+range, {
     val discounts = scheduledPayoffs.schedule.paymentDates.map(d => curve(d))
     val data = modelPaths(paths, binaryPathMtM(range, discounts))
-    data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
+
+    data.transpose
+			.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size)
+			.zip(scheduledPayoffs)
+			.map{case (b, (d, _, p)) => (d.callValueDate, p.fixedRedemptionAmountAtTrigger - b)}.toMap
+			// .zip(scheduledPayoffs.calls)
+			// .map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
   })
   
 	

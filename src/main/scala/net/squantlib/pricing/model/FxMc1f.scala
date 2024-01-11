@@ -77,7 +77,7 @@ case class FxMc1f(
 
   def mcPrice(paths:Int):List[Double] = {
     try {
-      val mcYears = scheduledPayoffs.eventDateYears(valuedate)
+      val mcYears = callShiftedScheduledPayoffs.eventDateYears(valuedate) // scheduledPayoffs.eventDateYears(valuedate)
       mcengine.generatePrice(mcYears, paths, (p:List[Double]) => callShiftedScheduledPayoffs.price(fx.id, p))
 
       //      if (mcdates.sameElements(mcYears)) mcpaths
@@ -87,7 +87,7 @@ case class FxMc1f(
       //      }
     }
     catch {case e:Throwable =>
-      errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} " + e.getStackTrace.mkString(sys.props("line.separator")))
+      errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} ${sys.props("line.separator")} ${e.toString()} ${sys.props("line.separator")} ${e.getStackTrace.mkString(sys.props("line.separator"))}")
       List.empty
     }
   }
@@ -137,10 +137,17 @@ case class FxMc1f(
     }
   }
 
-  override def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
+  override def binarySize(paths:Int, range:Double, curve:DiscountCurve):Map[Date, Double] = getOrUpdateCache("BinarySize"+paths+range, {
     val discounts = scheduledPayoffs.schedule.paymentDates.map(d => curve(d))
     val data = modelPaths(paths, binaryPathMtM(range, discounts))
-    data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
+
+    data.transpose
+      .map(binaries => binaries.sum / binaries.filter(_ != 0.0).size)
+			.zip(scheduledPayoffs)
+			.map{case (b, (d, _, p)) => (d.callValueDate, p.fixedRedemptionAmountAtTrigger - b)}.toMap
+
+      // .zip(scheduledPayoffs.calls)
+      // .map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
   })
 
   override val priceType = "MODEL"
