@@ -47,8 +47,13 @@ trait FixingLeg {
 
   def isPastFixed = variables.isEmpty || ((!preFixings.isEmpty || isFixedByOverrideFixings) && !isFutureFixing)
 
+
   protected var settlementFixings:UnderlyingFixing = UnderlyingFixing.empty // used for physical settlement only
-  
+
+  protected var checkIsFixedByOverrideSettlementFixings:Boolean = false
+
+  protected var overrideSettlementFixings:UnderlyingFixing = UnderlyingFixing.empty
+
   def isSettlementFixed:Boolean = true
   
   def assignSettlementFixings(f:UnderlyingFixing):Unit = {
@@ -58,7 +63,24 @@ trait FixingLeg {
   def clearSettlementFixings = settlementFixings = UnderlyingFixing.empty
     
   def getSettlementFixings = settlementFixings.update(overrideFixings)
-  
+
+  /// ---------- UNCOMMENT TO USE PROPER SETTLEMENT FIXINGS ------------------
+  // def getSettlementFixings = settlementFixings.update(overrideSettlementFixings)
+
+  def assignOverrideSettlementFixings(f:UnderlyingFixing):Unit = {
+    overrideSettlementFixings = f.nonEmptyFixing
+    checkIsFixedByOverrideSettlementFixings = overrideSettlementFixings.isValidFor(variables)
+  }
+
+  def isFixedByOverrideSettlementFixings:Boolean = checkIsFixedByOverrideSettlementFixings
+
+  def getSettlementFixingWithFallback:UnderlyingFixing = {
+    val settlementFix = getSettlementFixings
+    if (settlementFix.isEmpty) getFixings
+    else if (settlementFix.isValidFor(variables)) settlementFix
+    else getFixings.update(settlementFix)
+  }
+
 }
 
 

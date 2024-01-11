@@ -41,6 +41,9 @@ trait Payoff extends FixingLeg {
 
   override def isSettlementFixed:Boolean = variables.isEmpty || !physical || !settlementFixings.isEmpty
 
+  /// ---------- UNCOMMENT TO USE PROPER SETTLEMENT FIXINGS ------------------
+  // override def isSettlementFixed:Boolean = variables.isEmpty || !physical || !settlementFixings.isEmpty || isFixedByOverrideSettlementFixings
+
   var nominal:Double = 1.0
 
   val currencyId:String = fixingInfo.currencyId
@@ -111,6 +114,13 @@ trait Payoff extends FixingLeg {
 
   final def price(priceResult:PriceResult):Double = {
     if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), List.empty, priceResult)
+
+    /// ---------- UNCOMMENT TO USE PROPER SETTLEMENT FIXINGS ------------------
+    // if (isPaymentFixed) {
+    //   if (physical) priceImpl(List(getFixings, getSettlementFixingWithFallback), List.empty, priceResult)
+    //   else priceImpl(List.fill(2)(getFixings), List.empty, priceResult)
+    // }
+
     else if (isPriceable) priceImpl(priceResult)
     else Double.NaN
   }
@@ -123,6 +133,13 @@ trait Payoff extends FixingLeg {
 
   final def price(fixings:List[UnderlyingFixing], pastPayments:List[Double], priceResult:PriceResult):Double = {
     if (isPaymentFixed) priceImpl(List.fill(2)(getFixings), pastPayments, priceResult)
+
+    /// ---------- UNCOMMENT TO USE PROPER SETTLEMENT FIXINGS ------------------
+    // if (isPaymentFixed) {
+    //   if (physical) priceImpl(List(getFixings, getSettlementFixingWithFallback), pastPayments, priceResult)
+    //   else priceImpl(List.fill(2)(getFixings), pastPayments, priceResult)
+    // }
+
     else if (isPriceable) priceImpl(fixings, pastPayments, priceResult)
     else Double.NaN
   }
@@ -293,6 +310,16 @@ object Payoff {
             // println(overrideUnderlyingFixings)
             if (!overrideUnderlyingFixings.isEmpty) {
               po.assignOverrideFixings(UnderlyingFixing(overrideUnderlyingFixings))
+            }
+          }
+        }
+
+        inputString.jsonNode.collect{
+          case n => {
+            val overrideUnderlyingSettlementFixings = Payoff.nodeToComputedMap(n, "settlement_fixings", variableList).getOptionalDecimal()(fixingInfo.getStrikeFixingInformation)
+            // println(overrideUnderlyingFixings)
+            if (!overrideUnderlyingSettlementFixings.isEmpty) {
+              po.assignOverrideSettlementFixings(UnderlyingFixing(overrideUnderlyingSettlementFixings))
             }
           }
         }

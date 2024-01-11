@@ -241,6 +241,9 @@ object Callabilities {
     val overrideFixingFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, finalCall, legs, underlyings, "fixings")
     val overrideFixingMap:List[UnderlyingFixing] = triggerToAssignedTrigger(overrideFixingFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
 
+    val overrideSettlementFixingFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, finalCall, legs, underlyings, "settlement_fixings")
+    val overrideSettlementFixingMap:List[UnderlyingFixing] = triggerToAssignedTrigger(overrideFixingFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
+
     val targets:List[Option[BigDecimal]] = targetList(formulaJson, legs).map(vs => vs.flatMap{case v => v.getRoundedDecimal})
 
     val baseFormulas:List[Map[String, Any]] = {
@@ -311,8 +314,8 @@ object Callabilities {
       }
     }
 
-    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).zip((resetKnockInConditions.zip(overrideFixingMap)).zip(resetNewTriggerMap.zip(barrierConditions))).map{
-      case ((((berm, f), (trig, tgt)), (callOption, baseFormula)), ((resetKnockInCondition, overrideFixings), (resetStrikes, barrierCondition))) =>
+    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).zip((resetKnockInConditions.zip(overrideFixingMap.zip(overrideSettlementFixingMap))).zip(resetNewTriggerMap.zip(barrierConditions))).map{
+      case ((((berm, f), (trig, tgt)), (callOption, baseFormula)), ((resetKnockInCondition, (overrideFixings, overrideSettlementFixings)), (resetStrikes, barrierCondition))) =>
 
         var inputString:Map[String, Any] = baseFormula
 
@@ -357,7 +360,8 @@ object Callabilities {
           inputString = inputString,
           accumulatedPayments = None,
           simulatedFrontier = UnderlyingFixing.empty,
-          customOverrideFixings = overrideFixings
+          customOverrideFixings = overrideFixings,
+          customOverrideSettlementFixings = overrideSettlementFixings
         )
     }
     
