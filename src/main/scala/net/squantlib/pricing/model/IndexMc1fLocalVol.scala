@@ -69,12 +69,14 @@ case class IndexMc1fLocalVol(
 	
 	def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
 
-  override def triggerProbabilities:List[Double] = triggerProbabilities(mcPaths)
+  override def triggerProbabilities:Map[Date, Double] = triggerProbabilities(mcPaths)
   
-  def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
+  def triggerProbabilities(paths:Int):Map[Date, Double] = getOrUpdateCache("TriggerProb"+paths, {
     val maxdate = scheduledPayoffs.schedule.paymentDates.max
     val prices = IndexMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, index, defaultPaths, bondid).mcPrice(paths)
-    (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
+    (scheduledPayoffs, prices).zipped
+			.map{case ((cp, _, _), price) => (cp.callValueDate, price * cp.dayCount)}
+			.groupBy(_._1).map{case (k, vs) => (k, vs.map(_._2).sum)}
   })
 	
   def binaryPathMtM(range:Double, discounts:List[Double]):List[Double] => List[Double] = (underlyingPrices:List[Double]) => {
@@ -96,10 +98,16 @@ case class IndexMc1fLocalVol(
     }
   }
   
-  override def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
+  override def binarySize(paths:Int, range:Double, curve:DiscountCurve):Map[Date, Double] = getOrUpdateCache("BinarySize"+paths+range, {
     val discounts = scheduledPayoffs.schedule.paymentDates.map(d => curve(d))
     val data = modelPaths(paths, binaryPathMtM(range, discounts))
-    data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
+
+    data.transpose
+			.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size)
+			.zip(scheduledPayoffs)
+			.map{case (b, (d, _, p)) => (d.callValueDate, p.fixedRedemptionAmountAtTrigger - b)}.toMap
+			// .zip(scheduledPayoffs.calls)
+			// .map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
   })
   
 	override def modelForward(paths:Int):List[Double] = concatList(modelPaths(paths)).map(_ / paths)

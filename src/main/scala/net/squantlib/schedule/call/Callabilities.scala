@@ -38,11 +38,13 @@ case class Callabilities(calls:List[Callability]) extends LinearSeq[Callability]
 
 	def targetRedemptions:List[Option[BigDecimal]] = calls.map(_.targetRedemptionCondition.target)
 	
-	def isTriggeredByTrigger:Boolean = calls.exists(c => c.isFixed && c.fixedTriggerByTrigger == Some(true))
+	// def isTriggeredByTrigger:Boolean = calls.exists(c => c.isFixed && c.fixedTriggerByTrigger == Some(true))
+	def isTriggeredByTrigger:Boolean = calls.exists(c => c.isPastFixed && c.fixedTriggerByTrigger == Some(true))
 
   def isTriggeredByTarget:Boolean = calls.exists(c => c.fixedTriggerByTargetRedemption == Some(true))
 
-	def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
+	def isTriggered:Boolean = calls.exists(c => c.isPastFixed && c.fixedTrigger == Some(true))
+	// def isTriggered:Boolean = calls.exists(c => c.isFixed && c.fixedTrigger == Some(true))
 
   def barrierTriggeredDate:Option[Date] = calls.find(c => c.barrierTriggeredDate.isDefined).collect{case c => c.barrierTriggeredDate.get}
   
@@ -181,7 +183,7 @@ object Callabilities {
   )(implicit fixingInfo:FixingInformation):List[Map[String, Double]] =
     (trigs, invertedStrikes).zipped.map{
       case (trig, inverted) if inverted =>
-        val assignedTrig:Map[String, Double] = assignFixings(trig)
+        val assignedTrig:Map[String, Double] = computeAssignedFixings(trig)
         if (inverted && trig.keys.forall(_.size == 6)) {
           assignedTrig.map{
             case (k, v) =>
@@ -191,10 +193,10 @@ object Callabilities {
           }
         } else assignedTrig
 
-      case (trig, inverted) => assignFixings(trig)
+      case (trig, inverted) => computeAssignedFixings(trig)
     }
   
-  private def assignFixings(stks:Map[String, String])(implicit fixingInfo:FixingInformation):Map[String, Double] = {
+  private def computeAssignedFixings(stks:Map[String, String])(implicit fixingInfo:FixingInformation):Map[String, Double] = {
     stks.map{case (k, v) =>
       (k, fixingInfo.updateCompute(v))
     }.collect{case (k, v) =>
@@ -235,6 +237,12 @@ object Callabilities {
     // println(s"trigMap ${trigMap}")
     // println(s"fixingInfo.legFixings ${fixingInfo.legFixings}")
     // throw new Exception
+
+    val overrideFixingFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, finalCall, legs, underlyings, "fixings")
+    val overrideFixingMap:List[UnderlyingFixing] = triggerToAssignedTrigger(overrideFixingFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
+
+    val overrideSettlementFixingFormulas:List[Map[String, String]] = underlyingStrikeList(formulaJson, finalCall, legs, underlyings, "settlement_fixings")
+    val overrideSettlementFixingMap:List[UnderlyingFixing] = triggerToAssignedTrigger(overrideFixingFormulas, invertedTriggerList)(fixingInfo.getStrikeFixingInformation).map(vs => UnderlyingFixing(vs)(fixingInfo.getStrikeFixingInformation))
 
     val targets:List[Option[BigDecimal]] = targetList(formulaJson, legs).map(vs => vs.flatMap{case v => v.getRoundedDecimal})
 
@@ -306,8 +314,8 @@ object Callabilities {
       }
     }
 
-    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).zip(resetKnockInConditions.zip(resetNewTriggerMap.zip(barrierConditions))).map{
-      case ((((berm, f), (trig, tgt)), (callOption, baseFormula)), (resetKnockInCondition, (resetStrikes, barrierCondition))) =>
+    val calls = (bermudans.zip(trigFormulas)).zip(trigMap.zip(targets)).zip(callOptions.zip(baseFormulas)).zip((resetKnockInConditions.zip(overrideFixingMap.zip(overrideSettlementFixingMap))).zip(resetNewTriggerMap.zip(barrierConditions))).map{
+      case ((((berm, f), (trig, tgt)), (callOption, baseFormula)), ((resetKnockInCondition, (overrideFixings, overrideSettlementFixings)), (resetStrikes, barrierCondition))) =>
 
         var inputString:Map[String, Any] = baseFormula
 
@@ -351,7 +359,9 @@ object Callabilities {
           resetStrikes = resetStrikes,
           inputString = inputString,
           accumulatedPayments = None,
-          simulatedFrontier= UnderlyingFixing.empty
+          simulatedFrontier = UnderlyingFixing.empty,
+          customOverrideFixings = overrideFixings,
+          customOverrideSettlementFixings = overrideSettlementFixings
         )
     }
     

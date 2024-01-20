@@ -75,6 +75,8 @@ trait ExtendedSchedule {
     p
   }
 
+  def remainingPayoffs:ScheduledPayoffs = valueDate.collect{case d => scheduledPayoffs.after(d)}.getOrElse(ScheduledPayoffs.empty)
+
   def livePayoffCount(vd:Date):Int =
     earlyTerminationDate match {
       case Some(d) if vd ge d => 0

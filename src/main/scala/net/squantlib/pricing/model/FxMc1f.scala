@@ -35,7 +35,8 @@ case class FxMc1f(
 //  val bonusAmounts = scheduledPayoffs.bonusAmounts
   val triggerUps = scheduledPayoffs.triggerUps
   val forwardStrikes = scheduledPayoffs.forwardStrikes
-  val underlying:String = scheduledPayoffs.underlyings.headOption.getOrElse("")
+  // val underlying:String = scheduledPayoffs.underlyings.headOption.getOrElse("")
+  val underlying:String = scheduledPayoffs.underlyings.headOption.getOrElse(fx.id)
 
 //  println(redemamt.toString)
 
@@ -77,7 +78,7 @@ case class FxMc1f(
 
   def mcPrice(paths:Int):List[Double] = {
     try {
-      val mcYears = scheduledPayoffs.eventDateYears(valuedate)
+      val mcYears = callShiftedScheduledPayoffs.eventDateYears(valuedate) // scheduledPayoffs.eventDateYears(valuedate)
       mcengine.generatePrice(mcYears, paths, (p:List[Double]) => callShiftedScheduledPayoffs.price(fx.id, p))
 
       //      if (mcdates.sameElements(mcYears)) mcpaths
@@ -87,7 +88,7 @@ case class FxMc1f(
       //      }
     }
     catch {case e:Throwable =>
-      errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} " + e.getStackTrace.mkString(sys.props("line.separator")))
+      errorOutput(bondid, s"MC calculation error : vd ${fx.valuedate} ${sys.props("line.separator")} ${e.toString()} ${sys.props("line.separator")} ${e.getStackTrace.mkString(sys.props("line.separator"))}")
       List.empty
     }
   }
@@ -98,12 +99,14 @@ case class FxMc1f(
 
   def calculatePrice(paths:Int):List[Double] = getOrUpdateCache("PRICE"+paths, mcPrice(paths))
 
-  override def triggerProbabilities:List[Double] = triggerProbabilities(mcPaths)
+  override def triggerProbabilities:Map[Date, Double] = triggerProbabilities(mcPaths)
 
-  def triggerProbabilities(paths:Int):List[Double] = getOrUpdateCache("TriggerProb"+paths, {
+  def triggerProbabilities(paths:Int):Map[Date, Double] = getOrUpdateCache("TriggerProb"+paths, {
     val maxdate = scheduledPayoffs.schedule.paymentDates.max
     val prices = FxMc1f(valuedate, mcengine, scheduledPayoffs.trigCheckPayoff, fx, defaultPaths, trigger, frontierFunction, parameterRepository, bondid).mcPrice(paths)
-    (scheduledPayoffs, prices).zipped.map{case ((cp, _, _), price) => price * cp.dayCount}.toList
+    (scheduledPayoffs, prices).zipped
+      .map{case ((cp, _, _), price) => (cp.callValueDate, price * cp.dayCount)}
+			.groupBy(_._1).map{case (k, vs) => (k, vs.map(_._2).sum)}
   })
 
 
@@ -135,10 +138,17 @@ case class FxMc1f(
     }
   }
 
-  override def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = getOrUpdateCache("BinarySize"+paths+range, {
+  override def binarySize(paths:Int, range:Double, curve:DiscountCurve):Map[Date, Double] = getOrUpdateCache("BinarySize"+paths+range, {
     val discounts = scheduledPayoffs.schedule.paymentDates.map(d => curve(d))
     val data = modelPaths(paths, binaryPathMtM(range, discounts))
-    data.transpose.map(binaries => binaries.sum / binaries.filter(_ != 0.0).size).zip(scheduledPayoffs.calls).map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
+
+    data.transpose
+      .map(binaries => binaries.sum / binaries.filter(_ != 0.0).size)
+			.zip(scheduledPayoffs)
+			.map{case (b, (d, _, p)) => (d.callValueDate, p.fixedRedemptionAmountAtTrigger - b)}.toMap
+
+      // .zip(scheduledPayoffs.calls)
+      // .map{case (b, p) => p.fixedRedemptionAmountAtTrigger - b}
   })
 
   override val priceType = "MODEL"

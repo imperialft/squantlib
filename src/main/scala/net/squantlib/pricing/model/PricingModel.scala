@@ -47,34 +47,48 @@ trait PricingModel {
   /*  
    * Trigger probability function to be overridden. Result is call probabilities.
    */
-  def triggerProbabilities:List[Double] = List.empty
+  def triggerProbabilities:Map[Date, Double] = Map.empty
+
+  def adjustedTriggerProbabilities:Map[Date, Double] = {
+    val probs = triggerProbabilities
+    if (probs.isEmpty) Map.empty
+    else {
+      val finalDate = probs.keys.max
+      probs.updated(finalDate, Math.max(1.0 - probs.filter{case (d, v) => d != finalDate}.values.sum, 0.0))
+    }
+  }
   
   /*  
    * Store trigger information in the model.
    */
-  def updateTriggerProbabilities:Unit = {
+  def updateTriggerProbabilities(callValueDates:List[Date]):Unit = {
     if (!scheduledPayoffs.calls.forall(c => c.isEmpty)) {
       val probs = triggerProbabilities
+
       if (probs.isEmpty) modelOutput("exercise_probability", null)
-      else modelOutput("exercise_probability", probs.map(p => (p * 100000.0).round / 100000.0))
+      else modelOutput("exercise_probability", callValueDates.map(d => (probs.getOrElse(d, 0.0) * 100000.0).round / 100000.0))
+      // else modelOutput("exercise_probability", fullProbs.map(p => (p * 100000.0).round / 100000.0))
     }
   }
   
   /*  
    * Binary estimate function to be overridden. Result is binary size as % of notional.
    */
-  def binarySize(paths:Int, range:Double, curve:DiscountCurve):List[Double] = List.empty
+  def binarySize(paths:Int, range:Double, curve:DiscountCurve):Map[Date, Double] = Map.empty
   
   /*  
    * Binary estimate function to be overridden. Result is binary size as % of notional.
    */
   
-  def updateBinarySize(range:Double, curve:DiscountCurve):Unit = updateBinarySize(mcPaths, range, curve)
+  def updateBinarySize(range:Double, curve:DiscountCurve, callValueDates:List[Date]):Unit = updateBinarySize(mcPaths, range, curve, callValueDates)
   
-  def updateBinarySize(paths:Int, range:Double, curve:DiscountCurve):Unit = {
+  def updateBinarySize(paths:Int, range:Double, curve:DiscountCurve, callValueDates:List[Date]):Unit = {
     if (scheduledPayoffs.calls.exists(_.isTrigger)) {
-      val bin = binarySize(paths, range, curve)
-      if (bin.isEmpty) modelOutput("binary_size", null) else modelOutput("binary_size", bin.map(d => (d * 10000.0).round / 10000.0))
+      val binSize = binarySize(paths, range, curve)
+
+      if (binSize.isEmpty) modelOutput("binary_size", null) 
+      else modelOutput("binary_size", callValueDates.map(d => (binSize.getOrElse(d, 0.0) * 10000.0).round / 10000.0))
+      // else modelOutput("binary_size", binSize.map(d => (d * 10000.0).round / 10000.0))
     }
   }
   
