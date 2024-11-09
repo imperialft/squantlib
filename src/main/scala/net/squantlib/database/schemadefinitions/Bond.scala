@@ -321,6 +321,10 @@ class Bond(
     }
   }
 
+  def defaultPaymentRounding(ccy:String):RoundingInfo = {
+    RoundingInfo.defaultRounding(ccy, paymentRounding.roundType)
+  }
+
   @Transient
   lazy val paymentRounding:RoundingInfo = {
     val roundInfo = settingsJson.get("payment_rounding")
@@ -343,17 +347,44 @@ class Bond(
     }
   }
 
-  def defaultPaymentRounding(ccy:String):RoundingInfo = {
-    RoundingInfo.defaultRounding(ccy, paymentRounding.roundType)
-  }
-
-  @Transient
-  lazy val couponRateRounding:RoundingInfo = {
+  def getCouponRateRounding:RoundingInfo = {
     settingsJson.get("coupon_rate_rounding") match {
       case roundInfo if roundInfo != null => RoundingInfo(roundInfo, 2)
       case _ => RoundingInfo(10, "rounded")
     }
   }
+
+  def couponRateRounding:RoundingInfo = fixingInformation.couponRateRounding
+
+  def getPerformanceRounding:RoundingInfo = {
+    settingsJson.get("performance_rounding") match {
+      case roundInfo if roundInfo != null => 
+        roundInfo.parseInt("precision") match {
+          case Some(i) => RoundingInfo(roundInfo, 0)
+          case _ => RoundingInfo(40, "none")
+        }
+        
+      case _ => RoundingInfo(20, "rounded")
+    }
+  }
+
+  def performanceRounding:RoundingInfo = fixingInformation.performanceRounding
+
+  // @Transient
+  // lazy val couponRateRounding:RoundingInfo = {
+  //   settingsJson.get("coupon_rate_rounding") match {
+  //     case roundInfo if roundInfo != null => RoundingInfo(roundInfo, 2)
+  //     case _ => RoundingInfo(10, "rounded")
+  //   }
+  // }
+
+  // @Transient
+  // lazy val performanceRounding:RoundingInfo = {
+  //   settingsJson.get("performance_rounding") match {
+  //     case roundInfo if roundInfo != null => RoundingInfo(roundInfo, 2)
+  //     case _ => RoundingInfo(20, "rounded")
+  //   }
+  // }
 
   @Transient
   lazy val partialAssetRoundings:Map[String, RoundingInfo] = {
@@ -551,7 +582,9 @@ class Bond(
       minRange = getDecimalSetting("tbd_min"),
       maxRange = getDecimalSetting("tbd_max"),
       fixingPageInformation = fixingPageInformation,
-      paymentCalendar = paymentCalendar
+      paymentCalendar = paymentCalendar,
+      couponRateRounding = getCouponRateRounding,
+      performanceRounding = getPerformanceRounding
     )
 
     info.setInitialFixingDecimal(getInitialFixingsDecimal)

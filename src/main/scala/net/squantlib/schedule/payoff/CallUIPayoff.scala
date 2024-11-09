@@ -47,10 +47,8 @@ case class CallUIPayoff(
   
   def getPerformance(v:Double):Double = {
     if (!v.isNaN && !v.isInfinity) {
-      //1.0 + (v - 1.0) * mult + added
       (v - 1.0) * mult + added
-    }
-    else Double.NaN
+    } else Double.NaN
   }
 
   def getFixedPrice(fixings:UnderlyingFixing, priceResult:PriceResult):Option[Double] = {
@@ -92,7 +90,7 @@ case class CallUIPayoff(
 
       if (perfs.forall{case (ul, v) => !v.isNaN && !v.isInfinity}) {
 
-        basket match {
+        val basketPerf = basket match {
           case "average" => Some(perfs.values.sum / perfs.size.toDouble)
 
           case "max" =>
@@ -113,8 +111,16 @@ case class CallUIPayoff(
             }
 
             Some(perfs.values.min)
-
         }
+
+        basketPerf.collect{case r =>
+          fixingInfo.performanceRounding.roundOption(r) match {
+            case Some(v) => 
+              v.toDouble
+            case _ => r
+          }
+        }
+
       } else None
     } else None
   }

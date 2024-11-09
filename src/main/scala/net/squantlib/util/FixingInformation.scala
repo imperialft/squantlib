@@ -14,6 +14,8 @@ case class FixingInformation(
   var maxRange:Option[BigDecimal],
   fixingPageInformation: List[Map[String, String]],
   paymentCalendar: DbCalendar,
+  couponRateRounding: RoundingInfo,
+  performanceRounding: RoundingInfo,
   isInitial:Boolean = false,
   isStrike:Boolean = false,
   initialUnderlyingFixings:Option[UnderlyingFixing] = None,
@@ -47,6 +49,8 @@ case class FixingInformation(
           maxRange,
           newFixingPageInfo,
           paymentCalendar,
+          couponRateRounding,
+          performanceRounding,
           true,
           isStrike,
           Some(initialFixing),
@@ -79,6 +83,8 @@ case class FixingInformation(
           maxRange,
           newFixingPageInfo,
           paymentCalendar,
+          couponRateRounding,
+          performanceRounding,
           isInitial,
           true,
           Some(initialFixing),
@@ -328,7 +334,17 @@ object FixingInformation {
   def empty(
     currencyId:String,
     paymentCurrencyId:String
-  ) = FixingInformation(currencyId, paymentCurrencyId, None, None, None, List.empty, DbCalendar(Set.empty))
+  ) = FixingInformation(
+    currencyId, 
+    paymentCurrencyId, 
+    None, 
+    None, 
+    None, 
+    List.empty, 
+    DbCalendar(Set.empty),
+    RoundingInfo(10, "rounded"),
+    RoundingInfo(20, "rounded")
+  )
   
 }
 
