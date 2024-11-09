@@ -4,9 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode
 import net.squantlib.util.JsonUtils._
 
 case class RoundingInfo(precision:Int, roundType:String) {
-  def round(v:BigDecimal):BigDecimal = DisplayUtils.ExtendedDecimal.scaled(v, precision, roundType)
+  def round(v:BigDecimal):BigDecimal = {
+    if (isActive) DisplayUtils.ExtendedDecimal.scaled(v, precision, roundType)
+    else v
+  }
 
-  def roundOption(v:Double):Option[BigDecimal] = DisplayUtils.ExtendedDouble.getDecimal(v, precision, roundType)
+  def roundOption(v:Double):Option[BigDecimal] = {
+    if (isActive) DisplayUtils.ExtendedDouble.getDecimal(v, precision, roundType)
+    else Some(BigDecimal.valueOf(v))
+  }
+
+  val isActive:Boolean = (roundType != "none")
 }
 
 object RoundingInfo {

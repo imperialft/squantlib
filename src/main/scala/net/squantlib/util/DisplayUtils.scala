@@ -180,6 +180,7 @@ object DisplayUtils { // extends StrictLogging {
     def scaled(v:BigDecimal, precision:Int, roundType:String):BigDecimal = roundType match {
       case "roundup" => v.setScale(precision, BigDecimal.RoundingMode.CEILING)
       case "rounddown" => v.setScale(precision, BigDecimal.RoundingMode.FLOOR)
+      case "none" => v
       case _ => v.setScale(precision, BigDecimal.RoundingMode.HALF_UP)
     }
 
