@@ -227,7 +227,7 @@ trait Underlying extends StaticAsset {
     
   override def getPriceHistory = DB.getHistorical(id)
     
-  override protected def getDbForwardPrice = DB.getForwardPrices(assetID, id)
+  // override protected def getDbForwardPrice = DB.getForwardPrices(assetID, id)
   
   def show(vd:List[Date]):Unit = {
     standardOutput("id:", id)

@@ -81,9 +81,9 @@ trait BasicAsset {
    * Forward Price
    */
   
-  protected def getDbForwardPrice:TimeSeries  // to be implemented in subclass
+  // protected def getDbForwardPrice:TimeSeries  // to be implemented in subclass
   
-  def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", getDbForwardPrice.getFilledTimeSeries())
+  // def forwardPrice:TimeSeries = cachedPrice.getOrElseUpdate("FORWARD", getDbForwardPrice.getFilledTimeSeries())
 
 
   val cachedPrice = Collections.synchronizedMap(new JavaWeakHashMap[String, TimeSeries]).asScala

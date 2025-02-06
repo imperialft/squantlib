@@ -11,7 +11,7 @@ case class GenericAsset(
   override val latestPrice:Option[Double],
   override val expectedYield:Option[Double],
   override val expectedCoupon:Option[Double],
-  override val getDbForwardPrice:TimeSeries,
+  // override val getDbForwardPrice:TimeSeries,
   override val getPriceHistory:TimeSeries,
   override val fixingCalendar:DbCalendar,
   override val paymentCalendar:DbCalendar,
