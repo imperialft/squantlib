@@ -15,7 +15,7 @@ trait DbRepository {
 
   def getHistoricalHigh(id:String, startDate:Date, endDate:Date, assetId:String = null):TimeSeries
   
-  def getForwardPrices(assetId:String, id:String):TimeSeries
+  // def getForwardPrices(assetId:String, id:String):TimeSeries
   
   def getEquities:Set[Equity]
   
@@ -230,7 +230,7 @@ object DB {
   }
 
 
-  def getForwardPrices(assetId:String, id:String):TimeSeries = repository.collect{case repo => repo.getForwardPrices(assetId, id)}.getOrElse(TimeSeries.empty)
+  // def getForwardPrices(assetId:String, id:String):TimeSeries = repository.collect{case repo => repo.getForwardPrices(assetId, id)}.getOrElse(TimeSeries.empty)
   
   def getEquities:Set[Equity] = repository.collect{case repo => repo.getEquities}.getOrElse(Set.empty)
   

@@ -29,7 +29,7 @@ trait BondAsset extends AnalyzedAsset {
   
   override def expectedCoupon:Option[Double]
   
-  override def getDbForwardPrice = DB.getForwardPrices("BOND", assetName).mapValues(v => v / 100.0)
+  // override def getDbForwardPrice = DB.getForwardPrices("BOND", assetName).mapValues(v => v / 100.0)
   
 } 
 
