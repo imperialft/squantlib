@@ -216,19 +216,19 @@ class Bond(
 //    settingMap.get("call_fixing_on_coupon").collect{case v => v.toInt == 1}.getOrElse(true)
 //  } catch { case _:Throwable => true}
 
-  def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
+  // def descriptionjpnList:Map[String, String] = description_jpn.parseJsonStringFields
 
-  def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
+  // def descriptionengList:Map[String, String] = description_eng.parseJsonStringFields
 
-  def getUniqueIds:Map[String, String] = {
-    settings.jsonNode match {
-      case Some(s) => s.getOption("uniq_ids") match {
-        case Some(ss) => ss.parseStringFields
-        case _ => Map.empty
-      }
-      case _ => Map.empty
-    }
-  }
+  // def getUniqueIds:Map[String, String] = {
+  //   settings.jsonNode match {
+  //     case Some(s) => s.getOption("uniq_ids") match {
+  //       case Some(ss) => ss.parseStringFields
+  //       case _ => Map.empty
+  //     }
+  //     case _ => Map.empty
+  //   }
+  // }
 
   def updateRefNumber(refId:Int) = {
     id = s"${issuerid}-${refId}"
@@ -668,13 +668,13 @@ class Bond(
   def setInformation(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.information, (s:String) => this.information = s)
   def setInformation(nodes:Map[String, JsonNode]):Unit = setJsonObject(nodes)(() => this.information, (s:String) => this.information = s)
   
-  def getCharacteristics:ObjectNode = getJsonObject(() => this.characteristics)
-  def setCharacteristics(name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.characteristics, (s:String) => this.characteristics = s)
-  def setCharacteristics(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.characteristics, (s:String) => this.characteristics = s)
+  // def getCharacteristics:ObjectNode = getJsonObject(() => this.characteristics)
+  // def setCharacteristics(name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.characteristics, (s:String) => this.characteristics = s)
+  // def setCharacteristics(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.characteristics, (s:String) => this.characteristics = s)
   
-  def getChartSettings:ObjectNode = getJsonObject(() => this.chartsettings)
-  def setChartSettings(name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.chartsettings, (s:String) => this.chartsettings = s)
-  def setChartSettings(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.chartsettings, (s:String) => this.chartsettings = s)
+  // def getChartSettings:ObjectNode = getJsonObject(() => this.chartsettings)
+  // def setChartSettings(name:String, newValue:String):Unit = setJsonObject(name, newValue)(() => this.chartsettings, (s:String) => this.chartsettings = s)
+  // def setChartSettings(name:String, newNode:JsonNode):Unit = setJsonObject(name, newNode)(() => this.chartsettings, (s:String) => this.chartsettings = s)
   
   def this() = this(
     id = null,
