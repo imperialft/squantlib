@@ -38,15 +38,15 @@ trait AnalyzableBond
   
   override def isPriced: Boolean = dirtyPrice.isDefined
   
-  override def latestPriceLocalCcy: Option[Double] = dirtyPrice
+  // override def latestPriceLocalCcy: Option[Double] = dirtyPrice
   
   override def latestPrice:Option[Double] = dirtyPrice
   
-  override def expectedYield:Option[Double] = yieldContinuous
+  // override def expectedYield:Option[Double] = yieldContinuous
   
-  override def expectedCoupon:Option[Double] = currentRate
+  // override def expectedCoupon:Option[Double] = currentRate
   
-  override def latestPriceDate:Option[Date] = valueDate
+  // override def latestPriceDate:Option[Date] = valueDate
   
 }
 

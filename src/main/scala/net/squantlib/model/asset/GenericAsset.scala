@@ -9,8 +9,8 @@ case class GenericAsset(
   override val assetID:String,
   override val assetName:String,
   override val latestPrice:Option[Double],
-  override val expectedYield:Option[Double],
-  override val expectedCoupon:Option[Double],
+  // override val expectedYield:Option[Double],
+  // override val expectedCoupon:Option[Double],
   // override val getDbForwardPrice:TimeSeries,
   override val getPriceHistory:TimeSeries,
   override val fixingCalendar:DbCalendar,
@@ -19,9 +19,9 @@ case class GenericAsset(
   override val isPriced:Boolean = true
   ) extends StaticAsset {
   
-  override def latestPriceDate = None
+  // override def latestPriceDate = None
   
-  override def latestPriceLocalCcy = latestPrice
+  // override def latestPriceLocalCcy = latestPrice
   
 }
   

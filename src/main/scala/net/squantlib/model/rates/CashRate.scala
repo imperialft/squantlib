@@ -48,9 +48,9 @@ case class CashRate(
 	    
 	}
 	
-    override def expectedYield:Option[Double] = Some(curve.impliedRate(valuedate.add(period)))
+    // override def expectedYield:Option[Double] = Some(curve.impliedRate(valuedate.add(period)))
     
-    override def expectedCoupon:Option[Double] = expectedYield
+    // override def expectedCoupon:Option[Double] = expectedYield
 	
 	/**
 	 * Returns FX spot rate

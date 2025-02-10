@@ -44,13 +44,13 @@ trait BasicAsset {
   
   def latestPrice:Option[Double]  // to be implemented in subclass
   
-  def latestPriceDate:Option[Date] // to be implemented in subclass
+  // def latestPriceDate:Option[Date] // to be implemented in subclass
   
-  def latestPriceLocalCcy:Option[Double]  // to be implemented in subclass
+  // def latestPriceLocalCcy:Option[Double]  // to be implemented in subclass
   
-  def expectedYield:Option[Double]  // to be implemented in subclass
+  // def expectedYield:Option[Double]  // to be implemented in subclass
   
-  def expectedCoupon:Option[Double]  // to be implemented in subclass
+  // def expectedCoupon:Option[Double]  // to be implemented in subclass
   
   
   /*
