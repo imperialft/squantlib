@@ -6,15 +6,15 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class Equity(@Column("ID")					override var id:String,
-              @Column("CurrencyID")			var currencyid:String,
-              @Column("DIV_BASEDATE")		var basedivdate:Date,
-              @Column("DIV_FREQ")			var divfreq:Int,
-              @Column("VOLATILITY")			var volatility:Double,
-              @Column("PARAMDATE")			var paramdate:Date,
-              @Column("Settings")      var settings:String,
-              @Column("Created")			override var created: Timestamp,
-              @Column("LastModified")		override var lastmodified : Timestamp
+class Equity(@Column("id")					override var id:String,
+              @Column("currency_id")			var currencyid:String,
+              @Column("dividend_start_on")		var basedivdate:Date,
+              @Column("dividend_freq")			var divfreq:Int,
+              @Column("volatility")			var volatility:Double,
+              @Column("value_on")			var paramdate:Date,
+              @Column("settings")      var settings:String,
+              @Column("created_at")			override var created: Timestamp,
+              @Column("updated_at")		override var lastmodified : Timestamp
               ) extends StringEntity {
   
   def this() = this(

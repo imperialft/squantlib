@@ -1,7 +1,7 @@
 package net.squantlib.model.asset
 
 import net.squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
-import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
+// import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import net.squantlib.util.initializer.Calendars

@@ -2,7 +2,7 @@ package net.squantlib.model.asset
 
 import net.squantlib.util.Date
 import net.squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
-import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
+// import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import net.squantlib.util.initializer.Calendars
@@ -29,17 +29,17 @@ trait StaticAnalysis {
   
   def getIntersection(asset:BasicAsset):SortedMap[Date, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory)
 
-  def historicalCorrelLatestValue(asset:BasicAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[Double] = {
-    if (this == asset) {return Some(1.0)}
-    val intersection = getIntersection(asset)
-    if (intersection.size < minDays) {None}
-    val source = intersection takeRight math.min(intersection.size, nbDays)
+  // def historicalCorrelLatestValue(asset:BasicAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[Double] = {
+  //   if (this == asset) {return Some(1.0)}
+  //   val intersection = getIntersection(asset)
+  //   if (intersection.size < minDays) {None}
+  //   val source = intersection takeRight math.min(intersection.size, nbDays)
     
-    Correlation.calculate(source, source.size).headOption match {
-      case Some(v) if !v._2.isNaN && !v._2.isInfinity => Some(v._2)
-      case _ => None
-    }
-  }
+  //   Correlation.calculate(source, source.size).headOption match {
+  //     case Some(v) if !v._2.isNaN && !v._2.isInfinity => Some(v._2)
+  //     case _ => None
+  //   }
+  // }
   
   def genericHistoricalCorrel(asset:BasicAsset):Option[Double] = {
     val nbDays = List(30, 60, 180)
@@ -68,24 +68,24 @@ trait StaticAnalysis {
     }
   }
   
-  def historicalCorrelLatest(asset:BasicAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[dbCorrelation] = 
-    historicalCorrelLatestValue(asset, nbDays, periodicity, minDays).collect{case v => getCorrelation(asset, Date.currentDate, nbDays, 1, v)}
+  // def historicalCorrelLatest(asset:BasicAsset, nbDays:Int, periodicity:Int = 1, minDays:Int = 100):Option[dbCorrelation] = 
+  //   historicalCorrelLatestValue(asset, nbDays, periodicity, minDays).collect{case v => getCorrelation(asset, Date.currentDate, nbDays, 1, v)}
   
-  def getCorrelation(asset:BasicAsset, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double) = StaticAnalysis.getCorrelation(this, asset, valuedate, nbDays, periodicity, correl)
+  // def getCorrelation(asset:BasicAsset, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double) = StaticAnalysis.getCorrelation(this, asset, valuedate, nbDays, periodicity, correl)
   
-  def historicalCorrel(asset:BasicAsset, nbDays:Int, nbResult:Int = 0):SortedMap[Date, Double] = {
-  val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
-    val intersection:SortedMap[Date, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory) takeRight sourcesize
-    Correlation.calculate(intersection, nbDays)
-  }
+  // def historicalCorrel(asset:BasicAsset, nbDays:Int, nbResult:Int = 0):SortedMap[Date, Double] = {
+  // val sourcesize = nbDays + (if(nbResult > 0) nbResult else 10000) - 1
+  //   val intersection:SortedMap[Date, (Double, Double)] = priceHistory.intersectionWith(asset.priceHistory) takeRight sourcesize
+  //   Correlation.calculate(intersection, nbDays)
+  // }
   
   
-  def correlations(asset:BasicAsset, nbDays:Int, nbResult:Int = 0):Set[dbCorrelation] = {
-    val correlarray = historicalCorrel(asset, nbDays, nbResult)
-    val underlying1 = assetID + ":" + assetName
-    val underlying2 = asset.assetID + ":" + asset.assetName
-    correlarray.map{ case (d, v) => getCorrelation(asset, d, nbDays, 1, v)} (collection.breakOut)
-  }    
+  // def correlations(asset:BasicAsset, nbDays:Int, nbResult:Int = 0):Set[dbCorrelation] = {
+  //   val correlarray = historicalCorrel(asset, nbDays, nbResult)
+  //   val underlying1 = assetID + ":" + assetName
+  //   val underlying2 = asset.assetID + ":" + asset.assetName
+  //   correlarray.map{ case (d, v) => getCorrelation(asset, d, nbDays, 1, v)} (collection.breakOut)
+  // }    
 }
 
 object StaticAnalysis {
@@ -96,22 +96,22 @@ object StaticAnalysis {
     case a => a
   }
   
-  def getCorrelation(asset1:BasicAsset, asset2:BasicAsset, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
-    getCorrelation(asset1.assetID, asset1.assetName, asset2.assetID, asset2.assetName, valuedate, nbDays, periodicity, correl)
+  // def getCorrelation(asset1:BasicAsset, asset2:BasicAsset, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
+  //   getCorrelation(asset1.assetID, asset1.assetName, asset2.assetID, asset2.assetName, valuedate, nbDays, periodicity, correl)
     
-  def getCorrelation(asset1:String, id1:String, asset2:String, id2:String, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
-    new dbCorrelation(
-        id = asset1 + "-" + id1 + ":" + asset2 + "-" + id2,
-        underlying1asset = getAsset(asset1),
-        underlying1id = id1,
-        underlying2asset = getAsset(asset2),
-        underlying2id = id2,
-        valuedate = valuedate.java,
-        periodicity = periodicity,
-        nbdays = nbDays,
-        value = correl,
-        lastmodified = Date.currentTimestamp,
-        created = Date.currentTimestamp)
+  // def getCorrelation(asset1:String, id1:String, asset2:String, id2:String, valuedate:Date, nbDays:Int, periodicity:Int, correl:Double):dbCorrelation = 
+  //   new dbCorrelation(
+  //       id = asset1 + "-" + id1 + ":" + asset2 + "-" + id2,
+  //       underlying1asset = getAsset(asset1),
+  //       underlying1id = id1,
+  //       underlying2asset = getAsset(asset2),
+  //       underlying2id = id2,
+  //       valuedate = valuedate.java,
+  //       periodicity = periodicity,
+  //       nbdays = nbDays,
+  //       value = correl,
+  //       lastmodified = Date.currentTimestamp,
+  //       created = Date.currentTimestamp)
   
   
 

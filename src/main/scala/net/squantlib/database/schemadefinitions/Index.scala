@@ -6,11 +6,11 @@ import org.squeryl.annotations.Column
 import org.squeryl.KeyedEntity
 
 
-class Index(@Column("ID")					override var id:String,
-              @Column("CurrencyID")			var currencyid:String,
-              @Column("VOLATILITY")			var volatility:Double,
-              @Column("PARAMDATE")			var paramdate:Date,
-              @Column("Settings")      var settings:String,
+class Index(@Column("id")					override var id:String,
+              @Column("currency_id")			var currencyid:String,
+              @Column("volatility")			var volatility:Double,
+              @Column("value_on")			var paramdate:Date,
+              @Column("settings")      var settings:String,
               @Column("created_at")			override var created: Timestamp,
               @Column("updated_at")		override var lastmodified : Timestamp
               ) extends StringEntity {
