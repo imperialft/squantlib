@@ -1,6 +1,6 @@
-package net.squantlib.database.schemadefinitions
+// package net.squantlib.database.schemadefinitions
 
-import org.squeryl.PrimitiveTypeMode
+// import org.squeryl.PrimitiveTypeMode
 
-object PfolioTypeMode extends PrimitiveTypeMode {
-}
+// object PfolioTypeMode extends PrimitiveTypeMode {
+// }
