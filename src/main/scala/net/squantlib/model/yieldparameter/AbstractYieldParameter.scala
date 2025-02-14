@@ -1,6 +1,6 @@
 package net.squantlib.model.yieldparameter
 
-import net.squantlib.chart.LineChart
+// import net.squantlib.chart.LineChart
 import net.squantlib.util.Date
 
 /**
@@ -35,8 +35,8 @@ trait AbstractYieldParameter{
    * @return Path to the output file (= png)
    *  
    */	
-	def render(png:String, xgrid:Int = 30, xlabel:String = "X-axis", ylabel:String = "Y-axis", title:String = "Untitled"):String = {
-		val data = (0 to (maxdays.toInt + 365) by xgrid) map { x => (new java.lang.Double(x / 365.0), new java.lang.Double(value(x)))}
-		LineChart.render(png, data, xlabel, ylabel, title)
-	}
+	// def render(png:String, xgrid:Int = 30, xlabel:String = "X-axis", ylabel:String = "Y-axis", title:String = "Untitled"):String = {
+	// 	val data = (0 to (maxdays.toInt + 365) by xgrid) map { x => (new java.lang.Double(x / 365.0), new java.lang.Double(value(x)))}
+	// 	LineChart.render(png, data, xlabel, ylabel, title)
+	// }
 }

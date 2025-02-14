@@ -32,9 +32,9 @@ trait Underlying extends StaticAsset {
   
   override def isPriced:Boolean = true
     
-  override def latestPriceDate:Option[Date] = Some(valuedate)
+  // override def latestPriceDate:Option[Date] = Some(valuedate)
     
-  override def latestPriceLocalCcy:Option[Double] = Some(spot)
+  // override def latestPriceLocalCcy:Option[Double] = Some(spot)
       
   val daysPerYr = 365.25
   

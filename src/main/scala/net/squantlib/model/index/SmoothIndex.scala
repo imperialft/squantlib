@@ -48,9 +48,9 @@ case class SmoothIndex(
     
     override def assetYield(days:Double):Double = dividend(days)
     
-    override def expectedYield:Option[Double] = Some(dividendYield(360) - repoRate(360))
+    // override def expectedYield:Option[Double] = Some(dividendYield(360) - repoRate(360))
     
-    override def expectedCoupon:Option[Double] = expectedYield
+    // override def expectedCoupon:Option[Double] = expectedYield
     
     
 } 
