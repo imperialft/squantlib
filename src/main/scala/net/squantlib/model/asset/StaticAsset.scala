@@ -1,7 +1,7 @@
 package net.squantlib.model.asset
 
 import net.squantlib.math.timeseries.{TimeSeries, Correlation, Volatility}
-import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
+// import net.squantlib.database.schemadefinitions.{Correlation => dbCorrelation}
 import scala.collection.SortedMap
 import scala.collection.mutable.{SynchronizedMap, WeakHashMap}
 import net.squantlib.util.initializer.Calendars
@@ -44,13 +44,13 @@ trait BasicAsset {
   
   def latestPrice:Option[Double]  // to be implemented in subclass
   
-  def latestPriceDate:Option[Date] // to be implemented in subclass
+  // def latestPriceDate:Option[Date] // to be implemented in subclass
   
-  def latestPriceLocalCcy:Option[Double]  // to be implemented in subclass
+  // def latestPriceLocalCcy:Option[Double]  // to be implemented in subclass
   
-  def expectedYield:Option[Double]  // to be implemented in subclass
+  // def expectedYield:Option[Double]  // to be implemented in subclass
   
-  def expectedCoupon:Option[Double]  // to be implemented in subclass
+  // def expectedCoupon:Option[Double]  // to be implemented in subclass
   
   
   /*

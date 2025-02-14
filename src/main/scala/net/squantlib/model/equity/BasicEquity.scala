@@ -53,12 +53,12 @@ case class BasicEquity(
 	
     override def repoRate(days:Double):Double = repo(days)
 
-    override def expectedYield:Option[Double] = 
-      if (rateCurve == null) None else Some(rateCurve.impliedRate(365.0))
+    // override def expectedYield:Option[Double] = 
+    //   if (rateCurve == null) None else Some(rateCurve.impliedRate(365.0))
     
-    override def expectedCoupon:Option[Double] = 
-      if (dividendList.isEmpty) None
-      else Some(dividendList.filter(_._1 <= 365).map(_._2).sum / spot)
+    // override def expectedCoupon:Option[Double] = 
+    //   if (dividendList.isEmpty) None
+    //   else Some(dividendList.filter(_._1 <= 365).map(_._2).sum / spot)
       
 } 
 

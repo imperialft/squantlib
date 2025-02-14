@@ -31,9 +31,9 @@ trait FX extends Underlying {
 	
 	val id = currencyFor.code + currencyDom.code
 	
-  override def expectedYield:Option[Double] = Some(curveFor.impliedRate(360) - curveDom.impliedRate(360))
+  // override def expectedYield:Option[Double] = Some(curveFor.impliedRate(360) - curveDom.impliedRate(360))
   
-  override def expectedCoupon:Option[Double] = expectedYield
+  // override def expectedCoupon:Option[Double] = expectedYield
   
   override def repoRate(days:Double) = 0.0
 

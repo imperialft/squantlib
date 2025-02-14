@@ -4,6 +4,7 @@ import net.squantlib.model.asset.AnalyzedAsset
 import net.squantlib.database.schemadefinitions.{Bond => dbBond}
 import net.squantlib.util.Date
 import net.squantlib.database.DB
+import net.squantlib.math.timeseries.TimeSeries
 
 trait BondAsset extends AnalyzedAsset {
   
@@ -15,19 +16,19 @@ trait BondAsset extends AnalyzedAsset {
   
   override def isPriced:Boolean
   
-  override def latestPriceLocalCcy: Option[Double]
+  // override def latestPriceLocalCcy: Option[Double]
   
   override val assetID = "PRICE"
     
   override val assetName = db.id
     
-  override def getPriceHistory = DB.getHistorical("BONDJPY:" + assetName).mapValues(v => v / 100.0)
+  override def getPriceHistory = TimeSeries.empty // DB.getHistorical("BONDJPY:" + assetName).mapValues(v => v / 100.0)
   
   override def latestPrice:Option[Double]
   
-  override def expectedYield:Option[Double]
+  // override def expectedYield:Option[Double]
   
-  override def expectedCoupon:Option[Double]
+  // override def expectedCoupon:Option[Double]
   
   // override def getDbForwardPrice = DB.getForwardPrices("BOND", assetName).mapValues(v => v / 100.0)
   
